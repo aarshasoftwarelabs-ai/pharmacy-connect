@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../services/medicine_request_service.dart';
@@ -24,7 +26,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
   void initState() {
     super.initState();
     _fetchRequests();
-    
+
     // Auto-polling every 15 seconds
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _fetchRequests(isBackgroundRefresh: true);
@@ -90,7 +92,10 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('My Orders', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text(
+          'My Orders',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         backgroundColor: AppColors.primary,
         elevation: 0,
         centerTitle: true,
@@ -103,7 +108,10 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
                 child: SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -132,9 +140,16 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
             children: [
               const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
-              Text('Unable to load your requests.', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Unable to load your requests.',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
-              Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => _fetchRequests(isBackgroundRefresh: false),
@@ -158,9 +173,17 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.inbox_outlined, size: 64, color: AppColors.textHint.withValues(alpha: 0.5)),
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 64,
+                  color: AppColors.textHint.withValues(alpha: 0.5),
+                ),
                 const SizedBox(height: 16),
-                Text('No medicine requests yet', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  'No medicine requests yet',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 const Text(
                   'When you ask a pharmacy for a medicine,\nyour requests will appear here.',
@@ -171,7 +194,10 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
                 AppButton(
                   text: 'Ask for Medicine',
                   onPressed: () {
-                    Navigator.pushReplacementNamed(context, AppRoutes.medicineRequest);
+                    Navigator.pushReplacementNamed(
+                      context,
+                      AppRoutes.medicineRequest,
+                    );
                   },
                 ),
               ],
@@ -220,7 +246,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -256,11 +282,13 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.1),
+                                  color: accentColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
-                                  req.imageReference != null ? Icons.document_scanner : Icons.edit_note,
+                                  req.imageReference != null
+                                      ? Icons.document_scanner
+                                      : Icons.edit_note,
                                   color: accentColor,
                                   size: 20,
                                 ),
@@ -272,16 +300,30 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
                                   children: [
                                     Text(
                                       req.medicineName ?? 'Prescription Upload',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: AppColors.textPrimary,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
-                                        const Icon(Icons.storefront, size: 14, color: AppColors.textHint),
+                                        const Icon(
+                                          Icons.storefront,
+                                          size: 14,
+                                          color: AppColors.textHint,
+                                        ),
                                         const SizedBox(width: 4),
-                                        Text(req.pharmacyName, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                        Text(
+                                          req.pharmacyName,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -298,9 +340,19 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.access_time, size: 14, color: AppColors.textHint),
+                                  const Icon(
+                                    Icons.access_time,
+                                    size: 14,
+                                    color: AppColors.textHint,
+                                  ),
                                   const SizedBox(width: 4),
-                                  Text('${req.createdAt.day}/${req.createdAt.month}/${req.createdAt.year}', style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
+                                  Text(
+                                    '${req.createdAt.day}/${req.createdAt.month}/${req.createdAt.year}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textHint,
+                                    ),
+                                  ),
                                 ],
                               ),
                               _buildStatusBadge(req.status),
@@ -322,7 +374,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
   Widget _buildStatusBadge(MedicineRequestStatus status) {
     Color color;
     String text;
-    
+
     switch (status) {
       case MedicineRequestStatus.waiting:
         color = AppColors.warning;
@@ -341,16 +393,21 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
         text = 'NOT AVAILABLE';
         break;
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color, letterSpacing: 0.5),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }

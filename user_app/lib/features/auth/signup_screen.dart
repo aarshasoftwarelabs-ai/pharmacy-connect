@@ -1,5 +1,7 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../services/auth_service.dart';
@@ -12,13 +14,14 @@ class SignupScreen extends StatefulWidget {
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderStateMixin {
+class _SignupScreenState extends State<SignupScreen>
+    with SingleTickerProviderStateMixin {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
-  
+
   late AnimationController _animationController;
 
   @override
@@ -45,33 +48,38 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
     final email = _emailController.text.trim();
 
     if (name.isEmpty || phone.isEmpty || email.isEmpty) {
-      UiUtils.showCustomSnackBar(context, 'Please fill all fields', isError: true);
+      UiUtils.showCustomSnackBar(
+        context,
+        'Please fill all fields',
+        isError: true,
+      );
       return;
     }
 
     setState(() => _isLoading = true);
-    
-    final response = await _authService.sendOtp(
-      email: email,
-      phone: phone,
-    );
+
+    final response = await _authService.sendOtp(email: email, phone: phone);
 
     setState(() => _isLoading = false);
 
     if (response['success'] == true) {
       UiUtils.showCustomSnackBar(context, response['message'] ?? 'OTP sent!');
       Navigator.pushNamed(
-        context, 
+        context,
         AppRoutes.otp,
         arguments: {
           'email': email,
           'phone': phone,
           'name': name,
-          'isLogin': false
-        }
+          'isLogin': false,
+        },
       );
     } else {
-      UiUtils.showCustomSnackBar(context, response['message'] ?? 'Failed to send OTP', isError: true);
+      UiUtils.showCustomSnackBar(
+        context,
+        response['message'] ?? 'Failed to send OTP',
+        isError: true,
+      );
     }
   }
 
@@ -106,7 +114,7 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                       height: size.width * 0.9,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.primaryLight.withOpacity(0.3),
+                        color: AppColors.primaryLight.withValues(alpha: 0.3),
                       ),
                     ),
                   ),
@@ -118,7 +126,9 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                       height: size.width * 0.8,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Color(0xFF8B5CF6), // Violet 500 for signup distinction
+                        color: Color(
+                          0xFF8B5CF6,
+                        ), // Violet 500 for signup distinction
                       ),
                     ),
                   ),
@@ -126,20 +136,21 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
               );
             },
           ),
-          
+
           // Heavy Blur Layer
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 60.0, sigmaY: 60.0),
-            child: Container(
-              color: Colors.white.withOpacity(0.2),
-            ),
+            child: Container(color: Colors.white.withValues(alpha: 0.2)),
           ),
-          
+
           // Main Content
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 20.0,
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -151,17 +162,17 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                         child: Container(
                           padding: const EdgeInsets.all(32),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: Colors.white.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(32),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 30,
-                              )
+                              ),
                             ],
                           ),
                           child: Column(
@@ -179,14 +190,20 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                                       child: child,
                                     );
                                   },
-                                  child: Image.asset('assets/images/logo.png', height: 70),
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    height: 70,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              
+
                               Text(
                                 'Create Account',
-                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w900,
                                       color: const Color(0xFF0F172A),
                                       letterSpacing: -1,
@@ -202,7 +219,7 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                                 ),
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Sleek Input - Name
                               _buildInputField(
                                 controller: _nameController,
@@ -211,7 +228,7 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                                 keyboardType: TextInputType.name,
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Sleek Input - Mobile
                               _buildInputField(
                                 controller: _phoneController,
@@ -220,7 +237,7 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                                 keyboardType: TextInputType.phone,
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Sleek Input - Email
                               _buildInputField(
                                 controller: _emailController,
@@ -229,7 +246,7 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                                 keyboardType: TextInputType.emailAddress,
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Modern Button
                               SizedBox(
                                 width: double.infinity,
@@ -240,7 +257,8 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                                     backgroundColor: const Color(0xFF0F172A),
                                     foregroundColor: Colors.white,
                                     elevation: 10,
-                                    shadowColor: const Color(0xFF0F172A).withOpacity(0.5),
+                                    shadowColor: const Color(0xFF0F172A)
+                                        .withValues(alpha: 0.5),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
                                     ),
@@ -287,15 +305,15 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: TextField(
@@ -304,9 +322,15 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
         keyboardType: keyboardType,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.normal),
+          hintStyle: const TextStyle(
+            color: Color(0xFF94A3B8),
+            fontWeight: FontWeight.normal,
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 20,
+          ),
           prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
         ),
       ),

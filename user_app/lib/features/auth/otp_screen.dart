@@ -1,6 +1,8 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../services/auth_service.dart';
@@ -13,12 +15,13 @@ class OtpScreen extends StatefulWidget {
   State<OtpScreen> createState() => _OtpScreenState();
 }
 
-class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMixin {
+class _OtpScreenState extends State<OtpScreen>
+    with SingleTickerProviderStateMixin {
   final _otpController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
   Map<String, dynamic>? _args;
-  
+
   late AnimationController _animationController;
 
   @override
@@ -49,12 +52,20 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
   void _verifyOtp() async {
     final otp = _otpController.text.trim();
     if (otp.isEmpty || otp.length < 6) {
-      UiUtils.showCustomSnackBar(context, 'Please enter a valid 6-digit OTP', isError: true);
+      UiUtils.showCustomSnackBar(
+        context,
+        'Please enter a valid 6-digit OTP',
+        isError: true,
+      );
       return;
     }
 
     if (_args == null) {
-      UiUtils.showCustomSnackBar(context, 'Error: Missing user data', isError: true);
+      UiUtils.showCustomSnackBar(
+        context,
+        'Error: Missing user data',
+        isError: true,
+      );
       return;
     }
 
@@ -96,7 +107,11 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(32),
                         boxShadow: const [
-                          BoxShadow(color: Colors.black26, blurRadius: 30, offset: Offset(0, 10))
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 30,
+                            offset: Offset(0, 10),
+                          ),
                         ],
                       ),
                       child: Column(
@@ -105,10 +120,14 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: AppColors.success.withOpacity(0.15),
+                              color: AppColors.success.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 72),
+                            child: const Icon(
+                              Icons.check_circle_rounded,
+                              color: AppColors.success,
+                              size: 72,
+                            ),
                           ),
                           const SizedBox(height: 20),
                           const DefaultTextStyle(
@@ -125,7 +144,7 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                       ),
                     ),
                   );
-                }
+                },
               ),
             );
           },
@@ -135,10 +154,18 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
       // Wait 1.5 seconds, then navigate
       await Future.delayed(const Duration(milliseconds: 1500));
       if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.main, (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.main,
+          (route) => false,
+        );
       }
     } else {
-      UiUtils.showCustomSnackBar(context, response['message'] ?? 'Invalid OTP', isError: true);
+      UiUtils.showCustomSnackBar(
+        context,
+        response['message'] ?? 'Invalid OTP',
+        isError: true,
+      );
     }
   }
 
@@ -174,7 +201,9 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                       height: size.width * 0.7,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.secondary.withOpacity(0.3), // Slightly different color for variety
+                        color: AppColors.secondary.withValues(
+                          alpha: 0.3,
+                        ), // Slightly different color for variety
                       ),
                     ),
                   ),
@@ -194,15 +223,13 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
               );
             },
           ),
-          
+
           // Heavy Blur Layer
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 60.0, sigmaY: 60.0),
-            child: Container(
-              color: Colors.white.withOpacity(0.2),
-            ),
+            child: Container(color: Colors.white.withValues(alpha: 0.2)),
           ),
-          
+
           // Main Content
           SafeArea(
             child: Center(
@@ -215,20 +242,24 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.verified_user_rounded, size: 48, color: AppColors.success),
+                      child: const Icon(
+                        Icons.verified_user_rounded,
+                        size: 48,
+                        color: AppColors.success,
+                      ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Glassmorphic Card
                     ClipRRect(
                       borderRadius: BorderRadius.circular(32),
@@ -237,17 +268,17 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                         child: Container(
                           padding: const EdgeInsets.all(32),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: Colors.white.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(32),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 30,
-                              )
+                              ),
                             ],
                           ),
                           child: Column(
@@ -255,7 +286,10 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                             children: [
                               Text(
                                 'Verify Account',
-                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w900,
                                       color: const Color(0xFF0F172A),
                                       letterSpacing: -1,
@@ -272,38 +306,51 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                                 ),
                               ),
                               const SizedBox(height: 40),
-                              
+
                               // Sleek Input
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.8),
+                                  color: Colors.white.withValues(alpha: 0.8),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(color: Colors.white),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.03),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.03,
+                                      ),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
-                                    )
+                                    ),
                                   ],
                                 ),
                                 child: TextField(
                                   controller: _otpController,
-                                  style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 8, fontSize: 20),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 8,
+                                    fontSize: 20,
+                                  ),
                                   textAlign: TextAlign.center,
                                   keyboardType: TextInputType.number,
                                   maxLength: 6,
                                   decoration: const InputDecoration(
                                     counterText: "",
                                     hintText: '000000',
-                                    hintStyle: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.normal, letterSpacing: 8),
+                                    hintStyle: TextStyle(
+                                      color: Color(0xFF94A3B8),
+                                      fontWeight: FontWeight.normal,
+                                      letterSpacing: 8,
+                                    ),
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 20,
+                                    ),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Modern Button
                               SizedBox(
                                 width: double.infinity,
@@ -314,7 +361,8 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                                     backgroundColor: const Color(0xFF0F172A),
                                     foregroundColor: Colors.white,
                                     elevation: 10,
-                                    shadowColor: const Color(0xFF0F172A).withOpacity(0.5),
+                                    shadowColor: const Color(0xFF0F172A)
+                                        .withValues(alpha: 0.5),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
                                     ),
@@ -344,24 +392,31 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Resend Link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Didn\'t receive it?',
-                            style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                        const Text(
+                          'Didn\'t receive it?',
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () {
                             // Can trigger resend here if needed
                             UiUtils.showCustomSnackBar(context, 'OTP Resent!');
                           },
-                          child: const Text('Resend Code',
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w800,
-                              )),
+                          child: const Text(
+                            'Resend Code',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                       ],
                     ),

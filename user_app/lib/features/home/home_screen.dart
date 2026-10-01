@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 import '../../services/pharmacy_service.dart';
@@ -139,27 +140,43 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     'Good Morning,',
-                    style: TextStyle(color: Colors.teal.shade100, fontSize: 14, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      color: Colors.teal.shade100,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _userName,
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
               GestureDetector(
-                onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
+                onTap: () =>
+                    Navigator.pushNamed(context, AppRoutes.notifications),
                 child: Stack(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.15),
-                        border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+                        color: Colors.white.withValues(alpha: 0.15),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          width: 1.5,
+                        ),
                       ),
-                      child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 26),
+                      child: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
                     if (_recentRequest != null)
                       Positioned(
@@ -171,13 +188,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.error,
                             shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.primary, width: 2),
+                            border: Border.all(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
                           ),
                         ),
                       ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -193,12 +213,14 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           AnimatedPromoCard(
             title: 'Upload Prescription',
-            subtitle: 'We will arrange the medicines for you from local stores.',
+            subtitle:
+                'We will arrange the medicines for you from local stores.',
             badgeText: 'QUICK ORDER',
             buttonText: 'Upload Now',
             icon: Icons.document_scanner,
             gradientColors: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
-            onTap: () => Navigator.pushNamed(context, AppRoutes.medicineRequest),
+            onTap: () =>
+                Navigator.pushNamed(context, AppRoutes.medicineRequest),
           ),
         ],
       ),
@@ -214,20 +236,35 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('My Pharmacy', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              const Text(
+                'My Pharmacy',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
               TextButton(
                 onPressed: () {},
-                child: const Text('Change', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-              )
+                child: const Text(
+                  'Change',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          
+
           if (_isLoading)
-            const Center(child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
-            ))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            )
           else if (_pharmacy == null)
             Container(
               padding: const EdgeInsets.all(16),
@@ -236,10 +273,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
-              child: const Text('No pharmacy connected yet.', style: TextStyle(color: AppColors.textSecondary)),
+              child: const Text(
+                'No pharmacy connected yet.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
             )
           else
             Container(
@@ -249,7 +293,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
               child: Row(
@@ -257,23 +305,48 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withOpacity(0.1),
+                      color: AppColors.primaryLight.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.local_pharmacy, color: AppColors.primary, size: 32),
+                    child: const Icon(
+                      Icons.local_pharmacy,
+                      color: AppColors.primary,
+                      size: 32,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_pharmacy!.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                        Text(
+                          _pharmacy!.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.location_on, size: 12, color: AppColors.textHint),
+                            const Icon(
+                              Icons.location_on,
+                              size: 12,
+                              color: AppColors.textHint,
+                            ),
                             const SizedBox(width: 4),
-                            Expanded(child: Text(_pharmacy!.address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                            Expanded(
+                              child: Text(
+                                _pharmacy!.address,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -282,12 +355,22 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
+                              decoration: const BoxDecoration(
+                                color: AppColors.success,
+                                shape: BoxShape.circle,
+                              ),
                             ),
                             const SizedBox(width: 6),
-                            const Text('Open Now', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.success)),
+                            const Text(
+                              'Open Now',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.success,
+                              ),
+                            ),
                           ],
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -297,13 +380,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.call, color: AppColors.primary, size: 20),
+                      icon: const Icon(
+                        Icons.call,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                       onPressed: () {},
                     ),
-                  )
+                  ),
                 ],
               ),
-            )
+            ),
         ],
       ),
     );
@@ -318,20 +405,36 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Recent Requests', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              const Text(
+                'Recent Requests',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
               TextButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.medicineRequests),
-                child: const Text('View All', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-              )
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.medicineRequests),
+                child: const Text(
+                  'View All',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
 
           if (_isLoading)
-            const Center(child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
-            ))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            )
           else if (_recentRequest == null)
             Container(
               padding: const EdgeInsets.all(16),
@@ -340,11 +443,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Text('You have no recent requests.', style: TextStyle(color: AppColors.textSecondary)),
+              child: const Text(
+                'You have no recent requests.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
             )
           else
             InkWell(
-              onTap: () => Navigator.pushNamed(context, AppRoutes.medicineRequestDetails, arguments: _recentRequest),
+              onTap: () => Navigator.pushNamed(
+                context,
+                AppRoutes.medicineRequestDetails,
+                arguments: _recentRequest,
+              ),
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -358,19 +468,35 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(_recentRequest!.status).withOpacity(0.1),
+                        color: _getStatusColor(_recentRequest!.status)
+                            .withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.receipt_long, color: _getStatusColor(_recentRequest!.status)),
+                      child: Icon(
+                        Icons.receipt_long,
+                        color: _getStatusColor(_recentRequest!.status),
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_recentRequest!.medicineName ?? 'Image Request', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(
+                            _recentRequest!.medicineName ?? 'Image Request',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                           const SizedBox(height: 2),
-                          Text(_getStatusText(_recentRequest!.status), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          Text(
+                            _getStatusText(_recentRequest!.status),
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -378,7 +504,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-            )
+            ),
         ],
       ),
     );
@@ -409,7 +535,8 @@ class AnimatedPromoCard extends StatefulWidget {
   State<AnimatedPromoCard> createState() => _AnimatedPromoCardState();
 }
 
-class _AnimatedPromoCardState extends State<AnimatedPromoCard> with SingleTickerProviderStateMixin {
+class _AnimatedPromoCardState extends State<AnimatedPromoCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -420,10 +547,11 @@ class _AnimatedPromoCardState extends State<AnimatedPromoCard> with SingleTicker
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.15,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -449,7 +577,7 @@ class _AnimatedPromoCardState extends State<AnimatedPromoCard> with SingleTicker
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: widget.gradientColors.first.withOpacity(0.3),
+              color: widget.gradientColors.first.withValues(alpha: 0.3),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -465,7 +593,7 @@ class _AnimatedPromoCardState extends State<AnimatedPromoCard> with SingleTicker
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -477,7 +605,7 @@ class _AnimatedPromoCardState extends State<AnimatedPromoCard> with SingleTicker
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                 ),
               ),
             ),
@@ -490,45 +618,77 @@ class _AnimatedPromoCardState extends State<AnimatedPromoCard> with SingleTicker
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(widget.badgeText, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          widget.badgeText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         widget.title,
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         widget.subtitle,
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
                           ],
                         ),
                         child: Text(
                           widget.buttonText,
-                          style: TextStyle(color: widget.gradientColors.last, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: widget.gradientColors.last,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 16),
                 ScaleTransition(
                   scale: _scaleAnimation,
-                  child: Icon(widget.icon, size: 80, color: Colors.white.withOpacity(0.8)),
+                  child: Icon(
+                    widget.icon,
+                    size: 80,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
                 ),
               ],
             ),
