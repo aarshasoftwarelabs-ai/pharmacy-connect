@@ -1,4 +1,9 @@
 import { app, BrowserWindow, dialog } from 'electron';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Disable hardware acceleration to prevent white screen and crashes on some Windows systems
+app.disableHardwareAcceleration();
 
 process.on('uncaughtException', (error) => {
   dialog.showErrorBox('App Crash (Uncaught Exception)', error.message + '\n' + (error.stack || ''));
@@ -7,8 +12,6 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason) => {
   dialog.showErrorBox('App Crash (Unhandled Rejection)', String(reason));
 });
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
