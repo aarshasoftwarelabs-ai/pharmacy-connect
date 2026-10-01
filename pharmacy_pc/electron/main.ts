@@ -1,4 +1,12 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, dialog } from 'electron';
+
+process.on('uncaughtException', (error) => {
+  dialog.showErrorBox('App Crash (Uncaught Exception)', error.message + '\n' + (error.stack || ''));
+});
+
+process.on('unhandledRejection', (reason) => {
+  dialog.showErrorBox('App Crash (Unhandled Rejection)', String(reason));
+});
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
