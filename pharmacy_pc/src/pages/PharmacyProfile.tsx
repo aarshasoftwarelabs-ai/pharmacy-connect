@@ -5,6 +5,42 @@ import { MedicineRequestService } from '../services/medicineRequestService';
 import { BillingService } from '../services/billingService';
 import { DEV_PHARMACY_ID } from '../config/development';
 
+const CustomTimeSelect = ({ value, onChange, options }: { value: string, onChange: (val: string) => void, options: string[] }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="relative w-full sm:w-[130px]">
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full border border-slate-200 rounded-lg shadow-sm py-2 px-3 text-sm font-medium text-slate-700 bg-slate-50 hover:bg-white transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      >
+        <span>{value}</span>
+        <svg className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+      
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+          <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+            {options.map(time => (
+              <div 
+                key={time}
+                onClick={() => {
+                  onChange(time);
+                  setIsOpen(false);
+                }}
+                className={`px-3 py-2 text-sm cursor-pointer transition-colors ${value === time ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-700 hover:bg-slate-100'}`}
+              >
+                {time}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const DayHoursEditor = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => {
   const isClosed = !value || value.toLowerCase() === 'closed';
   let openTime = '09:00 AM';
@@ -51,24 +87,20 @@ const DayHoursEditor = ({ label, value, onChange }: { label: string, value: stri
               </div>
             ) : (
               <>
-                <select 
+                <CustomTimeSelect 
                   value={openTime}
-                  onChange={(e) => {
-                    if (e.target.value === 'Open 24 Hours') onChange('Open 24 Hours');
-                    else onChange(`${e.target.value} - ${closeTime}`);
+                  onChange={(val) => {
+                    if (val === 'Open 24 Hours') onChange('Open 24 Hours');
+                    else onChange(`${val} - ${closeTime}`);
                   }}
-                  className="block w-full sm:w-[130px] border border-slate-200 rounded-lg shadow-sm py-2 px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 hover:bg-white transition-colors cursor-pointer"
-                >
-                  {times.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                  options={times}
+                />
                 <span className="text-slate-400 font-medium text-sm">to</span>
-                <select 
+                <CustomTimeSelect 
                   value={closeTime}
-                  onChange={(e) => onChange(`${openTime} - ${e.target.value}`)}
-                  className="block w-full sm:w-[130px] border border-slate-200 rounded-lg shadow-sm py-2 px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 hover:bg-white transition-colors cursor-pointer"
-                >
-                  {times.filter(t => t !== 'Open 24 Hours').map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                  onChange={(val) => onChange(`${openTime} - ${val}`)}
+                  options={times.filter(t => t !== 'Open 24 Hours')}
+                />
               </>
             )}
           </div>
