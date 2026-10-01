@@ -27,22 +27,25 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 let win: BrowserWindow | null;
 
 function createWindow() {
-  win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    icon: path.join(process.env.VITE_PUBLIC || '', 'davasetu_logo.png'),
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-  });
+  try {
+    win = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      // icon: path.join(process.env.VITE_PUBLIC || '', 'davasetu_logo.png'), // Removed to prevent asar path crash on Windows
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.mjs'),
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
 
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'));
+    if (VITE_DEV_SERVER_URL) {
+      win.loadURL(VITE_DEV_SERVER_URL);
+    } else {
+      win.loadFile(path.join(RENDERER_DIST, 'index.html'));
+    }
+  } catch (error: any) {
+    dialog.showErrorBox('App Crash (createWindow)', error?.message || String(error));
   }
 }
 
