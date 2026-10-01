@@ -28,57 +28,66 @@ const DayHoursEditor = ({ label, value, onChange }: { label: string, value: stri
   ];
 
   return (
-    <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
-      <div className="flex justify-between items-center mb-2">
-        <label className="block text-sm font-medium text-slate-700">{label}</label>
-        <label className="flex items-center text-xs text-slate-500 cursor-pointer">
-          <input 
-            type="checkbox" 
-            checked={isClosed}
-            onChange={(e) => {
-              if (e.target.checked) onChange('Closed');
-              else onChange(openTime === 'Open 24 Hours' ? 'Open 24 Hours' : `${openTime} - ${closeTime}`);
-            }}
-            className="mr-1.5 rounded text-rose-500 focus:ring-rose-500 border-slate-300"
-          />
-          Closed
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:shadow-sm transition-all gap-4">
+      <div className="flex items-center justify-between sm:w-1/3">
+        <div className="font-semibold text-slate-800">{label}</div>
+        
+        {/* Mobile Toggle Switch */}
+        <label className="relative inline-flex items-center cursor-pointer sm:hidden">
+          <input type="checkbox" className="sr-only peer" checked={!isClosed} onChange={(e) => {
+            if (!e.target.checked) onChange('Closed');
+            else onChange(openTime === 'Open 24 Hours' ? 'Open 24 Hours' : `${openTime} - ${closeTime}`);
+          }} />
+          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
         </label>
       </div>
-      
-      {!isClosed ? (
-        <div className="flex items-center space-x-2">
-          {openTime === 'Open 24 Hours' ? (
-             <div className="w-full text-center py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 rounded border border-emerald-100 cursor-pointer" onClick={() => onChange('09:00 AM - 09:00 PM')}>
-               Open 24 Hours (Click to change)
-             </div>
-          ) : (
-            <>
-              <select 
-                value={openTime}
-                onChange={(e) => {
-                  if (e.target.value === 'Open 24 Hours') onChange('Open 24 Hours');
-                  else onChange(`${e.target.value} - ${closeTime}`);
-                }}
-                className="block w-full border border-slate-300 rounded-md shadow-sm py-1.5 px-1 text-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-              >
-                {times.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <span className="text-slate-400 text-xs">to</span>
-              <select 
-                value={closeTime}
-                onChange={(e) => onChange(`${openTime} - ${e.target.value}`)}
-                className="block w-full border border-slate-300 rounded-md shadow-sm py-1.5 px-1 text-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-              >
-                {times.filter(t => t !== 'Open 24 Hours').map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="py-1.5 px-2 text-xs text-rose-500 bg-rose-50 rounded text-center border border-rose-100 font-medium">
-          Closed All Day
-        </div>
-      )}
+
+      <div className="flex flex-col sm:flex-row sm:items-center flex-1 sm:justify-end gap-3">
+        {!isClosed ? (
+          <div className="flex flex-1 sm:flex-none items-center space-x-2">
+            {openTime === 'Open 24 Hours' ? (
+              <div className="w-full sm:w-64 text-center py-2 px-3 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 cursor-pointer hover:bg-emerald-100 transition-colors" onClick={() => onChange('09:00 AM - 09:00 PM')}>
+                Open 24 Hours (Click to change)
+              </div>
+            ) : (
+              <>
+                <select 
+                  value={openTime}
+                  onChange={(e) => {
+                    if (e.target.value === 'Open 24 Hours') onChange('Open 24 Hours');
+                    else onChange(`${e.target.value} - ${closeTime}`);
+                  }}
+                  className="block w-full sm:w-[130px] border border-slate-200 rounded-lg shadow-sm py-2 px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 hover:bg-white transition-colors cursor-pointer"
+                >
+                  {times.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <span className="text-slate-400 font-medium text-sm">to</span>
+                <select 
+                  value={closeTime}
+                  onChange={(e) => onChange(`${openTime} - ${e.target.value}`)}
+                  className="block w-full sm:w-[130px] border border-slate-200 rounded-lg shadow-sm py-2 px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 hover:bg-white transition-colors cursor-pointer"
+                >
+                  {times.filter(t => t !== 'Open 24 Hours').map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="py-2 px-4 text-sm font-semibold text-rose-600 bg-rose-50 rounded-lg text-center border border-rose-100 flex-1 sm:flex-none sm:w-[288px]">
+            Closed All Day
+          </div>
+        )}
+
+        {/* Desktop Toggle Switch */}
+        <label className="hidden sm:flex relative items-center cursor-pointer ml-2">
+          <input type="checkbox" className="sr-only peer" checked={!isClosed} onChange={(e) => {
+            if (!e.target.checked) onChange('Closed');
+            else onChange(openTime === 'Open 24 Hours' ? 'Open 24 Hours' : `${openTime} - ${closeTime}`);
+          }} />
+          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+          <span className="ml-3 text-sm font-medium text-slate-600 w-12">{!isClosed ? 'Open' : 'Closed'}</span>
+        </label>
+      </div>
     </div>
   );
 };
@@ -438,7 +447,7 @@ export default function PharmacyProfile() {
                   <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center">
                     <Clock className="w-4 h-4 mr-2 text-indigo-500" /> Edit Operational Hours
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex flex-col space-y-3">
                     <DayHoursEditor
                       label="Monday - Friday"
                       value={editForm.operationalHours?.mondayToFriday || '09:00 AM - 10:00 PM'}
