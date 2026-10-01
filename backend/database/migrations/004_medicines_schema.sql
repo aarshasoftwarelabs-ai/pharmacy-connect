@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS medicines (
+    id SERIAL PRIMARY KEY,
+    pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    generic_name VARCHAR(255),
+    category VARCHAR(255),
+    strength VARCHAR(100),
+    sku VARCHAR(100) UNIQUE,
+    current_stock INTEGER DEFAULT 0,
+    minimum_stock INTEGER DEFAULT 10,
+    selling_price DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

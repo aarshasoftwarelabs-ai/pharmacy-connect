@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-electron
+release
+.vite
+*.exe
+handle64.exe
+*.tsbuildinfo
+.env
+build-release/
