@@ -255,7 +255,7 @@ export default function Billing() {
                         </div>
                         <div className="text-right">
                           <div className="text-sm text-slate-500 mb-1">Total Amount</div>
-                          <div className="text-lg font-black text-slate-800 flex items-center justify-end">
+                          <div className="text-lg font-bold text-slate-800 flex items-center justify-end">
                             <IndianRupee className="w-4 h-4 mr-0.5 text-slate-500" />
                             {Number(bill.total).toFixed(2)}
                           </div>

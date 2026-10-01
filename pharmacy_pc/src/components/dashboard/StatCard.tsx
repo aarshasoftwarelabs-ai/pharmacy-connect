@@ -18,7 +18,7 @@ export default function StatCard({ label, value, subText, icon: Icon, trendUp, c
       <div className="relative flex justify-between items-start z-10">
         <div className="flex-1">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</p>
-          <p className="mt-3 text-3xl font-black text-slate-800 tracking-tight">{value}</p>
+          <p className="mt-3 text-3xl font-semibold text-slate-800 tracking-tight">{value}</p>
         </div>
         <div className={`p-3 rounded-xl ${bgClass} shadow-sm border border-white/50 group-hover:scale-110 transition-transform duration-300`}>
           <Icon className={`h-6 w-6 ${colorClass}`} />

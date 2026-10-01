@@ -280,7 +280,7 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
           <form onSubmit={handleSubmit}>
             <div className="bg-gradient-to-r from-slate-50 to-white px-6 pt-6 pb-5 border-b border-slate-100 flex justify-between items-start text-slate-900 rounded-t-2xl">
               <div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2" id="modal-title">
+                <h3 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2" id="modal-title">
                   {isEdit ? 'Edit Medicine' : 'Add New Medicine'}
                   {!isEdit && <span className="bg-pharmacy-100 text-pharmacy-700 text-[10px] uppercase px-2.5 py-1 rounded-full font-bold ml-2 tracking-wider">New</span>}
                 </h3>

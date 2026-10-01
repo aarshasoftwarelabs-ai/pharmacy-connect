@@ -222,7 +222,7 @@ export default function PharmacyProfile() {
                 <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
                   <Award className="w-5 h-5" />
                 </div>
-                <h4 className="text-3xl font-black text-slate-900">{totalRequests}</h4>
+                <h4 className="text-3xl font-semibold text-slate-900">{totalRequests}</h4>
                 <p className="text-sm font-medium text-slate-500 mt-1">Total Requests Handled</p>
               </div>
             </div>
@@ -233,7 +233,7 @@ export default function PharmacyProfile() {
                 <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
                   <FileText className="w-5 h-5" />
                 </div>
-                <h4 className="text-3xl font-black text-slate-900">{totalBills}</h4>
+                <h4 className="text-3xl font-semibold text-slate-900">{totalBills}</h4>
                 <p className="text-sm font-medium text-slate-500 mt-1">Bills Generated</p>
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function PharmacyProfile() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
                   <IndianRupee className="w-5 h-5" />
                 </div>
-                <h4 className="text-3xl font-black text-slate-900">₹{(totalRevenue / 1000).toFixed(1)}k</h4>
+                <h4 className="text-3xl font-semibold text-slate-900">₹{(totalRevenue / 1000).toFixed(1)}k</h4>
                 <p className="text-sm font-medium text-slate-500 mt-1">Lifetime Revenue</p>
               </div>
             </div>

@@ -279,7 +279,7 @@ export default function Login() {
             </div>
             {step === 1 && (
               <>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sign in or Join</h2>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Sign in or Join</h2>
                 <p className="mt-2 text-slate-500 font-medium text-sm">Enter your mobile number to get started</p>
               </>
             )}
@@ -288,19 +288,19 @@ export default function Login() {
                 <div className="w-16 h-16 bg-pharmacy-100 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-pharmacy-200">
                   <Store className="w-8 h-8 text-pharmacy-600" />
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">{pharmacyName}</h2>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{pharmacyName}</h2>
                 <p className="mt-1 text-slate-500 font-medium text-sm">{phone}</p>
               </>
             )}
             {step === 3 && (
               <>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Verify Email OTP</h2>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Verify Email OTP</h2>
                 <p className="mt-2 text-slate-500 font-medium text-sm">OTP sent to {email || 'your email'}</p>
               </>
             )}
             {step === 4 && (
               <>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Complete Profile</h2>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Complete Profile</h2>
                 <p className="mt-2 text-slate-500 font-medium text-sm">Just a few more details to create your pharmacy</p>
               </>
             )}
@@ -530,7 +530,7 @@ export default function Login() {
             <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(16,185,129,0.2)] animate-bounce" style={{ animationDuration: '2s' }}>
               <CheckCircle className="w-10 h-10 text-emerald-500" />
             </div>
-            <h2 className="text-2xl font-black text-slate-800 mb-2 text-center">
+            <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">
               {step === 2 ? 'Welcome Back!' : 'Account Created!'}
             </h2>
             <p className="text-slate-500 font-medium text-sm animate-pulse text-center">
