@@ -15,6 +15,11 @@ export interface PharmacyProfile {
   gstin?: string;
   gstRegistered?: boolean;
   state?: string;
+  operationalHours?: {
+    mondayToFriday: string;
+    saturday: string;
+    sunday: string;
+  };
 }
 
 export class PharmacyService {
@@ -23,6 +28,7 @@ export class PharmacyService {
       SELECT p.id, p.owner_id AS "ownerId", p.name, p.address, p.phone, p.gstin, p.gst_registered AS "gstRegistered", p.state,
              p.plan_type AS "planType", p.trial_start_date AS "trialStartDate", p.subscription_end_date AS "subscriptionEndDate",
              p.created_at AS "createdAt", p.updated_at AS "updatedAt",
+             p.operational_hours AS "operationalHours",
              u.name AS "ownerName"
       FROM pharmacies p
       LEFT JOIN users u ON p.owner_id = u.id
@@ -61,6 +67,7 @@ export class PharmacyService {
       WHERE id = $1
       RETURNING id, owner_id AS "ownerId", name, address, phone, 
                 plan_type AS "planType", trial_start_date AS "trialStartDate", subscription_end_date AS "subscriptionEndDate",
+                operational_hours AS "operationalHours",
                 created_at AS "createdAt", updated_at AS "updatedAt"
     `;
     const result = await pool.query(query, [id, planType, subscriptionEndDate]);
@@ -83,7 +90,7 @@ export class PharmacyService {
 
   static async updatePharmacyProfile(
     id: number,
-    data: { name: string; address: string; phone: string; regNo?: string; gstin?: string; gstRegistered?: boolean; state?: string; ownerName?: string; email?: string }
+    data: { name: string; address: string; phone: string; regNo?: string; gstin?: string; gstRegistered?: boolean; state?: string; ownerName?: string; email?: string; operationalHours?: any }
   ): Promise<PharmacyProfile | null> {
     
     // First, update the user name if ownerName is provided
@@ -106,14 +113,16 @@ export class PharmacyService {
           email = COALESCE($7, email),
           gst_registered = COALESCE($8, gst_registered),
           state = COALESCE($9, state),
+          operational_hours = COALESCE($10, operational_hours),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING id, owner_id AS "ownerId", name, address, phone, email, reg_no AS "regNo", gstin, gst_registered AS "gstRegistered", state,
                 plan_type AS "planType", trial_start_date AS "trialStartDate", subscription_end_date AS "subscriptionEndDate",
+                operational_hours AS "operationalHours",
                 created_at AS "createdAt", updated_at AS "updatedAt"
     `;
     const result = await pool.query(query, [
-      id, data.name, data.address, data.phone, data.regNo, data.gstin, data.email, data.gstRegistered, data.state
+      id, data.name, data.address, data.phone, data.regNo, data.gstin, data.email, data.gstRegistered, data.state, data.operationalHours
     ]);
     
     if (result.rows.length === 0) {

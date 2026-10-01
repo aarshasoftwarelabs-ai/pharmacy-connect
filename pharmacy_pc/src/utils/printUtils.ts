@@ -262,6 +262,9 @@ export const generateA4PrintHTML = (bill: Bill, pharmacyName: string = 'Pharmacy
 };
 
 export const generateThermalPrintHTML = (bill: Bill, pharmacyName: string = 'PharmacyConnect') => {
+  const isOnline = bill.billType === 'ONLINE';
+  const displayName = isOnline ? 'DavaSetu' : pharmacyName;
+  
   // Simpler, narrow thermal receipt style
   return `
     <!DOCTYPE html>
@@ -284,7 +287,7 @@ export const generateThermalPrintHTML = (bill: Bill, pharmacyName: string = 'Pha
     </head>
     <body>
       <div class="center">
-        <h2 style="margin: 0; font-size: 16px;">${pharmacyName}</h2>
+        <h2 style="margin: 0; font-size: 16px;">${displayName}</h2>
         <p style="margin: 2px 0;">Receipt: ${bill.billNumber}</p>
         <p style="margin: 2px 0;">Date: ${new Date(bill.createdAt).toLocaleString()}</p>
       </div>
@@ -347,7 +350,19 @@ export const generateThermalPrintHTML = (bill: Bill, pharmacyName: string = 'Pha
   `;
 };
 
-export const printBill = (bill: Bill, format: 'A4' | 'THERMAL' = 'A4', pharmacyName = 'DavaSetu Pharmacy', ownerName = 'Admin') => {
+export const printBill = (bill: Bill, format: 'A4' | 'THERMAL' = 'A4', defaultPharmacyName = 'DavaSetu Pharmacy', defaultOwnerName = 'Admin') => {
+  let pharmacyName = defaultPharmacyName;
+  let ownerName = defaultOwnerName;
+  
+  try {
+    const localData = localStorage.getItem('pharmacy_profile_data');
+    if (localData) {
+      const profile = JSON.parse(localData);
+      if (profile.name) pharmacyName = profile.name;
+      if (profile.ownerName) ownerName = profile.ownerName;
+    }
+  } catch (e) {}
+
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert('Please allow popups to print bills.');

@@ -139,7 +139,12 @@ export default function PharmacyProfile() {
               regNo: profile.regNo,
               gstin: profile.gstin,
               gstRegistered: profile.gstRegistered || false,
-              state: profile.state || ''
+              state: profile.state || '',
+              operationalHours: profile.operationalHours || {
+                mondayToFriday: '09:00 AM - 10:00 PM',
+                saturday: '09:00 AM - 11:00 PM',
+                sunday: 'Closed'
+              }
             });
             setIsEditing(true);
           }}
@@ -197,15 +202,15 @@ export default function PharmacyProfile() {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 font-medium">Monday - Friday</span>
-                <span className="text-slate-900 font-semibold">09:00 AM - 10:00 PM</span>
+                <span className="text-slate-900 font-semibold">{profile.operationalHours?.mondayToFriday || '09:00 AM - 10:00 PM'}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 font-medium">Saturday</span>
-                <span className="text-slate-900 font-semibold">09:00 AM - 11:00 PM</span>
+                <span className="text-slate-900 font-semibold">{profile.operationalHours?.saturday || '09:00 AM - 11:00 PM'}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 font-medium">Sunday</span>
-                <span className="text-rose-600 font-semibold">Closed</span>
+                <span className={`${profile.operationalHours?.sunday?.toLowerCase() === 'closed' ? 'text-rose-600' : 'text-slate-900'} font-semibold`}>{profile.operationalHours?.sunday || 'Closed'}</span>
               </div>
             </div>
           </div>
@@ -350,6 +355,25 @@ export default function PharmacyProfile() {
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-700">Address</label>
                   <textarea rows={3} value={editForm.address || ''} onChange={e => setEditForm({...editForm, address: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                </div>
+                <div className="md:col-span-2 pt-4 border-t border-slate-100 mt-2">
+                  <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center">
+                    <Clock className="w-4 h-4 mr-2 text-indigo-500" /> Edit Operational Hours
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Mon - Fri</label>
+                      <input type="text" value={editForm.operationalHours?.mondayToFriday || ''} onChange={e => setEditForm({...editForm, operationalHours: {...(editForm.operationalHours || {mondayToFriday:'', saturday:'', sunday:''}), mondayToFriday: e.target.value}})} placeholder="09:00 AM - 10:00 PM" className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Saturday</label>
+                      <input type="text" value={editForm.operationalHours?.saturday || ''} onChange={e => setEditForm({...editForm, operationalHours: {...(editForm.operationalHours || {mondayToFriday:'', saturday:'', sunday:''}), saturday: e.target.value}})} placeholder="09:00 AM - 11:00 PM" className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Sunday</label>
+                      <input type="text" value={editForm.operationalHours?.sunday || ''} onChange={e => setEditForm({...editForm, operationalHours: {...(editForm.operationalHours || {mondayToFriday:'', saturday:'', sunday:''}), sunday: e.target.value}})} placeholder="Closed" className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

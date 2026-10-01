@@ -42,10 +42,10 @@ export class PharmacyController {
         return res.status(400).json({ error: 'Invalid pharmacy ID' });
       }
 
-      const { name, address, phone, regNo, gstin, gstRegistered, state, ownerName, email } = req.body;
+      const { name, address, phone, regNo, gstin, gstRegistered, state, ownerName, email, operationalHours } = req.body;
 
       const updatedPharmacy = await PharmacyService.updatePharmacyProfile(pharmacyId, {
-        name, address, phone, regNo, gstin, gstRegistered, state, ownerName, email
+        name, address, phone, regNo, gstin, gstRegistered, state, ownerName, email, operationalHours
       });
 
       if (!updatedPharmacy) {

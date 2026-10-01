@@ -17,6 +17,11 @@ export interface PharmacyProfile {
   subscriptionEndDate?: string | null;
   createdAt: string;
   updatedAt: string;
+  operationalHours?: {
+    mondayToFriday: string;
+    saturday: string;
+    sunday: string;
+  };
 }
 
 export class PharmacyService {
