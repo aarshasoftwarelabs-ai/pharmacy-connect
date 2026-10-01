@@ -5,6 +5,84 @@ import { MedicineRequestService } from '../services/medicineRequestService';
 import { BillingService } from '../services/billingService';
 import { DEV_PHARMACY_ID } from '../config/development';
 
+const DayHoursEditor = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => {
+  const isClosed = !value || value.toLowerCase() === 'closed';
+  let openTime = '09:00 AM';
+  let closeTime = '09:00 PM';
+  
+  if (!isClosed) {
+    const parts = value.split(' - ');
+    if (parts.length === 2) {
+      openTime = parts[0];
+      closeTime = parts[1];
+    } else if (value === 'Open 24 Hours') {
+      openTime = 'Open 24 Hours';
+      closeTime = 'Open 24 Hours';
+    }
+  }
+
+  const times = [
+    '05:00 AM', '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
+    '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM',
+    '09:00 PM', '10:00 PM', '11:00 PM', '12:00 AM', 'Open 24 Hours'
+  ];
+
+  return (
+    <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+      <div className="flex justify-between items-center mb-2">
+        <label className="block text-sm font-medium text-slate-700">{label}</label>
+        <label className="flex items-center text-xs text-slate-500 cursor-pointer">
+          <input 
+            type="checkbox" 
+            checked={isClosed}
+            onChange={(e) => {
+              if (e.target.checked) onChange('Closed');
+              else onChange(openTime === 'Open 24 Hours' ? 'Open 24 Hours' : `${openTime} - ${closeTime}`);
+            }}
+            className="mr-1.5 rounded text-rose-500 focus:ring-rose-500 border-slate-300"
+          />
+          Closed
+        </label>
+      </div>
+      
+      {!isClosed ? (
+        <div className="flex items-center space-x-2">
+          {openTime === 'Open 24 Hours' ? (
+             <div className="w-full text-center py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 rounded border border-emerald-100 cursor-pointer" onClick={() => onChange('09:00 AM - 09:00 PM')}>
+               Open 24 Hours (Click to change)
+             </div>
+          ) : (
+            <>
+              <select 
+                value={openTime}
+                onChange={(e) => {
+                  if (e.target.value === 'Open 24 Hours') onChange('Open 24 Hours');
+                  else onChange(`${e.target.value} - ${closeTime}`);
+                }}
+                className="block w-full border border-slate-300 rounded-md shadow-sm py-1.5 px-1 text-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              >
+                {times.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <span className="text-slate-400 text-xs">to</span>
+              <select 
+                value={closeTime}
+                onChange={(e) => onChange(`${openTime} - ${e.target.value}`)}
+                className="block w-full border border-slate-300 rounded-md shadow-sm py-1.5 px-1 text-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              >
+                {times.filter(t => t !== 'Open 24 Hours').map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="py-1.5 px-2 text-xs text-rose-500 bg-rose-50 rounded text-center border border-rose-100 font-medium">
+          Closed All Day
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function PharmacyProfile() {
   const [profile, setProfile] = useState<IPharmacyProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -361,18 +439,21 @@ export default function PharmacyProfile() {
                     <Clock className="w-4 h-4 mr-2 text-indigo-500" /> Edit Operational Hours
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">Mon - Fri</label>
-                      <input type="text" value={editForm.operationalHours?.mondayToFriday || ''} onChange={e => setEditForm({...editForm, operationalHours: {...(editForm.operationalHours || {mondayToFriday:'', saturday:'', sunday:''}), mondayToFriday: e.target.value}})} placeholder="09:00 AM - 10:00 PM" className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">Saturday</label>
-                      <input type="text" value={editForm.operationalHours?.saturday || ''} onChange={e => setEditForm({...editForm, operationalHours: {...(editForm.operationalHours || {mondayToFriday:'', saturday:'', sunday:''}), saturday: e.target.value}})} placeholder="09:00 AM - 11:00 PM" className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">Sunday</label>
-                      <input type="text" value={editForm.operationalHours?.sunday || ''} onChange={e => setEditForm({...editForm, operationalHours: {...(editForm.operationalHours || {mondayToFriday:'', saturday:'', sunday:''}), sunday: e.target.value}})} placeholder="Closed" className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-                    </div>
+                    <DayHoursEditor
+                      label="Monday - Friday"
+                      value={editForm.operationalHours?.mondayToFriday || '09:00 AM - 10:00 PM'}
+                      onChange={val => setEditForm({...editForm, operationalHours: {...(editForm.operationalHours || {mondayToFriday:'', saturday:'', sunday:''}), mondayToFriday: val}})}
+                    />
+                    <DayHoursEditor
+                      label="Saturday"
+                      value={editForm.operationalHours?.saturday || '09:00 AM - 11:00 PM'}
+                      onChange={val => setEditForm({...editForm, operationalHours: {...(editForm.operationalHours || {mondayToFriday:'', saturday:'', sunday:''}), saturday: val}})}
+                    />
+                    <DayHoursEditor
+                      label="Sunday"
+                      value={editForm.operationalHours?.sunday || 'Closed'}
+                      onChange={val => setEditForm({...editForm, operationalHours: {...(editForm.operationalHours || {mondayToFriday:'', saturday:'', sunday:''}), sunday: val}})}
+                    />
                   </div>
                 </div>
               </div>
