@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn, ChildProcess } from 'node:child_process';
 
 // Disable hardware acceleration to prevent white screen and crashes on some Windows systems
 app.disableHardwareAcceleration();
@@ -25,6 +26,32 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST;
 
 let win: BrowserWindow | null;
+let backendProcess: ChildProcess | null = null;
+
+function startBackend() {
+  const isDev = !!process.env['VITE_DEV_SERVER_URL'];
+  const backendPath = path.join(process.env.APP_ROOT as string, '..', 'backend');
+  
+  try {
+    if (isDev) {
+      backendProcess = spawn('npm.cmd', ['run', 'dev'], {
+        cwd: backendPath,
+        shell: true,
+      });
+    } else {
+      backendProcess = spawn('node', ['dist/server.js'], {
+        cwd: backendPath,
+        shell: true,
+      });
+    }
+
+    backendProcess.on('error', (err) => {
+      console.error('Failed to start backend server:', err);
+    });
+  } catch (error) {
+    console.error('Error starting backend:', error);
+  }
+}
 
 function createWindow() {
   try {
@@ -62,4 +89,13 @@ app.on('activate', () => {
   }
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  startBackend();
+  createWindow();
+});
+
+app.on('before-quit', () => {
+  if (backendProcess) {
+    backendProcess.kill();
+  }
+});
