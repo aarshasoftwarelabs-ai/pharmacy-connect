@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn, ChildProcess } from 'node:child_process';
+import { spawn, fork, ChildProcess } from 'node:child_process';
 
 // Disable hardware acceleration to prevent white screen and crashes on some Windows systems
 app.disableHardwareAcceleration();
@@ -30,7 +30,14 @@ let backendProcess: ChildProcess | null = null;
 
 function startBackend() {
   const isDev = !!process.env['VITE_DEV_SERVER_URL'];
-  const backendPath = path.join(process.env.APP_ROOT as string, '..', 'backend');
+  let backendPath: string;
+  
+  if (isDev) {
+    backendPath = path.join(process.env.APP_ROOT as string, '..', 'backend');
+  } else {
+    // When packaged, backend will be copied to resources/backend
+    backendPath = path.join(process.resourcesPath, 'backend');
+  }
   
   try {
     if (isDev) {
@@ -39,9 +46,9 @@ function startBackend() {
         shell: true,
       });
     } else {
-      backendProcess = spawn('node', ['dist/server.js'], {
+      // Use fork to run via Electron's embedded Node.js environment
+      backendProcess = fork('dist/server.js', [], {
         cwd: backendPath,
-        shell: true,
       });
     }
 
