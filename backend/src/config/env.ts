@@ -9,6 +9,8 @@ interface EnvConfig {
   DATABASE_URL: string;
   JWT_SECRET?: string;
   BREVO_API_KEY?: string;
+  RAZORPAY_KEY_ID?: string;
+  RAZORPAY_KEY_SECRET?: string;
 }
 
 const getEnvConfig = (): EnvConfig => {
@@ -17,6 +19,8 @@ const getEnvConfig = (): EnvConfig => {
   const DATABASE_URL = process.env.DATABASE_URL;
   const JWT_SECRET = process.env.JWT_SECRET;
   const BREVO_API_KEY = process.env.BREVO_API_KEY;
+  const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+  const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
   if (!DATABASE_URL) {
     console.error('❌ FATAL ERROR: DATABASE_URL environment variable is missing.');
@@ -29,6 +33,8 @@ const getEnvConfig = (): EnvConfig => {
     DATABASE_URL,
     JWT_SECRET,
     BREVO_API_KEY,
+    RAZORPAY_KEY_ID,
+    RAZORPAY_KEY_SECRET,
   };
 };
 

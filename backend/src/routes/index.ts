@@ -32,7 +32,10 @@ router.use('/billing', billingRoutes);
 router.use('/medicines', medicineRoutes);
 router.use('/distributors', distributorRoutes);
 import reportRoutes from './reportRoutes';
+import paymentRoutes from './paymentRoutes';
+
 router.use('/reports', reportRoutes);
+router.use('/payments', paymentRoutes);
 // router.use('/notifications', notificationRoutes);
 
 export default router;

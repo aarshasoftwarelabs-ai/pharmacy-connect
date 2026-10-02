@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PharmacyService } from '../services/pharmacyService';
+import { PaymentService } from '../services/paymentService';
 import { 
   Bell, 
   Store, 
@@ -93,46 +94,71 @@ export default function Settings() {
     handlePayment(finalAmount, planName);
   };
 
-  const handlePayment = (amount: number, planName: string) => {
-    const options = {
-      key: 'rzp_live_TeaN3CyVxAoQML',
-      amount: amount * 100, // Amount is in paise
-      currency: 'INR',
-      name: 'DavaSetu',
-      description: `${planName} Subscription`,
-      handler: async function (response: any) {
-        // This is called when payment is successful
-        try {
-          const duration = planName.includes('Monthly') ? 1 : planName.includes('Yearly') ? 12 : undefined;
-          const planType = planName.includes('Lifetime') ? 'LIFETIME' : planName.includes('Yearly') ? 'YEARLY' : 'MONTHLY';
-          
-          // Using hardcoded pharmacy ID 1 for now
-          await PharmacyService.updateSubscription(1, planType, duration); 
-          alert(`Payment successful! Welcome to the ${planName}.\nPayment ID: ${response.razorpay_payment_id}`);
-          window.location.reload();
-        } catch (error) {
-          console.error('Subscription update failed:', error);
-          alert('Payment succeeded but failed to update subscription. Please contact support.');
-        }
-      },
-      prefill: {
-        name: 'Pharmacy Owner',
-        email: 'owner@davasetu.com',
-        contact: '9999999999'
-      },
-      theme: {
-        color: '#0284c7' // pharmacy-600 color approx
+  const handlePayment = async (amount: number, planName: string) => {
+    try {
+      // 1. Create order on the server
+      const orderData = await PaymentService.createOrder(amount, 'INR', planName);
+      
+      if (!orderData.success) {
+        alert('Failed to initiate payment. Please try again.');
+        return;
       }
-    };
-    
-    // @ts-ignore - Razorpay is loaded via script tag
-    const rzp = new window.Razorpay(options);
-    
-    rzp.on('payment.failed', function (response: any){
-        alert(`Payment failed! Reason: ${response.error.description}`);
-    });
-    
-    rzp.open();
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_TeaN3CyVxAoQML', // Use env variable or fallback
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: 'DavaSetu',
+        description: `${planName} Subscription`,
+        order_id: orderData.order.id, // The order ID from backend
+        handler: async function (response: any) {
+          // This is called when payment is successful
+          try {
+            // 2. Verify payment on the server
+            const verification = await PaymentService.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            if (verification.success) {
+              const duration = planName.includes('Monthly') ? 1 : planName.includes('Yearly') ? 12 : undefined;
+              const planType = planName.includes('Lifetime') ? 'LIFETIME' : planName.includes('Yearly') ? 'YEARLY' : 'MONTHLY';
+              
+              // Using hardcoded pharmacy ID 1 for now
+              await PharmacyService.updateSubscription(1, planType, duration); 
+              alert(`Payment successful! Welcome to the ${planName}.\nPayment ID: ${response.razorpay_payment_id}`);
+              window.location.reload();
+            } else {
+              alert('Payment verification failed. Please contact support.');
+            }
+          } catch (error) {
+            console.error('Subscription update failed:', error);
+            alert('Payment succeeded but failed to update subscription. Please contact support.');
+          }
+        },
+        prefill: {
+          name: 'Pharmacy Owner',
+          email: 'owner@davasetu.com',
+          contact: '9999999999'
+        },
+        theme: {
+          color: '#0284c7' // pharmacy-600 color approx
+        }
+      };
+      
+      // @ts-ignore - Razorpay is loaded via script tag
+      const rzp = new window.Razorpay(options);
+      
+      rzp.on('payment.failed', function (response: any){
+          alert(`Payment failed! Reason: ${response.error.description}`);
+      });
+      
+      rzp.open();
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      alert('Could not connect to payment server.');
+    }
   };
 
   const SettingRow = ({ 
