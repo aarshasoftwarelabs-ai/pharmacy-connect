@@ -5,8 +5,8 @@ import { env } from '../config/env';
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
-  key_id: env.RAZORPAY_KEY_ID || '',
-  key_secret: env.RAZORPAY_KEY_SECRET || ''
+  key_id: 'rzp_live_Tj0ccml38XqvgQ',
+  key_secret: 'QOZE9mshfcjYJ9h3cU6uNIsC'
 });
 
 /**
@@ -59,7 +59,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 
     const expectedSignature = crypto
-      .createHmac('sha256', env.RAZORPAY_KEY_SECRET || '')
+      .createHmac('sha256', 'QOZE9mshfcjYJ9h3cU6uNIsC')
       .update(body.toString())
       .digest('hex');
 

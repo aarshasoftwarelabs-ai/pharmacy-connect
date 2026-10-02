@@ -105,7 +105,7 @@ export default function Settings() {
       }
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_TeaN3CyVxAoQML', // Use env variable or fallback
+        key: 'rzp_live_Tj0ccml38XqvgQ',
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: 'DavaSetu',
