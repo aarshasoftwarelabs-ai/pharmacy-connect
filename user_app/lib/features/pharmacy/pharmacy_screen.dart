@@ -5,6 +5,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../services/pharmacy_service.dart';
 import 'models/pharmacy.dart';
+import '../../widgets/fade_in_slide.dart';
 
 class PharmacyScreen extends StatefulWidget {
   const PharmacyScreen({super.key});
@@ -53,25 +54,32 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
               child: Column(
                 children: [
                   if (_pharmacies.isEmpty)
-                    const AppCard(
-                      child: Padding(
-                        padding: EdgeInsets.all(24.0),
-                        child: Center(
-                          child: Text(
-                            'No pharmacies connected yet.',
-                            style: TextStyle(color: AppColors.textSecondary),
+                    const FadeInSlide(
+                      child: AppCard(
+                        child: Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Center(
+                            child: Text(
+                              'No pharmacies connected yet.',
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
                           ),
                         ),
                       ),
                     )
                   else
-                    ..._pharmacies.map(
-                      (pharmacy) => Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: AppCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                    ..._pharmacies.asMap().entries.map(
+                      (entry) {
+                        int index = entry.key;
+                        Pharmacy pharmacy = entry.value;
+                        return FadeInSlide(
+                          delay: 0.1 + (index * 0.1),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: AppCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                               Row(
                                 children: [
                                   const CircleAvatar(
@@ -147,16 +155,21 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                                   ), // Assuming no phone in model yet
                                 ],
                               ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                      }
+                    ).toList(),
                   const Spacer(),
-                  AppButton(
-                    text: 'Find a Pharmacy',
-                    isOutlined: true,
-                    onPressed: _loadPharmacies, // Refresh for now
+                  FadeInSlide(
+                    delay: 0.5,
+                    child: AppButton(
+                      text: 'Find a Pharmacy',
+                      isOutlined: true,
+                      onPressed: _loadPharmacies, // Refresh for now
+                    ),
                   ),
                 ],
               ),

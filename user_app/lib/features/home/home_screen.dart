@@ -8,6 +8,7 @@ import '../../services/pharmacy_service.dart';
 import '../../services/medicine_request_service.dart';
 import '../pharmacy/models/pharmacy.dart';
 import '../medicines/models/medicine_request.dart';
+import '../../widgets/fade_in_slide.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -103,11 +104,11 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildHeader(context),
               const SizedBox(height: 20),
-              _buildPromoBanner(context),
+              FadeInSlide(delay: 0.1, child: _buildPromoBanner(context)),
               const SizedBox(height: 24),
-              _buildConnectedPharmacy(context),
+              FadeInSlide(delay: 0.2, child: _buildConnectedPharmacy(context)),
               const SizedBox(height: 24),
-              _buildRecentRequests(context),
+              FadeInSlide(delay: 0.3, child: _buildRecentRequests(context)),
               const SizedBox(height: 40),
             ],
           ),
@@ -286,17 +287,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             )
           else
-            Container(
+              Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.withOpacity(0.1)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    color: AppColors.primary.withOpacity(0.05),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -460,21 +462,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.05),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(_recentRequest!.status)
-                            .withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.receipt_long,
-                        color: _getStatusColor(_recentRequest!.status),
+                    Hero(
+                      tag: 'request_icon_${_recentRequest!.id}',
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(_recentRequest!.status)
+                              .withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.receipt_long,
+                          color: _getStatusColor(_recentRequest!.status),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),

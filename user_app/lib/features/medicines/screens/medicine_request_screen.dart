@@ -6,6 +6,7 @@ import '../../../core/routes/app_routes.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/app_card.dart';
 import '../../../widgets/app_text_field.dart';
+import '../../../widgets/fade_in_slide.dart';
 import '../../pharmacy/models/pharmacy.dart';
 import '../../../services/medicine_request_service.dart';
 import '../../../services/pharmacy_service.dart';
@@ -128,85 +129,100 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Enter the medicine name or upload a photo.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+            FadeInSlide(
+              delay: 0.1,
+              child: Text(
+                'Enter the medicine name or upload a photo.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+              ),
             ),
             const SizedBox(height: 24),
             
-            AppTextField(
-              label: 'Medicine name',
-              hint: 'e.g. Dolo 650',
-              controller: _nameController,
-            ),
-            
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24.0),
-              child: Row(
-                children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text('OR', style: TextStyle(color: AppColors.textHint, fontWeight: FontWeight.bold)),
-                  ),
-                  Expanded(child: Divider()),
-                ],
+            FadeInSlide(
+              delay: 0.2,
+              child: AppTextField(
+                label: 'Medicine name',
+                hint: 'e.g. Dolo 650',
+                controller: _nameController,
               ),
             ),
             
-            Text('Upload medicine image', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const FadeInSlide(
+              delay: 0.3,
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 24.0),
+                child: Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text('OR', style: TextStyle(color: AppColors.textHint, fontWeight: FontWeight.bold)),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+              ),
+            ),
+            
+            FadeInSlide(delay: 0.4, child: Text('Upload medicine image', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold))),
             const SizedBox(height: 4),
-            Text('Take a photo or choose from gallery', style: Theme.of(context).textTheme.bodySmall),
+            FadeInSlide(delay: 0.4, child: Text('Take a photo or choose from gallery', style: Theme.of(context).textTheme.bodySmall)),
             const SizedBox(height: 12),
             
             if (_imageFile != null)
-              AppCard(
-                child: Column(
-                  children: [
-                    Container(
-                      height: 150,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(8),
-                        image: DecorationImage(
-                          image: FileImage(_imageFile!),
-                          fit: BoxFit.cover,
+              FadeInSlide(
+                delay: 0.5,
+                child: AppCard(
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 150,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(8),
+                          image: DecorationImage(
+                            image: FileImage(_imageFile!),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      onPressed: () => setState(() => _imageFile = null),
-                      icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                      label: const Text('Remove image', style: TextStyle(color: AppColors.error)),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () => setState(() => _imageFile = null),
+                        icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                        label: const Text('Remove image', style: TextStyle(color: AppColors.error)),
+                      ),
+                    ],
+                  ),
                 ),
               )
             else
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _pickImage(ImageSource.camera),
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Camera'),
+              FadeInSlide(
+                delay: 0.5,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _pickImage(ImageSource.camera),
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Camera'),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _pickImage(ImageSource.gallery),
-                      icon: const Icon(Icons.photo_library),
-                      label: const Text('Gallery'),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _pickImage(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library),
+                        label: const Text('Gallery'),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             
             const SizedBox(height: 32),
-            Text('Send to pharmacy', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            FadeInSlide(delay: 0.6, child: Text('Send to pharmacy', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold))),
             const SizedBox(height: 12),
             
             if (_isLoadingPharmacies)
@@ -216,50 +232,60 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
             else if (_pharmacies.isEmpty)
               const Center(child: Text('No pharmacies found.'))
             else
-              ..._pharmacies.map((pharmacy) => Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: InkWell(
-                  onTap: () => setState(() => _selectedPharmacy = pharmacy),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: _selectedPharmacy == pharmacy ? AppColors.primary : AppColors.border,
-                        width: _selectedPharmacy == pharmacy ? 2 : 1,
-                      ),
+              ..._pharmacies.asMap().entries.map((entry) {
+                int index = entry.key;
+                Pharmacy pharmacy = entry.value;
+                return FadeInSlide(
+                  delay: 0.7 + (index * 0.1),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: InkWell(
+                      onTap: () => setState(() => _selectedPharmacy = pharmacy),
                       borderRadius: BorderRadius.circular(12),
-                      color: _selectedPharmacy == pharmacy ? AppColors.primary.withValues(alpha: 0.05) : AppColors.surface,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _selectedPharmacy == pharmacy ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                          color: _selectedPharmacy == pharmacy ? AppColors.primary : AppColors.textHint,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(pharmacy.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              Text(pharmacy.address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                            ],
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: _selectedPharmacy == pharmacy ? AppColors.primary : AppColors.border,
+                            width: _selectedPharmacy == pharmacy ? 2 : 1,
                           ),
+                          borderRadius: BorderRadius.circular(12),
+                          color: _selectedPharmacy == pharmacy ? AppColors.primary.withValues(alpha: 0.05) : AppColors.surface,
                         ),
-                        const Text('Connected', style: TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.bold)),
-                      ],
+                        child: Row(
+                          children: [
+                            Icon(
+                              _selectedPharmacy == pharmacy ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                              color: _selectedPharmacy == pharmacy ? AppColors.primary : AppColors.textHint,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(pharmacy.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(pharmacy.address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                ],
+                              ),
+                            ),
+                            const Text('Connected', style: TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              )),
+                );
+              }),
             
             const SizedBox(height: 32),
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : AppButton(
-                    text: 'Send Request',
-                    onPressed: _submitRequest,
+                : FadeInSlide(
+                    delay: 1.0,
+                    child: AppButton(
+                      text: 'Send Request',
+                      onPressed: _submitRequest,
+                    ),
                   ),
             const SizedBox(height: 32),
           ],

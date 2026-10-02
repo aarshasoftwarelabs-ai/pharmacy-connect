@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../widgets/fade_in_slide.dart';
 
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
@@ -39,15 +40,18 @@ class _EmptyOrders extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.receipt_long, size: 64, color: AppColors.border),
-          const SizedBox(height: 16),
-          Text('No orders yet', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(message, style: const TextStyle(color: AppColors.textSecondary)),
-        ],
+      child: FadeInSlide(
+        delay: 0.1,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.receipt_long, size: 64, color: AppColors.border),
+            const SizedBox(height: 16),
+            Text('No orders yet', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+          ],
+        ),
       ),
     );
   }

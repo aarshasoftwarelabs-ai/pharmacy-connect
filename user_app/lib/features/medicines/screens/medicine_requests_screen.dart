@@ -7,6 +7,7 @@ import '../../../core/routes/app_routes.dart';
 import '../../../services/medicine_request_service.dart';
 import '../models/medicine_request.dart';
 import '../../../widgets/app_button.dart';
+import '../../../widgets/fade_in_slide.dart';
 
 class MedicineRequestsScreen extends StatefulWidget {
   const MedicineRequestsScreen({super.key});
@@ -215,13 +216,13 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
         itemCount: _requests.length,
         itemBuilder: (context, index) {
           final req = _requests[index];
-          return _buildRequestCard(context, req);
+          return _buildRequestCard(context, req, index);
         },
       ),
     );
   }
 
-  Widget _buildRequestCard(BuildContext context, MedicineRequest req) {
+  Widget _buildRequestCard(BuildContext context, MedicineRequest req, int index) {
     // Determine accent color based on status
     Color accentColor;
     switch (req.status) {
@@ -239,7 +240,9 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
         break;
     }
 
-    return Container(
+    return FadeInSlide(
+      delay: 0.1 + (index * 0.1),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -367,6 +370,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/medicine_request.dart';
 import '../../../services/medicine_request_service.dart';
+import '../../../widgets/fade_in_slide.dart';
 
 class MedicineRequestDetailsScreen extends StatefulWidget {
   final MedicineRequest request;
@@ -138,55 +139,68 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Medicine request', style: Theme.of(context).textTheme.titleLarge),
-              const Divider(),
+              FadeInSlide(
+                delay: 0.1,
+                child: Text('Medicine request', style: Theme.of(context).textTheme.titleLarge),
+              ),
+              const FadeInSlide(delay: 0.1, child: Divider()),
               const SizedBox(height: 16),
               
-              _buildDetailRow('Medicine name:', _request.medicineName ?? 'Not provided'),
+              FadeInSlide(delay: 0.2, child: _buildDetailRow('Medicine name:', _request.medicineName ?? 'Not provided')),
               const SizedBox(height: 16),
-              _buildDetailRow('Requested pharmacy:', _request.pharmacyName),
+              FadeInSlide(delay: 0.2, child: _buildDetailRow('Requested pharmacy:', _request.pharmacyName)),
               const SizedBox(height: 16),
-              _buildDetailRow('Requested:', '${_request.createdAt.day}/${_request.createdAt.month}/${_request.createdAt.year}'),
+              FadeInSlide(delay: 0.2, child: _buildDetailRow('Requested:', '${_request.createdAt.day}/${_request.createdAt.month}/${_request.createdAt.year}')),
               
               if (_request.imageReference != null) ...[
                 const SizedBox(height: 16),
-                const Text('Request image:', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                const FadeInSlide(delay: 0.3, child: Text('Request image:', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))),
                 const SizedBox(height: 8),
-                Container(
-                  height: 150,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.image, size: 40, color: AppColors.border),
-                        Text('Image Preview', style: TextStyle(color: AppColors.textHint)),
-                      ],
+                FadeInSlide(
+                  delay: 0.3,
+                  child: Container(
+                    height: 150,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.image, size: 40, color: AppColors.border),
+                          Text('Image Preview', style: TextStyle(color: AppColors.textHint)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ],
               
               const SizedBox(height: 32),
-              Text('Pharmacy response', style: Theme.of(context).textTheme.titleLarge),
-              const Divider(),
+              FadeInSlide(
+                delay: 0.4,
+                child: Text('Pharmacy response', style: Theme.of(context).textTheme.titleLarge),
+              ),
+              const FadeInSlide(delay: 0.4, child: Divider()),
               const SizedBox(height: 16),
               
-              _buildResponseSection(_request),
+              FadeInSlide(delay: 0.5, child: _buildResponseSection(_request)),
               
               if (_request.status == MedicineRequestStatus.available || _request.status == MedicineRequestStatus.canArrange)
                 ...[
                   const SizedBox(height: 32),
-                  Text('Your Confirmation', style: Theme.of(context).textTheme.titleLarge),
-                  const Divider(),
+                  FadeInSlide(
+                    delay: 0.6,
+                    child: Text('Your Confirmation', style: Theme.of(context).textTheme.titleLarge),
+                  ),
+                  const FadeInSlide(delay: 0.6, child: Divider()),
                   const SizedBox(height: 16),
-                  _buildConfirmationSection(),
+                  FadeInSlide(delay: 0.7, child: _buildConfirmationSection()),
                 ]
             ],
+
           ),
         ),
       ),
@@ -246,7 +260,10 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 32),
+          Hero(
+            tag: 'request_icon_${request.id}',
+            child: Icon(icon, color: color, size: 48),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

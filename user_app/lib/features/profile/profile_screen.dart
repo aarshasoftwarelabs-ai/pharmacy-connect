@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
+import '../../widgets/fade_in_slide.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -51,38 +52,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: AppColors.primaryLight,
-                child: Text(_initials, style: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_userName, style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 4),
-                  const Text('User Account', style: TextStyle(color: AppColors.textSecondary)),
-                ],
-              ),
-            ],
+          FadeInSlide(
+            delay: 0.1,
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: AppColors.primaryLight,
+                  child: Text(_initials, style: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_userName, style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 4),
+                    const Text('User Account', style: TextStyle(color: AppColors.textSecondary)),
+                  ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 32),
-          _buildSectionHeader('Account'),
-          _buildListTile(Icons.person_outline, 'Personal Information'),
-          _buildListTile(Icons.location_on_outlined, 'Saved Addresses'),
-          _buildListTile(Icons.local_pharmacy_outlined, 'My Pharmacy'),
+          FadeInSlide(delay: 0.2, child: _buildSectionHeader('Account')),
+          FadeInSlide(delay: 0.3, child: _buildListTile(Icons.person_outline, 'Personal Information')),
+          FadeInSlide(delay: 0.4, child: _buildListTile(Icons.location_on_outlined, 'Saved Addresses')),
+          FadeInSlide(delay: 0.5, child: _buildListTile(Icons.local_pharmacy_outlined, 'My Pharmacy')),
           const SizedBox(height: 24),
-          _buildSectionHeader('Settings'),
-          _buildListTile(Icons.notifications_outlined, 'Notifications'),
-          _buildListTile(Icons.help_outline, 'Help & Support'),
-          _buildListTile(Icons.info_outline, 'About PharmacyConnect'),
+          FadeInSlide(delay: 0.6, child: _buildSectionHeader('Settings')),
+          FadeInSlide(delay: 0.7, child: _buildListTile(Icons.notifications_outlined, 'Notifications')),
+          FadeInSlide(delay: 0.8, child: _buildListTile(Icons.help_outline, 'Help & Support')),
+          FadeInSlide(delay: 0.9, child: _buildListTile(Icons.info_outline, 'About PharmacyConnect')),
           const SizedBox(height: 32),
-          TextButton(
-            onPressed: _logout,
-            child: const Text('Logout', style: TextStyle(color: AppColors.error, fontSize: 16)),
+          FadeInSlide(
+            delay: 1.0,
+            child: TextButton(
+              onPressed: _logout,
+              child: const Text('Logout', style: TextStyle(color: AppColors.error, fontSize: 16)),
+            ),
           ),
         ],
       ),
