@@ -8,6 +8,7 @@ import '../../core/routes/app_routes.dart';
 import '../../services/pharmacy_service.dart';
 import '../../services/medicine_request_service.dart';
 import '../pharmacy/models/pharmacy.dart';
+import '../pharmacy/pharmacy_screen.dart';
 import '../medicines/models/medicine_request.dart';
 import '../../widgets/fade_in_slide.dart';
 import '../../widgets/blinkit_loader.dart';
@@ -474,7 +475,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               InkWell(
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PharmacyScreen(),
+                    ),
+                  ).then((_) {
+                    if (mounted) {
+                      _loadData();
+                    }
+                  });
+                },
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
