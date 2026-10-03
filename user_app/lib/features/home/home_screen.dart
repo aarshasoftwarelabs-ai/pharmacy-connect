@@ -152,7 +152,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildModernHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 70, left: 24, right: 24, bottom: 40),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF064E3B), Color(0xFF0F766E)], // Deep Emerald to Teal
@@ -171,9 +170,90 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
+        child: Stack(
+          children: [
+            // Background Medicine Bottle
+            Positioned(
+              right: -20,
+              top: -10,
+              child: Transform.rotate(
+                angle: 0.3,
+                child: Icon(Icons.medication_rounded, size: 120, color: Colors.white.withOpacity(0.05)),
+              ),
+            ),
+            // Background Injection
+            Positioned(
+              left: -20,
+              top: 20,
+              child: Transform.rotate(
+                angle: -0.4,
+                child: Icon(Icons.vaccines_rounded, size: 80, color: Colors.white.withOpacity(0.05)),
+              ),
+            ),
+            // Background Capsule (Pill)
+            Positioned(
+              left: 120,
+              bottom: 10,
+              child: Transform.rotate(
+                angle: 0.6,
+                child: Container(
+                  width: 30,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.white.withOpacity(0.06), width: 2),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.06),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(13),
+                              topRight: Radius.circular(13),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: SizedBox()),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Background Round Tablet
+            Positioned(
+              right: 80,
+              bottom: 30,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Container(
+                    width: 14,
+                    height: 2,
+                    color: Colors.white.withOpacity(0.05),
+                  ),
+                ),
+              ),
+            ),
+            // Foreground Content
+            Padding(
+              padding: const EdgeInsets.only(top: 70, left: 24, right: 24, bottom: 40),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -234,8 +314,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+          ],
+        ),
       ),
     );
   }
