@@ -128,24 +128,6 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
             fontSize: 20,
           ),
         ),
-        actions: [
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Center(
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                ),
-              ),
-            ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
-            onPressed: () => _fetchLatestDetails(isBackground: false),
-            tooltip: 'Refresh Details',
-          ),
-        ],
       ),
       body: AppRefreshIndicator(
         onRefresh: () => _fetchLatestDetails(isBackground: false),
