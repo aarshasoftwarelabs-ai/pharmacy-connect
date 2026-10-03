@@ -224,7 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 120),
             ],
           ),
         ),
