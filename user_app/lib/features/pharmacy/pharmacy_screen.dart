@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../widgets/app_button.dart';
-import '../../widgets/app_card.dart';
 import '../../services/pharmacy_service.dart';
 import 'models/pharmacy.dart';
 import '../../widgets/fade_in_slide.dart';
@@ -46,134 +46,332 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Pharmacy')),
+      backgroundColor: const Color(0xFFF8FAFC), // Very light cool gray
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  if (_pharmacies.isEmpty)
-                    const FadeInSlide(
-                      child: AppCard(
-                        child: Padding(
-                          padding: EdgeInsets.all(24.0),
-                          child: Center(
-                            child: Text(
-                              'No pharmacies connected yet.',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
+          : CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildModernAppBar(),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your Connections',
+                          style: GoogleFonts.outfit(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1E293B),
                           ),
                         ),
-                      ),
-                    )
-                  else
-                    ..._pharmacies.asMap().entries.map(
-                      (entry) {
-                        int index = entry.key;
-                        Pharmacy pharmacy = entry.value;
-                        return FadeInSlide(
-                          delay: 0.1 + (index * 0.1),
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 16.0),
-                            child: AppCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                              Row(
-                                children: [
-                                  const CircleAvatar(
-                                    radius: 24,
-                                    backgroundColor: AppColors.primaryLight,
-                                    child: Icon(
-                                      Icons.local_pharmacy,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          pharmacy.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        const Text(
-                                          'Connected',
-                                          style: TextStyle(
-                                            color: AppColors.success,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                        const SizedBox(height: 16),
+                        if (_pharmacies.isEmpty)
+                          _buildEmptyState()
+                        else
+                          ..._pharmacies.asMap().entries.map((entry) {
+                            return _buildModernPharmacyCard(entry.value, entry.key);
+                          }).toList(),
+                        const SizedBox(height: 40),
+                        FadeInSlide(
+                          delay: 0.5,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF0F766E), Color(0xFF064E3B)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              const SizedBox(height: 16),
-                              const Divider(),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.location_on_outlined,
-                                    size: 20,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      pharmacy.address,
-                                      style: const TextStyle(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              const Row(
-                                children: [
-                                  Icon(
-                                    Icons.phone_outlined,
-                                    size: 20,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    '+91 99999 99999',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ), // Assuming no phone in model yet
-                                ],
-                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF0F766E).withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
                               ],
                             ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: _loadPharmacies,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.search_rounded, color: Colors.white),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Find a Pharmacy',
+                                        style: GoogleFonts.outfit(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      );
-                      }
-                    ).toList(),
-                  const Spacer(),
-                  FadeInSlide(
-                    delay: 0.5,
-                    child: AppButton(
-                      text: 'Find a Pharmacy',
-                      isOutlined: true,
-                      onPressed: _loadPharmacies, // Refresh for now
+                        const SizedBox(height: 40),
+                      ],
                     ),
                   ),
-                ],
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 140.0,
+      floating: false,
+      pinned: true,
+      elevation: 0,
+      backgroundColor: Colors.white,
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+        title: Text(
+          'My Pharmacy',
+          style: GoogleFonts.outfit(
+            color: const Color(0xFF1E293B),
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
+        background: Stack(
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
               ),
             ),
+            Positioned(
+              right: -50,
+              top: -50,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primaryLight.withOpacity(0.1),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
+    );
+  }
+
+  Widget _buildModernPharmacyCard(Pharmacy pharmacy, int index) {
+    return FadeInSlide(
+      delay: 0.1 + (index * 0.1),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20,
+                bottom: -20,
+                child: Icon(
+                  Icons.local_pharmacy_rounded,
+                  size: 120,
+                  color: const Color(0xFFF1F5F9), // Very light gray background icon
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF2DD4BF), Color(0xFF0F766E)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.local_pharmacy,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                pharmacy.name,
+                                style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 14),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Connected',
+                                      style: GoogleFonts.inter(
+                                        color: const Color(0xFF065F46),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.location_on_rounded,
+                                size: 20,
+                                color: Color(0xFF64748B),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  pharmacy.address,
+                                  style: GoogleFonts.inter(
+                                    color: const Color(0xFF475569),
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12.0),
+                            child: Divider(color: Color(0xFFE2E8F0), height: 1),
+                          ),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.call_rounded,
+                                size: 20,
+                                color: Color(0xFF64748B),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                '+91 99999 99999',
+                                style: GoogleFonts.inter(
+                                  color: const Color(0xFF475569),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return FadeInSlide(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(32.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.storefront_rounded, size: 48, color: Color(0xFF94A3B8)),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'No Pharmacies Yet',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Connect with a pharmacy to start ordering medicines directly.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: const Color(0xFF64748B),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
