@@ -314,8 +314,9 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
                         ),
                       ),
                     ),
-                  );
-                },
+                  ),
+                );
+              },
               ),
             ),
           ),
