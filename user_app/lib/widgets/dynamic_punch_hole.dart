@@ -45,8 +45,8 @@ class DynamicPunchHoleController extends ChangeNotifier {
     _showNotification = true;
     notifyListeners();
 
-    // Auto hide after 4 seconds
-    Future.delayed(const Duration(seconds: 4), () {
+    // Auto hide after 6 seconds so user can read it properly
+    Future.delayed(const Duration(seconds: 6), () {
       if (_showNotification && _notificationTitle == title) {
         _showNotification = false;
         notifyListeners();
@@ -73,7 +73,11 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
   void initState() {
     super.initState();
     _orbitController = AnimationController(vsync: this, duration: const Duration(seconds: 2));
-    _islandController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _islandController = AnimationController(
+      vsync: this, 
+      duration: const Duration(milliseconds: 1200), // slower, bouncy drop down
+      reverseDuration: const Duration(milliseconds: 800), // smooth slide back up
+    );
 
     _islandHeight = Tween<double>(begin: 30.0, end: 84.0).animate(
       CurvedAnimation(parent: _islandController, curve: Curves.elasticOut)
