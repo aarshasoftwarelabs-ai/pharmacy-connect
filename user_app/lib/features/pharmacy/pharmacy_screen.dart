@@ -59,6 +59,57 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        FadeInSlide(
+                          delay: 0.1,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.02),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: _loadPharmacies,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.search_rounded, color: Color(0xFF94A3B8)),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'Find a Pharmacy...',
+                                        style: GoogleFonts.inter(
+                                          color: const Color(0xFF94A3B8),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: const Icon(Icons.tune_rounded, size: 16, color: Color(0xFF64748B)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
                         Text(
                           'Your Connections',
                           style: GoogleFonts.outfit(
@@ -100,21 +151,6 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
           fontSize: 22,
         ),
       ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 12.0),
-          child: IconButton(
-            onPressed: _loadPharmacies, // keeping refresh logic for now
-            icon: const Icon(Icons.search_rounded),
-            color: const Color(0xFF0F766E),
-            tooltip: 'Find a Pharmacy',
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF0F766E).withOpacity(0.1),
-              padding: const EdgeInsets.all(12),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
