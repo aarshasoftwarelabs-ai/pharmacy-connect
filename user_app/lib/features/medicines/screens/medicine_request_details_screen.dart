@@ -7,6 +7,7 @@ import '../../../core/routes/app_routes.dart';
 import '../models/medicine_request.dart';
 import '../../../services/medicine_request_service.dart';
 import '../../../widgets/fade_in_slide.dart';
+import '../../../widgets/app_refresh_indicator.dart';
 
 class MedicineRequestDetailsScreen extends StatefulWidget {
   final MedicineRequest request;
@@ -146,9 +147,8 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: AppRefreshIndicator(
         onRefresh: () => _fetchLatestDetails(isBackground: false),
-        color: AppColors.primary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20.0),

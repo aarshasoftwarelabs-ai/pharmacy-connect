@@ -11,7 +11,7 @@ import '../pharmacy/models/pharmacy.dart';
 import '../medicines/models/medicine_request.dart';
 import '../../widgets/fade_in_slide.dart';
 import '../../widgets/blinkit_loader.dart';
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import '../../widgets/app_refresh_indicator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -98,38 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // Slate 50 for clean background
-      body: CustomRefreshIndicator(
+      body: AppRefreshIndicator(
         onRefresh: _loadData,
-        builder: (BuildContext context, Widget child, IndicatorController controller) {
-          return Stack(
-            alignment: Alignment.topCenter,
-            children: <Widget>[
-              child,
-              if (!controller.isIdle)
-                Positioned(
-                  top: -60.0 + (110.0 * controller.value), // Starts hidden above screen, pulls down
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 1)
-                      ]
-                    ),
-                    child: Transform.rotate(
-                      angle: controller.value * 3.14 * 2, // Spin while pulling
-                      child: const Icon(
-                        Icons.medication_rounded,
-                        color: Color(0xFF0F766E),
-                        size: 26,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(

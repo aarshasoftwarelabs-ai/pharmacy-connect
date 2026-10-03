@@ -8,6 +8,7 @@ import '../../../services/medicine_request_service.dart';
 import '../models/medicine_request.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/fade_in_slide.dart';
+import '../../../widgets/app_refresh_indicator.dart';
 
 class MedicineRequestsScreen extends StatefulWidget {
   const MedicineRequestsScreen({super.key});
@@ -157,7 +158,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
     }
 
     if (_requests.isEmpty) {
-      return RefreshIndicator(
+      return AppRefreshIndicator(
         onRefresh: () => _fetchRequests(isBackgroundRefresh: false),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -202,7 +203,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
       );
     }
 
-    return RefreshIndicator(
+    return AppRefreshIndicator(
       onRefresh: () => _fetchRequests(isBackgroundRefresh: false),
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
