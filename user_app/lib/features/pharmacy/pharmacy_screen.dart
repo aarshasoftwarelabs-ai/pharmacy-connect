@@ -59,24 +59,8 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Your Connections',
-                          style: GoogleFonts.outfit(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1E293B),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (_pharmacies.isEmpty)
-                          _buildEmptyState()
-                        else
-                          ..._pharmacies.asMap().entries.map((entry) {
-                            return _buildModernPharmacyCard(entry.value, entry.key);
-                          }).toList(),
-                        const SizedBox(height: 40),
                         FadeInSlide(
-                          delay: 0.5,
+                          delay: 0.1,
                           child: Container(
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
@@ -120,7 +104,23 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 32),
+                        Text(
+                          'Your Connections',
+                          style: GoogleFonts.outfit(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_pharmacies.isEmpty)
+                          _buildEmptyState()
+                        else
+                          ..._pharmacies.asMap().entries.map((entry) {
+                            return _buildModernPharmacyCard(entry.value, entry.key);
+                          }).toList(),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
@@ -132,44 +132,20 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
 
   Widget _buildModernAppBar() {
     return SliverAppBar(
-      expandedHeight: 140.0,
-      floating: false,
+      automaticallyImplyLeading: false, // Removes the back button
+      floating: true,
       pinned: true,
       elevation: 0,
       backgroundColor: Colors.white,
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-        title: Text(
-          'My Pharmacy',
-          style: GoogleFonts.outfit(
-            color: const Color(0xFF1E293B),
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
-        background: Stack(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-              ),
-            ),
-            Positioned(
-              right: -50,
-              top: -50,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primaryLight.withOpacity(0.1),
-                ),
-              ),
-            ),
-          ],
+      titleSpacing: 20,
+      title: Text(
+        'My Pharmacy',
+        style: GoogleFonts.outfit(
+          color: const Color(0xFF1E293B),
+          fontWeight: FontWeight.bold,
+          fontSize: 22,
         ),
       ),
-      iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
     );
   }
 
