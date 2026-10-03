@@ -44,13 +44,9 @@ class _BlinkitLoaderState extends State<BlinkitLoader> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: widget.size,
       height: widget.size,
-      decoration: const BoxDecoration(
-        color: Color(0xFFCCFBF1), // Light Teal background
-        shape: BoxShape.circle,
-      ),
       child: Center(
         child: AnimatedBuilder(
           animation: _controller,
