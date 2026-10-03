@@ -16,11 +16,52 @@ class DynamicPunchHoleController extends ChangeNotifier {
   Color? _notificationColor;
   bool _showNotification = false;
 
+  // Stored info for manual trigger
+  String? _latestTitle;
+  String? _latestMessage;
+  IconData? _latestIcon;
+  Color? _latestColor;
+
   bool get showNotification => _showNotification;
   String? get notificationTitle => _notificationTitle;
   String? get notificationMessage => _notificationMessage;
   IconData? get notificationIcon => _notificationIcon;
   Color? get notificationColor => _notificationColor;
+
+  void setLatestInfo({
+    required String title,
+    required String message,
+    required IconData icon,
+    required Color color,
+  }) {
+    _latestTitle = title;
+    _latestMessage = message;
+    _latestIcon = icon;
+    _latestColor = color;
+  }
+
+  void toggleIsland() {
+    if (_showNotification) {
+      hideIsland();
+    } else {
+      if (_latestTitle != null) {
+        showIslandNotification(
+          title: _latestTitle!,
+          message: _latestMessage!,
+          icon: _latestIcon!,
+          color: _latestColor!,
+          autoHide: true,
+        );
+      }
+    }
+  }
+
+  void hideIsland() {
+    if (_showNotification) {
+      _showNotification = false;
+      notifyListeners();
+    }
+  }
 
   void startLoading() {
     _isLoading = true;
@@ -37,6 +78,7 @@ class DynamicPunchHoleController extends ChangeNotifier {
     required String message,
     required IconData icon,
     Color color = const Color(0xFF10B981),
+    bool autoHide = true,
   }) {
     _notificationTitle = title;
     _notificationMessage = message;
@@ -45,13 +87,14 @@ class DynamicPunchHoleController extends ChangeNotifier {
     _showNotification = true;
     notifyListeners();
 
-    // Auto hide after 6 seconds so user can read it properly
-    Future.delayed(const Duration(seconds: 6), () {
-      if (_showNotification && _notificationTitle == title) {
-        _showNotification = false;
-        notifyListeners();
-      }
-    });
+    if (autoHide) {
+      // Auto hide after 6 seconds so user can read it properly
+      Future.delayed(const Duration(seconds: 6), () {
+        if (_showNotification && _notificationTitle == title) {
+          hideIsland();
+        }
+      });
+    }
   }
 }
 
@@ -161,6 +204,30 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
             ),
           ),
 
+        // 2. Invisible touch target for manual trigger
+        Positioned(
+          top: 0,
+          left: MediaQuery.of(context).size.width / 2 - 50,
+          child: GestureDetector(
+            onTap: () {
+              DynamicPunchHoleController.instance.toggleIsland();
+            },
+            onVerticalDragEnd: (details) {
+              if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
+                // Swipe down
+                if (!DynamicPunchHoleController.instance.showNotification) {
+                  DynamicPunchHoleController.instance.toggleIsland();
+                }
+              }
+            },
+            child: Container(
+              width: 100,
+              height: punchHoleCenterY + 30,
+              color: Colors.transparent, // Invisible but tappable!
+            ),
+          ),
+        ),
+
         // 1. Dynamic Island
         if (_islandController.value > 0)
           Positioned(
@@ -171,12 +238,19 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
               child: AnimatedBuilder(
                 animation: _islandController,
                 builder: (context, child) {
-                  return Container(
-                    width: _islandWidth.value,
-                    height: _islandHeight.value,
-                    decoration: BoxDecoration(
-                      color: Colors.black, // True black blends with punch hole
-                      borderRadius: BorderRadius.circular(42),
+                  return GestureDetector(
+                    onVerticalDragEnd: (details) {
+                      if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
+                        // Swipe up to dismiss
+                        DynamicPunchHoleController.instance.hideIsland();
+                      }
+                    },
+                    child: Container(
+                      width: _islandWidth.value,
+                      height: _islandHeight.value,
+                      decoration: BoxDecoration(
+                        color: Colors.black, // True black blends with punch hole
+                        borderRadius: BorderRadius.circular(42),
                       boxShadow: [
                         BoxShadow(
                           color: DynamicPunchHoleController.instance.notificationColor?.withOpacity(0.3) ?? Colors.black26,

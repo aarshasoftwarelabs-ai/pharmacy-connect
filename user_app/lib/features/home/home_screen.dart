@@ -51,6 +51,15 @@ class _HomeScreenState extends State<HomeScreen> {
       final requests = await MedicineRequestService.getUserMedicineRequests();
       if (requests.isNotEmpty) {
         _recentRequest = requests.first;
+        
+        // Feed the latest info to the punch hole controller for manual tap/swipe triggers
+        DynamicPunchHoleController.instance.setLatestInfo(
+          title: 'Latest: ${_recentRequest!.medicineName ?? "Order"}',
+          message: _getStatusText(_recentRequest!.status),
+          icon: Icons.receipt_long_rounded,
+          color: _getStatusColor(_recentRequest!.status),
+        );
+        
         final currentHash = '${_recentRequest!.id}_${_recentRequest!.status.name}';
         final savedHash = prefs.getString('last_viewed_notification_hash');
         
