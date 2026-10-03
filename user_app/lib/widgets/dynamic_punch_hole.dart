@@ -175,16 +175,17 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
         ),
 
         // Dynamic Island
-        if (_islandController.value > 0)
-          Positioned(
-            top: punchHoleCenterY - 15,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: AnimatedBuilder(
-                animation: _islandController,
-                builder: (context, child) {
-                  return GestureDetector(
+        Positioned(
+          top: punchHoleCenterY - 15,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _islandController,
+              builder: (context, child) {
+                if (_islandController.value == 0) return const SizedBox.shrink();
+                
+                return GestureDetector(
                     onVerticalDragEnd: (details) {
                       if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
                         // Swipe up to dismiss
