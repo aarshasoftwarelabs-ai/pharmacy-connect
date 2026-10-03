@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/routes/app_routes.dart';
 import '../models/medicine_request.dart';
 import '../../../services/medicine_request_service.dart';
 import '../../../widgets/fade_in_slide.dart';
@@ -110,8 +112,20 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Request Details'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
+        title: Text(
+          'Request Details',
+          style: GoogleFonts.outfit(
+            color: const Color(0xFF1E293B),
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
         actions: [
           if (_isLoading)
             const Padding(
@@ -120,12 +134,12 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
                 child: SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                 ),
               ),
             ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
             onPressed: () => _fetchLatestDetails(isBackground: false),
             tooltip: 'Refresh Details',
           ),
@@ -133,162 +147,334 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
       ),
       body: RefreshIndicator(
         onRefresh: () => _fetchLatestDetails(isBackground: false),
+        color: AppColors.primary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               FadeInSlide(
                 delay: 0.1,
-                child: Text('Medicine request', style: Theme.of(context).textTheme.titleLarge),
+                child: _buildSectionHeader('Medicine Details', Icons.medication_rounded),
               ),
-              const FadeInSlide(delay: 0.1, child: Divider()),
               const SizedBox(height: 16),
-              
-              FadeInSlide(delay: 0.2, child: _buildDetailRow('Medicine name:', _request.medicineName ?? 'Not provided')),
-              const SizedBox(height: 16),
-              FadeInSlide(delay: 0.2, child: _buildDetailRow('Requested pharmacy:', _request.pharmacyName)),
-              const SizedBox(height: 16),
-              FadeInSlide(delay: 0.2, child: _buildDetailRow('Requested:', '${_request.createdAt.day}/${_request.createdAt.month}/${_request.createdAt.year}')),
-              
-              if (_request.imageReference != null) ...[
-                const SizedBox(height: 16),
-                const FadeInSlide(delay: 0.3, child: Text('Request image:', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))),
-                const SizedBox(height: 8),
-                FadeInSlide(
-                  delay: 0.3,
-                  child: Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.image, size: 40, color: AppColors.border),
-                          Text('Image Preview', style: TextStyle(color: AppColors.textHint)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              FadeInSlide(
+                delay: 0.2,
+                child: _buildDetailsCard(),
+              ),
               
               const SizedBox(height: 32),
               FadeInSlide(
-                delay: 0.4,
-                child: Text('Pharmacy response', style: Theme.of(context).textTheme.titleLarge),
+                delay: 0.3,
+                child: _buildSectionHeader('Pharmacy Response', Icons.storefront_rounded),
               ),
-              const FadeInSlide(delay: 0.4, child: Divider()),
               const SizedBox(height: 16),
-              
-              FadeInSlide(delay: 0.5, child: _buildResponseSection(_request)),
+              FadeInSlide(
+                delay: 0.4,
+                child: _buildResponseSection(_request),
+              ),
               
               if (_request.status == MedicineRequestStatus.available || _request.status == MedicineRequestStatus.canArrange)
                 ...[
                   const SizedBox(height: 32),
                   FadeInSlide(
-                    delay: 0.6,
-                    child: Text('Your Confirmation', style: Theme.of(context).textTheme.titleLarge),
+                    delay: 0.5,
+                    child: _buildSectionHeader('Your Confirmation', Icons.check_circle_outline_rounded),
                   ),
-                  const FadeInSlide(delay: 0.6, child: Divider()),
                   const SizedBox(height: 16),
-                  FadeInSlide(delay: 0.7, child: _buildConfirmationSection()),
-                ]
+                  FadeInSlide(
+                    delay: 0.6,
+                    child: _buildConfirmationSection(),
+                  ),
+                ],
+              
+              const SizedBox(height: 40),
+              FadeInSlide(
+                delay: 0.7,
+                child: _buildRequestAnotherButton(),
+              ),
+              const SizedBox(height: 20),
             ],
-
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Column(
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 22, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.outfit(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInfoRow(Icons.medical_services_rounded, 'Medicine Name', _request.medicineName ?? 'Not provided', isHighlight: true),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: Color(0xFFF1F5F9), height: 1),
+          ),
+          _buildInfoRow(Icons.local_pharmacy_rounded, 'Requested Pharmacy', _request.pharmacyName),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: Color(0xFFF1F5F9), height: 1),
+          ),
+          _buildInfoRow(Icons.calendar_today_rounded, 'Date Requested', '${_request.createdAt.day}/${_request.createdAt.month}/${_request.createdAt.year}'),
+          
+          if (_request.imageReference != null) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Divider(color: Color(0xFFF1F5F9), height: 1),
+            ),
+            Text(
+              'Request Image',
+              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              height: 160,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0), style: BorderStyle.solid),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+                      ],
+                    ),
+                    child: const Icon(Icons.image_outlined, size: 28, color: Color(0xFF94A3B8)),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Image Attached',
+                    style: GoogleFonts.inter(color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, {bool isHighlight = false}) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isHighlight ? AppColors.primary.withOpacity(0.1) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon, 
+            size: 20, 
+            color: isHighlight ? AppColors.primary : const Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF64748B),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF1E293B),
+                  fontSize: isHighlight ? 18 : 15,
+                  fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildResponseSection(MedicineRequest request) {
     Color color;
+    Color bgColor;
     String title;
     String message;
     IconData icon;
 
     switch (request.status) {
       case MedicineRequestStatus.waiting:
-        color = AppColors.warning;
+        color = const Color(0xFFF59E0B);
+        bgColor = const Color(0xFFFEF3C7);
         title = 'WAITING';
         message = 'Waiting for pharmacy response...';
-        icon = Icons.access_time;
+        icon = Icons.hourglass_top_rounded;
         break;
       case MedicineRequestStatus.available:
-        color = AppColors.success;
+        color = const Color(0xFF10B981);
+        bgColor = const Color(0xFFD1FAE5);
         title = 'AVAILABLE';
         message = 'Medicine is available at this pharmacy.';
-        icon = Icons.check_circle;
+        icon = Icons.check_circle_rounded;
         break;
       case MedicineRequestStatus.canArrange:
-        color = AppColors.secondary;
+        color = const Color(0xFF3B82F6);
+        bgColor = const Color(0xFFDBEAFE);
         title = 'CAN ARRANGE';
         message = 'The pharmacy can arrange this medicine.';
-        icon = Icons.inventory;
+        icon = Icons.inventory_2_rounded;
         break;
       case MedicineRequestStatus.notAvailable:
-        color = AppColors.error;
+        color = const Color(0xFFEF4444);
+        bgColor = const Color(0xFFFEE2E2);
         title = 'NOT AVAILABLE';
         message = 'This medicine is currently not available.';
-        icon = Icons.cancel;
+        icon = Icons.cancel_rounded;
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Hero(
-            tag: 'request_icon_${request.id}',
-            child: Icon(icon, color: color, size: 48),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
-                const SizedBox(height: 4),
-                Text(message, style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 14)),
-                if (request.responseMessage != null && request.responseMessage!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(4),
+        ],
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Hero(
+                tag: 'request_icon_${request.id}',
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 28),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title, 
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 16,
+                        color: color,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                    child: Text(
-                      '"${request.responseMessage!}"',
-                      style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+                    const SizedBox(height: 4),
+                    Text(
+                      message, 
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF475569), 
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (request.responseMessage != null && request.responseMessage!.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.format_quote_rounded, size: 16, color: Color(0xFF94A3B8)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Message from Pharmacy',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    request.responseMessage!,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: const Color(0xFF1E293B),
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -297,24 +483,46 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
   Widget _buildConfirmationSection() {
     if (_request.customerConfirmation == CustomerConfirmationStatus.confirmed) {
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.success),
+          color: const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFBBF7D0)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.check_circle, color: AppColors.success),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 24),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Confirmed', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.success)),
+                  Text(
+                    'Confirmed', 
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 16,
+                      color: const Color(0xFF065F46),
+                    ),
+                  ),
                   if (_request.confirmedAt != null)
-                    Text('You confirmed this on ${_request.confirmedAt!.day}/${_request.confirmedAt!.month}/${_request.confirmedAt!.year}', 
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'You confirmed this on ${_request.confirmedAt!.day}/${_request.confirmedAt!.month}/${_request.confirmedAt!.year}', 
+                        style: GoogleFonts.inter(
+                          fontSize: 13, 
+                          color: const Color(0xFF047857),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -325,50 +533,144 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
 
     if (_request.customerConfirmation == CustomerConfirmationStatus.cancelled) {
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.error),
+          color: const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFFECACA)),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.cancel, color: AppColors.error),
-            SizedBox(width: 16),
-            Text('Request Cancelled', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.error)),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cancel_rounded, color: Color(0xFFEF4444), size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Request Cancelled', 
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 16,
+                  color: const Color(0xFF991B1B),
+                ),
+              ),
+            ),
           ],
         ),
       );
     }
 
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _handleConfirm,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Would you like to confirm the order with this pharmacy?',
+            style: GoogleFonts.inter(
+              color: const Color(0xFF475569),
+              fontSize: 14,
             ),
-            child: const Text('CONFIRM REQUEST', style: TextStyle(fontWeight: FontWeight.bold)),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isLoading ? null : _handleCancel,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFEF4444),
+                    side: const BorderSide(color: Color(0xFFFECACA)),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('Cancel', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleConfirm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('Confirm', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestAnotherButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2DD4BF), Color(0xFF0F766E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F766E).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.pushNamed(context, AppRoutes.medicineRequest);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 24),
+                const SizedBox(width: 12),
+                Text(
+                  'Request Another Medicine',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            onPressed: _isLoading ? null : _handleCancel,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.error,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text('Cancel Request'),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
