@@ -15,13 +15,40 @@ class PharmacyScreen extends StatefulWidget {
 }
 
 class _PharmacyScreenState extends State<PharmacyScreen> {
+  List<Pharmacy> _allPharmacies = [];
   List<Pharmacy> _pharmacies = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      setState(() {});
+    });
     _loadPharmacies();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterPharmacies(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _pharmacies = _allPharmacies;
+      });
+    } else {
+      setState(() {
+        _pharmacies = _allPharmacies
+            .where((p) =>
+                p.name.toLowerCase().contains(query.toLowerCase()) ||
+                p.address.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      });
+    }
   }
 
   Future<void> _loadPharmacies() async {
@@ -29,6 +56,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
       final pharmacies = await PharmacyService.getPharmacies();
       if (mounted) {
         setState(() {
+          _allPharmacies = pharmacies;
           _pharmacies = pharmacies;
           _isLoading = false;
         });
@@ -74,26 +102,28 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                                 ),
                               ],
                             ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(16),
-                                onTap: _loadPharmacies,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        'Find a Pharmacy...',
-                                        style: GoogleFonts.inter(
-                                          color: const Color(0xFF94A3B8),
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: _filterPharmacies,
+                              decoration: InputDecoration(
+                                hintText: 'Find a Pharmacy...',
+                                hintStyle: GoogleFonts.inter(
+                                  color: const Color(0xFF94A3B8),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
                                 ),
+                                border: InputBorder.none,
+                                prefixIcon: const Icon(Icons.search, color: Color(0xFF94A3B8)),
+                                suffixIcon: _searchController.text.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear, color: Color(0xFF94A3B8)),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          _filterPharmacies('');
+                                        },
+                                      )
+                                    : null,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
                               ),
                             ),
                           ),
