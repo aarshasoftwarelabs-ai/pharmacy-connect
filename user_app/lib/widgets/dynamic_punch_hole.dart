@@ -136,11 +136,6 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
-    // Only apply the punch hole logic on Android. 
-    // For iOS or other platforms, just return the child normally.
-    if (defaultTargetPlatform != TargetPlatform.android) {
-      return widget.child;
-    }
 
     // We assume Android top-center punch hole. 
     // Usually status bar height is around 24-40px depending on the device.
