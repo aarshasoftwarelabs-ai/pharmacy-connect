@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
@@ -93,10 +94,16 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       // Use the actual ID from the API
       final pharmacyId = int.parse(_selectedPharmacy!.id);
 
+      String? base64Image;
+      if (_imageFile != null) {
+        final bytes = await _imageFile!.readAsBytes();
+        base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      }
+
       final request = await MedicineRequestService.createMedicineRequest(
         pharmacyId: pharmacyId,
         medicineName: name.isNotEmpty ? name : null,
-        imageReference: _imageFile != null ? 'mock_image_reference' : null,
+        imageReference: base64Image,
       );
 
       if (!mounted) return;

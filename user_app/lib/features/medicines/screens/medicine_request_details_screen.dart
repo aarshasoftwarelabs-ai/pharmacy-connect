@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
@@ -267,27 +268,7 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFE2E8F0), style: BorderStyle.solid),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
-                      ],
-                    ),
-                    child: const Icon(Icons.image_outlined, size: 28, color: Color(0xFF94A3B8)),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Image Attached',
-                    style: GoogleFonts.inter(color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
+              child: _buildImagePreview(),
             ),
           ],
         ],
@@ -337,6 +318,59 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildImagePreview() {
+    if (_request.imageReference == null) return const SizedBox.shrink();
+    
+    Widget imageWidget;
+    if (_request.imageReference!.startsWith('data:image')) {
+      final base64String = _request.imageReference!.split(',').last;
+      try {
+        imageWidget = Image.memory(
+          base64Decode(base64String),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        );
+      } catch (e) {
+        imageWidget = const Icon(Icons.broken_image, color: Colors.grey);
+      }
+    } else if (_request.imageReference!.startsWith('http')) {
+      imageWidget = Image.network(
+        _request.imageReference!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    } else {
+      imageWidget = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+              ],
+            ),
+            child: const Icon(Icons.image_outlined, size: 28, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Image Attached',
+            style: GoogleFonts.inter(color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+          ),
+        ],
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: imageWidget,
     );
   }
 
