@@ -12,6 +12,7 @@ import '../medicines/models/medicine_request.dart';
 import '../../widgets/fade_in_slide.dart';
 import '../../widgets/blinkit_loader.dart';
 import '../../widgets/app_refresh_indicator.dart';
+import '../../widgets/dynamic_punch_hole.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    DynamicPunchHoleController.instance.startLoading();
     try {
       final prefs = await SharedPreferences.getInstance();
       final name = prefs.getString('user_name');
@@ -63,6 +65,17 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _isLoading = false;
         });
+      }
+      DynamicPunchHoleController.instance.stopLoading();
+      
+      // If there are unread notifications, trigger the Dynamic Island!
+      if (_hasUnreadNotifications && _recentRequest != null) {
+        DynamicPunchHoleController.instance.showIslandNotification(
+          title: 'Update: ${_recentRequest!.medicineName ?? "Order"}',
+          message: _getStatusText(_recentRequest!.status),
+          icon: Icons.check_circle_rounded,
+          color: _getStatusColor(_recentRequest!.status),
+        );
       }
     }
   }
