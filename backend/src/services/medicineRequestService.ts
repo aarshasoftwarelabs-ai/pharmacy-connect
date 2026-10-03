@@ -134,13 +134,7 @@ export class MedicineRequestService {
     // 1. Fetch current request to check status transition
     const request = await this.getRequestById(id);
 
-    // Optional: We can allow status changes anytime, or restrict if customer already confirmed.
-    // For now, allow pharmacy to change status if they made a mistake.
-    if (request.customerConfirmation === 'CONFIRMED' || request.customerConfirmation === 'CANCELLED') {
-      const error = new Error('Cannot change status of a request that has already been confirmed or cancelled by the customer') as ApiError;
-      error.statusCode = 400;
-      throw error;
-    }
+    // Removed restriction to allow pharmacy to update status anytime.
 
     // 2. Set default message if not provided
     let message = updateData.responseMessage;
