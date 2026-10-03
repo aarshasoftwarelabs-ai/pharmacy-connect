@@ -1,6 +1,6 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
@@ -20,7 +20,6 @@ class MedicineRequestsScreen extends StatefulWidget {
 class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
   List<MedicineRequest> _requests = [];
   bool _isLoading = true;
-  bool _isRefreshing = false;
   String? _error;
   Timer? _pollingTimer;
 
@@ -47,11 +46,6 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
         _isLoading = true;
         _error = null;
       });
-    } else if (isBackgroundRefresh) {
-      if (!mounted) return;
-      setState(() {
-        _isRefreshing = true;
-      });
     }
 
     try {
@@ -60,7 +54,6 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
         setState(() {
           _requests = data;
           _isLoading = false;
-          _isRefreshing = false;
           if (!isBackgroundRefresh) _error = null;
         });
       }
@@ -70,14 +63,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
           setState(() {
             _error = e.toString().replaceAll('Exception: ', '');
             _isLoading = false;
-            _isRefreshing = false;
           });
-        } else {
-          // Keep old data, just hide refresh indicator and maybe show tiny snackbar
-          setState(() {
-            _isRefreshing = false;
-          });
-          // Removed the ScaffoldMessenger that was causing the global snackbar issue
         }
       }
     }
@@ -86,37 +72,21 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'My Orders',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w600,
+            fontSize: 22,
+            color: const Color(0xFF1E293B),
+            letterSpacing: -0.5,
+          ),
         ),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          if (_isRefreshing)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Center(
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _fetchRequests(isBackgroundRefresh: false),
-            tooltip: 'Refresh',
-          ),
-        ],
+        iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
       ),
       body: _buildBody(),
     );
@@ -124,7 +94,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
 
   Widget _buildBody() {
     if (_isLoading && _requests.isEmpty && _error == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     if (_error != null && _requests.isEmpty) {
@@ -134,22 +104,37 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: 16),
-              Text(
-                'Unable to load your requests.',
-                style: Theme.of(context).textTheme.titleMedium,
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFEF2F2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.error_outline_rounded, size: 48, color: Color(0xFFEF4444)),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 24),
+              Text(
+                'Unable to load your requests',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 12),
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF64748B),
+                  fontSize: 15,
+                  height: 1.5,
+                ),
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
+              const SizedBox(height: 32),
+              AppButton(
+                text: 'Retry',
                 onPressed: () => _fetchRequests(isBackgroundRefresh: false),
-                child: const Text('Retry'),
               ),
             ],
           ),
@@ -165,36 +150,90 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
           child: Container(
             height: MediaQuery.of(context).size.height * 0.7,
             alignment: Alignment.center,
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(32.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.inbox_outlined,
-                  size: 64,
-                  color: AppColors.textHint.withValues(alpha: 0.5),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF94A3B8).withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.inbox_outlined,
+                    size: 64,
+                    color: Color(0xFF94A3B8),
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 Text(
                   'No medicine requests yet',
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'When you ask a pharmacy for a medicine,\nyour requests will appear here.',
+                const SizedBox(height: 12),
+                Text(
+                  'When you ask a pharmacy for a medicine, your requests will appear here.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF64748B),
+                    fontSize: 15,
+                    height: 1.5,
+                  ),
                 ),
-                const SizedBox(height: 32),
-                AppButton(
-                  text: 'Ask for Medicine',
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(
-                      context,
-                      AppRoutes.medicineRequest,
-                    );
-                  },
+                const SizedBox(height: 40),
+                Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0F766E), Color(0xFF047857)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0F766E).withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        AppRoutes.medicineRequest,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      'Ask for Medicine',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -207,7 +246,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
       onRefresh: () => _fetchRequests(isBackgroundRefresh: false),
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         itemCount: _requests.length,
         itemBuilder: (context, index) {
           final req = _requests[index];
@@ -218,190 +257,187 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
   }
 
   Widget _buildRequestCard(BuildContext context, MedicineRequest req, int index) {
-    // Determine accent color based on status
     Color accentColor;
+    Color bgColor;
     switch (req.status) {
       case MedicineRequestStatus.waiting:
-        accentColor = AppColors.warning;
+        accentColor = const Color(0xFFF59E0B);
+        bgColor = const Color(0xFFFFFBEB);
         break;
       case MedicineRequestStatus.available:
-        accentColor = AppColors.success;
+        accentColor = const Color(0xFF10B981);
+        bgColor = const Color(0xFFECFDF5);
         break;
       case MedicineRequestStatus.canArrange:
-        accentColor = AppColors.secondary;
+        accentColor = const Color(0xFF3B82F6);
+        bgColor = const Color(0xFFEFF6FF);
         break;
       case MedicineRequestStatus.notAvailable:
-        accentColor = AppColors.error;
+        accentColor = const Color(0xFFEF4444);
+        bgColor = const Color(0xFFFEF2F2);
         break;
     }
 
+    // Fix animation bug by clamping index to max 10 for delay calculation
+    final double animDelay = 0.1 + ((index < 10 ? index : 9) * 0.1);
+
     return FadeInSlide(
-      delay: 0.1 + (index * 0.1),
+      delay: animDelay,
       child: Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () async {
-              await Navigator.pushNamed(
-                context,
-                AppRoutes.medicineRequestDetails,
-                arguments: req,
-              );
-              _fetchRequests(isBackgroundRefresh: true);
-            },
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  // Accent line
-                  Container(width: 4, color: accentColor),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFF1F5F9)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F172A).withOpacity(0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () async {
+                await Navigator.pushNamed(
+                  context,
+                  AppRoutes.medicineRequestDetails,
+                  arguments: req,
+                );
+                _fetchRequests(isBackgroundRefresh: true);
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            req.imageReference != null
+                                ? Icons.document_scanner_rounded
+                                : Icons.medication_rounded,
+                            color: accentColor,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: accentColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                              Text(
+                                req.medicineName ?? 'Prescription Request',
+                                style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                  color: const Color(0xFF1E293B),
                                 ),
-                                child: Icon(
-                                  req.imageReference != null
-                                      ? Icons.document_scanner
-                                      : Icons.edit_note,
-                                  color: accentColor,
-                                  size: 20,
-                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      req.medicineName ?? 'Prescription Upload',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: AppColors.textPrimary,
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.storefront_rounded,
+                                    size: 14,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      req.pharmacyName,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        color: const Color(0xFF64748B),
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.storefront,
-                                          size: 14,
-                                          color: AppColors.textHint,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          req.pharmacyName,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Divider(height: 1, color: AppColors.border),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.access_time,
-                                    size: 14,
-                                    color: AppColors.textHint,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${req.createdAt.day}/${req.createdAt.month}/${req.createdAt.year}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textHint,
-                                    ),
                                   ),
                                 ],
                               ),
-                              _buildStatusBadge(req.status),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.access_time_rounded,
+                              size: 14,
+                              color: Color(0xFF94A3B8),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${req.createdAt.day}/${req.createdAt.month}/${req.createdAt.year}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ],
+                        ),
+                        _buildStatusBadge(req.status, accentColor, bgColor),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-      ),
     );
   }
 
-  Widget _buildStatusBadge(MedicineRequestStatus status) {
-    Color color;
+  Widget _buildStatusBadge(MedicineRequestStatus status, Color color, Color bgColor) {
     String text;
-
     switch (status) {
       case MedicineRequestStatus.waiting:
-        color = AppColors.warning;
         text = 'WAITING';
         break;
       case MedicineRequestStatus.available:
-        color = AppColors.success;
         text = 'AVAILABLE';
         break;
       case MedicineRequestStatus.canArrange:
-        color = AppColors.secondary;
         text = 'CAN ARRANGE';
         break;
       case MedicineRequestStatus.notAvailable:
-        color = AppColors.error;
-        text = 'NOT AVAILABLE';
+        text = 'UNAVAILABLE';
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: bgColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Text(
         text,
-        style: TextStyle(
+        style: GoogleFonts.inter(
           fontSize: 10,
           fontWeight: FontWeight.bold,
           color: color,
