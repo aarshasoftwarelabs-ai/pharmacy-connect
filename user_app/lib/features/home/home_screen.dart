@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/routes/app_routes.dart';
 import '../../services/pharmacy_service.dart';
 import '../../services/medicine_request_service.dart';
@@ -608,11 +608,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 width: 8,
                                 height: 8,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981),
+                                  color: _pharmacy!.isOpenNow ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF10B981).withOpacity(0.4),
+                                      color: (_pharmacy!.isOpenNow ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withOpacity(0.4),
                                       blurRadius: 4,
                                       spreadRadius: 1,
                                     ),
@@ -621,11 +621,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Open Now',
+                                _pharmacy!.isOpenNow ? 'Open Now' : 'Closed',
                                 style: GoogleFonts.outfit(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF059669),
+                                  color: _pharmacy!.isOpenNow ? const Color(0xFF059669) : const Color(0xFFB91C1C),
                                 ),
                               ),
                             ],
@@ -633,9 +633,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         Row(
                           children: [
-                            _buildActionBtn(Icons.directions_rounded, 'Directions', () {}),
+                            _buildActionBtn(Icons.directions_rounded, 'Directions', () async {
+                              final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(_pharmacy!.address)}');
+                              try {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              } catch (e) {
+                                debugPrint('Could not launch maps: $e');
+                              }
+                            }),
                             const SizedBox(width: 12),
-                            _buildActionBtn(Icons.call_rounded, 'Call', () {}, isPrimary: true),
+                            _buildActionBtn(Icons.call_rounded, 'Call', () async {
+                              final url = Uri.parse('tel:${_pharmacy!.phone}');
+                              try {
+                                await launchUrl(url);
+                              } catch (e) {
+                                debugPrint('Could not launch phone: $e');
+                              }
+                            }, isPrimary: true),
                           ],
                         ),
                       ],
