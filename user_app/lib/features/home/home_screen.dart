@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Pharmacy? _pharmacy;
   MedicineRequest? _recentRequest;
   bool _isLoading = true;
+  bool _hasUnreadNotifications = false;
 
   @override
   void initState() {
@@ -48,6 +49,12 @@ class _HomeScreenState extends State<HomeScreen> {
       final requests = await MedicineRequestService.getUserMedicineRequests();
       if (requests.isNotEmpty) {
         _recentRequest = requests.first;
+        final currentHash = '${_recentRequest!.id}_${_recentRequest!.status.name}';
+        final savedHash = prefs.getString('last_viewed_notification_hash');
+        
+        _hasUnreadNotifications = (currentHash != savedHash);
+      } else {
+        _hasUnreadNotifications = false;
       }
     } catch (e) {
       debugPrint('Error loading home data: $e');
@@ -249,12 +256,26 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           GestureDetector(
-            onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
+            onTap: () async {
+              if (_recentRequest != null) {
+                final prefs = await SharedPreferences.getInstance();
+                final currentHash = '${_recentRequest!.id}_${_recentRequest!.status.name}';
+                await prefs.setString('last_viewed_notification_hash', currentHash);
+                if (mounted) {
+                  setState(() {
+                    _hasUnreadNotifications = false;
+                  });
+                }
+              }
+              if (mounted) {
+                Navigator.pushNamed(context, AppRoutes.notifications);
+              }
+            },
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.2),
                   width: 1,
@@ -266,18 +287,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Icon(
                     Icons.notifications_outlined,
                     color: Colors.white,
-                    size: 26,
+                    size: 22,
                   ),
-                  if (_recentRequest != null)
+                  if (_hasUnreadNotifications)
                     Positioned(
-                      right: -4,
-                      top: -4,
+                      right: -2,
+                      top: -2,
                       child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFEF4444), // Red
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444), // Red
                           shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFF0F766E), width: 1.5),
                         ),
                       ),
                     ),
