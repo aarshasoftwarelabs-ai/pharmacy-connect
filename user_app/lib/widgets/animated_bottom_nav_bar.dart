@@ -17,11 +17,10 @@ class AnimatedBottomNavBar extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.9), // Deep Slate/Black
         borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.2),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -30,8 +29,16 @@ class AnimatedBottomNavBar extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(40),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Padding(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withOpacity(0.4), // Glass tint
+              borderRadius: BorderRadius.circular(40),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 1.5,
+              ),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
