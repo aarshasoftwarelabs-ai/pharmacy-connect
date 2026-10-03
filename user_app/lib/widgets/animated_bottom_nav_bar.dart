@@ -1,65 +1,65 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../core/theme/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AnimatedBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
 
   const AnimatedBottomNavBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+      margin: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(30),
+        color: const Color(0xFF0F172A).withOpacity(0.9), // Deep Slate/Black
+        borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
+            color: const Color(0xFF0F172A).withOpacity(0.2),
+            blurRadius: 24,
             offset: const Offset(0, 10),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(40),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _NavBarItem(
                   icon: Icons.home_outlined,
-                  activeIcon: Icons.home,
+                  activeIcon: Icons.home_rounded,
                   label: 'Home',
                   isSelected: currentIndex == 0,
                   onTap: () => onTap(0),
                 ),
                 _NavBarItem(
                   icon: Icons.local_pharmacy_outlined,
-                  activeIcon: Icons.local_pharmacy,
+                  activeIcon: Icons.local_pharmacy_rounded,
                   label: 'Pharmacy',
                   isSelected: currentIndex == 1,
                   onTap: () => onTap(1),
                 ),
                 _NavBarItem(
                   icon: Icons.receipt_long_outlined,
-                  activeIcon: Icons.receipt_long,
+                  activeIcon: Icons.receipt_long_rounded,
                   label: 'Orders',
                   isSelected: currentIndex == 2,
                   onTap: () => onTap(2),
                 ),
                 _NavBarItem(
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
+                  icon: Icons.person_outline_rounded,
+                  activeIcon: Icons.person_rounded,
                   label: 'Profile',
                   isSelected: currentIndex == 3,
                   onTap: () => onTap(3),
@@ -81,13 +81,12 @@ class _NavBarItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _NavBarItem({
-    Key? key,
     required this.icon,
     required this.activeIcon,
     required this.label,
     required this.isSelected,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -96,11 +95,11 @@ class _NavBarItem extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutQuint,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? const Color(0xFF0F766E) : Colors.transparent, // Teal 700
+          borderRadius: BorderRadius.circular(30),
         ),
         child: Row(
           children: [
@@ -112,21 +111,21 @@ class _NavBarItem extends StatelessWidget {
               child: Icon(
                 isSelected ? activeIcon : icon,
                 key: ValueKey<bool>(isSelected),
-                color: isSelected ? AppColors.primary : Colors.grey.shade500,
+                color: isSelected ? Colors.white : const Color(0xFF94A3B8), // Slate 400
                 size: 24,
               ),
             ),
             AnimatedSize(
               duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutQuint,
+              curve: Curves.easeOutCubic,
               child: isSelected
                   ? Padding(
                       padding: const EdgeInsets.only(left: 8),
                       child: Text(
                         label,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
                       ),

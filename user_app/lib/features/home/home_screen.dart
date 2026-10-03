@@ -1,8 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 import '../../services/pharmacy_service.dart';
 import '../../services/medicine_request_service.dart';
@@ -57,35 +58,35 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _getStatusText(MedicineRequestStatus status) {
-    switch (status) {
-      case MedicineRequestStatus.waiting:
-        return 'Waiting for response';
-      case MedicineRequestStatus.available:
-        return 'Medicine is available';
-      case MedicineRequestStatus.canArrange:
-        return 'Pharmacy can arrange this';
-      case MedicineRequestStatus.notAvailable:
-        return 'Not available currently';
-    }
-  }
-
+  // Helper colors for status
   Color _getStatusColor(MedicineRequestStatus status) {
     switch (status) {
       case MedicineRequestStatus.waiting:
-        return AppColors.warning;
+        return const Color(0xFFF59E0B); // Amber
       case MedicineRequestStatus.available:
-        return AppColors.success;
+        return const Color(0xFF10B981); // Emerald
       case MedicineRequestStatus.canArrange:
-        return AppColors.secondary;
+        return const Color(0xFF3B82F6); // Blue
       case MedicineRequestStatus.notAvailable:
-        return AppColors.error;
+        return const Color(0xFFEF4444); // Red
+    }
+  }
+
+  String _getStatusText(MedicineRequestStatus status) {
+    switch (status) {
+      case MedicineRequestStatus.waiting:
+        return 'Waiting Response';
+      case MedicineRequestStatus.available:
+        return 'Available Now';
+      case MedicineRequestStatus.canArrange:
+        return 'Can Arrange';
+      case MedicineRequestStatus.notAvailable:
+        return 'Not Available';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Set status bar color to match our header
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -94,22 +95,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC), // Slate 50 for clean background
       body: RefreshIndicator(
         onRefresh: _loadData,
+        color: const Color(0xFF0F766E), // Teal 700
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context),
-              const SizedBox(height: 20),
-              FadeInSlide(delay: 0.1, child: _buildPromoBanner(context)),
+              _buildModernHeader(context),
               const SizedBox(height: 24),
+              FadeInSlide(delay: 0.1, child: _buildGlassPromoBanner(context)),
+              const SizedBox(height: 32),
               FadeInSlide(delay: 0.2, child: _buildConnectedPharmacy(context)),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               FadeInSlide(delay: 0.3, child: _buildRecentRequests(context)),
-              const SizedBox(height: 40),
+              const SizedBox(height: 120), // padding for bottom nav
             ],
           ),
         ),
@@ -117,203 +119,296 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildModernHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 30),
+      padding: const EdgeInsets.only(top: 70, left: 24, right: 24, bottom: 40),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primaryDark, AppColors.primary],
+          colors: [Color(0xFF064E3B), Color(0xFF0F766E)], // Deep Emerald to Teal
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x330F766E),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Good Morning,',
-                    style: TextStyle(
-                      color: Colors.teal.shade100,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _userName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Text(
+                'Good Morning,',
+                style: GoogleFonts.outfit(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                ),
               ),
-              GestureDetector(
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.notifications),
-                child: Stack(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.15),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.4),
-                          width: 1.5,
+              const SizedBox(height: 4),
+              Text(
+                _userName,
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(
+                    Icons.notifications_outlined,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                  if (_recentRequest != null)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEF4444), // Red
+                          shape: BoxShape.circle,
                         ),
                       ),
-                      child: const Icon(
-                        Icons.notifications_none_rounded,
-                        color: Colors.white,
-                        size: 26,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassPromoBanner(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: GestureDetector(
+        onTap: () => Navigator.pushNamed(context, AppRoutes.medicineRequest),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // Blue gradient
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF3B82F6).withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Abstract background elements
+              Positioned(
+                right: -20,
+                top: -20,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: -30,
+                bottom: -30,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.05),
+                  ),
+                ),
+              ),
+              
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'QUICK ORDER',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Upload\nPrescription',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 24,
+                              height: 1.1,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Text(
+                                'Order Now',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    if (_recentRequest != null)
-                      Positioned(
-                        right: 10,
-                        top: 10,
+                    
+                    // Icon inside a glass circle
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                         child: Container(
-                          width: 12,
-                          height: 12,
+                          padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: AppColors.error,
-                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(30),
                             border: Border.all(
-                              color: AppColors.primary,
-                              width: 2,
+                              color: Colors.white.withOpacity(0.2),
                             ),
+                          ),
+                          child: const Icon(
+                            Icons.document_scanner_rounded,
+                            color: Colors.white,
+                            size: 40,
                           ),
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPromoBanner(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          AnimatedPromoCard(
-            title: 'Upload Prescription',
-            subtitle:
-                'We will arrange the medicines for you from local stores.',
-            badgeText: 'QUICK ORDER',
-            buttonText: 'Upload Now',
-            icon: Icons.document_scanner,
-            gradientColors: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
-            onTap: () =>
-                Navigator.pushNamed(context, AppRoutes.medicineRequest),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildConnectedPharmacy(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'My Pharmacy',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A), // Slate 900
                 ),
               ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'Change',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
+              InkWell(
+                onTap: () {},
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    'Change',
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF0F766E),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-
+          const SizedBox(height: 16),
+          
           if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              ),
-            )
+            const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
           else if (_pharmacy == null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Text(
-                'No pharmacy connected yet.',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            )
+            _buildEmptyState('No pharmacy connected yet.')
           else
-              Container(
-              padding: const EdgeInsets.all(16),
+            Container(
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.05),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 8),
+                    color: const Color(0xFF0F172A).withOpacity(0.04),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFFCCFBF1), // Teal 50
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Icon(
-                      Icons.local_pharmacy,
-                      color: AppColors.primary,
-                      size: 32,
+                      Icons.local_pharmacy_rounded,
+                      color: Color(0xFF0F766E), // Teal 700
+                      size: 28,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -323,27 +418,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           _pharmacy!.name,
-                          style: const TextStyle(
+                          style: GoogleFonts.outfit(
                             fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F172A),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             const Icon(
-                              Icons.location_on,
-                              size: 12,
-                              color: AppColors.textHint,
+                              Icons.location_on_rounded,
+                              size: 14,
+                              color: Color(0xFF64748B), // Slate 500
                             ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 _pharmacy!.address,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 13,
+                                  color: const Color(0xFF64748B),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -351,41 +448,50 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: AppColors.success,
-                                shape: BoxShape.circle,
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Open Now',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.success,
+                              const SizedBox(width: 6),
+                              Text(
+                                'Open Now',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF10B981),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    decoration: const BoxDecoration(
-                      color: AppColors.surfaceVariant,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC), // Slate 50
                       shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: IconButton(
                       icon: const Icon(
-                        Icons.call,
-                        color: AppColors.primary,
-                        size: 20,
+                        Icons.call_rounded,
+                        color: Color(0xFF0F766E),
+                        size: 22,
                       ),
                       onPressed: () {},
                     ),
@@ -400,56 +506,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildRecentRequests(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Recent Requests',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
                 ),
               ),
-              TextButton(
-                onPressed: () =>
-                    Navigator.pushNamed(context, AppRoutes.medicineRequests),
-                child: const Text(
-                  'View All',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
+              InkWell(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.medicineRequests),
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    'View All',
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF0F766E),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-
+          const SizedBox(height: 16),
+          
           if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              ),
-            )
+            const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
           else if (_recentRequest == null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Text(
-                'You have no recent requests.',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            )
+            _buildEmptyState('You have no recent requests.')
           else
             InkWell(
               onTap: () => Navigator.pushNamed(
@@ -457,19 +551,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 AppRoutes.medicineRequestDetails,
                 arguments: _recentRequest,
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(24),
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                  borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.05),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 8),
+                      color: const Color(0xFF0F172A).withOpacity(0.04),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
@@ -478,15 +570,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     Hero(
                       tag: 'request_icon_${_recentRequest!.id}',
                       child: Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(_recentRequest!.status)
-                              .withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
+                          color: _getStatusColor(_recentRequest!.status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
-                          Icons.receipt_long,
+                          Icons.receipt_long_rounded,
                           color: _getStatusColor(_recentRequest!.status),
+                          size: 24,
                         ),
                       ),
                     ),
@@ -497,23 +589,32 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Text(
                             _recentRequest!.medicineName ?? 'Image Request',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              color: const Color(0xFF0F172A),
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 4),
                           Text(
                             _getStatusText(_recentRequest!.status),
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF64748B),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right, color: AppColors.textHint),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9), // Slate 100
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.chevron_right_rounded, color: Color(0xFF64748B), size: 20),
+                    ),
                   ],
                 ),
               ),
@@ -522,191 +623,25 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
 
-class AnimatedPromoCard extends StatefulWidget {
-  final String title;
-  final String subtitle;
-  final String badgeText;
-  final String buttonText;
-  final IconData icon;
-  final List<Color> gradientColors;
-  final VoidCallback onTap;
-
-  const AnimatedPromoCard({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.badgeText,
-    required this.buttonText,
-    required this.icon,
-    required this.gradientColors,
-    required this.onTap,
-  });
-
-  @override
-  State<AnimatedPromoCard> createState() => _AnimatedPromoCardState();
-}
-
-class _AnimatedPromoCardState extends State<AnimatedPromoCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.15,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: widget.onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 180),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: widget.gradientColors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+  Widget _buildEmptyState(String text) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.inbox_rounded, size: 40, color: Color(0xFFCBD5E1)),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 14),
           ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: widget.gradientColors.first.withValues(alpha: 0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -20,
-              top: -20,
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.1),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 40,
-              bottom: -30,
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.05),
-                ),
-              ),
-            ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          widget.badgeText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.subtitle,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          widget.buttonText,
-                          style: TextStyle(
-                            color: widget.gradientColors.last,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: Icon(
-                    widget.icon,
-                    size: 80,
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

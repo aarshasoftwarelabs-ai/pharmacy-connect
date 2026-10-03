@@ -76,13 +76,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
           setState(() {
             _isRefreshing = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Unable to connect. Retrying...'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          // Removed the ScaffoldMessenger that was causing the global snackbar issue
         }
       }
     }
