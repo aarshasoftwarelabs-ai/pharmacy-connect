@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // This is a singleton manager so we can trigger the punch hole island from anywhere in the app
@@ -137,7 +138,7 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
   Widget build(BuildContext context) {
     // Only apply the punch hole logic on Android. 
     // For iOS or other platforms, just return the child normally.
-    if (Theme.of(context).platform != TargetPlatform.android) {
+    if (defaultTargetPlatform != TargetPlatform.android) {
       return widget.child;
     }
 
