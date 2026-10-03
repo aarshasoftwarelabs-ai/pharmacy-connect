@@ -12,7 +12,7 @@ import '../medicines/models/medicine_request.dart';
 import '../../widgets/fade_in_slide.dart';
 import '../../widgets/blinkit_loader.dart';
 import '../../widgets/app_refresh_indicator.dart';
-import '../../widgets/dynamic_punch_hole.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,13 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (requests.isNotEmpty) {
         _recentRequest = requests.first;
         
-        // Feed the latest info to the punch hole controller for manual tap/swipe triggers
-        DynamicPunchHoleController.instance.setLatestInfo(
-          title: 'Latest: ${_recentRequest!.medicineName ?? "Order"}',
-          message: _getStatusText(_recentRequest!.status),
-          icon: Icons.receipt_long_rounded,
-          color: _getStatusColor(_recentRequest!.status),
-        );
+
         
         final currentHash = '${_recentRequest!.id}_${_recentRequest!.status.name}';
         final savedHash = prefs.getString('last_viewed_notification_hash');
@@ -75,15 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
       
-      // If there are unread notifications, trigger the Dynamic Island!
-      if (_hasUnreadNotifications && _recentRequest != null) {
-        DynamicPunchHoleController.instance.showIslandNotification(
-          title: 'Update: ${_recentRequest!.medicineName ?? "Order"}',
-          message: _getStatusText(_recentRequest!.status),
-          icon: Icons.check_circle_rounded,
-          color: _getStatusColor(_recentRequest!.status),
-        );
-      }
+
     }
   }
 
