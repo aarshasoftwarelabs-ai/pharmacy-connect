@@ -61,6 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Color(0xFF1F2937)),
         title: Text(
           'Profile',
@@ -71,14 +72,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-          child: Column(
-            children: [
-              // User Avatar & Info Card
-              FadeInSlide(
+      body: Column(
+        children: [
+          // User Avatar & Info Card
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 0.0),
+            child: FadeInSlide(
                 delay: 0.1,
                 child: Container(
                   width: double.infinity,
@@ -140,10 +139,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
-              
-              // Settings Group 1: Account
-              FadeInSlide(
+            ),
+            const SizedBox(height: 32),
+          
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  children: [
+                    // Settings Group 1: Account
+                    FadeInSlide(
                 delay: 0.2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,10 +231,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 120),
-            ],
+                    const SizedBox(height: 120),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
