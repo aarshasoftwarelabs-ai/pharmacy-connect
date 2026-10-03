@@ -60,6 +60,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: true,
         automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Color(0xFF1F2937)),
@@ -76,7 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           // User Avatar & Info Card
           Padding(
-            padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 0.0),
+            padding: const EdgeInsets.fromLTRB(20.0, 4.0, 20.0, 0.0),
             child: FadeInSlide(
                 delay: 0.1,
                 child: Container(
