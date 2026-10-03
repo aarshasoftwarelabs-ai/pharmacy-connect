@@ -83,7 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 delay: 0.1,
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
@@ -107,23 +107,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         child: CircleAvatar(
-                          radius: 40,
+                          radius: 32,
                           backgroundColor: const Color(0xFFCCFBF1), // Very light teal
                           child: Text(
                             _initials,
                             style: GoogleFonts.outfit(
-                              fontSize: 28,
+                              fontSize: 24,
                               color: const Color(0xFF0F766E), // Dark teal
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Text(
                         _userName,
                         style: GoogleFonts.outfit(
-                          fontSize: 22,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF1F2937),
                         ),
@@ -142,7 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
           
           Expanded(
             child: SingleChildScrollView(
