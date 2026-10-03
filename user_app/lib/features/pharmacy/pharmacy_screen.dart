@@ -93,15 +93,6 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                                           fontWeight: FontWeight.w400,
                                         ),
                                       ),
-                                      const Spacer(),
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: const Icon(Icons.tune_rounded, size: 16, color: Color(0xFF64748B)),
-                                      ),
                                     ],
                                   ),
                                 ),
