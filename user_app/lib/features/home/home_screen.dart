@@ -35,7 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    DynamicPunchHoleController.instance.startLoading();
     try {
       final prefs = await SharedPreferences.getInstance();
       final name = prefs.getString('user_name');
@@ -75,7 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _isLoading = false;
         });
       }
-      DynamicPunchHoleController.instance.stopLoading();
       
       // If there are unread notifications, trigger the Dynamic Island!
       if (_hasUnreadNotifications && _recentRequest != null) {

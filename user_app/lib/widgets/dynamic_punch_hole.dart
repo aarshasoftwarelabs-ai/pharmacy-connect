@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import 'package:google_fonts/google_fonts.dart';
 
 // This is a singleton manager so we can trigger the punch hole island from anywhere in the app
 class DynamicPunchHoleController extends ChangeNotifier {
   static final DynamicPunchHoleController instance = DynamicPunchHoleController._();
   DynamicPunchHoleController._();
-
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
 
   String? _notificationTitle;
   String? _notificationMessage;
@@ -63,16 +59,6 @@ class DynamicPunchHoleController extends ChangeNotifier {
     }
   }
 
-  void startLoading() {
-    _isLoading = true;
-    notifyListeners();
-  }
-
-  void stopLoading() {
-    _isLoading = false;
-    notifyListeners();
-  }
-
   void showIslandNotification({
     required String title,
     required String message,
@@ -107,7 +93,6 @@ class DynamicPunchHole extends StatefulWidget {
 }
 
 class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProviderStateMixin {
-  late AnimationController _orbitController;
   late AnimationController _islandController;
   late Animation<double> _islandHeight;
   late Animation<double> _islandWidth;
@@ -115,7 +100,6 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
   @override
   void initState() {
     super.initState();
-    _orbitController = AnimationController(vsync: this, duration: const Duration(seconds: 2));
     _islandController = AnimationController(
       vsync: this, 
       duration: const Duration(milliseconds: 1200), // slower, bouncy drop down
@@ -133,12 +117,6 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
   }
 
   void _onStateChanged() {
-    if (DynamicPunchHoleController.instance.isLoading) {
-      if (!_orbitController.isAnimating) _orbitController.repeat();
-    } else {
-      _orbitController.stop();
-    }
-
     if (DynamicPunchHoleController.instance.showNotification) {
       _islandController.forward(from: 0.0);
     } else {
@@ -151,13 +129,18 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
   @override
   void dispose() {
     DynamicPunchHoleController.instance.removeListener(_onStateChanged);
-    _orbitController.dispose();
     _islandController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Only apply the punch hole logic on Android. 
+    // For iOS or other platforms, just return the child normally.
+    if (Theme.of(context).platform != TargetPlatform.android) {
+      return widget.child;
+    }
+
     // We assume Android top-center punch hole. 
     // Usually status bar height is around 24-40px depending on the device.
     final double topPadding = MediaQuery.of(context).padding.top;
@@ -167,44 +150,7 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
       children: [
         widget.child, // The main app content
 
-        // 3. The Orbit Progress Ring
-        if (DynamicPunchHoleController.instance.isLoading)
-          Positioned(
-            top: punchHoleCenterY - 20, // Center around the punch hole
-            left: 0,
-            right: 0,
-            child: IgnorePointer(
-              child: Center(
-                child: AnimatedBuilder(
-                  animation: _orbitController,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: _orbitController.value * 2 * math.pi,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(shape: BoxShape.circle),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              top: 0, left: 16,
-                              child: _buildGlowingDot(const Color(0xFF10B981)),
-                            ),
-                            Positioned(
-                              bottom: 0, left: 16,
-                              child: _buildGlowingDot(const Color(0xFF3B82F6)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-
-        // 2. Invisible touch target for manual trigger
+        // Invisible touch target for manual trigger (over the camera hole)
         Positioned(
           top: 0,
           left: MediaQuery.of(context).size.width / 2 - 50,
@@ -228,7 +174,7 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
           ),
         ),
 
-        // 1. Dynamic Island
+        // Dynamic Island
         if (_islandController.value > 0)
           Positioned(
             top: punchHoleCenterY - 15,
@@ -245,100 +191,83 @@ class _DynamicPunchHoleState extends State<DynamicPunchHole> with TickerProvider
                         DynamicPunchHoleController.instance.hideIsland();
                       }
                     },
-                    child: Container(
-                      width: _islandWidth.value,
-                      height: _islandHeight.value,
-                      decoration: BoxDecoration(
-                        color: Colors.black, // True black blends with punch hole
-                        borderRadius: BorderRadius.circular(42),
-                      boxShadow: [
-                        BoxShadow(
-                          color: DynamicPunchHoleController.instance.notificationColor?.withOpacity(0.3) ?? Colors.black26,
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: Container(
+                        width: _islandWidth.value,
+                        height: _islandHeight.value,
+                        decoration: BoxDecoration(
+                          color: Colors.black, // True black blends with punch hole
+                          borderRadius: BorderRadius.circular(42),
+                          boxShadow: [
+                            BoxShadow(
+                              color: DynamicPunchHoleController.instance.notificationColor?.withOpacity(0.3) ?? Colors.black26,
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: SingleChildScrollView(
-                      physics: const NeverScrollableScrollPhysics(),
-                      child: Opacity(
-                        opacity: (_islandController.value - 0.5).clamp(0.0, 1.0) * 2, // fade in late
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: DynamicPunchHoleController.instance.notificationColor?.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  DynamicPunchHoleController.instance.notificationIcon,
-                                  color: DynamicPunchHoleController.instance.notificationColor,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      DynamicPunchHoleController.instance.notificationTitle ?? '',
-                                      style: GoogleFonts.outfit(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        decoration: TextDecoration.none,
-                                      ),
+                        child: SingleChildScrollView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: Opacity(
+                            opacity: (_islandController.value - 0.5).clamp(0.0, 1.0) * 2, // fade in late
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: DynamicPunchHoleController.instance.notificationColor?.withOpacity(0.2),
+                                      shape: BoxShape.circle,
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      DynamicPunchHoleController.instance.notificationMessage ?? '',
-                                      style: GoogleFonts.inter(
-                                        color: Colors.white70,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.normal,
-                                        decoration: TextDecoration.none,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    child: Icon(
+                                      DynamicPunchHoleController.instance.notificationIcon,
+                                      color: DynamicPunchHoleController.instance.notificationColor,
+                                      size: 24,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          DynamicPunchHoleController.instance.notificationTitle ?? '',
+                                          style: GoogleFonts.outfit(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          DynamicPunchHoleController.instance.notificationMessage ?? '',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white70,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
               ),
             ),
           ),
       ],
-    );
-  }
-
-  Widget _buildGlowingDot(Color color) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.8),
-            blurRadius: 10,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
     );
   }
 }
