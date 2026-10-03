@@ -20,7 +20,7 @@ class AnimatedBottomNavBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -32,10 +32,10 @@ class AnimatedBottomNavBar extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withOpacity(0.4), // Glass tint
+              color: Colors.white.withOpacity(0.7), // Light Glass tint
               borderRadius: BorderRadius.circular(40),
               border: Border.all(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white,
                 width: 1.5,
               ),
             ),
@@ -118,7 +118,7 @@ class _NavBarItem extends StatelessWidget {
               child: Icon(
                 isSelected ? activeIcon : icon,
                 key: ValueKey<bool>(isSelected),
-                color: isSelected ? Colors.white : const Color(0xFF94A3B8), // Slate 400
+                color: isSelected ? Colors.white : const Color(0xFF64748B), // Slate 500
                 size: 24,
               ),
             ),
