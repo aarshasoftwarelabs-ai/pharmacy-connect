@@ -83,8 +83,6 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.search_rounded, color: Color(0xFF94A3B8)),
-                                      const SizedBox(width: 12),
                                       Text(
                                         'Find a Pharmacy...',
                                         style: GoogleFonts.inter(
