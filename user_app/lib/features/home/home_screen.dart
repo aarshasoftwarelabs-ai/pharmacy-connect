@@ -107,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child,
               if (!controller.isIdle)
                 Positioned(
-                  top: 50.0 * controller.value + 10, // animates down over the content
+                  top: -60.0 + (110.0 * controller.value), // Starts hidden above screen, pulls down
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
