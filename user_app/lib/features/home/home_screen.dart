@@ -10,6 +10,8 @@ import '../../services/medicine_request_service.dart';
 import '../pharmacy/models/pharmacy.dart';
 import '../medicines/models/medicine_request.dart';
 import '../../widgets/fade_in_slide.dart';
+import '../../widgets/blinkit_loader.dart';
+import 'package:flutter/cupertino.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -96,25 +98,43 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // Slate 50 for clean background
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        color: const Color(0xFF0F766E), // Teal 700
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildModernHeader(context),
-              const SizedBox(height: 24),
-              FadeInSlide(delay: 0.1, child: _buildGlassPromoBanner(context)),
-              const SizedBox(height: 32),
-              FadeInSlide(delay: 0.2, child: _buildConnectedPharmacy(context)),
-              const SizedBox(height: 32),
-              FadeInSlide(delay: 0.3, child: _buildRecentRequests(context)),
-              const SizedBox(height: 120), // padding for bottom nav
-            ],
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        slivers: [
+          CupertinoSliverRefreshControl(
+            onRefresh: _loadData,
+            builder: (context, refreshState, pulledExtent, refreshTriggerPullDistance, refreshIndicatorExtent) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Transform.rotate(
+                    angle: pulledExtent / 20, // Spin while pulling
+                    child: const Icon(
+                      Icons.medication_rounded,
+                      color: Color(0xFF0F766E),
+                      size: 30,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-        ),
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildModernHeader(context),
+                const SizedBox(height: 24),
+                FadeInSlide(delay: 0.1, child: _buildGlassPromoBanner(context)),
+                const SizedBox(height: 32),
+                FadeInSlide(delay: 0.2, child: _buildConnectedPharmacy(context)),
+                const SizedBox(height: 32),
+                FadeInSlide(delay: 0.3, child: _buildRecentRequests(context)),
+                const SizedBox(height: 120), // padding for bottom nav
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -380,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
           
           if (_isLoading)
-            const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+            const Center(child: Padding(padding: EdgeInsets.all(20), child: BlinkitLoader()))
           else if (_pharmacy == null)
             _buildEmptyState('No pharmacy connected yet.')
           else
@@ -541,7 +561,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
           
           if (_isLoading)
-            const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+            const Center(child: Padding(padding: EdgeInsets.all(20), child: BlinkitLoader()))
           else if (_recentRequest == null)
             _buildEmptyState('You have no recent requests.')
           else
