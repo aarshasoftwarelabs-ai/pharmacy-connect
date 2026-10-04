@@ -40,7 +40,10 @@ router.use('/payments', paymentRoutes);
 
 import wholesaleRoutes from './wholesaleRoutes';
 import staffRoutes from './staffRoutes';
+import marketingRoutes from './marketingRoutes';
+
 router.use('/wholesale', wholesaleRoutes);
 router.use('/staff', staffRoutes);
+router.use('/marketing', marketingRoutes);
 
 export default router;

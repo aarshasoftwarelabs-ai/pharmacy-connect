@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import Inventory from './pages/Inventory';
 import Wholesale from './pages/Wholesale';
 import Staff from './pages/Staff';
+import Marketing from './pages/Marketing';
 
 const ProtectedRoute = () => {
   const token = localStorage.getItem('token');
@@ -38,6 +39,7 @@ function App() {
             <Route path="orders" element={<Orders />} />
             <Route path="inventory" element={<Inventory />} />
             <Route path="customers" element={<Customers />} />
+            <Route path="marketing" element={<Marketing />} />
             <Route path="staff" element={<Staff />} />
             <Route path="wholesale" element={<Wholesale />} />
             <Route path="billing" element={<Billing />} />
