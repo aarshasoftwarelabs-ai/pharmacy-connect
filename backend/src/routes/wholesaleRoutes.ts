@@ -12,4 +12,8 @@ router.get('/clients/:pharmacyId', authMiddleware, WholesaleController.getClient
 router.get('/clients/:clientId/ledger', authMiddleware, WholesaleController.getLedger);
 router.post('/clients/:clientId/ledger', authMiddleware, WholesaleController.addLedgerEntry);
 
+// B2B Schemes
+router.post('/schemes', authMiddleware, WholesaleController.addScheme);
+router.get('/schemes/:pharmacyId', authMiddleware, WholesaleController.getSchemes);
+
 export default router;

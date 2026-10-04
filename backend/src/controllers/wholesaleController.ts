@@ -67,4 +67,38 @@ export class WholesaleController {
       res.status(500).json({ error: 'Failed to add ledger entry' });
     }
   }
+
+  static async getSchemes(req: Request, res: Response) {
+    try {
+      const pharmacyId = parseInt(req.params.pharmacyId, 10);
+      if (isNaN(pharmacyId)) {
+        return res.status(400).json({ error: 'Invalid pharmacy ID' });
+      }
+
+      const schemes = await WholesaleService.getSchemesByPharmacy(pharmacyId);
+      res.status(200).json({ success: true, data: schemes });
+    } catch (error: any) {
+      console.error('Error fetching wholesale schemes:', error);
+      res.status(500).json({ error: 'Failed to fetch schemes' });
+    }
+  }
+
+  static async addScheme(req: Request, res: Response) {
+    try {
+      const { pharmacyId, schemeName, medicineId, minQuantity, freeQuantity, discountPercent, validUntil } = req.body;
+      
+      if (!pharmacyId || !schemeName) {
+        return res.status(400).json({ error: 'PharmacyId and Scheme Name are required' });
+      }
+
+      const newScheme = await WholesaleService.addScheme({
+        pharmacyId, schemeName, medicineId, minQuantity, freeQuantity, discountPercent, validUntil
+      });
+
+      res.status(201).json({ success: true, data: newScheme });
+    } catch (error: any) {
+      console.error('Error adding wholesale scheme:', error);
+      res.status(500).json({ error: 'Failed to add B2B scheme' });
+    }
+  }
 }

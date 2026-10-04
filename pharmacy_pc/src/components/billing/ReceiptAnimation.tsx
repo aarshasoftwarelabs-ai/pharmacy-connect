@@ -12,11 +12,14 @@ interface Props {
 
 export default function ReceiptAnimation({ bill, onClose }: Props) {
   const [stage, setStage] = useState<'printing' | 'ready'>('printing');
-  const [printFormat, setPrintFormat] = useState<'A4' | 'THERMAL'>('A4');
+  const [printFormat, setPrintFormat] = useState<'A4' | 'THERMAL' | 'B2B_A4'>('A4');
   const [pharmacyName, setPharmacyName] = useState('DavaSetu Pharmacy');
   const [ownerName, setOwnerName] = useState('Admin');
 
   useEffect(() => {
+    if (bill.billType === 'WHOLESALE') {
+      setPrintFormat('B2B_A4');
+    }
     // Load Pharmacy details
     PharmacyService.getPharmacyProfile(DEV_PHARMACY_ID)
       .then(profile => {
@@ -185,13 +188,22 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
                       <span className="font-medium">Bill Created Successfully</span>
                    </div>
                    
-                   <div className="flex bg-slate-100 p-1 rounded-lg mb-4 w-full max-w-[250px]">
-                     <button
-                       onClick={() => setPrintFormat('A4')}
-                       className={`flex-1 flex items-center justify-center py-1.5 text-xs font-semibold rounded-md transition-all ${printFormat === 'A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
-                     >
-                       <FileText className="w-3.5 h-3.5 mr-1.5" /> A4 Size
-                     </button>
+                   <div className="flex bg-slate-100 p-1 rounded-lg mb-4 w-full max-w-[320px]">
+                     {bill.billType === 'WHOLESALE' ? (
+                       <button
+                         onClick={() => setPrintFormat('B2B_A4')}
+                         className={`flex-1 flex items-center justify-center py-1.5 text-xs font-semibold rounded-md transition-all ${printFormat === 'B2B_A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                       >
+                         <FileText className="w-3.5 h-3.5 mr-1.5" /> B2B Tax Invoice
+                       </button>
+                     ) : (
+                       <button
+                         onClick={() => setPrintFormat('A4')}
+                         className={`flex-1 flex items-center justify-center py-1.5 text-xs font-semibold rounded-md transition-all ${printFormat === 'A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                       >
+                         <FileText className="w-3.5 h-3.5 mr-1.5" /> A4 Size
+                       </button>
+                     )}
                      <button
                        onClick={() => setPrintFormat('THERMAL')}
                        className={`flex-1 flex items-center justify-center py-1.5 text-xs font-semibold rounded-md transition-all ${printFormat === 'THERMAL' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}

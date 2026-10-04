@@ -350,7 +350,148 @@ export const generateThermalPrintHTML = (bill: Bill, pharmacyName: string = 'Pha
   `;
 };
 
-export const printBill = (bill: Bill, format: 'A4' | 'THERMAL' = 'A4', defaultPharmacyName = 'DavaSetu Pharmacy', defaultOwnerName = 'Admin') => {
+export const generateB2BPrintHTML = (bill: Bill, pharmacyName: string = 'PharmacyConnect', ownerName: string = 'Owner') => {
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Wholesale Tax Invoice - ${bill.billNumber}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: white; color: #1e293b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .a4-container { width: 210mm; padding: 15mm; margin: 0 auto; box-sizing: border-box; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: 700; }
+        .border-box { border: 1px solid #cbd5e1; padding: 10px; margin-bottom: 10px; }
+        .flex { display: flex; justify-content: space-between; }
+        .invoice-title { font-size: 20px; font-weight: bold; text-align: center; text-transform: uppercase; margin: 0 0 15px 0; letter-spacing: 2px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
+        th, td { border: 1px solid #cbd5e1; padding: 6px; }
+        th { background-color: #f1f5f9; text-transform: uppercase; }
+        .totals { width: 300px; margin-left: auto; margin-top: 10px; font-size: 12px; }
+        .totals table { margin: 0; }
+        .totals td { padding: 4px 8px; border: none; border-bottom: 1px solid #e2e8f0; }
+        .footer { font-size: 10px; text-align: center; margin-top: 40px; color: #64748b; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <div class="a4-container">
+        <h1 class="invoice-title">Tax Invoice (Wholesale B2B)</h1>
+        
+        <div class="flex" style="margin-bottom: 10px;">
+          <div style="width: 50%;">
+            <div class="border-box">
+              <h3 style="margin: 0 0 5px 0; font-size: 14px;">Supplier (Wholesaler)</h3>
+              <p style="margin: 2px 0; font-size: 16px;" class="font-bold">${pharmacyName}</p>
+              <p style="margin: 2px 0; font-size: 11px;">Proprietor: ${ownerName}</p>
+              <p style="margin: 2px 0; font-size: 11px;">GSTIN: <strong>24XXXXX0000X1Z5</strong></p>
+              <p style="margin: 2px 0; font-size: 11px;">DL No: <strong>GJ-AHD-XXXXX</strong></p>
+            </div>
+          </div>
+          <div style="width: 48%;">
+            <div class="border-box">
+              <h3 style="margin: 0 0 5px 0; font-size: 14px;">Invoice Details</h3>
+              <p style="margin: 2px 0; font-size: 12px;">Invoice No: <strong>${bill.billNumber}</strong></p>
+              <p style="margin: 2px 0; font-size: 12px;">Date: <strong>${new Date(bill.createdAt).toLocaleDateString()}</strong></p>
+              <p style="margin: 2px 0; font-size: 12px;">Type: <strong>Credit Sale</strong></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-box" style="margin-bottom: 15px;">
+          <h3 style="margin: 0 0 5px 0; font-size: 12px; color: #64748b; text-transform: uppercase;">Billed To (Buyer)</h3>
+          <p style="margin: 2px 0; font-size: 16px;" class="font-bold">${bill.customerName}</p>
+          <p style="margin: 2px 0; font-size: 11px;">Phone: ${bill.customerPhone || 'N/A'}</p>
+          <p style="margin: 2px 0; font-size: 11px;">GSTIN: <strong>Provided by Client</strong></p>
+          <p style="margin: 2px 0; font-size: 11px;">DL No: <strong>Provided by Client</strong></p>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th width="5%">Sr.</th>
+              <th width="35%" style="text-align: left;">Product Description (Medicine)</th>
+              <th width="10%">HSN</th>
+              <th width="8%">Qty</th>
+              <th width="10%" class="text-right">Rate</th>
+              <th width="10%" class="text-right">Taxable</th>
+              <th width="10%" class="text-right">GST Rate</th>
+              <th width="12%" class="text-right">Total (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(bill.items || []).map((item, index) => `
+              <tr>
+                <td class="text-center">${index + 1}</td>
+                <td><strong>${item.medicineName}</strong></td>
+                <td class="text-center">${item.hsnCode || '-'}</td>
+                <td class="text-center">${item.quantity}</td>
+                <td class="text-right">${Number(item.unitPrice).toFixed(2)}</td>
+                <td class="text-right">${Number(item.taxableAmount || 0).toFixed(2)}</td>
+                <td class="text-right">${item.gstRate || 0}%</td>
+                <td class="text-right font-bold">${Number(item.lineTotal).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="flex">
+          <div style="width: 50%; font-size: 10px; line-height: 1.5; color: #475569;">
+            <p><strong>Terms & Conditions:</strong></p>
+            <p>1. Goods once sold will not be taken back.<br>
+            2. Interest @ 24% p.a. will be charged if payment is delayed.<br>
+            3. Subject to local jurisdiction only.</p>
+            <p style="margin-top: 30px;">Receiver's Signature / Stamp</p>
+          </div>
+          <div class="totals">
+            <table>
+              <tr>
+                <td>Subtotal</td>
+                <td class="text-right">₹${Number(bill.subtotal).toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>Discount</td>
+                <td class="text-right" style="color: #dc2626;">-₹${Number(bill.discount).toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>Taxable Amount</td>
+                <td class="text-right">₹${Number(bill.totalTaxableAmount || 0).toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>CGST</td>
+                <td class="text-right">₹${Number(bill.totalCgst || 0).toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>SGST</td>
+                <td class="text-right">₹${Number(bill.totalSgst || 0).toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td class="font-bold" style="font-size: 16px;">Grand Total</td>
+                <td class="text-right font-bold" style="font-size: 16px;">₹${Number(bill.total).toFixed(2)}</td>
+              </tr>
+            </table>
+            <div class="text-center" style="margin-top: 30px;">
+              <p style="margin: 0;">For <strong>${pharmacyName}</strong></p>
+              <p style="margin: 40px 0 0 0;">Authorized Signatory</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          System Generated Wholesale Invoice • Powered by DavaSetu
+        </div>
+      </div>
+      <script>window.onload = () => { setTimeout(() => window.print(), 500); }</script>
+    </body>
+    </html>
+  `;
+};
+
+export const printBill = (bill: Bill, format: 'A4' | 'THERMAL' | 'B2B_A4' = 'A4', defaultPharmacyName = 'DavaSetu Pharmacy', defaultOwnerName = 'Admin') => {
   let pharmacyName = defaultPharmacyName;
   let ownerName = defaultOwnerName;
   
@@ -369,9 +510,14 @@ export const printBill = (bill: Bill, format: 'A4' | 'THERMAL' = 'A4', defaultPh
     return;
   }
   
-  const html = format === 'A4' 
-    ? generateA4PrintHTML(bill, pharmacyName, ownerName) 
-    : generateThermalPrintHTML(bill, pharmacyName);
+  let html = '';
+  if (format === 'B2B_A4') {
+    html = generateB2BPrintHTML(bill, pharmacyName, ownerName);
+  } else if (format === 'A4') {
+    html = generateA4PrintHTML(bill, pharmacyName, ownerName);
+  } else {
+    html = generateThermalPrintHTML(bill, pharmacyName);
+  }
   
   printWindow.document.write(html);
   printWindow.document.close();

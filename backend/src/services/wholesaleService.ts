@@ -83,4 +83,45 @@ export class WholesaleService {
 
     return result.rows[0];
   }
+
+  // Get Trade Schemes for a pharmacy
+  static async getSchemesByPharmacy(pharmacyId: number) {
+    const query = `
+      SELECT s.id, s.pharmacy_id AS "pharmacyId", s.scheme_name AS "schemeName",
+             s.medicine_id AS "medicineId", m.name AS "medicineName",
+             s.min_quantity AS "minQuantity", s.free_quantity AS "freeQuantity",
+             s.discount_percent AS "discountPercent", s.is_active AS "isActive",
+             s.valid_until AS "validUntil", s.created_at AS "createdAt"
+      FROM b2b_schemes s
+      LEFT JOIN medicines m ON s.medicine_id = m.id
+      WHERE s.pharmacy_id = $1
+      ORDER BY s.created_at DESC
+    `;
+    const result = await pool.query(query, [pharmacyId]);
+    return result.rows;
+  }
+
+  // Add Trade Scheme
+  static async addScheme(schemeData: any) {
+    const query = `
+      INSERT INTO b2b_schemes (pharmacy_id, scheme_name, medicine_id, min_quantity, free_quantity, discount_percent, valid_until)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, pharmacy_id AS "pharmacyId", scheme_name AS "schemeName",
+                medicine_id AS "medicineId", min_quantity AS "minQuantity",
+                free_quantity AS "freeQuantity", discount_percent AS "discountPercent",
+                is_active AS "isActive", valid_until AS "validUntil"
+    `;
+    const values = [
+      schemeData.pharmacyId,
+      schemeData.schemeName,
+      schemeData.medicineId || null,
+      schemeData.minQuantity || 1,
+      schemeData.freeQuantity || 0,
+      schemeData.discountPercent || 0,
+      schemeData.validUntil || null
+    ];
+    
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  }
 }

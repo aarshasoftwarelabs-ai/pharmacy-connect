@@ -214,6 +214,45 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
                 <option key={c.id} value={c.id}>{c.businessName} (Bal: ₹{c.currentBalance})</option>
               ))}
             </select>
+            
+            {/* AI Warning System */}
+            {selectedClientId && (() => {
+              const client = clients.find(c => c.id === selectedClientId);
+              if (!client) return null;
+              
+              const limit = Number(client.creditLimit);
+              const balance = Number(client.currentBalance);
+              if (limit > 0) {
+                const utilization = balance / limit;
+                if (utilization > 0.9) {
+                  return (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start animate-in fade-in slide-in-from-top-1">
+                      <div className="text-xl mr-3">🚨</div>
+                      <div>
+                        <h4 className="text-sm font-bold text-red-800">AI Credit Risk Alert: Defaulter Risk</h4>
+                        <p className="text-xs text-red-600 mt-0.5">This client has exceeded 90% of their credit limit (Outstanding: ₹{balance}). AI highly recommends collecting cash or stopping further credit sales to avoid bad debts.</p>
+                      </div>
+                    </div>
+                  );
+                } else if (utilization > 0.7) {
+                  return (
+                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start animate-in fade-in slide-in-from-top-1">
+                      <div className="text-xl mr-3">🟠</div>
+                      <div>
+                        <h4 className="text-sm font-bold text-orange-800">AI Credit Risk Alert: High Risk</h4>
+                        <p className="text-xs text-orange-600 mt-0.5">This client has consumed {Math.round(utilization * 100)}% of their credit limit. Proceed with caution when offering Udhaari.</p>
+                      </div>
+                    </div>
+                  );
+                }
+              }
+              return (
+                <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg flex items-center animate-in fade-in slide-in-from-top-1">
+                  <div className="text-lg mr-2">✨</div>
+                  <span className="text-xs font-semibold text-green-700">AI Analysis: Low Risk. Client is safe for credit limits.</span>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
