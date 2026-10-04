@@ -288,7 +288,7 @@ export default function Marketing() {
             })
           )}
         </div>
-      ) : (
+      ) : activeTab === 'campaigns' ? (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           {campaigns.length === 0 ? (
             <div className="py-16 flex flex-col items-center justify-center text-slate-500">
@@ -404,7 +404,7 @@ export default function Marketing() {
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Offer Modal */}
       {isOfferModalOpen && (
