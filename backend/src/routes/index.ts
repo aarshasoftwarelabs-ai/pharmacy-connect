@@ -39,6 +39,8 @@ router.use('/payments', paymentRoutes);
 // router.use('/notifications', notificationRoutes);
 
 import wholesaleRoutes from './wholesaleRoutes';
+import staffRoutes from './staffRoutes';
 router.use('/wholesale', wholesaleRoutes);
+router.use('/staff', staffRoutes);
 
 export default router;

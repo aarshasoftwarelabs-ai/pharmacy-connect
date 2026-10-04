@@ -22,6 +22,7 @@ const navigation = [
   { name: 'Smart Inventory', href: '/inventory', icon: Package },
 
   { name: 'Customers', href: '/customers', icon: Users },
+  { name: 'Staff', href: '/staff', icon: Users },
   { name: 'Wholesale (B2B)', href: '/wholesale', icon: Briefcase },
   { name: 'Billing', href: '/billing', icon: Receipt },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
