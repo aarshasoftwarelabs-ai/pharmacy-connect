@@ -181,7 +181,7 @@ export default function Login() {
       const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password, ownerName, pharmacyName, address })
+        body: JSON.stringify({ phone, password, ownerName, pharmacyName, address, businessType })
       });
       const data = await response.json();
 
@@ -226,11 +226,16 @@ export default function Login() {
 
         <div className="relative z-10">
           <h1 className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-            Empower Your <br />
-            <span className="text-emerald-300">Pharmacy Business</span>
+            {businessType === 'RETAIL' ? (
+              <>Empower Your <br /><span className="text-emerald-300">Pharmacy Business</span></>
+            ) : (
+              <>Scale Your <br /><span className="text-indigo-300">B2B Wholesale</span></>
+            )}
           </h1>
           <p className="mt-5 text-lg text-white/90 max-w-md leading-relaxed">
-            Join the fastest growing network of digital pharmacies. Streamline orders, manage billing, and grow your customer base seamlessly.
+            {businessType === 'RETAIL' 
+              ? 'Join the fastest growing network of digital pharmacies. Streamline orders, manage billing, and grow your customer base seamlessly.'
+              : 'The ultimate distribution platform. Manage bulk orders, B2B clients, smart trade schemes, and wholesale ledgers effortlessly.'}
           </p>
         </div>
 
@@ -282,8 +287,12 @@ export default function Login() {
             </div>
             {step === 1 && (
               <>
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Sign in or Join</h2>
-                <p className="mt-2 text-slate-500 font-medium text-sm">Enter your mobile number to get started</p>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  {businessType === 'RETAIL' ? 'Sign in or Join' : 'B2B Wholesale Portal'}
+                </h2>
+                <p className="mt-2 text-slate-500 font-medium text-sm">
+                  {businessType === 'RETAIL' ? 'Enter your mobile number to get started' : 'Login or Create Wholesale Account'}
+                </p>
               </>
             )}
             {step === 2 && (
@@ -292,7 +301,9 @@ export default function Login() {
                   <Store className="w-8 h-8 text-pharmacy-600" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{pharmacyName}</h2>
-                <p className="mt-1 text-slate-500 font-medium text-sm">{phone}</p>
+                <p className="mt-1 text-slate-500 font-medium text-sm">
+                  {businessType === 'WHOLESALE' ? 'Wholesale Account • ' : 'Retail Account • '}{phone}
+                </p>
               </>
             )}
             {step === 3 && (
@@ -304,7 +315,9 @@ export default function Login() {
             {step === 4 && (
               <>
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Complete Profile</h2>
-                <p className="mt-2 text-slate-500 font-medium text-sm">Just a few more details to create your pharmacy</p>
+                <p className="mt-2 text-slate-500 font-medium text-sm">
+                  Just a few more details to create your {businessType === 'WHOLESALE' ? 'wholesale business' : 'pharmacy'}
+                </p>
               </>
             )}
           </div>
@@ -518,7 +531,7 @@ export default function Login() {
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Store className="h-5 w-5 text-slate-400" />
                   </div>
-                  <input type="text" required value={pharmacyName} onChange={e => setPharmacyName(e.target.value)} placeholder="Pharmacy Name" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
+                  <input type="text" required value={pharmacyName} onChange={e => setPharmacyName(e.target.value)} placeholder={businessType === 'WHOLESALE' ? "Wholesale Business Name" : "Pharmacy Name"} className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
