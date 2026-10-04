@@ -30,7 +30,7 @@ export default function WholesaleInvoiceHistory() {
 
   const filteredInvoices = invoices.filter(inv => 
     inv.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+    inv.billNumber?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalOutstanding = invoices.reduce((sum, inv) => sum + Number(inv.total), 0); // Simulated pending
@@ -96,7 +96,7 @@ export default function WholesaleInvoiceHistory() {
               {filteredInvoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-blue-50/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800">
-                    {inv.invoiceNumber || `INV-${inv.id}`}
+                    {inv.billNumber || `INV-${inv.id}`}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     {new Date(inv.createdAt).toLocaleDateString()}

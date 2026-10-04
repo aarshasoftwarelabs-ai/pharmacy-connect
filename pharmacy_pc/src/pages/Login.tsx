@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Lock, Phone } from 'lucide-react';
+import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import OtpVerificationAnimation from '../components/auth/OtpVerificationAnimation';
 
