@@ -92,8 +92,33 @@ export default function Settings() {
     setTimeout(() => setIsSaved(false), 2000);
   };
 
-  const handlePaymentClick = (originalAmount: number, planName: string) => {
-    const finalAmount = isEarlyAdopter ? Math.floor(originalAmount * 0.95) : originalAmount;
+  const handlePaymentClick = (plan: 'Monthly' | 'Yearly' | 'Lifetime') => {
+    let finalAmount = 0;
+    let planName = '';
+    
+    if (plan === 'Monthly') {
+      planName = 'Monthly Pro';
+      if (isWholesale) {
+        finalAmount = isEarlyAdopter ? 899 : 999;
+      } else {
+        finalAmount = isEarlyAdopter ? 759 : 799;
+      }
+    } else if (plan === 'Yearly') {
+      planName = 'Yearly Premium';
+      if (isWholesale) {
+        finalAmount = isEarlyAdopter ? 7499 : 8999;
+      } else {
+        finalAmount = isEarlyAdopter ? 5699 : 5999;
+      }
+    } else if (plan === 'Lifetime') {
+      planName = 'Founder Lifetime';
+      if (isWholesale) {
+        finalAmount = isEarlyAdopter ? 29999 : 34999;
+      } else {
+        finalAmount = isEarlyAdopter ? 23749 : 24999;
+      }
+    }
+    
     handlePayment(finalAmount, planName);
   };
 
@@ -275,7 +300,7 @@ export default function Settings() {
                     <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> {isWholesale ? 'Trade Schemes' : 'Thermal Printer Support'}</li>
                     <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> {isWholesale ? 'Basic AI PO Scanner' : 'Basic Reports'}</li>
                   </ul>
-                  <button onClick={() => handlePaymentClick(isWholesale ? 999 : 799, 'Monthly Pro')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Select Monthly</button>
+                  <button onClick={() => handlePaymentClick('Monthly')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Select Monthly</button>
                 </div>
 
                 {/* Yearly Plan - Best Value */}
@@ -305,7 +330,7 @@ export default function Settings() {
                     <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> {isWholesale ? 'Smart Inventory & Trends' : '7-Day Advanced Trends'}</li>
                     <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> Priority Support</li>
                   </ul>
-                  <button onClick={() => handlePaymentClick(isWholesale ? 8999 : 5999, 'Yearly Premium')} className={`mt-auto w-full py-2.5 rounded-xl text-sm font-bold text-white transition-colors shadow-sm ${isWholesale ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' : 'bg-pharmacy-600 hover:bg-pharmacy-700 shadow-pharmacy-500/30'}`}>Upgrade to Yearly</button>
+                  <button onClick={() => handlePaymentClick('Yearly')} className={`mt-auto w-full py-2.5 rounded-xl text-sm font-bold text-white transition-colors shadow-sm ${isWholesale ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' : 'bg-pharmacy-600 hover:bg-pharmacy-700 shadow-pharmacy-500/30'}`}>Upgrade to Yearly</button>
                 </div>
 
                 {/* Lifetime Plan */}
@@ -334,7 +359,7 @@ export default function Settings() {
                     <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> All Future Updates</li>
                     <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> VIP {isWholesale ? 'Wholesale ' : ''}Support</li>
                   </ul>
-                  <button onClick={() => handlePaymentClick(isWholesale ? 34999 : 24999, 'Founder Lifetime')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-slate-900 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20 relative z-10">Get Lifetime Deal</button>
+                  <button onClick={() => handlePaymentClick('Lifetime')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-slate-900 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20 relative z-10">Get Lifetime Deal</button>
                 </div>
 
               </div>
