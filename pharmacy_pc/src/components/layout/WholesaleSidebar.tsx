@@ -10,7 +10,9 @@ import {
   Users,
   FileText,
   Gift,
-  Package
+  Package,
+  Truck,
+  MapPin
 } from 'lucide-react';
 
 const navigation = [
@@ -18,6 +20,7 @@ const navigation = [
   { name: 'B2B Inventory', href: '/wholesale-inventory', icon: Package },
   { name: 'B2B Billing', href: '/wholesale-billing', icon: FileText },
   { name: 'Marketing & Offers', href: '/wholesale-marketing', icon: Gift },
+  { name: 'Delivery Routes', href: '/wholesale-delivery', icon: Truck },
   { name: 'B2B Staff', href: '/wholesale-staff', icon: Users },
   { name: 'My Profile', href: '/wholesale-profile', icon: Store },
 ];
