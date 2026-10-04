@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Loader2, Store, IndianRupee } from 'lucide-react';
+import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText } from 'lucide-react';
 import { BillingService } from '../../services/billingService';
 import { DEV_PHARMACY_ID } from '../../config/development';
 import { Bill } from '../../types/billing';
@@ -23,6 +23,9 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const [discount, setDiscount] = useState(0);
   const [paymentMode, setPaymentMode] = useState('CASH');
   const [catalogue, setCatalogue] = useState<Medicine[]>([]);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanStep, setScanStep] = useState(0); // 0: upload, 1: scanning, 2: success
+  const [showAiModal, setShowAiModal] = useState(false);
 
   React.useEffect(() => {
     fetchMedicines().then(setCatalogue).catch(console.error);
@@ -101,6 +104,32 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     setItems([{ medicineName: '', quantity: 1, unitPrice: 0, hsnCode: '', gstRate: 0 }]);
     setDiscount(0);
     setCreatedBill(null);
+  };
+
+  const handleSimulateAiScan = () => {
+    setScanStep(1);
+    
+    // Simulate AI thinking and extracting text
+    setTimeout(() => {
+      setScanStep(2);
+      
+      // Select 2 random medicines from catalogue to simulate extraction, or fallback
+      const extractedItems = catalogue.length >= 2 ? [
+        { medicineName: catalogue[0].name, quantity: 2, unitPrice: catalogue[0].sellingPrice || 0, hsnCode: catalogue[0].hsnCode || '', gstRate: catalogue[0].gstRate || 0 },
+        { medicineName: catalogue[1].name, quantity: 1, unitPrice: catalogue[1].sellingPrice || 0, hsnCode: catalogue[1].hsnCode || '', gstRate: catalogue[1].gstRate || 0 },
+      ] : [
+        { medicineName: 'Dolo 650', quantity: 2, unitPrice: 30, hsnCode: '3004', gstRate: 12 },
+        { medicineName: 'Amoxicillin 500mg', quantity: 1, unitPrice: 120, hsnCode: '3004', gstRate: 12 },
+      ];
+
+      setTimeout(() => {
+        setCustomerName('Rahul Kumar (From Prescription)');
+        setItems(extractedItems);
+        setShowAiModal(false);
+        setScanStep(0);
+      }, 1500);
+      
+    }, 2500);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -207,6 +236,13 @@ export default function OfflineBillForm({ onSuccess }: Props) {
             <h4 className="text-sm font-bold text-slate-800">Cart Items</h4>
             
             <div className="flex items-center gap-3">
+              <button 
+                type="button" 
+                onClick={() => setShowAiModal(true)}
+                className="text-xs flex items-center text-white bg-indigo-600 hover:bg-indigo-700 font-medium px-3 py-1.5 rounded-md transition-colors shadow-sm shadow-indigo-500/30 group"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1 group-hover:animate-pulse" /> AI Scanner (OCR)
+              </button>
               <button 
                 type="button" 
                 onClick={handleAddItem}
@@ -363,6 +399,75 @@ export default function OfflineBillForm({ onSuccess }: Props) {
           </div>
         </div>
       </form>
+
+      {/* AI Scanner Modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => scanStep === 0 && setShowAiModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-5 text-white flex justify-between items-center">
+              <div className="flex items-center">
+                <Sparkles className="w-5 h-5 mr-2" />
+                <h3 className="font-bold text-lg">AI Prescription Scanner</h3>
+              </div>
+              {scanStep === 0 && (
+                <button onClick={() => setShowAiModal(false)} className="text-indigo-100 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            
+            <div className="p-8">
+              {scanStep === 0 && (
+                <div 
+                  className="border-2 border-dashed border-indigo-200 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 hover:border-indigo-400 transition-all group"
+                  onClick={handleSimulateAiScan}
+                >
+                  <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <FileImage className="w-8 h-8" />
+                  </div>
+                  <p className="font-semibold text-slate-800 text-center mb-1">Click to Upload Prescription</p>
+                  <p className="text-xs text-slate-500 text-center">Supported: JPG, PNG, PDF</p>
+                </div>
+              )}
+
+              {scanStep === 1 && (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="relative mb-6">
+                    <FileText className="w-20 h-20 text-indigo-200" />
+                    <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500 rounded-full animate-[scan_2s_ease-in-out_infinite] shadow-[0_0_8px_rgba(99,102,241,0.8)]"></div>
+                  </div>
+                  <h4 className="font-bold text-slate-800 text-lg mb-1">AI is analyzing...</h4>
+                  <p className="text-sm text-slate-500">Extracting patient details and medicines...</p>
+                  <div className="flex gap-1 mt-4">
+                    <div className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
+                </div>
+              )}
+
+              {scanStep === 2 && (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
+                    <ScanLine className="w-10 h-10" />
+                  </div>
+                  <h4 className="font-bold text-emerald-600 text-xl mb-1">Extraction Complete!</h4>
+                  <p className="text-sm text-slate-500 text-center">Found 2 medicines.<br/>Adding to billing cart...</p>
+                </div>
+              )}
+            </div>
+            
+            <style>{`
+              @keyframes scan {
+                0%, 100% { top: 0%; opacity: 0; }
+                10% { opacity: 1; }
+                50% { top: 100%; opacity: 1; }
+                90% { opacity: 0; }
+              }
+            `}</style>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
