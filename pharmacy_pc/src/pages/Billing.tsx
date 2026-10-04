@@ -6,6 +6,7 @@ import { BillingQueueItem, Bill } from '../types/billing';
 import { DEV_PHARMACY_ID } from '../config/development';
 import BillCreationModal from '../components/billing/BillCreationModal';
 import OfflineBillForm from '../components/billing/OfflineBillForm';
+import WholesaleBillForm from '../components/billing/WholesaleBillForm';
 import { printBill } from '../utils/printUtils';
 
 export default function Billing() {
@@ -17,7 +18,7 @@ export default function Billing() {
   
   const [selectedQueueItem, setSelectedQueueItem] = useState<BillingQueueItem | null>(null);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'APP_ORDERS' | 'POS'>('APP_ORDERS');
+  const [activeTab, setActiveTab] = useState<'APP_ORDERS' | 'POS' | 'WHOLESALE'>('APP_ORDERS');
 
   const fetchBillingData = async (isBackground = false) => {
     try {
@@ -151,6 +152,17 @@ export default function Billing() {
           <Store className="w-4 h-4 mr-2" />
           Direct Billing (POS)
         </button>
+        <button
+          onClick={() => setActiveTab('WHOLESALE')}
+          className={`flex items-center px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+            activeTab === 'WHOLESALE'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          <Store className="w-4 h-4 mr-2" />
+          Wholesale (B2B)
+        </button>
       </motion.div>
 
       {error && (
@@ -211,6 +223,8 @@ export default function Billing() {
               )}
             </div>
           </motion.div>
+            ) : activeTab === 'WHOLESALE' ? (
+              <WholesaleBillForm onSuccess={handleBillCreated} />
             ) : (
               <OfflineBillForm onSuccess={handleBillCreated} />
             )}

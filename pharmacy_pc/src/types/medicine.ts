@@ -11,6 +11,8 @@ export interface Medicine {
   barcode: string;
   mrp: number;
   sellingPrice: number;
+  wholesalePrice?: number;
+  minWholesaleQty?: number;
   minimumStock: number;
   currentStock: number;
   prescriptionRequired: boolean;

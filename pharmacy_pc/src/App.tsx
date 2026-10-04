@@ -11,6 +11,7 @@ import Reports from './pages/Reports';
 import PharmacyProfile from './pages/PharmacyProfile';
 import Settings from './pages/Settings';
 import Inventory from './pages/Inventory';
+import Wholesale from './pages/Wholesale';
 
 const ProtectedRoute = () => {
   const token = localStorage.getItem('token');
@@ -35,8 +36,8 @@ function App() {
             <Route path="medicine-requests" element={<MedicineRequests />} />
             <Route path="orders" element={<Orders />} />
             <Route path="inventory" element={<Inventory />} />
-
             <Route path="customers" element={<Customers />} />
+            <Route path="wholesale" element={<Wholesale />} />
             <Route path="billing" element={<Billing />} />
             <Route path="reports" element={<Reports />} />
             <Route path="pharmacy-profile" element={<PharmacyProfile />} />

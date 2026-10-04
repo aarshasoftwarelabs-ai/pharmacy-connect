@@ -11,7 +11,8 @@ import {
   LogOut,
   Settings,
   Inbox,
-  AlertTriangle
+  AlertTriangle,
+  Briefcase
 } from 'lucide-react';
 
 const navigation = [
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Smart Inventory', href: '/inventory', icon: Package },
 
   { name: 'Customers', href: '/customers', icon: Users },
+  { name: 'Wholesale (B2B)', href: '/wholesale', icon: Briefcase },
   { name: 'Billing', href: '/billing', icon: Receipt },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Pharmacy Profile', href: '/pharmacy-profile', icon: Store },
@@ -59,6 +61,7 @@ export default function Sidebar() {
               if (item.name === 'Medicine Requests' && !perms.includes('MEDICINE_REQUESTS')) return null;
               if (item.name === 'Billing' && !perms.includes('BILLING')) return null;
               if (item.name === 'Smart Inventory' && !perms.includes('MEDICINE_CATALOGUE')) return null;
+              if (item.name === 'Wholesale (B2B)' && !perms.includes('WHOLESALE')) return null;
               if (item.name === 'Reports' && !perms.includes('REPORTS')) return null;
               if (item.name === 'Pharmacy Profile' && !perms.includes('PHARMACY_SETTINGS')) return null;
             }

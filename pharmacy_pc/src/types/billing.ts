@@ -25,7 +25,9 @@ export interface Bill {
   discount: string | number;
   total: string | number;
   paymentStatus: 'UNPAID' | 'PAID';
-  billType?: 'ONLINE' | 'OFFLINE' | string;
+  billType?: 'ONLINE' | 'OFFLINE' | 'RETAIL' | 'WHOLESALE';
+  b2bClientId?: number;
+  dueDate?: string;
   totalTaxableAmount?: number;
   totalCgst?: number;
   totalSgst?: number;

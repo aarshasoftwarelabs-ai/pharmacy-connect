@@ -1,0 +1,505 @@
+import React, { useState, useEffect } from 'react';
+import { Users, FileText, Gift, Plus, Search } from 'lucide-react';
+import { B2BClient } from '../types/wholesale';
+import api from '../config/api';
+
+export default function Wholesale() {
+  const [activeTab, setActiveTab] = useState<'clients' | 'ledger' | 'schemes'>('clients');
+  const [clients, setClients] = useState<B2BClient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
+  const [loadingLedger, setLoadingLedger] = useState(false);
+  
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({ amount: '', description: '', referenceId: '' });
+  const [savingPayment, setSavingPayment] = useState(false);
+
+  const [formData, setFormData] = useState({
+    businessName: '',
+    ownerName: '',
+    phone: '',
+    address: '',
+    gstin: '',
+    dlNumber: '',
+    creditLimit: '0'
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSaving(true);
+      const pharmacyData = JSON.parse(localStorage.getItem('pharmacy_profile_data') || '{}');
+      await api.post('/wholesale/clients', {
+        ...formData,
+        pharmacyId: pharmacyData.id,
+        creditLimit: parseFloat(formData.creditLimit) || 0
+      });
+      setShowAddModal(false);
+      setFormData({ businessName: '', ownerName: '', phone: '', address: '', gstin: '', dlNumber: '', creditLimit: '0' });
+      fetchClients();
+    } catch (error) {
+      console.error('Error saving client:', error);
+      alert('Failed to save client');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClientId) return;
+    try {
+      setSavingPayment(true);
+      await api.post(`/wholesale/clients/${selectedClientId}/ledger`, {
+        type: 'CR',
+        amount: parseFloat(paymentForm.amount),
+        description: paymentForm.description || 'Payment Received',
+        referenceId: paymentForm.referenceId ? parseInt(paymentForm.referenceId) : null
+      });
+      setShowPaymentModal(false);
+      setPaymentForm({ amount: '', description: '', referenceId: '' });
+      fetchLedger(selectedClientId);
+      fetchClients(); // refresh balances
+    } catch (error) {
+      console.error('Error adding payment:', error);
+      alert('Failed to add payment');
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const pharmacyData = JSON.parse(localStorage.getItem('pharmacy_profile_data') || '{}');
+      const res = await api.get(`/wholesale/clients/${pharmacyData.id}`);
+      setClients(res.data.data || []);
+    } catch (error) {
+      console.error('Error fetching B2B clients:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedClientId) {
+      fetchLedger(selectedClientId);
+    }
+  }, [selectedClientId]);
+
+  const fetchLedger = async (clientId: number) => {
+    try {
+      setLoadingLedger(true);
+      const res = await api.get(`/wholesale/clients/${clientId}/ledger`);
+      setLedgerEntries(res.data.data || []);
+    } catch (error) {
+      console.error('Error fetching ledger:', error);
+    } finally {
+      setLoadingLedger(false);
+    }
+  };
+
+  const filteredClients = clients.filter(c => 
+    c.businessName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (c.gstin && c.gstin.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  return (
+    <div className="h-full flex flex-col bg-slate-50">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-8 py-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Wholesale (B2B)</h1>
+            <p className="text-sm text-slate-500 mt-1">Manage B2B clients, ledgers, and trade schemes</p>
+          </div>
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center justify-center px-4 py-2 bg-pharmacy-600 text-white rounded-lg hover:bg-pharmacy-700 transition-colors shadow-sm font-medium"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Add B2B Client
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center space-x-6 mt-8 border-b border-slate-200">
+          {[
+            { id: 'clients', name: 'B2B Clients', icon: Users },
+            { id: 'ledger', name: 'Ledger (Khata)', icon: FileText },
+            { id: 'schemes', name: 'Trade Schemes', icon: Gift },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center pb-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'border-pharmacy-600 text-pharmacy-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              <tab.icon className={`w-4 h-4 mr-2 ${activeTab === tab.id ? 'text-pharmacy-600' : 'text-slate-400'}`} />
+              {tab.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-8">
+        {activeTab === 'clients' && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+              <div className="relative w-96">
+                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search by business name or GSTIN..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            
+            {loading ? (
+              <div className="p-8 text-center text-slate-500">Loading clients...</div>
+            ) : filteredClients.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <Users className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-900 mb-1">No B2B clients found</h3>
+                <p className="text-slate-500 text-sm">Add your first wholesale client to get started.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Business Name</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">GSTIN / DL</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Credit Limit</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Outstanding</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {filteredClients.map((client) => (
+                      <tr 
+                        key={client.id} 
+                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedClientId(client.id);
+                          setActiveTab('ledger');
+                        }}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-slate-900">{client.businessName}</div>
+                          <div className="text-sm text-slate-500">{client.ownerName}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-slate-900">{client.phone}</div>
+                          <div className="text-sm text-slate-500 truncate max-w-[200px]">{client.address}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-mono text-slate-700">{client.gstin || '-'}</div>
+                          <div className="text-xs text-slate-500">DL: {client.dlNumber || '-'}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm font-medium text-slate-900">
+                          ₹{Number(client.creditLimit).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className={`inline-flex px-2.5 py-1 rounded-full text-sm font-medium ${
+                            Number(client.currentBalance) > 0 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+                          }`}>
+                            ₹{Number(client.currentBalance).toFixed(2)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'ledger' && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
+            <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+              <div className="flex items-center space-x-4">
+                <label className="text-sm font-medium text-slate-700">Select Client:</label>
+                <select 
+                  className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pharmacy-500 bg-white min-w-[250px]"
+                  value={selectedClientId || ''}
+                  onChange={(e) => setSelectedClientId(Number(e.target.value))}
+                >
+                  <option value="" disabled>-- Select a B2B Client --</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.businessName} (Bal: ₹{c.currentBalance})</option>
+                  ))}
+                </select>
+              </div>
+              
+              {selectedClientId && (
+                <button 
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                  onClick={() => setShowPaymentModal(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Payment
+                </button>
+              )}
+            </div>
+
+            {!selectedClientId ? (
+              <div className="p-12 text-center text-slate-500 flex-1 flex flex-col justify-center items-center">
+                <FileText className="w-12 h-12 text-slate-300 mb-4" />
+                <p>Please select a client from the dropdown above to view their Khata.</p>
+              </div>
+            ) : loadingLedger ? (
+              <div className="p-8 text-center text-slate-500 flex-1">Loading ledger...</div>
+            ) : ledgerEntries.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 flex-1 flex flex-col justify-center items-center">
+                <p>No transactions found for this client.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto flex-1">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-white border-b border-slate-200">
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Date</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Description</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase text-right">Debit (Bill)</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase text-right">Credit (Paid)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {ledgerEntries.map((entry, idx) => (
+                      <tr key={entry.id || idx} className="hover:bg-slate-50">
+                        <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
+                          {new Date(entry.transactionDate).toLocaleDateString('en-IN', {
+                            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-slate-900">{entry.description || '-'}</div>
+                          {entry.referenceId && <div className="text-xs text-slate-500">Ref: #{entry.referenceId}</div>}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {entry.transactionType === 'DR' ? (
+                            <span className="text-sm font-medium text-red-600">₹{Number(entry.amount).toFixed(2)}</span>
+                          ) : '-'}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {entry.transactionType === 'CR' ? (
+                            <span className="text-sm font-medium text-green-600">₹{Number(entry.amount).toFixed(2)}</span>
+                          ) : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'schemes' && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center text-slate-500">
+            Trade Schemes coming soon...
+          </div>
+        )}
+      </div>
+
+      {/* Add Client Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Add New B2B Client</h2>
+              <p className="text-sm text-slate-500 mt-1">Register a new retailer or hospital for wholesale billing.</p>
+            </div>
+            
+            <form onSubmit={handleSaveClient} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Business / Pharmacy Name *</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={formData.businessName}
+                    onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pharmacy-500 focus:border-pharmacy-500 outline-none"
+                    placeholder="e.g. Apollo Pharmacy"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Owner / Contact Person</label>
+                  <input 
+                    type="text" 
+                    value={formData.ownerName}
+                    onChange={(e) => setFormData({...formData, ownerName: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pharmacy-500 focus:border-pharmacy-500 outline-none"
+                    placeholder="e.g. Rahul Patel"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number *</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pharmacy-500 focus:border-pharmacy-500 outline-none"
+                    placeholder="10-digit number"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                  <input 
+                    type="text" 
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pharmacy-500 focus:border-pharmacy-500 outline-none"
+                    placeholder="Full address"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">GSTIN</label>
+                  <input 
+                    type="text" 
+                    value={formData.gstin}
+                    onChange={(e) => setFormData({...formData, gstin: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg font-mono uppercase focus:ring-2 focus:ring-pharmacy-500 focus:border-pharmacy-500 outline-none"
+                    placeholder="22AAAAA0000A1Z5"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Drug License (DL) No.</label>
+                  <input 
+                    type="text" 
+                    value={formData.dlNumber}
+                    onChange={(e) => setFormData({...formData, dlNumber: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pharmacy-500 focus:border-pharmacy-500 outline-none"
+                    placeholder="DL No."
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Credit Limit (₹) - Udhaari Limit</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={formData.creditLimit}
+                    onChange={(e) => setFormData({...formData, creditLimit: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pharmacy-500 focus:border-pharmacy-500 outline-none"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-slate-200">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-pharmacy-600 text-white rounded-lg font-medium hover:bg-pharmacy-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                >
+                  {saving ? 'Saving...' : 'Save Client'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Add Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Add Payment Received</h2>
+              <p className="text-sm text-slate-500 mt-1">Record a payment from the client to reduce their outstanding balance.</p>
+            </div>
+            
+            <form onSubmit={handleAddPayment} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Amount (₹) *</label>
+                <input 
+                  type="number" 
+                  min="1"
+                  required
+                  value={paymentForm.amount}
+                  onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                  placeholder="0.00"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                <input 
+                  type="text" 
+                  value={paymentForm.description}
+                  onChange={(e) => setPaymentForm({...paymentForm, description: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                  placeholder="e.g. Cash, NEFT, Cheque No."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Reference ID (Optional)</label>
+                <input 
+                  type="text" 
+                  value={paymentForm.referenceId}
+                  onChange={(e) => setPaymentForm({...paymentForm, referenceId: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                  placeholder="Bill ID or Receipt ID"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-slate-200">
+                <button 
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                  disabled={savingPayment}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={savingPayment}
+                  className="px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                >
+                  {savingPayment ? 'Saving...' : 'Add Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

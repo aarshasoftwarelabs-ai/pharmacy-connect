@@ -28,12 +28,17 @@ const migrate = async () => {
     const sqlPath5 = path.join(__dirname, '../../database/migrations/005_add_password_to_users.sql');
     const sql5 = fs.readFileSync(sqlPath5, 'utf8');
 
-
-    const sqlPath7 = path.join(__dirname, '../../database/migrations/007_gst_schema.sql');
+    const sqlPath7 = path.join(__dirname, '../../database/migrations/007_add_profile_fields_to_pharmacies.sql');
     const sql7 = fs.readFileSync(sqlPath7, 'utf8');
 
-    const sqlPath8 = path.join(__dirname, '../../database/migrations/008_profit_tracking.sql');
+    const sqlPath8 = path.join(__dirname, '../../database/migrations/008_gst_schema.sql');
     const sql8 = fs.readFileSync(sqlPath8, 'utf8');
+
+    const sqlPath9 = path.join(__dirname, '../../database/migrations/009_profit_tracking.sql');
+    const sql9 = fs.readFileSync(sqlPath9, 'utf8');
+
+    const sqlPath10 = path.join(__dirname, '../../database/migrations/010_wholesale_module.sql');
+    const sql10 = fs.readFileSync(sqlPath10, 'utf8');
 
     console.log('Executing migration scripts...');
     await client.query(sql1);
@@ -43,6 +48,8 @@ const migrate = async () => {
     await client.query(sql5);
     await client.query(sql7);
     await client.query(sql8);
+    await client.query(sql9);
+    await client.query(sql10);
     console.log('Migrations completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);
