@@ -1,4 +1,4 @@
-import { API_URL } from '../config/development';
+import { API_BASE_URL as API_URL, apiFetch as fetch } from '../config/api';
 
 export interface StaffMember {
   id: number;

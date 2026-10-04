@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Send, Users, TrendingUp, Plus, Edit2, Trash2, Calendar, Percentage, ArrowRight, Gift } from 'lucide-react';
+import { Tag, Send, Users, TrendingUp, Plus, Edit2, Trash2, Calendar, Percent, ArrowRight, Gift } from 'lucide-react';
 import { DEV_PHARMACY_ID } from '../config/development';
 import { MarketingService, Offer, Campaign } from '../services/marketingService';
 
@@ -225,7 +225,7 @@ export default function Marketing() {
                   </div>
                   <div className="flex items-start gap-4 mb-4">
                     <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                      <Percentage className="w-6 h-6" />
+                      <Percent className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-800 text-lg">{offer.title}</h3>
