@@ -40,6 +40,9 @@ const migrate = async () => {
     const sqlPath10 = path.join(__dirname, '../../database/migrations/010_wholesale_module.sql');
     const sql10 = fs.readFileSync(sqlPath10, 'utf8');
 
+    const sqlPath11 = path.join(__dirname, '../../database/migrations/011_add_business_type.sql');
+    const sql11 = fs.readFileSync(sqlPath11, 'utf8');
+
     console.log('Executing migration scripts...');
     await client.query(sql1);
     await client.query(sql2);
@@ -50,6 +53,7 @@ const migrate = async () => {
     await client.query(sql8);
     await client.query(sql9);
     await client.query(sql10);
+    await client.query(sql11);
     console.log('Migrations completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

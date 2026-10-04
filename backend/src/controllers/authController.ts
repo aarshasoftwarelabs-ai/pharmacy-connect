@@ -168,6 +168,10 @@ export class AuthController {
         
         const pharmacy = pharmacyResult.rows.length > 0 ? pharmacyResult.rows[0] : null;
         if (pharmacy) {
+          const requestedBusinessType = req.body.businessType;
+          if (requestedBusinessType && pharmacy.business_type !== requestedBusinessType) {
+             return res.status(403).json({ success: false, message: `Access Denied: This account is registered as ${pharmacy.business_type === 'WHOLESALE' ? 'a Wholesale Distributor' : 'a Retail Pharmacy'}. Please select the correct login option.` });
+          }
           pharmacy.ownerName = user.name;
         }
 
@@ -201,7 +205,7 @@ export class AuthController {
   // 3. Register (with simulated OTP verified)
   static async register(req: Request, res: Response) {
     try {
-      const { phone, password, ownerName, pharmacyName, address, email } = req.body;
+      const { phone, password, ownerName, pharmacyName, address, email, businessType } = req.body;
 
       if (!phone || !password || !ownerName || !pharmacyName || !address) {
         return res.status(400).json({ success: false, message: 'All fields are required' });
@@ -230,10 +234,10 @@ export class AuthController {
 
         // Create Pharmacy
         const insertPharmacyQuery = `
-          INSERT INTO pharmacies (owner_id, name, address, phone) 
-          VALUES ($1, $2, $3, $4) RETURNING *
+          INSERT INTO pharmacies (owner_id, name, address, phone, business_type) 
+          VALUES ($1, $2, $3, $4, $5) RETURNING *
         `;
-        const pharmacyResult = await client.query(insertPharmacyQuery, [user.id, pharmacyName, address, phone]);
+        const pharmacyResult = await client.query(insertPharmacyQuery, [user.id, pharmacyName, address, phone, businessType || 'RETAIL']);
         const pharmacy = pharmacyResult.rows[0];
         pharmacy.ownerName = user.name;
 
