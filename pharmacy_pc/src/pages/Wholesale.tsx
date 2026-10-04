@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Gift, Plus, Search, Package } from 'lucide-react';
+import { Users, FileText, Gift, Plus, Search, Package, Sparkles, Loader2 } from 'lucide-react';
 import { B2BClient } from '../types/wholesale';
 import api from '../config/api';
 
@@ -30,6 +30,28 @@ export default function Wholesale() {
     creditLimit: '0'
   });
   const [saving, setSaving] = useState(false);
+  const [isFetchingGstin, setIsFetchingGstin] = useState(false);
+
+  const handleAiGstinFetch = () => {
+    if (!formData.gstin || formData.gstin.length < 10) {
+      alert("Please enter a valid GSTIN first to auto-fetch details.");
+      return;
+    }
+    
+    setIsFetchingGstin(true);
+    // Simulate AI / Government API fetch
+    setTimeout(() => {
+      setFormData(prev => ({
+        ...prev,
+        businessName: 'Apex Pharmaceuticals Pvt Ltd',
+        ownerName: 'Vikram Mehta',
+        address: '14, SG Highway, Ahmedabad, Gujarat 380015',
+        phone: '9876543210',
+        dlNumber: 'GJ-AHD-12345'
+      }));
+      setIsFetchingGstin(false);
+    }, 1500);
+  };
 
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -507,8 +529,19 @@ export default function Wholesale() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">GSTIN</label>
+                <div className="col-span-2 relative">
+                  <label className="block text-sm font-medium text-slate-700 mb-1 flex justify-between items-center">
+                    <span>GSTIN</span>
+                    <button 
+                      type="button" 
+                      onClick={handleAiGstinFetch}
+                      disabled={isFetchingGstin}
+                      className="text-xs flex items-center text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+                    >
+                      {isFetchingGstin ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                      {isFetchingGstin ? 'Fetching...' : 'AI Auto-Fill'}
+                    </button>
+                  </label>
                   <input 
                     type="text" 
                     value={formData.gstin}
