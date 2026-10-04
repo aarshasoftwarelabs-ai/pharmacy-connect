@@ -13,6 +13,7 @@ import {
 
 const navigation = [
   { name: 'B2B Operations', href: '/wholesale-dashboard', icon: Briefcase },
+  { name: 'B2B Billing', href: '/wholesale-billing', icon: FileText },
   { name: 'My Profile', href: '/pharmacy-profile', icon: Store },
 ];
 

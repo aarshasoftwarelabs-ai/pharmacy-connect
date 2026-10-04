@@ -68,7 +68,7 @@ export default function Login() {
       const response = await fetch(`${API_BASE}/auth/check-mobile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, email: email || 'davasetu.otp@gmail.com' })
+        body: JSON.stringify({ phone, email: email || 'davasetu.otp@gmail.com', businessType })
       });
       const data = await response.json();
       

@@ -12,6 +12,7 @@ import PharmacyProfile from './pages/PharmacyProfile';
 import Settings from './pages/Settings';
 import Inventory from './pages/Inventory';
 import Wholesale from './pages/Wholesale';
+import WholesaleBilling from './pages/WholesaleBilling';
 import Staff from './pages/Staff';
 import Marketing from './pages/Marketing';
 
@@ -44,8 +45,7 @@ function App() {
             <Route path="customers" element={<Customers />} />
             <Route path="marketing" element={<Marketing />} />
             <Route path="staff" element={<Staff />} />
-            {/* Kept for backward compatibility or users who didn't switch to wholesale mode yet */}
-            <Route path="wholesale" element={<Wholesale />} />
+            {/* Wholesale features removed from retail and moved to Wholesale routes */}
             <Route path="billing" element={<Billing />} />
             <Route path="reports" element={<Reports />} />
             <Route path="pharmacy-profile" element={<PharmacyProfile />} />
@@ -55,6 +55,7 @@ function App() {
           {/* WHOLESALE ROUTES */}
           <Route path="/" element={<WholesaleLayout />}>
             <Route path="wholesale-dashboard" element={<Wholesale />} />
+            <Route path="wholesale-billing" element={<WholesaleBilling />} />
             {/* Can reuse profile and settings components */}
           </Route>
         </Route>

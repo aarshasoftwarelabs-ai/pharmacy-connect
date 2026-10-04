@@ -14,7 +14,7 @@ export class AuthController {
   // 1. Check Mobile (To determine if user exists and show pharmacy name)
   static async checkMobile(req: Request, res: Response) {
     try {
-      const { phone } = req.body;
+      const { phone, businessType } = req.body;
       if (!phone) {
         return res.status(400).json({ success: false, message: 'Phone number is required' });
       }
@@ -26,18 +26,28 @@ export class AuthController {
       if (userResult.rows.length > 0) {
         const user = userResult.rows[0];
         
-        // Get their pharmacy
-        const pharmacyQuery = `SELECT id, name, address, phone FROM pharmacies WHERE owner_id = $1 LIMIT 1`;
-        const pharmacyResult = await pool.query(pharmacyQuery, [user.id]);
+        // Get their pharmacy for the requested business type
+        let pharmacyQuery = `SELECT id, name, address, phone, business_type FROM pharmacies WHERE owner_id = $1`;
+        const queryParams: any[] = [user.id];
         
-        const pharmacyName = pharmacyResult.rows.length > 0 ? pharmacyResult.rows[0].name : 'Unknown Pharmacy';
+        if (businessType) {
+            pharmacyQuery += ` AND business_type = $2`;
+            queryParams.push(businessType);
+        }
+        pharmacyQuery += ` LIMIT 1`;
+
+        const pharmacyResult = await pool.query(pharmacyQuery, queryParams);
         
-        return res.json({
-          success: true,
-          exists: true,
-          pharmacyName: pharmacyName,
-          userName: user.name
-        });
+        if (pharmacyResult.rows.length > 0) {
+            const pharmacyName = pharmacyResult.rows[0].name;
+            return res.json({
+                success: true,
+                exists: true,
+                pharmacyName: pharmacyName,
+                userName: user.name
+            });
+        }
+        // If they exist but don't have a pharmacy of this type, we proceed to OTP for registration
       }
 
       // User does not exist, send OTP for registration
@@ -212,25 +222,33 @@ export class AuthController {
       }
 
       // Check if user already exists
-      const checkUser = await pool.query(`SELECT id FROM users WHERE phone = $1`, [phone]);
-      if (checkUser.rows.length > 0) {
-        return res.status(400).json({ success: false, message: 'User already exists' });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const checkUser = await pool.query(`SELECT id, name, phone FROM users WHERE phone = $1`, [phone]);
+      let user;
 
       // Start transaction
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
 
-        // Create User
-        const insertUserQuery = `
-          INSERT INTO users (name, phone, password_hash, email) 
-          VALUES ($1, $2, $3, $4) RETURNING id, name, phone, email
-        `;
-        const userResult = await client.query(insertUserQuery, [ownerName, phone, hashedPassword, email || null]);
-        const user = userResult.rows[0];
+        if (checkUser.rows.length > 0) {
+          user = checkUser.rows[0];
+          // Check if they already have this businessType
+          const checkPharm = await client.query(`SELECT id FROM pharmacies WHERE owner_id = $1 AND business_type = $2`, [user.id, businessType || 'RETAIL']);
+          if (checkPharm.rows.length > 0) {
+              await client.query('ROLLBACK');
+              return res.status(400).json({ success: false, message: `You already have a ${businessType || 'RETAIL'} account.` });
+          }
+          // Optionally, update user's password if they provided a new one during this registration, but usually we just keep it
+        } else {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          // Create User
+          const insertUserQuery = `
+            INSERT INTO users (name, phone, password_hash, email) 
+            VALUES ($1, $2, $3, $4) RETURNING id, name, phone, email
+          `;
+          const userResult = await client.query(insertUserQuery, [ownerName, phone, hashedPassword, email || null]);
+          user = userResult.rows[0];
+        }
 
         // Create Pharmacy
         const insertPharmacyQuery = `
