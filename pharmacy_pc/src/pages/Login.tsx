@@ -34,6 +34,7 @@ export default function Login() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
   const [otpVerificationStatus, setOtpVerificationStatus] = useState<'idle' | 'verifying' | 'success'>('idle');
+  const [businessType, setBusinessType] = useState<'RETAIL' | 'WHOLESALE'>('RETAIL');
 
   useEffect(() => {
     let interval: any;
@@ -106,10 +107,11 @@ export default function Login() {
         if (data.pharmacy) {
           localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
         }
+        localStorage.setItem('business_type', businessType);
         
         setIsRedirecting(true);
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate(businessType === 'WHOLESALE' ? '/wholesale-dashboard' : '/dashboard');
         }, 1500);
       } else {
         setError(data.message || 'Invalid credentials');
@@ -187,10 +189,11 @@ export default function Login() {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
+        localStorage.setItem('business_type', businessType);
         
         setIsRedirecting(true);
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate(businessType === 'WHOLESALE' ? '/wholesale-dashboard' : '/dashboard');
         }, 1500);
       } else {
         setError(data.message || 'Registration failed');
@@ -316,6 +319,32 @@ export default function Login() {
             {/* STEP 1: MOBILE */}
             {step === 1 && (
               <form className="space-y-4" onSubmit={handleCheckMobile}>
+                
+                <div className="flex bg-slate-100 p-1 rounded-xl mb-6 shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('RETAIL')}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                      businessType === 'RETAIL' 
+                        ? 'bg-white text-pharmacy-700 shadow-sm border border-slate-200' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Retail Pharmacy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('WHOLESALE')}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                      businessType === 'WHOLESALE' 
+                        ? 'bg-white text-pharmacy-700 shadow-sm border border-slate-200' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Wholesale (B2B)
+                  </button>
+                </div>
+
                 <div className="flex rounded-xl shadow-sm border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-pharmacy-500 focus-within:border-transparent transition-all relative">
                   
                   {/* Modern Custom Dropdown */}

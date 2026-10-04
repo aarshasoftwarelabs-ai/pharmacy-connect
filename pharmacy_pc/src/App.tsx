@@ -15,6 +15,8 @@ import Wholesale from './pages/Wholesale';
 import Staff from './pages/Staff';
 import Marketing from './pages/Marketing';
 
+import WholesaleLayout from './layouts/WholesaleLayout';
+
 const ProtectedRoute = () => {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -32,6 +34,7 @@ function App() {
         
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
+          {/* RETAIL ROUTES */}
           <Route path="/" element={<DashboardLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
@@ -41,11 +44,18 @@ function App() {
             <Route path="customers" element={<Customers />} />
             <Route path="marketing" element={<Marketing />} />
             <Route path="staff" element={<Staff />} />
+            {/* Kept for backward compatibility or users who didn't switch to wholesale mode yet */}
             <Route path="wholesale" element={<Wholesale />} />
             <Route path="billing" element={<Billing />} />
             <Route path="reports" element={<Reports />} />
             <Route path="pharmacy-profile" element={<PharmacyProfile />} />
             <Route path="settings" element={<Settings />} />
+          </Route>
+          
+          {/* WHOLESALE ROUTES */}
+          <Route path="/" element={<WholesaleLayout />}>
+            <Route path="wholesale-dashboard" element={<Wholesale />} />
+            {/* Can reuse profile and settings components */}
           </Route>
         </Route>
       </Routes>
