@@ -124,4 +124,32 @@ export class WholesaleService {
     const result = await pool.query(query, values);
     return result.rows[0];
   }
+
+  // Get AI Smart Recommendations (Most frequently bought items by the client)
+  static async getAiRecommendations(clientId: number) {
+    const query = `
+      SELECT bi.medicine_name AS "medicineName", COUNT(*) as freq, 
+             MAX(bi.unit_price) AS "lastPrice", MAX(b.created_at) AS "lastBought"
+      FROM bill_items bi
+      JOIN bills b ON bi.bill_id = b.id
+      WHERE b.b2b_client_id = $1
+      GROUP BY bi.medicine_name
+      ORDER BY freq DESC, "lastBought" DESC
+      LIMIT 5
+    `;
+    const result = await pool.query(query, [clientId]);
+    
+    // If client is new and has no history, provide generic fast-moving wholesale items
+    if (result.rows.length === 0) {
+      return [
+        { medicineName: 'Dolo 650 Tablet', freq: 0, lastPrice: 25.50 },
+        { medicineName: 'Azithral 500 Tablet', freq: 0, lastPrice: 110.00 },
+        { medicineName: 'Pan 40 Tablet', freq: 0, lastPrice: 130.00 },
+        { medicineName: 'Calpol 500 Tablet', freq: 0, lastPrice: 15.00 },
+        { medicineName: 'Augmentin 625 Duo Tablet', freq: 0, lastPrice: 180.00 }
+      ];
+    }
+    
+    return result.rows;
+  }
 }

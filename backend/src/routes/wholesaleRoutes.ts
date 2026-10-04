@@ -16,4 +16,7 @@ router.post('/clients/:clientId/ledger', authMiddleware, WholesaleController.add
 router.post('/schemes', authMiddleware, WholesaleController.addScheme);
 router.get('/schemes/:pharmacyId', authMiddleware, WholesaleController.getSchemes);
 
+// AI Recommendations
+router.get('/clients/:clientId/recommendations', authMiddleware, WholesaleController.getRecommendations);
+
 export default router;

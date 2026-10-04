@@ -25,6 +25,7 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
   const [discount, setDiscount] = useState(0);
   const [paymentMode, setPaymentMode] = useState('CREDIT');
   const [catalogue, setCatalogue] = useState<Medicine[]>([]);
+  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
 
   useEffect(() => {
     fetchMedicines().then(setCatalogue).catch(console.error);
@@ -38,6 +39,57 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
       setClients(res.data.data || []);
     } catch (error) {
       console.error('Error fetching B2B clients:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedClientId) {
+      fetchRecommendations(selectedClientId);
+    } else {
+      setAiRecommendations([]);
+    }
+  }, [selectedClientId]);
+
+  const fetchRecommendations = async (clientId: number) => {
+    try {
+      const res = await api.get(`/wholesale/clients/${clientId}/recommendations`);
+      setAiRecommendations(res.data.data || []);
+    } catch (error) {
+      console.error('Error fetching AI recommendations:', error);
+    }
+  };
+
+  const handleAddRecommendation = (rec: any) => {
+    // If we only have one empty item row, replace it. Otherwise append.
+    const isFirstEmpty = items.length === 1 && !items[0].medicineName;
+    const newItem = {
+      medicineName: rec.medicineName,
+      quantity: 1,
+      unitPrice: rec.lastPrice || 0,
+      hsnCode: '',
+      gstRate: 12 // Default to 12% if not found
+    };
+    
+    // Try to find matching medicine in catalogue to populate HSN/GST
+    const match = catalogue.find(m => m.name.toLowerCase() === rec.medicineName.toLowerCase());
+    if (match) {
+      newItem.unitPrice = (match as any).wholesalePrice || match.sellingPrice || newItem.unitPrice;
+      newItem.hsnCode = match.hsnCode || '';
+      newItem.gstRate = match.gstRate || 0;
+    }
+
+    if (isFirstEmpty) {
+      setItems([newItem]);
+    } else {
+      // Check if already in cart
+      const existingIdx = items.findIndex(i => i.medicineName.toLowerCase() === rec.medicineName.toLowerCase());
+      if (existingIdx !== -1) {
+        const newItems = [...items];
+        newItems[existingIdx].quantity += 1;
+        setItems(newItems);
+      } else {
+        setItems([...items, newItem]);
+      }
     }
   };
 
@@ -253,6 +305,31 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
                 </div>
               );
             })()}
+
+            {/* AI Smart Sales Predictor (Recommendations) */}
+            {aiRecommendations.length > 0 && (
+              <div className="mt-5 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center mb-2">
+                  <div className="text-lg mr-1.5">⚡</div>
+                  <h4 className="text-sm font-bold text-slate-800">AI Smart Sales Predictor</h4>
+                  <span className="ml-2 bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-indigo-200">Suggested Items</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {aiRecommendations.map((rec, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleAddRecommendation(rec)}
+                      className="inline-flex items-center bg-white border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 transition-colors shadow-sm group"
+                    >
+                      <Plus className="w-3 h-3 mr-1 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                      {rec.medicineName}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-2">Based on historical purchase patterns and fast-moving items.</p>
+              </div>
+            )}
           </div>
         </div>
 

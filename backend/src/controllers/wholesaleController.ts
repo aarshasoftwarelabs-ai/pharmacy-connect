@@ -101,4 +101,19 @@ export class WholesaleController {
       res.status(500).json({ error: 'Failed to add B2B scheme' });
     }
   }
+
+  static async getRecommendations(req: Request, res: Response) {
+    try {
+      const clientId = parseInt(req.params.clientId, 10);
+      if (isNaN(clientId)) {
+        return res.status(400).json({ error: 'Invalid client ID' });
+      }
+
+      const recommendations = await WholesaleService.getAiRecommendations(clientId);
+      res.status(200).json({ success: true, data: recommendations });
+    } catch (error: any) {
+      console.error('Error fetching AI recommendations:', error);
+      res.status(500).json({ error: 'Failed to fetch recommendations' });
+    }
+  }
 }
