@@ -11,9 +11,7 @@ import {
   LogOut,
   Settings,
   Inbox,
-  AlertTriangle,
-  Briefcase,
-  Gift
+  AlertTriangle
 } from 'lucide-react';
 
 const navigation = [
