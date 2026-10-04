@@ -186,13 +186,13 @@ export default function Marketing() {
       <div className="flex border-b border-slate-200">
         <button
           onClick={() => setActiveTab('offers')}
-          className={\`py-4 px-6 font-semibold text-sm transition-colors border-b-2 \${activeTab === 'offers' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}\`}
+          className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'offers' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
           Discount Coupons
         </button>
         <button
           onClick={() => setActiveTab('campaigns')}
-          className={\`py-4 px-6 font-semibold text-sm transition-colors border-b-2 \${activeTab === 'campaigns' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}\`}
+          className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'campaigns' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
           Promotional Campaigns
         </button>
@@ -220,7 +220,7 @@ export default function Marketing() {
 
               return (
                 <div key={offer.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col relative overflow-hidden group hover:shadow-md transition-shadow">
-                  <div className={\`absolute top-0 right-0 px-3 py-1 rounded-bl-xl text-xs font-bold \${statusColor}\`}>
+                  <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-xl text-xs font-bold ${statusColor}`}>
                     {statusText}
                   </div>
                   <div className="flex items-start gap-4 mb-4">

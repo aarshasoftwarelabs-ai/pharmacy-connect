@@ -37,8 +37,8 @@ router.post('/offers/:pharmacyId', async (req, res) => {
   
   try {
     const result = await pool.query(
-      \`INSERT INTO offers (pharmacy_id, title, description, coupon_code, discount_percentage, max_discount_amount, min_order_value, valid_from, valid_until, is_active) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *\`,
+      `INSERT INTO offers (pharmacy_id, title, description, coupon_code, discount_percentage, max_discount_amount, min_order_value, valid_from, valid_until, is_active) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
       [pharmacyId, title, description, coupon_code, discount_percentage, max_discount_amount, min_order_value, valid_from, valid_until, is_active ?? true]
     );
     res.status(201).json(result.rows[0]);
@@ -55,9 +55,9 @@ router.put('/offers/:id', async (req, res) => {
   
   try {
     const result = await pool.query(
-      \`UPDATE offers 
+      `UPDATE offers 
        SET title=$1, description=$2, coupon_code=$3, discount_percentage=$4, max_discount_amount=$5, min_order_value=$6, valid_from=$7, valid_until=$8, is_active=$9, updated_at=CURRENT_TIMESTAMP
-       WHERE id = $10 RETURNING *\`,
+       WHERE id = $10 RETURNING *`,
       [title, description, coupon_code, discount_percentage, max_discount_amount, min_order_value, valid_from, valid_until, is_active, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Offer not found' });
@@ -106,8 +106,8 @@ router.post('/campaigns/:pharmacyId', async (req, res) => {
     // In a real app, you would integrate with SMS/Push notification service here
     
     const result = await pool.query(
-      \`INSERT INTO promotional_campaigns (pharmacy_id, title, message, target_audience, status, sent_at) 
-       VALUES ($1, $2, $3, $4, 'SENT', CURRENT_TIMESTAMP) RETURNING *\`,
+      `INSERT INTO promotional_campaigns (pharmacy_id, title, message, target_audience, status, sent_at) 
+       VALUES ($1, $2, $3, $4, 'SENT', CURRENT_TIMESTAMP) RETURNING *`,
       [pharmacyId, title, message, target_audience]
     );
     res.status(201).json(result.rows[0]);
