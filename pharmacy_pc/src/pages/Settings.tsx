@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PharmacyService } from '../services/pharmacyService';
 import { PaymentService } from '../services/paymentService';
 import { 
@@ -50,6 +51,8 @@ export default function Settings() {
   const [paidCount, setPaidCount] = useState<number>(0);
   const [isEarlyAdopter, setIsEarlyAdopter] = useState<boolean>(true); // default true before load
   const [spotsLeft, setSpotsLeft] = useState<number>(3);
+  const location = useLocation();
+  const isWholesale = location.pathname.includes('wholesale');
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -222,12 +225,18 @@ export default function Settings() {
           {/* Subscription & Plans Area */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             {isEarlyAdopter && (
-              <div className="bg-gradient-to-r from-pharmacy-600 to-indigo-600 px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 transition-all">
+              <div className={`px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 transition-all ${isWholesale ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-gradient-to-r from-pharmacy-600 to-indigo-600'}`}>
                 <div className="flex items-center text-white">
                   <Sparkles className="w-5 h-5 mr-2 text-yellow-300 animate-pulse shrink-0" />
-                  <span className="font-bold text-sm">Early Adopter Offer: First 20 pharmacies get flat 5% OFF! (Only {spotsLeft} Spots Left!)</span>
+                  <span className="font-bold text-sm">
+                    {isWholesale 
+                      ? `Early Adopter Offer: First 20 Wholesalers get flat 10% OFF + 15 Days Free Trial! (Only ${spotsLeft} Spots Left!)`
+                      : `Early Adopter Offer: First 20 pharmacies get flat 5% OFF! (Only ${spotsLeft} Spots Left!)`}
+                  </span>
                 </div>
-                <span className="bg-white/20 px-3 py-1 rounded-lg text-white text-xs font-mono font-bold tracking-wider border border-white/20 shrink-0">CODE: DAVA5</span>
+                <span className="bg-white/20 px-3 py-1 rounded-lg text-white text-xs font-mono font-bold tracking-wider border border-white/20 shrink-0">
+                  CODE: {isWholesale ? 'B2B10' : 'DAVA5'}
+                </span>
               </div>
             )}
             
@@ -243,60 +252,60 @@ export default function Settings() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-4 xl:gap-6 pt-2">
                 
                 {/* Monthly Plan */}
-                <div className="border border-slate-200 rounded-2xl p-5 hover:border-pharmacy-300 transition-all flex flex-col relative bg-white h-full">
+                <div className={`border border-slate-200 rounded-2xl p-5 transition-all flex flex-col relative bg-white h-full ${isWholesale ? 'hover:border-blue-300' : 'hover:border-pharmacy-300'}`}>
                   <h4 className="text-slate-500 font-semibold text-sm uppercase tracking-wider mb-2">Monthly Pro</h4>
                   <div className="mb-4">
                     {isEarlyAdopter ? (
                       <div className="flex flex-col">
-                        <span className="text-sm text-slate-400 line-through font-medium">₹799</span>
+                        <span className="text-sm text-slate-400 line-through font-medium">{isWholesale ? '₹999' : '₹799'}</span>
                         <div>
-                          <span className="text-3xl font-bold text-slate-800">₹759</span>
+                          <span className="text-3xl font-bold text-slate-800">{isWholesale ? '₹899' : '₹759'}</span>
                           <span className="text-slate-500 text-sm"> /mo</span>
                         </div>
                       </div>
                     ) : (
                       <div>
-                        <span className="text-3xl font-bold text-slate-800">₹799</span>
+                        <span className="text-3xl font-bold text-slate-800">{isWholesale ? '₹999' : '₹799'}</span>
                         <span className="text-slate-500 text-sm"> /mo</span>
                       </div>
                     )}
                   </div>
                   <ul className="space-y-3 mb-6 flex-1 text-sm text-slate-600">
-                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> Unlimited Billing</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> Thermal Printer Support</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> Basic Reports</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> {isWholesale ? 'B2B Khata & Ledgers' : 'Unlimited Billing'}</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> {isWholesale ? 'Trade Schemes' : 'Thermal Printer Support'}</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> {isWholesale ? 'Basic AI PO Scanner' : 'Basic Reports'}</li>
                   </ul>
-                  <button onClick={() => handlePaymentClick(799, 'Monthly Pro')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Select Monthly</button>
+                  <button onClick={() => handlePaymentClick(isWholesale ? 999 : 799, 'Monthly Pro')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Select Monthly</button>
                 </div>
 
                 {/* Yearly Plan - Best Value */}
-                <div className="border-2 border-pharmacy-500 rounded-2xl p-5 relative bg-pharmacy-50 flex flex-col shadow-md transform lg:-translate-y-2 h-full z-10">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-pharmacy-600 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase shadow-sm whitespace-nowrap">Best Value</div>
-                  <h4 className="text-pharmacy-700 font-semibold text-sm uppercase tracking-wider mb-2 mt-2">Yearly Premium</h4>
+                <div className={`border-2 rounded-2xl p-5 relative flex flex-col shadow-md transform lg:-translate-y-2 h-full z-10 ${isWholesale ? 'border-blue-500 bg-blue-50' : 'border-pharmacy-500 bg-pharmacy-50'}`}>
+                  <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase shadow-sm whitespace-nowrap ${isWholesale ? 'bg-blue-600' : 'bg-pharmacy-600'}`}>Best Value</div>
+                  <h4 className={`font-semibold text-sm uppercase tracking-wider mb-2 mt-2 ${isWholesale ? 'text-blue-700' : 'text-pharmacy-700'}`}>Yearly Premium</h4>
                   <div className="mb-4">
                     {isEarlyAdopter ? (
                       <div className="flex flex-col">
-                        <span className="text-sm text-slate-400 line-through font-medium">₹5,999</span>
+                        <span className="text-sm text-slate-400 line-through font-medium">{isWholesale ? '₹8,999' : '₹5,999'}</span>
                         <div>
-                          <span className="text-3xl font-bold text-slate-900">₹5,699</span>
+                          <span className="text-3xl font-bold text-slate-900">{isWholesale ? '₹7,499' : '₹5,699'}</span>
                           <span className="text-slate-500 text-sm"> /yr</span>
                         </div>
                       </div>
                     ) : (
                       <div>
-                        <span className="text-3xl font-bold text-slate-900">₹5,999</span>
+                        <span className="text-3xl font-bold text-slate-900">{isWholesale ? '₹8,999' : '₹5,999'}</span>
                         <span className="text-slate-500 text-sm"> /yr</span>
                       </div>
                     )}
-                    <div className="mt-2"><span className="text-xs text-pharmacy-700 font-bold bg-pharmacy-100 px-2.5 py-1 rounded-md border border-pharmacy-200">Just ₹16/day</span></div>
+                    <div className="mt-2"><span className={`text-xs font-bold px-2.5 py-1 rounded-md border ${isWholesale ? 'text-blue-700 bg-blue-100 border-blue-200' : 'text-pharmacy-700 bg-pharmacy-100 border-pharmacy-200'}`}>Just {isWholesale ? '₹20' : '₹16'}/day</span></div>
                   </div>
                   <ul className="space-y-3 mb-6 flex-1 text-sm text-slate-700">
-                    <li className="flex items-start"><Check className="w-4 h-4 text-pharmacy-600 mr-2 shrink-0 mt-0.5" /> Everything in Monthly</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-pharmacy-600 mr-2 shrink-0 mt-0.5" /> Smart Inventory (AI)</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-pharmacy-600 mr-2 shrink-0 mt-0.5" /> 7-Day Advanced Trends</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-pharmacy-600 mr-2 shrink-0 mt-0.5" /> WhatsApp Integrations</li>
+                    <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> Everything in Monthly</li>
+                    <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> {isWholesale ? 'AI GSTIN Automation' : 'Smart Inventory (AI)'}</li>
+                    <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> {isWholesale ? 'Smart Inventory & Trends' : '7-Day Advanced Trends'}</li>
+                    <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> Priority Support</li>
                   </ul>
-                  <button onClick={() => handlePaymentClick(5999, 'Yearly Premium')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold bg-pharmacy-600 text-white hover:bg-pharmacy-700 transition-colors shadow-sm shadow-pharmacy-500/30">Upgrade to Yearly</button>
+                  <button onClick={() => handlePaymentClick(isWholesale ? 8999 : 5999, 'Yearly Premium')} className={`mt-auto w-full py-2.5 rounded-xl text-sm font-bold text-white transition-colors shadow-sm ${isWholesale ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' : 'bg-pharmacy-600 hover:bg-pharmacy-700 shadow-pharmacy-500/30'}`}>Upgrade to Yearly</button>
                 </div>
 
                 {/* Lifetime Plan */}
@@ -306,15 +315,15 @@ export default function Settings() {
                   <div className="mb-4 relative z-10">
                     {isEarlyAdopter ? (
                       <div className="flex flex-col">
-                        <span className="text-sm text-slate-400 line-through font-medium">₹24,999</span>
+                        <span className="text-sm text-slate-400 line-through font-medium">{isWholesale ? '₹34,999' : '₹24,999'}</span>
                         <div>
-                          <span className="text-3xl font-bold text-white">₹23,749</span>
+                          <span className="text-3xl font-bold text-white">{isWholesale ? '₹29,999' : '₹23,749'}</span>
                           <span className="text-slate-400 text-sm"> once</span>
                         </div>
                       </div>
                     ) : (
                       <div>
-                        <span className="text-3xl font-bold text-white">₹24,999</span>
+                        <span className="text-3xl font-bold text-white">{isWholesale ? '₹34,999' : '₹24,999'}</span>
                         <span className="text-slate-400 text-sm"> once</span>
                       </div>
                     )}
@@ -323,9 +332,9 @@ export default function Settings() {
                     <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> Lifetime Access</li>
                     <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> No Recurring Fees</li>
                     <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> All Future Updates</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> VIP Support</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> VIP {isWholesale ? 'Wholesale ' : ''}Support</li>
                   </ul>
-                  <button onClick={() => handlePaymentClick(24999, 'Founder Lifetime')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-slate-900 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20 relative z-10">Get Lifetime Deal</button>
+                  <button onClick={() => handlePaymentClick(isWholesale ? 34999 : 24999, 'Founder Lifetime')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-slate-900 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20 relative z-10">Get Lifetime Deal</button>
                 </div>
 
               </div>
@@ -356,7 +365,7 @@ export default function Settings() {
                 </div>
                 <h4 className="font-bold text-slate-800 mb-2">Cost Less Than Tea</h4>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  At just <span className="font-bold text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">₹16/day</span> (Yearly Plan), DavaSetu costs less than a daily cup of tea, while bringing you completely new online customers.
+                  At just <span className="font-bold text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">{isWholesale ? '₹20/day' : '₹16/day'}</span> (Yearly Plan), DavaSetu costs less than a daily cup of tea, while bringing you completely new online customers.
                 </p>
               </div>
 
@@ -386,7 +395,7 @@ export default function Settings() {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-sm font-bold text-slate-800 flex items-center">
-                <Store className="w-4 h-4 mr-2 text-pharmacy-600" />
+                <Store className={`w-4 h-4 mr-2 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} />
                 Store Operations
               </h3>
             </div>
@@ -412,7 +421,7 @@ export default function Settings() {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-sm font-bold text-slate-800 flex items-center">
-                <Bell className="w-4 h-4 mr-2 text-pharmacy-600" />
+                <Bell className={`w-4 h-4 mr-2 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} />
                 Notifications & Alerts
               </h3>
             </div>
@@ -452,7 +461,7 @@ export default function Settings() {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-sm font-bold text-slate-800 flex items-center">
-                <Printer className="w-4 h-4 mr-2 text-pharmacy-600" />
+                <Printer className={`w-4 h-4 mr-2 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} />
                 System Preferences
               </h3>
             </div>
