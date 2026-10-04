@@ -35,6 +35,7 @@ export default function Login() {
   const [timer, setTimer] = useState(60);
   const [otpVerificationStatus, setOtpVerificationStatus] = useState<'idle' | 'verifying' | 'success'>('idle');
   const [businessType, setBusinessType] = useState<'RETAIL' | 'WHOLESALE'>('RETAIL');
+  const [isExistingUser, setIsExistingUser] = useState(false);
 
   useEffect(() => {
     let interval: any;
@@ -76,6 +77,17 @@ export default function Login() {
         setPharmacyName(data.pharmacyName);
         transitionToStep(2); // Go to login
       } else {
+        if (data.userExists) {
+            setIsExistingUser(true);
+            setOwnerName(data.userData?.name || '');
+            setAddress(data.userData?.address || '');
+            setPassword('ExistingUserDummyPass!123'); // So form validation passes
+        } else {
+            setIsExistingUser(false);
+            setOwnerName('');
+            setAddress('');
+            setPassword('');
+        }
         setTimer(60); // Reset timer
         setOtp(['', '', '', '', '', '']); // Clear old OTP on new request or resend
         transitionToStep(3); // Go to OTP verification
@@ -533,24 +545,32 @@ export default function Login() {
                   </div>
                   <input type="text" required value={pharmacyName} onChange={e => setPharmacyName(e.target.value)} placeholder={businessType === 'WHOLESALE' ? "Wholesale Business Name" : "Pharmacy Name"} className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
                 </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-slate-400" />
+                {!isExistingUser ? (
+                  <>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <input type="text" required value={ownerName} onChange={e => setOwnerName(e.target.value)} placeholder="Owner Name" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
+                    </div>
+                    <div className="relative">
+                      <div className="absolute top-2.5 left-0 pl-3.5 flex pointer-events-none">
+                        <Store className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <textarea required value={address} onChange={e => setAddress(e.target.value)} placeholder="Full Address" rows={2} className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500 resize-none"></textarea>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <Lock className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a strong password" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-emerald-50 text-emerald-800 text-xs font-medium p-3 rounded-lg border border-emerald-200 text-center mb-2">
+                    We will use your existing Owner Name and Address for this new account.
                   </div>
-                  <input type="text" required value={ownerName} onChange={e => setOwnerName(e.target.value)} placeholder="Owner Name" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
-                </div>
-                <div className="relative">
-                  <div className="absolute top-2.5 left-0 pl-3.5 flex pointer-events-none">
-                    <Store className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <textarea required value={address} onChange={e => setAddress(e.target.value)} placeholder="Full Address" rows={2} className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500 resize-none"></textarea>
-                </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a strong password" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
-                </div>
+                )}
                 <button
                   type="submit"
                   disabled={loading}

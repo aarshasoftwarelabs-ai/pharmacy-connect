@@ -20,11 +20,16 @@ export class AuthController {
       }
 
       // Check user
+      let userExists = false;
+      let userData: any = null;
+
       const userQuery = `SELECT id, name FROM users WHERE phone = $1`;
       const userResult = await pool.query(userQuery, [phone]);
 
       if (userResult.rows.length > 0) {
         const user = userResult.rows[0];
+        userExists = true;
+        userData = { name: user.name };
         
         // Get their pharmacy for the requested business type
         let pharmacyQuery = `SELECT id, name, address, phone, business_type FROM pharmacies WHERE owner_id = $1`;
@@ -47,7 +52,13 @@ export class AuthController {
                 userName: user.name
             });
         }
-        // If they exist but don't have a pharmacy of this type, we proceed to OTP for registration
+        
+        // If they exist but don't have a pharmacy of this type, we fetch their first pharmacy to get the address
+        const firstPharmQuery = `SELECT address FROM pharmacies WHERE owner_id = $1 LIMIT 1`;
+        const firstPharmResult = await pool.query(firstPharmQuery, [user.id]);
+        if (firstPharmResult.rows.length > 0) {
+           userData.address = firstPharmResult.rows[0].address;
+        }
       }
 
       // User does not exist, send OTP for registration
@@ -118,7 +129,9 @@ export class AuthController {
 
         return res.json({
           success: true,
-          exists: false
+          exists: false,
+          userExists: userExists,
+          userData: userData
         });
     } catch (error) {
       console.error('Check mobile error:', error);
