@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import Inventory from './pages/Inventory';
 import Wholesale from './pages/Wholesale';
 import WholesaleBilling from './pages/WholesaleBilling';
+import WholesaleInventory from './pages/WholesaleInventory';
 import Staff from './pages/Staff';
 import Marketing from './pages/Marketing';
 
@@ -53,6 +54,7 @@ function App() {
           {/* WHOLESALE ROUTES */}
           <Route path="/" element={<WholesaleLayout />}>
             <Route path="wholesale-dashboard" element={<Wholesale />} />
+            <Route path="wholesale-inventory" element={<WholesaleInventory />} />
             <Route path="wholesale-billing" element={<WholesaleBilling />} />
             <Route path="wholesale-marketing" element={<Marketing />} />
             <Route path="wholesale-staff" element={<Staff />} />

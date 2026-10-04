@@ -9,11 +9,13 @@ import {
   Building2,
   Users,
   FileText,
-  Gift
+  Gift,
+  Package
 } from 'lucide-react';
 
 const navigation = [
   { name: 'B2B Operations', href: '/wholesale-dashboard', icon: Briefcase },
+  { name: 'B2B Inventory', href: '/wholesale-inventory', icon: Package },
   { name: 'B2B Billing', href: '/wholesale-billing', icon: FileText },
   { name: 'Marketing & Offers', href: '/wholesale-marketing', icon: Gift },
   { name: 'B2B Staff', href: '/wholesale-staff', icon: Users },
