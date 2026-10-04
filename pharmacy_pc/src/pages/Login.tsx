@@ -8,7 +8,7 @@ const API_BASE = `http://${hostname}:3000/api`;
 
 export default function Login() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -36,6 +36,7 @@ export default function Login() {
   const [otpVerificationStatus, setOtpVerificationStatus] = useState<'idle' | 'verifying' | 'success'>('idle');
   const [businessType, setBusinessType] = useState<'RETAIL' | 'WHOLESALE'>('RETAIL');
   const [isExistingUser, setIsExistingUser] = useState(false);
+  const [staffPin, setStaffPin] = useState('');
 
   useEffect(() => {
     let interval: any;
@@ -47,7 +48,7 @@ export default function Login() {
     return () => clearInterval(interval);
   }, [step, timer]);
 
-  const transitionToStep = (newStep: 1 | 2 | 3 | 4) => {
+  const transitionToStep = (newStep: 1 | 2 | 3 | 4 | 5) => {
     setIsAnimating(true);
     setTimeout(() => {
       setStep(newStep);
@@ -131,6 +132,35 @@ export default function Login() {
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStaffLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      // Simulate API call for Staff Login
+      setTimeout(() => {
+        if (staffPin.length === 4) {
+          localStorage.setItem('token', 'mock_staff_token');
+          localStorage.setItem('user', JSON.stringify({ name: 'Staff Member', role: 'MANAGER' }));
+          localStorage.setItem('pharmacy_profile_data', JSON.stringify({ id: 1, name: 'DavaSetu Pharmacy' }));
+          localStorage.setItem('business_type', businessType);
+          
+          setIsRedirecting(true);
+          setTimeout(() => {
+            navigate(businessType === 'WHOLESALE' ? '/wholesale-dashboard' : '/dashboard');
+          }, 1500);
+        } else {
+          setError('Invalid PIN');
+          setLoading(false);
+        }
+      }, 1000);
+    } catch (err) {
+      setError('Login failed. Please try again.');
       setLoading(false);
     }
   };
@@ -332,6 +362,17 @@ export default function Login() {
                 </p>
               </>
             )}
+            {step === 5 && (
+              <>
+                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-indigo-200">
+                  <Users className="w-8 h-8 text-indigo-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Staff Login</h2>
+                <p className="mt-1 text-slate-500 font-medium text-sm">
+                  Enter pharmacy mobile and your 4-digit PIN
+                </p>
+              </>
+            )}
           </div>
 
           <div className={`transition-all duration-300 transform ${isAnimating ? 'opacity-0 scale-95 translate-y-4' : 'opacity-100 scale-100 translate-y-0'}`}>
@@ -440,6 +481,11 @@ export default function Login() {
                   {loading ? 'Checking...' : 'Continue'}
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
+                <div className="pt-2">
+                  <button type="button" onClick={() => transitionToStep(5)} className="w-full py-3 text-sm font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                    Login as Staff Member
+                  </button>
+                </div>
               </form>
             )}
 
@@ -578,6 +624,80 @@ export default function Login() {
                 >
                   {loading ? 'Creating Account...' : 'Complete Registration'}
                 </button>
+              </form>
+            )}
+
+            {/* STEP 5: STAFF LOGIN */}
+            {step === 5 && (
+              <form className="space-y-4" onSubmit={handleStaffLogin}>
+                <div className="flex bg-slate-100 p-1 rounded-xl mb-6 shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('RETAIL')}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                      businessType === 'RETAIL' 
+                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Retail Staff
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('WHOLESALE')}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                      businessType === 'WHOLESALE' 
+                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Wholesale Staff
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input 
+                    type="tel" 
+                    required 
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                    className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm" 
+                    placeholder="Pharmacy Mobile Number" 
+                  />
+                </div>
+                
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <KeyRound className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input 
+                    type="password" 
+                    required 
+                    maxLength={4}
+                    value={staffPin}
+                    onChange={(e) => setStaffPin(e.target.value.replace(/\D/g, ''))}
+                    className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-medium tracking-widest placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm font-mono" 
+                    placeholder="4-Digit PIN" 
+                  />
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex justify-center items-center py-3.5 px-4 rounded-xl shadow-lg shadow-indigo-500/30 text-base font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-all transform hover:-translate-y-0.5 disabled:opacity-70"
+                >
+                  {loading ? 'Logging in...' : 'Login as Staff'}
+                </button>
+                
+                <div className="mt-4 text-center">
+                  <button type="button" onClick={() => transitionToStep(1)} className="text-sm font-semibold text-slate-500 hover:text-slate-800 inline-flex items-center">
+                    <ArrowLeft className="w-4 h-4 mr-1" /> Back to Owner Login
+                  </button>
+                </div>
               </form>
             )}
 

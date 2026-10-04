@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import DistributorSettings from '../components/settings/DistributorSettings';
+import StaffManagement from '../components/settings/StaffManagement';
 
 interface SettingsState {
   acceptingOrders: boolean;
@@ -240,9 +241,10 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Distributor Settings (Owner Only) */}
+          {/* Staff & Distributor Settings (Owner Only) */}
           {(JSON.parse(localStorage.getItem('user') || '{}').role || 'OWNER') === 'OWNER' && (
             <>
+              <StaffManagement />
               <DistributorSettings />
             </>
           )}
