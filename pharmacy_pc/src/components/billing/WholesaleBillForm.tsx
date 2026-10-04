@@ -8,6 +8,7 @@ import ReceiptAnimation from './ReceiptAnimation';
 import { Medicine } from '../../types/medicine';
 import { fetchMedicines } from '../../services/medicineService';
 import MedicineSearchDropdown from '../ui/MedicineSearchDropdown';
+import { ModernSelect } from '../ui/ModernSelect';
 import api from '../../config/api';
 
 interface Props {
@@ -284,17 +285,16 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
         <div className="grid grid-cols-1 gap-5 mb-6">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">Select B2B Client *</label>
-            <select
+            <ModernSelect
               value={selectedClientId || ''}
-              onChange={(e) => setSelectedClientId(Number(e.target.value))}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-              required
-            >
-              <option value="" disabled>-- Select a Retailer / Hospital --</option>
-              {clients.map(c => (
-                <option key={c.id} value={c.id}>{c.businessName} (Bal: ₹{c.currentBalance})</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedClientId(Number(val))}
+              options={clients.map(c => ({
+                value: c.id,
+                label: `${c.businessName} (Bal: ₹${c.currentBalance})`
+              }))}
+              placeholder="-- Select a Retailer / Hospital --"
+              theme="blue"
+            />
             
             {/* AI Warning System */}
             {selectedClientId && (() => {
@@ -421,17 +421,18 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
                   />
                 </div>
                 <div className="col-span-4 xl:col-span-2">
-                  <select
+                  <ModernSelect
                     value={item.gstRate}
-                    onChange={(e) => handleItemChange(index, 'gstRate', parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
-                  >
-                    <option value={0}>0%</option>
-                    <option value={5}>5%</option>
-                    <option value={12}>12%</option>
-                    <option value={18}>18%</option>
-                    <option value={28}>28%</option>
-                  </select>
+                    onChange={(val) => handleItemChange(index, 'gstRate', Number(val))}
+                    options={[
+                      { value: 0, label: '0%' },
+                      { value: 5, label: '5%' },
+                      { value: 12, label: '12%' },
+                      { value: 18, label: '18%' },
+                      { value: 28, label: '28%' }
+                    ]}
+                    theme="blue"
+                  />
                 </div>
                 <div className="col-span-10 xl:col-span-1 text-right text-sm font-semibold text-slate-700">
                   ₹{(item.quantity * item.unitPrice).toFixed(2)}
