@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Send, Users, TrendingUp, Plus, Edit2, Trash2, Calendar, Percent, ArrowRight, Gift } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Tag, Send, Users, TrendingUp, Plus, Edit2, Trash2, Calendar, Percent, ArrowRight, Gift, MessageSquare, Bot, AlertCircle } from 'lucide-react';
 import { DEV_PHARMACY_ID } from '../config/development';
 import { MarketingService, Offer, Campaign } from '../services/marketingService';
 
 export default function Marketing() {
-  const [activeTab, setActiveTab] = useState<'offers' | 'campaigns'>('offers');
+  const location = useLocation();
+  const isWholesale = location.pathname.includes('wholesale');
+  
+  const [activeTab, setActiveTab] = useState<'offers' | 'campaigns' | 'ai_campaigns'>(isWholesale ? 'campaigns' : 'offers');
   
   const [offers, setOffers] = useState<Offer[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // AI Simulation state for Wholesale
+  const [isSimulatingAI, setIsSimulatingAI] = useState(false);
+  const [aiCampaignsGenerated, setAiCampaignsGenerated] = useState(false);
 
   // Offer Modal State
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
@@ -108,11 +116,19 @@ export default function Marketing() {
     try {
       await MarketingService.sendCampaign(getActualPharmacyId(), campaignForm);
       setIsCampaignModalOpen(false);
-      alert('Campaign sent successfully! (Simulated)');
+      alert(`Campaign sent successfully! (Simulated ${isWholesale ? 'WhatsApp Broadcast' : 'SMS'})`);
       fetchData();
     } catch (error) {
       alert('Failed to send campaign');
     }
+  };
+
+  const simulateAiCampaignGen = () => {
+    setIsSimulatingAI(true);
+    setTimeout(() => {
+      setIsSimulatingAI(false);
+      setAiCampaignsGenerated(true);
+    }, 2000);
   };
 
   const openAddOfferModal = () => {
@@ -150,16 +166,18 @@ export default function Marketing() {
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
+      <div className={`rounded-3xl p-8 text-white shadow-lg relative overflow-hidden ${isWholesale ? 'bg-gradient-to-r from-blue-700 to-indigo-800' : 'bg-gradient-to-r from-indigo-600 to-purple-600'}`}>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-20 -mt-20"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight flex items-center">
-              <Gift className="w-8 h-8 mr-3 text-pink-300" />
-              Marketing & Offers
+              {isWholesale ? <MessageSquare className="w-8 h-8 mr-3 text-blue-300" /> : <Gift className="w-8 h-8 mr-3 text-pink-300" />}
+              {isWholesale ? 'B2B Marketing & Broadcasts' : 'Marketing & Offers'}
             </h1>
-            <p className="mt-2 text-indigo-100 max-w-xl">
-              Grow your pharmacy business by creating attractive discount coupons and sending promotional messages to your customers.
+            <p className={`mt-2 max-w-xl ${isWholesale ? 'text-blue-100' : 'text-indigo-100'}`}>
+              {isWholesale 
+                ? 'Grow your wholesale distribution by broadcasting new stock alerts and bulk schemes to your network of retailers via WhatsApp.'
+                : 'Grow your pharmacy business by creating attractive discount coupons and sending promotional messages to your customers.'}
             </p>
           </div>
           <div className="flex gap-3">
@@ -168,34 +186,46 @@ export default function Marketing() {
                 setCampaignForm({ title: '', message: '', target_audience: 'ALL' });
                 setIsCampaignModalOpen(true);
               }}
-              className="px-5 py-2.5 bg-white text-indigo-600 rounded-xl font-bold shadow-md hover:bg-indigo-50 transition-colors flex items-center"
+              className={`px-5 py-2.5 bg-white rounded-xl font-bold shadow-md transition-colors flex items-center ${isWholesale ? 'text-blue-700 hover:bg-blue-50' : 'text-indigo-600 hover:bg-indigo-50'}`}
             >
-              <Send className="w-4 h-4 mr-2" /> Send Campaign
+              <Send className="w-4 h-4 mr-2" /> {isWholesale ? 'New Broadcast' : 'Send Campaign'}
             </button>
-            <button 
-              onClick={openAddOfferModal}
-              className="px-5 py-2.5 bg-indigo-500 bg-opacity-30 border border-indigo-400 text-white rounded-xl font-bold hover:bg-opacity-40 transition-colors flex items-center"
-            >
-              <Plus className="w-4 h-4 mr-2" /> Create Offer
-            </button>
+            {!isWholesale && (
+              <button 
+                onClick={openAddOfferModal}
+                className="px-5 py-2.5 bg-indigo-500 bg-opacity-30 border border-indigo-400 text-white rounded-xl font-bold hover:bg-opacity-40 transition-colors flex items-center"
+              >
+                <Plus className="w-4 h-4 mr-2" /> Create Offer
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab('offers')}
-          className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'offers' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-        >
-          Discount Coupons
-        </button>
+        {!isWholesale && (
+          <button
+            onClick={() => setActiveTab('offers')}
+            className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'offers' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >
+            Discount Coupons
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('campaigns')}
-          className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'campaigns' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'campaigns' ? (isWholesale ? 'border-blue-600 text-blue-600' : 'border-indigo-600 text-indigo-600') : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
-          Promotional Campaigns
+          {isWholesale ? 'WhatsApp Broadcasts' : 'Promotional Campaigns'}
         </button>
+        {isWholesale && (
+          <button
+            onClick={() => setActiveTab('ai_campaigns')}
+            className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 flex items-center ${activeTab === 'ai_campaigns' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >
+            <Bot className="w-4 h-4 mr-2" /> AI Smart Promos
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}
@@ -263,8 +293,8 @@ export default function Marketing() {
           {campaigns.length === 0 ? (
             <div className="py-16 flex flex-col items-center justify-center text-slate-500">
               <Send className="w-12 h-12 mb-4 text-slate-300" />
-              <h3 className="text-lg font-bold text-slate-700">No Campaigns Sent</h3>
-              <p className="mt-1">Send SMS/Push campaigns to re-engage your patients.</p>
+              <h3 className="text-lg font-bold text-slate-700">No {isWholesale ? 'Broadcasts' : 'Campaigns'} Sent</h3>
+              <p className="mt-1">Send {isWholesale ? 'WhatsApp broadcasts to your retail network.' : 'SMS/Push campaigns to re-engage your patients.'}</p>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-slate-200">
@@ -300,6 +330,78 @@ export default function Marketing() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+      ) : activeTab === 'ai_campaigns' && isWholesale ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-8 min-h-[400px] flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-xl font-bold text-slate-800 flex items-center">
+                <Bot className="w-6 h-6 mr-2 text-blue-600" />
+                AI Dead-Stock Promoter
+              </h3>
+              <p className="text-slate-500 mt-1">Let AI scan your inventory for slow-moving or near-expiry items and automatically create targeted WhatsApp campaigns.</p>
+            </div>
+            {!aiCampaignsGenerated && (
+              <button 
+                onClick={simulateAiCampaignGen}
+                disabled={isSimulatingAI}
+                className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
+              >
+                {isSimulatingAI ? (
+                  <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div> Scanning Inventory...</>
+                ) : (
+                  <><Bot className="w-4 h-4 mr-2" /> Scan Inventory</>
+                )}
+              </button>
+            )}
+          </div>
+
+          {aiCampaignsGenerated ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start">
+                <AlertCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-blue-900">AI Analysis Complete</h4>
+                  <p className="text-sm text-blue-700 mt-1">Found 2 categories of slow-moving stock. Generated 2 optimized campaigns ready to send.</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border border-slate-200 rounded-xl p-5 hover:border-blue-300 transition-colors">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded">Near Expiry Alert</span>
+                    <span className="text-slate-400 text-xs font-semibold">Target: 45 Clients</span>
+                  </div>
+                  <h4 className="font-bold text-slate-800 mb-2">Cosmetics Clearance Sale</h4>
+                  <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 mb-4 border border-slate-100">
+                    "🚨 Clearance Sale! Extra 15% OFF on Nivea & Dove products. Stock up now before it runs out. Reply YES to order."
+                  </div>
+                  <button className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors">
+                    Send to 45 Clients via WhatsApp
+                  </button>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl p-5 hover:border-blue-300 transition-colors">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">Overstocked Items</span>
+                    <span className="text-slate-400 text-xs font-semibold">Target: 112 Clients</span>
+                  </div>
+                  <h4 className="font-bold text-slate-800 mb-2">Generic Meds Bulk Offer</h4>
+                  <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 mb-4 border border-slate-100">
+                    "📦 Special Bulk Offer: Buy 50 boxes of Generic Paracetamol, get 5 boxes FREE! Valid only for today. Tap to claim."
+                  </div>
+                  <button className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors">
+                    Send to 112 Clients via WhatsApp
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 pt-8 pb-16 border-2 border-dashed border-slate-200 rounded-xl">
+              <Bot className="w-16 h-16 mb-4 text-slate-200" />
+              <p>Click "Scan Inventory" to let AI find promotional opportunities.</p>
+            </div>
           )}
         </div>
       )}
@@ -377,12 +479,12 @@ export default function Marketing() {
       {isCampaignModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-800/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50 text-indigo-900">
+            <div className={`px-6 py-4 border-b border-slate-100 flex justify-between items-center ${isWholesale ? 'bg-blue-50 text-blue-900' : 'bg-indigo-50 text-indigo-900'}`}>
               <h3 className="text-lg font-bold flex items-center">
                 <Send className="w-5 h-5 mr-2" />
-                Send SMS Campaign
+                {isWholesale ? 'Send WhatsApp Broadcast' : 'Send SMS Campaign'}
               </h3>
-              <button onClick={() => setIsCampaignModalOpen(false)} className="text-indigo-400 hover:text-indigo-600">✕</button>
+              <button onClick={() => setIsCampaignModalOpen(false)} className={`hover:text-opacity-80 ${isWholesale ? 'text-blue-400' : 'text-indigo-400'}`}>✕</button>
             </div>
             
             <form onSubmit={handleSendCampaign} className="p-6">
@@ -395,9 +497,19 @@ export default function Marketing() {
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Target Audience *</label>
                   <select value={campaignForm.target_audience} onChange={e => setCampaignForm({...campaignForm, target_audience: e.target.value})} className="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <option value="ALL">All Customers</option>
-                    <option value="ACTIVE_30_DAYS">Active in last 30 days</option>
-                    <option value="INACTIVE_60_DAYS">Inactive for 60+ days</option>
+                    {isWholesale ? (
+                      <>
+                        <option value="ALL">All Retail Clients</option>
+                        <option value="TOP_BUYERS">Top Buyers (High Volume)</option>
+                        <option value="OVERDUE_LEDGERS">Clients with Overdue Ledgers</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="ALL">All Customers</option>
+                        <option value="ACTIVE_30_DAYS">Active in last 30 days</option>
+                        <option value="INACTIVE_60_DAYS">Inactive for 60+ days</option>
+                      </>
+                    )}
                   </select>
                 </div>
                 
@@ -406,15 +518,15 @@ export default function Marketing() {
                     <label className="block text-sm font-semibold text-slate-700">Message Content *</label>
                     <span className="text-xs text-slate-400">{campaignForm.message.length}/160 chars</span>
                   </div>
-                  <textarea required maxLength={160} value={campaignForm.message} onChange={e => setCampaignForm({...campaignForm, message: e.target.value})} placeholder="Hi [Name], get 10% off your next medicine order using code..." className="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none h-32" />
-                  <p className="text-xs text-slate-500 mt-2">Note: Variables like [Name] will be replaced automatically. Max 160 characters for 1 SMS credit.</p>
+                  <textarea required maxLength={isWholesale ? 1000 : 160} value={campaignForm.message} onChange={e => setCampaignForm({...campaignForm, message: e.target.value})} placeholder={isWholesale ? "Hi [Pharmacy_Name], fresh stock of Cipla products arrived at 22% margin..." : "Hi [Name], get 10% off your next medicine order using code..."} className="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none h-32" />
+                  <p className="text-xs text-slate-500 mt-2">Note: Variables like {isWholesale ? '[Pharmacy_Name]' : '[Name]'} will be replaced automatically. {isWholesale ? 'WhatsApp messages can be up to 1000 characters.' : 'Max 160 characters for 1 SMS credit.'}</p>
                 </div>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-slate-100">
                 <button type="button" onClick={() => setIsCampaignModalOpen(false)} className="flex-1 px-4 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors border border-slate-200">Cancel</button>
-                <button type="submit" className="flex-1 px-4 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-colors flex justify-center items-center">
-                  <Send className="w-4 h-4 mr-2" /> Send Now
+                <button type="submit" className={`flex-1 px-4 py-3 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center ${isWholesale ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}>
+                  <Send className="w-4 h-4 mr-2" /> {isWholesale ? 'Broadcast Now' : 'Send Now'}
                 </button>
               </div>
             </form>
