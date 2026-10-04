@@ -8,12 +8,15 @@ import {
   AlertTriangle,
   Building2,
   Users,
-  FileText
+  FileText,
+  Gift
 } from 'lucide-react';
 
 const navigation = [
   { name: 'B2B Operations', href: '/wholesale-dashboard', icon: Briefcase },
   { name: 'B2B Billing', href: '/wholesale-billing', icon: FileText },
+  { name: 'Marketing & Offers', href: '/wholesale-marketing', icon: Gift },
+  { name: 'B2B Staff', href: '/wholesale-staff', icon: Users },
   { name: 'My Profile', href: '/wholesale-profile', icon: Store },
 ];
 

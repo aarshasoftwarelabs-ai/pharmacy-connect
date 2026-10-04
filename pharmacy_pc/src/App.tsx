@@ -43,8 +43,6 @@ function App() {
             <Route path="orders" element={<Orders />} />
             <Route path="inventory" element={<Inventory />} />
             <Route path="customers" element={<Customers />} />
-            <Route path="marketing" element={<Marketing />} />
-            <Route path="staff" element={<Staff />} />
             {/* Wholesale features removed from retail and moved to Wholesale routes */}
             <Route path="billing" element={<Billing />} />
             <Route path="reports" element={<Reports />} />
@@ -56,6 +54,8 @@ function App() {
           <Route path="/" element={<WholesaleLayout />}>
             <Route path="wholesale-dashboard" element={<Wholesale />} />
             <Route path="wholesale-billing" element={<WholesaleBilling />} />
+            <Route path="wholesale-marketing" element={<Marketing />} />
+            <Route path="wholesale-staff" element={<Staff />} />
             <Route path="wholesale-profile" element={<PharmacyProfile />} />
             <Route path="wholesale-settings" element={<Settings />} />
           </Route>

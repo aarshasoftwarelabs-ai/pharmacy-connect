@@ -23,8 +23,6 @@ const navigation = [
   { name: 'Smart Inventory', href: '/inventory', icon: Package },
 
   { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Marketing & Offers', href: '/marketing', icon: Gift },
-  { name: 'Staff', href: '/staff', icon: Users },
   { name: 'Billing', href: '/billing', icon: Receipt },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Pharmacy Profile', href: '/pharmacy-profile', icon: Store },
