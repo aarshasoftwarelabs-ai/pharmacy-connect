@@ -14,7 +14,7 @@ import {
 const navigation = [
   { name: 'B2B Operations', href: '/wholesale-dashboard', icon: Briefcase },
   { name: 'B2B Billing', href: '/wholesale-billing', icon: FileText },
-  { name: 'My Profile', href: '/pharmacy-profile', icon: Store },
+  { name: 'My Profile', href: '/wholesale-profile', icon: Store },
 ];
 
 export default function WholesaleSidebar() {
@@ -62,7 +62,7 @@ export default function WholesaleSidebar() {
         </nav>
         
         <div className="p-4 border-t border-slate-800 space-y-2">
-          <Link to="/settings" className="flex items-center px-4 py-3 text-sm font-medium text-slate-400 rounded-xl hover:bg-slate-800 hover:text-white transition-colors">
+          <Link to="/wholesale-settings" className="flex items-center px-4 py-3 text-sm font-medium text-slate-400 rounded-xl hover:bg-slate-800 hover:text-white transition-colors">
             <Settings className="mr-3 h-5 w-5 text-slate-500" />
             Settings
           </Link>

@@ -56,7 +56,8 @@ function App() {
           <Route path="/" element={<WholesaleLayout />}>
             <Route path="wholesale-dashboard" element={<Wholesale />} />
             <Route path="wholesale-billing" element={<WholesaleBilling />} />
-            {/* Can reuse profile and settings components */}
+            <Route path="wholesale-profile" element={<PharmacyProfile />} />
+            <Route path="wholesale-settings" element={<Settings />} />
           </Route>
         </Route>
       </Routes>
