@@ -41,7 +41,7 @@ export default function WholesaleSidebar() {
       <div className="h-20 flex items-center px-6 border-b border-slate-800 flex-shrink-0 bg-slate-950">
         <div className="flex items-center justify-start w-full relative">
           <img src="./davasetu_logo.png" alt="DavaSetu B2B" className="h-14 w-auto object-contain object-left" />
-          <span className="absolute right-2 top-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+          <span className="absolute right-4 top-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
             B2B
           </span>
         </div>
