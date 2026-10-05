@@ -48,6 +48,7 @@ export class PharmacyService {
              u.name AS "ownerName"
       FROM pharmacies p
       LEFT JOIN users u ON p.owner_id = u.id
+      WHERE p.business_type = 'RETAIL' OR p.business_type IS NULL
       ORDER BY p.id ASC
     `;
     const result = await pool.query(query);

@@ -45,7 +45,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final pharmacies = await PharmacyService.getPharmacies();
       if (pharmacies.isNotEmpty) {
-        _pharmacy = pharmacies.first;
+        final selectedId = prefs.getString('selected_pharmacy_id');
+        if (selectedId != null) {
+          try {
+            _pharmacy = pharmacies.firstWhere((p) => p.id == selectedId);
+          } catch (e) {
+            _pharmacy = pharmacies.first;
+          }
+        } else {
+          _pharmacy = pharmacies.first;
+        }
+      } else {
+        _pharmacy = null;
       }
 
       final requests = await MedicineRequestService.getUserMedicineRequests();
