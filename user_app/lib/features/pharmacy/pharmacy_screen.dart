@@ -207,157 +207,157 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
               width: 2,
             ),
             boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -20,
-                bottom: -20,
-                child: Icon(
-                  Icons.local_pharmacy_rounded,
-                  size: 120,
-                  color: const Color(0xFFF1F5F9), // Very light gray background icon
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF2DD4BF), Color(0xFF0F766E)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.local_pharmacy,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                pharmacy.name,
-                                style: GoogleFonts.outfit(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: const Color(0xFF1E293B),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: isSelected ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                      color: isSelected ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
-                                      size: 14,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      isSelected ? 'Selected' : 'Tap to Select',
-                                      style: GoogleFonts.inter(
-                                        color: isSelected ? const Color(0xFF065F46) : const Color(0xFF64748B),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.location_on_rounded,
-                                size: 20,
-                                color: Color(0xFF64748B),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  pharmacy.address,
-                                  style: GoogleFonts.inter(
-                                    color: const Color(0xFF475569),
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12.0),
-                            child: Divider(color: Color(0xFFE2E8F0), height: 1),
-                          ),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.call_rounded,
-                                size: 20,
-                                color: Color(0xFF64748B),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                '+91 99999 99999',
-                                style: GoogleFonts.inter(
-                                  color: const Color(0xFF475569),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-        ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -20,
+                  bottom: -20,
+                  child: Icon(
+                    Icons.local_pharmacy_rounded,
+                    size: 120,
+                    color: const Color(0xFFF1F5F9), // Very light gray background icon
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF2DD4BF), Color(0xFF0F766E)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.local_pharmacy,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pharmacy.name,
+                                  style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    color: const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isSelected ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                        color: isSelected ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        isSelected ? 'Selected' : 'Tap to Select',
+                                        style: GoogleFonts.inter(
+                                          color: isSelected ? const Color(0xFF065F46) : const Color(0xFF64748B),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  size: 20,
+                                  color: Color(0xFF64748B),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    pharmacy.address,
+                                    style: GoogleFonts.inter(
+                                      color: const Color(0xFF475569),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12.0),
+                              child: Divider(color: Color(0xFFE2E8F0), height: 1),
+                            ),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.call_rounded,
+                                  size: 20,
+                                  color: Color(0xFF64748B),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '+91 99999 99999',
+                                  style: GoogleFonts.inter(
+                                    color: const Color(0xFF475569),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
