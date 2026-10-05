@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../widgets/app_button.dart';
@@ -18,6 +19,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
   List<Pharmacy> _allPharmacies = [];
   List<Pharmacy> _pharmacies = [];
   bool _isLoading = true;
+  String? _selectedPharmacyId;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -27,6 +29,16 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
       setState(() {});
     });
     _loadPharmacies();
+    _loadSelectedPharmacy();
+  }
+
+  Future<void> _loadSelectedPharmacy() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _selectedPharmacyId = prefs.getString('selected_pharmacy_id');
+      });
+    }
   }
 
   @override
@@ -174,14 +186,27 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
   }
 
   Widget _buildModernPharmacyCard(Pharmacy pharmacy, int index) {
+    final isSelected = pharmacy.id == _selectedPharmacyId;
     return FadeInSlide(
       delay: 0.1 + (index * 0.1),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
+      child: GestureDetector(
+        onTap: () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('selected_pharmacy_id', pharmacy.id);
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF0F766E) : Colors.transparent,
+              width: 2,
+            ),
+            boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
               blurRadius: 24,
@@ -243,19 +268,25 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFECFDF5),
+                                  color: isSelected ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                                  border: Border.all(
+                                    color: isSelected ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 14),
+                                    Icon(
+                                      isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                      color: isSelected ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                      size: 14,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Connected',
+                                      isSelected ? 'Selected' : 'Tap to Select',
                                       style: GoogleFonts.inter(
-                                        color: const Color(0xFF065F46),
+                                        color: isSelected ? const Color(0xFF065F46) : const Color(0xFF64748B),
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -326,6 +357,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );
