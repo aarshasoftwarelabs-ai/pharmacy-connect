@@ -107,36 +107,47 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     setCreatedBill(null);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleSimulateAiScan();
-    }
-  };
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const handleSimulateAiScan = () => {
-    setScanStep(1);
-    
-    // Simulate AI thinking and extracting text
-    setTimeout(() => {
+    try {
+      setScanStep(1);
+      setError(null);
+      
+      const data = await BillingService.scanPrescription(file);
+      
       setScanStep(2);
       
-      // Select 2 random medicines from catalogue to simulate extraction, or fallback
-      const extractedItems = catalogue.length >= 2 ? [
-        { medicineName: catalogue[0].name, quantity: 2, unitPrice: catalogue[0].sellingPrice || 0, hsnCode: catalogue[0].hsnCode || '', gstRate: catalogue[0].gstRate || 0 },
-        { medicineName: catalogue[1].name, quantity: 1, unitPrice: catalogue[1].sellingPrice || 0, hsnCode: catalogue[1].hsnCode || '', gstRate: catalogue[1].gstRate || 0 },
-      ] : [
-        { medicineName: 'Dolo 650', quantity: 2, unitPrice: 30, hsnCode: '3004', gstRate: 12 },
-        { medicineName: 'Amoxicillin 500mg', quantity: 1, unitPrice: 120, hsnCode: '3004', gstRate: 12 },
-      ];
-
       setTimeout(() => {
-        setCustomerName('Rahul Kumar (From Prescription)');
-        setItems(extractedItems);
+        if (data.patient_name) {
+          setCustomerName(data.patient_name);
+        }
+        
+        if (data.items && data.items.length > 0) {
+          const newItems = data.items.map((item: any) => {
+            const match = catalogue.find(m => m.name.toLowerCase().includes(item.medicineName?.toLowerCase() || ''));
+            return {
+              medicineName: match ? match.name : (item.medicineName || ''),
+              quantity: item.quantity || 1,
+              unitPrice: match?.sellingPrice || 0,
+              hsnCode: match?.hsnCode || '',
+              gstRate: match?.gstRate || 0
+            };
+          });
+          setItems(newItems);
+        }
+        
         setShowAiModal(false);
         setScanStep(0);
       }, 1500);
-      
-    }, 2500);
+
+    } catch (err: any) {
+      setScanStep(0);
+      setShowAiModal(false);
+      setError(err.message || 'Failed to scan prescription');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -61,4 +61,28 @@ export class BillingService {
     
     return data.data;
   }
+
+  /**
+   * Scan Prescription using AI
+   */
+  static async scanPrescription(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('prescriptionImage', file);
+
+    const response = await apiFetch(`${API_BASE_URL}/billing/scan-prescription`, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      if (data.isInvalidImage) {
+        throw new Error('please Prescription Image Upload now this not image Prescription');
+      }
+      throw new Error(data.message || 'Failed to scan prescription');
+    }
+    
+    return data.data;
+  }
 }

@@ -16,7 +16,14 @@ router.get('/pharmacy/:pharmacyId', requirePermission('BILLING_VIEW'), BillingCo
 // Get a single bill by ID
 router.get('/:billId', requirePermission('BILLING_VIEW'), BillingController.getBillById);
 
+import multer from 'multer';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
 // Create a new bill
 router.post('/', requirePermission('BILLING_CREATE'), BillingController.createBill);
+
+// Scan Prescription AI
+router.post('/scan-prescription', requirePermission('BILLING_CREATE'), upload.single('prescriptionImage'), BillingController.scanPrescription);
 
 export default router;

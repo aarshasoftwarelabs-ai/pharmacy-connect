@@ -107,4 +107,69 @@ export class BillingController {
       next(error);
     }
   }
+  static async scanPrescription(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No prescription image provided' });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ success: false, message: 'Gemini API Key is not configured' });
+      }
+
+      const { GoogleGenerativeAI } = require('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const imageParts = [
+        {
+          inlineData: {
+            data: req.file.buffer.toString("base64"),
+            mimeType: req.file.mimetype
+          }
+        }
+      ];
+
+      const prompt = `Analyze this image. First, determine if it is a medical prescription or medical bill/invoice.
+If it is CLEARLY NOT a prescription (e.g., a random selfie, animal, car, or completely irrelevant document), you MUST return this exact JSON: { "is_valid": false }.
+If it IS a prescription or medical document, return ONLY a valid JSON object matching this structure exactly (do not wrap in markdown):
+{
+  "is_valid": true,
+  "patient_name": "string or null",
+  "items": [
+    {
+      "medicineName": "string",
+      "quantity": number
+    }
+  ]
+}
+If any field cannot be found, use null or 0.`;
+
+      const result = await model.generateContent([prompt, ...imageParts]);
+      let text = result.response.text();
+      
+      text = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+      
+      let parsedData;
+      try {
+        parsedData = JSON.parse(text);
+      } catch(e) {
+        throw new Error('AI returned invalid JSON: ' + text);
+      }
+
+      if (parsedData.is_valid === false) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'please Prescription Image Upload now this not image Prescription',
+          isInvalidImage: true 
+        });
+      }
+
+      return res.json({ success: true, data: parsedData });
+    } catch (error: any) {
+      console.error('AI Scan Error:', error);
+      return res.status(500).json({ success: false, message: error.message || 'Failed to scan using AI' });
+    }
+  }
 }
