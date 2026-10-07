@@ -152,24 +152,28 @@ export default function Purchases() {
             ref={fileInputRef} 
             onChange={handleFileUpload} 
           />
-          <button 
-            onClick={() => fileInputRef.current?.click()} 
-            disabled={scanning}
-            className="relative overflow-hidden group flex items-center px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-violet-500 hover:to-indigo-500 disabled:opacity-70 transition-all duration-300 shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform hover:-translate-y-0.5"
-          >
-            <div className="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 transform origin-left transition-transform duration-500 rounded-xl pointer-events-none"></div>
-            {scanning ? (
-              <span className="flex items-center relative z-10"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div> Processing...</span>
-            ) : (
-              <span className="flex items-center relative z-10">
-                <Wand2 className="w-4 h-4 mr-2 animate-pulse text-violet-200" />
-                AI Scan Invoice
-              </span>
-            )}
-          </button>
-          <button onClick={() => setShowModal(true)} className="flex items-center px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 shadow-md transition-all transform hover:-translate-y-0.5">
-            <Plus className="w-4 h-4 mr-2" /> Add Purchase
-          </button>
+          {purchases.length > 0 && (
+            <>
+              <button 
+                onClick={() => fileInputRef.current?.click()} 
+                disabled={scanning}
+                className="relative overflow-hidden group flex items-center px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-violet-500 hover:to-indigo-500 disabled:opacity-70 transition-all duration-300 shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform hover:-translate-y-0.5"
+              >
+                <div className="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 transform origin-left transition-transform duration-500 rounded-xl pointer-events-none"></div>
+                {scanning ? (
+                  <span className="flex items-center relative z-10"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div> Processing...</span>
+                ) : (
+                  <span className="flex items-center relative z-10">
+                    <Wand2 className="w-4 h-4 mr-2 animate-pulse text-violet-200" />
+                    AI Scan Invoice
+                  </span>
+                )}
+              </button>
+              <button onClick={() => setShowModal(true)} className="flex items-center px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 shadow-md transition-all transform hover:-translate-y-0.5">
+                <Plus className="w-4 h-4 mr-2" /> Add Purchase
+              </button>
+            </>
+          )}
         </div>
       </div>
 
