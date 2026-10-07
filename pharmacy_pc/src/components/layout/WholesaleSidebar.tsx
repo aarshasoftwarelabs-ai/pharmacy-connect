@@ -14,21 +14,23 @@ import {
   Truck,
   MapPin
 } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 
 const navigation = [
-  { name: 'B2B Operations', href: '/wholesale-dashboard', icon: Briefcase },
-  { name: 'B2B Inventory', href: '/wholesale-inventory', icon: Package },
-  { name: 'B2B Billing', href: '/wholesale-billing', icon: FileText },
-  { name: 'Marketing & Offers', href: '/wholesale-marketing', icon: Gift },
-  { name: 'Delivery Routes', href: '/wholesale-delivery', icon: Truck },
-  { name: 'B2B Staff', href: '/wholesale-staff', icon: Users },
-  { name: 'My Profile', href: '/wholesale-profile', icon: Store },
+  { name: 'B2B Operations', href: '/wholesale-dashboard', icon: Briefcase, perm: 'WHOLESALE_VIEW' },
+  { name: 'B2B Inventory', href: '/wholesale-inventory', icon: Package, perm: 'WHOLESALE_VIEW' },
+  { name: 'B2B Billing', href: '/wholesale-billing', icon: FileText, perm: 'WHOLESALE_VIEW' },
+  { name: 'Marketing & Offers', href: '/wholesale-marketing', icon: Gift, perm: 'WHOLESALE_VIEW' },
+  { name: 'Delivery Routes', href: '/wholesale-delivery', icon: Truck, perm: 'WHOLESALE_VIEW' },
+  { name: 'B2B Staff', href: '/wholesale-staff', icon: Users, perm: 'STAFF_VIEW' },
+  { name: 'My Profile', href: '/wholesale-profile', icon: Store, perm: 'PHARMACY_PROFILE_VIEW' },
 ];
 
 export default function WholesaleSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { hasPermission } = useAuth();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -53,6 +55,8 @@ export default function WholesaleSidebar() {
       <div className="flex-1 overflow-y-auto flex flex-col justify-between">
         <nav className="py-6 px-4 space-y-2">
           {navigation.map((item) => {
+            if (item.perm && !hasPermission(item.perm)) return null;
+
             const isActive = location.pathname.startsWith(item.href);
             return (
               <Link
@@ -72,10 +76,12 @@ export default function WholesaleSidebar() {
         </nav>
         
         <div className="p-4 border-t border-slate-800 space-y-2">
-          <Link to="/wholesale-settings" className="flex items-center px-4 py-3 text-sm font-medium text-slate-400 rounded-xl hover:bg-slate-800 hover:text-white transition-colors">
-            <Settings className="mr-3 h-5 w-5 text-slate-500" />
-            Settings
-          </Link>
+          {hasPermission('SETTINGS_VIEW') && (
+            <Link to="/wholesale-settings" className="flex items-center px-4 py-3 text-sm font-medium text-slate-400 rounded-xl hover:bg-slate-800 hover:text-white transition-colors">
+              <Settings className="mr-3 h-5 w-5 text-slate-500" />
+              Settings
+            </Link>
+          )}
           <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-400 rounded-xl hover:bg-red-500/10 hover:text-red-300 transition-colors">
             <LogOut className="mr-3 h-5 w-5 text-red-500/70" />
             Logout

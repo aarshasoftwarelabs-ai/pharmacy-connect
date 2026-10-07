@@ -23,4 +23,14 @@ export interface Medicine {
   expiryDate?: string;
   createdAt: string;
   updatedAt: string;
+  batches?: Array<{
+    id: number;
+    batchNumber: string;
+    expiryDate: string;
+    quantity: number;
+    availableQuantity: number;
+    purchasePrice: number;
+    mrp: number;
+    sellingPrice: number;
+  }>;
 }

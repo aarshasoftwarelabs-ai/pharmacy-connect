@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText } from 'lucide-react';
 import { BillingService } from '../../services/billingService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 import { Bill } from '../../types/billing';
 import { B2BClient } from '../../types/wholesale';
 import ReceiptAnimation from './ReceiptAnimation';
@@ -217,7 +217,7 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
       const client = clients.find(c => c.id === selectedClientId);
       
       const newBill = await BillingService.createBill({
-        pharmacyId: DEV_PHARMACY_ID,
+        pharmacyId: getPharmacyId(),
         customerName: client?.businessName || 'Wholesale Client',
         customerPhone: client?.phone || '',
         billType: 'WHOLESALE' as any,

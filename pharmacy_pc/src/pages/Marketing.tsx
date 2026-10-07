@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Tag, Send, Users, TrendingUp, Plus, Edit2, Trash2, Calendar, Percent, ArrowRight, Gift, MessageSquare, Bot, AlertCircle } from 'lucide-react';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 import { MarketingService, Offer, Campaign } from '../services/marketingService';
 import { ModernSelect } from '../components/ui/ModernSelect';
 
@@ -52,7 +52,7 @@ export default function Marketing() {
         if (profile.id) return profile.id;
       }
     } catch (e) {}
-    return DEV_PHARMACY_ID;
+    return getPharmacyId();
   };
 
   const fetchData = async () => {

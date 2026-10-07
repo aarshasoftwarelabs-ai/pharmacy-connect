@@ -12,6 +12,8 @@ import '../../features/medicines/screens/medicine_requests_screen.dart';
 import '../../features/medicines/screens/medicine_request_details_screen.dart';
 import '../../features/medicines/models/medicine_request.dart';
 import '../../features/notifications/notifications_screen.dart';
+import '../../features/prescriptions/my_prescriptions_screen.dart';
+import '../../features/prescriptions/refill_reminders_screen.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -25,6 +27,8 @@ class AppRoutes {
   static const String medicineRequests = '/medicine-requests';
   static const String medicineRequestDetails = '/medicine-request-details';
   static const String notifications = '/notifications';
+  static const String myPrescriptions = '/my-prescriptions';
+  static const String refillReminders = '/refill-reminders';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -52,6 +56,10 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => MedicineRequestDetailsScreen(request: request));
       case notifications:
         return MaterialPageRoute(builder: (_) => const NotificationsScreen());
+      case myPrescriptions:
+        return MaterialPageRoute(builder: (_) => const MyPrescriptionsScreen());
+      case refillReminders:
+        return MaterialPageRoute(builder: (_) => const RefillRemindersScreen());
         
       default:
         return MaterialPageRoute(

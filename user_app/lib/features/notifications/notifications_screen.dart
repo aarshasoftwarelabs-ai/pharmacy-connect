@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../services/medicine_request_service.dart';
-import '../medicines/models/medicine_request.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/fade_in_slide.dart';
 
 import 'package:timeago/timeago.dart' as timeago;
@@ -15,7 +14,7 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  List<MedicineRequest> _requests = [];
+  List<AppNotification> _notifications = [];
   bool _isLoading = true;
 
   @override
@@ -26,10 +25,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _loadNotifications() async {
     try {
-      final requests = await MedicineRequestService.getUserMedicineRequests();
+      final notifs = await NotificationService.getNotifications();
       if (mounted) {
         setState(() {
-          _requests = requests;
+          _notifications = notifs;
           _isLoading = false;
         });
       }
@@ -43,56 +42,46 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  String _getNotificationTitle(MedicineRequestStatus status) {
-    switch (status) {
-      case MedicineRequestStatus.waiting:
-        return 'Request Sent Successfully';
-      case MedicineRequestStatus.available:
-        return 'Medicines Available!';
-      case MedicineRequestStatus.canArrange:
-        return 'Pharmacy Can Arrange Medicines';
-      case MedicineRequestStatus.notAvailable:
-        return 'Medicines Not Available';
+  IconData _getNotificationIcon(String type) {
+    if (type.contains('REQUEST')) {
+      if (type.contains('NOT_AVAILABLE')) return Icons.cancel_rounded;
+      if (type.contains('CAN_ARRANGE')) return Icons.inventory_2_rounded;
+      return Icons.check_circle_rounded;
     }
+    if (type.contains('BILL')) return Icons.receipt_rounded;
+    return Icons.notifications_active_rounded;
   }
 
-  String _getNotificationMessage(MedicineRequest request) {
-    final name = request.medicineName ?? 'Image prescription';
-    switch (request.status) {
-      case MedicineRequestStatus.waiting:
-        return 'Your request for $name has been sent to the pharmacy. Please wait for them to respond.';
-      case MedicineRequestStatus.available:
-        return 'Good news! The pharmacy has $name in stock and is ready for you.';
-      case MedicineRequestStatus.canArrange:
-        return 'The pharmacy doesn\'t have $name right now but can arrange it for you soon.';
-      case MedicineRequestStatus.notAvailable:
-        return 'Unfortunately, the pharmacy does not have $name and cannot arrange it.';
-    }
+  Color _getNotificationColor(String type) {
+    if (type.contains('NOT_AVAILABLE')) return AppColors.error;
+    if (type.contains('CAN_ARRANGE')) return AppColors.secondary;
+    if (type.contains('AVAILABLE') || type.contains('READY') || type.contains('CREATED')) return AppColors.success;
+    return AppColors.primary;
   }
 
-  IconData _getNotificationIcon(MedicineRequestStatus status) {
-    switch (status) {
-      case MedicineRequestStatus.waiting:
-        return Icons.access_time_rounded;
-      case MedicineRequestStatus.available:
-        return Icons.check_circle_rounded;
-      case MedicineRequestStatus.canArrange:
-        return Icons.inventory_2_rounded;
-      case MedicineRequestStatus.notAvailable:
-        return Icons.cancel_rounded;
-    }
-  }
-
-  Color _getNotificationColor(MedicineRequestStatus status) {
-    switch (status) {
-      case MedicineRequestStatus.waiting:
-        return AppColors.warning;
-      case MedicineRequestStatus.available:
-        return AppColors.success;
-      case MedicineRequestStatus.canArrange:
-        return AppColors.secondary;
-      case MedicineRequestStatus.notAvailable:
-        return AppColors.error;
+  Future<void> _markAsRead(AppNotification notification) async {
+    if (notification.isRead) return;
+    try {
+      await NotificationService.markAsRead(notification.id);
+      setState(() {
+        final index = _notifications.indexWhere((n) => n.id == notification.id);
+        if (index != -1) {
+          _notifications[index] = AppNotification(
+            id: notification.id,
+            recipientUserId: notification.recipientUserId,
+            pharmacyId: notification.pharmacyId,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            referenceType: notification.referenceType,
+            referenceId: notification.referenceId,
+            isRead: true,
+            createdAt: notification.createdAt,
+          );
+        }
+      });
+    } catch (e) {
+      debugPrint('Error marking as read: $e');
     }
   }
 
@@ -114,24 +103,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _requests.isEmpty
+          : _notifications.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              itemCount: _requests.length,
+              itemCount: _notifications.length,
               itemBuilder: (context, index) {
-                final request = _requests[index];
-                final title = _getNotificationTitle(request.status);
-                final message = _getNotificationMessage(request);
-                final color = _getNotificationColor(request.status);
-                final icon = _getNotificationIcon(request.status);
+                final notification = _notifications[index];
+                final color = _getNotificationColor(notification.type);
+                final icon = _getNotificationIcon(notification.type);
 
                 return FadeInSlide(
                   delay: 0.1 + (index * 0.1),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: notification.isRead ? Colors.white : Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -146,6 +133,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(16),
+                      onTap: () => _markAsRead(notification),
                       leading: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -155,10 +143,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         child: Icon(icon, color: color, size: 24),
                       ),
                       title: Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                        notification.title,
+                        style: TextStyle(
+                          fontWeight: notification.isRead ? FontWeight.w600 : FontWeight.bold,
                           fontSize: 16,
+                          color: notification.isRead ? Colors.black87 : Colors.black,
                         ),
                       ),
                       subtitle: Padding(
@@ -167,15 +156,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              message,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
+                              notification.message,
+                              style: TextStyle(
+                                color: notification.isRead ? AppColors.textSecondary : Colors.black87,
                                 height: 1.4,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              timeago.format(request.createdAt),
+                              timeago.format(notification.createdAt),
                               style: const TextStyle(
                                 color: AppColors.textHint,
                                 fontSize: 12,
@@ -223,7 +212,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'We will notify you here when the pharmacy\nresponds to your requests.',
+              'We will notify you here about updates.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary),
             ),

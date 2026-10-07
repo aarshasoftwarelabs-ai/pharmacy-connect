@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText } from 'lucide-react';
 import { BillingService } from '../../services/billingService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 import { Bill } from '../../types/billing';
 import ReceiptAnimation from './ReceiptAnimation';
 import { Medicine } from '../../types/medicine';
@@ -148,7 +148,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       setError(null);
 
       const newBill = await BillingService.createBill({
-        pharmacyId: DEV_PHARMACY_ID,
+        pharmacyId: getPharmacyId(),
         customerName,
         customerPhone,
         billType: 'OFFLINE',

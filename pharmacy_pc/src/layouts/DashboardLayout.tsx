@@ -5,7 +5,7 @@ import Header from '../components/layout/Header';
 import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
 import { Lock, Sparkles, Bell, X } from 'lucide-react';
 import { io } from 'socket.io-client';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 
 export default function DashboardLayout() {
   const location = useLocation();
@@ -20,6 +20,7 @@ export default function DashboardLayout() {
     if (path.includes('medicines')) return { title: 'Medicine Catalogue', subtitle: 'Manage your medicine inventory and pricing.' };
     if (path.includes('inventory')) return { title: 'Inventory', subtitle: 'Track stock levels and updates.' };
     if (path.includes('customers')) return { title: 'Customers', subtitle: 'View customer information and history.' };
+    if (path.includes('prescriptions')) return { title: 'Prescriptions', subtitle: 'Manage customer uploaded prescriptions.' };
     if (path.includes('billing')) return { title: 'Billing', subtitle: 'Generate and manage invoices.' };
     if (path.includes('reports')) return { title: 'Reports', subtitle: 'View sales and order reports.' };
     if (path.includes('pharmacy-profile')) return { title: 'Pharmacy Profile', subtitle: 'Manage your business settings.' };
@@ -42,7 +43,7 @@ export default function DashboardLayout() {
         if (p.id) return p.id;
       }
     } catch (e) {}
-    return DEV_PHARMACY_ID;
+    return getPharmacyId();
   };
 
   useEffect(() => {
@@ -59,28 +60,24 @@ export default function DashboardLayout() {
     fetchProfile();
 
     // Global Socket for Notifications
-    const socket = io('http://localhost:3000');
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://api.davasetu.com';
+    const socket = io(socketUrl);
     socket.on('connect', () => {
       socket.emit('join_pharmacy', getActualPharmacyId().toString());
     });
 
     socket.on('new_request', (newReq: any) => {
-      // Show native browser notification if allowed
       if (Notification.permission === 'granted') {
         new Notification('New Medicine Request!', {
           body: newReq.medicineName ? `Request for: ${newReq.medicineName}` : 'New prescription image uploaded.',
         });
-      } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission();
       }
       
       const title = 'New Order Received!';
       const message = newReq.medicineName ? `Customer requested: ${newReq.medicineName}` : 'New prescription image uploaded.';
 
-      // Show custom in-app toast
       setNotification({ title, message });
       
-      // Dispatch event to update Header dropdown
       const event = new CustomEvent('app_notification', {
         detail: {
           title: 'New Medicine Request',
@@ -90,7 +87,25 @@ export default function DashboardLayout() {
       });
       window.dispatchEvent(event);
 
-      // Hide after 5 seconds
+      setTimeout(() => setNotification(null), 5000);
+    });
+
+    socket.on('new_pharmacy_notification', (notif: any) => {
+      // Show native browser notification if allowed
+      if (Notification.permission === 'granted') {
+        new Notification(notif.title, {
+          body: notif.message,
+        });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+      
+      setNotification({ title: notif.title, message: notif.message });
+      
+      // Dispatch event to update Header dropdown
+      const event = new CustomEvent('new_pharmacy_notification');
+      window.dispatchEvent(event);
+
       setTimeout(() => setNotification(null), 5000);
     });
 

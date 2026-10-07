@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Stethoscope, Loader2, AlertCircle, Clock, CheckCircle2, XCircle, PackageSearch } from 'lucide-react';
 import { ReportService, ReportDateRange, MedicineRequestReportData } from '../../services/reportService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 
 export default function MedicineRequestsTab({ dateRange }: { dateRange: ReportDateRange }) {
   const [data, setData] = useState<MedicineRequestReportData | null>(null);
@@ -12,7 +12,7 @@ export default function MedicineRequestsTab({ dateRange }: { dateRange: ReportDa
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await ReportService.getMedicineRequestReport(DEV_PHARMACY_ID, dateRange);
+        const res = await ReportService.getMedicineRequestReport(getPharmacyId(), dateRange);
         setData(res);
         setError(null);
       } catch (err: any) {

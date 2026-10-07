@@ -3,7 +3,7 @@ import { FileText, Printer, Download, Clock, CheckCircle, Plus, Smartphone, Stor
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { BillingService } from '../services/billingService';
 import { BillingQueueItem, Bill } from '../types/billing';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 import BillCreationModal from '../components/billing/BillCreationModal';
 import OfflineBillForm from '../components/billing/OfflineBillForm';
 
@@ -26,8 +26,8 @@ export default function Billing() {
       else setRefreshing(true);
 
       const [queueData, billsData] = await Promise.all([
-        BillingService.getBillingQueue(DEV_PHARMACY_ID),
-        BillingService.getPharmacyBills(DEV_PHARMACY_ID)
+        BillingService.getBillingQueue(getPharmacyId()),
+        BillingService.getPharmacyBills(getPharmacyId())
       ]);
 
       setQueue(queueData);

@@ -1,7 +1,6 @@
 // Centralized API Configuration
 
-const hostname = window.location.hostname || '127.0.0.1';
-export const API_BASE_URL = `http://${hostname}:3000/api`;
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.davasetu.com/api';
 
 export const apiFetch = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('token');
@@ -19,6 +18,16 @@ export const apiFetch = async (url: string, options: RequestInit = {}) => {
     ...options,
     headers,
   });
+
+  if (response.status === 401) {
+    // Clear invalid auth state and redirect to login
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('pharmacy_profile_data');
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+  }
 
   return response;
 };

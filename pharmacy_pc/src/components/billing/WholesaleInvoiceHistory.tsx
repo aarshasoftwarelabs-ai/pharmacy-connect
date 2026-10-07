@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { IndianRupee, FileText, Download, TrendingUp, Calendar, Loader2, Search, ArrowRight } from 'lucide-react';
 import { BillingService } from '../../services/billingService';
 import { Bill } from '../../types/billing';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 
 export default function WholesaleInvoiceHistory() {
   const [invoices, setInvoices] = useState<Bill[]>([]);
@@ -16,7 +16,7 @@ export default function WholesaleInvoiceHistory() {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const allBills = await BillingService.getPharmacyBills(DEV_PHARMACY_ID);
+      const allBills = await BillingService.getPharmacyBills(getPharmacyId());
       // Backend might return billType or we just filter locally if we have it
       // Filter for B2B/Wholesale bills only
       const b2bBills = allBills.filter(b => b.billType === 'WHOLESALE' || (b as any).type === 'WHOLESALE' || Number(b.total) > 1500); // fallback heuristic if billType is missing in db

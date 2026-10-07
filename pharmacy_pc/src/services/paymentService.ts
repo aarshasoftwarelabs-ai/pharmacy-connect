@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.davasetu.com/api';
 
 export const PaymentService = {
   createOrder: async (amount: number, currency: string = 'INR', planName: string = '') => {

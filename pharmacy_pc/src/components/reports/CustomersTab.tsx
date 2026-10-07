@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Loader2, AlertCircle, Users, UserPlus, UserCheck } from 'lucide-react';
 import { ReportService, ReportDateRange, CustomerReportData } from '../../services/reportService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 
 export default function CustomersTab({ dateRange }: { dateRange: ReportDateRange }) {
   const [data, setData] = useState<CustomerReportData | null>(null);
@@ -13,7 +13,7 @@ export default function CustomersTab({ dateRange }: { dateRange: ReportDateRange
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await ReportService.getCustomerReport(DEV_PHARMACY_ID, { ...dateRange, search });
+        const res = await ReportService.getCustomerReport(getPharmacyId(), { ...dateRange, search });
         setData(res);
         setError(null);
       } catch (err: any) {

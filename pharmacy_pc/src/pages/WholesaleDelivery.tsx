@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, MapPin, Map, Loader2, Navigation, CheckCircle2, ChevronRight, Package, Route } from 'lucide-react';
 import { BillingService } from '../services/billingService';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 
 interface DeliveryStop {
   id: string;
@@ -19,18 +19,10 @@ export default function WholesaleDelivery() {
   const [stops, setStops] = useState<DeliveryStop[]>([]);
   const [selectedArea, setSelectedArea] = useState<string>('ALL');
 
-  // Simulated orders to be delivered today
-  const mockOrdersToDeliver: DeliveryStop[] = [
-    { id: 'INV-1001', clientName: 'City Hospital', address: '14, Main Road, Satellite', area: 'Satellite', pincode: '380015', invoiceAmount: '₹14,500', status: 'PENDING' },
-    { id: 'INV-1002', clientName: 'Apollo Pharmacy', address: 'Shop 5, Satellite Plaza', area: 'Satellite', pincode: '380015', invoiceAmount: '₹8,200', status: 'PENDING' },
-    { id: 'INV-1003', clientName: 'Relief Medico', address: '22, C.G. Road', area: 'Navrangpura', pincode: '380009', invoiceAmount: '₹22,100', status: 'PENDING' },
-    { id: 'INV-1004', clientName: 'Sanjeevani Clinic', address: '1st Floor, Navrangpura Char Rasta', area: 'Navrangpura', pincode: '380009', invoiceAmount: '₹4,300', status: 'PENDING' },
-    { id: 'INV-1005', clientName: 'LifeCare Meds', address: 'Opposite Vastrapur Lake', area: 'Vastrapur', pincode: '380015', invoiceAmount: '₹11,800', status: 'PENDING' },
-  ];
-
   useEffect(() => {
     // In a real app, we would fetch pending wholesale bills
-    setStops(mockOrdersToDeliver);
+    // The wholesale delivery backend is not yet fully implemented
+    setStops([]);
   }, []);
 
   const handlePlanRoute = () => {

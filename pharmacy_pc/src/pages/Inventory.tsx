@@ -18,7 +18,7 @@ import { fetchDistributors, Distributor } from '../services/distributorService';
 import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
 import { Medicine } from '../types/medicine';
 import MedicineForm from '../components/medicines/MedicineForm';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 
 export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,6 +30,7 @@ export default function Inventory() {
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [viewBatchesMed, setViewBatchesMed] = useState<Medicine | null>(null);
   const [autoOrderConfirmMed, setAutoOrderConfirmMed] = useState<Medicine | null>(null);
   const [deleteConfirmMed, setDeleteConfirmMed] = useState<Medicine | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -43,7 +44,7 @@ export default function Inventory() {
       const [medsData, distData, pharmData] = await Promise.all([
         fetchMedicines(),
         fetchDistributors().catch(() => []), // fail gracefully if no permissions
-        PharmacyService.getPharmacyProfile(DEV_PHARMACY_ID).catch(() => null)
+        PharmacyService.getPharmacyProfile(getPharmacyId()).catch(() => null)
       ]);
       setMedicines(medsData);
       setDistributors(distData);
@@ -64,9 +65,9 @@ export default function Inventory() {
     try {
       setLoading(true);
       if (medData.id) {
-        await updateMedicine(medData.id, { ...medData, pharmacyId: DEV_PHARMACY_ID } as any);
+        await updateMedicine(medData.id, { ...medData, pharmacyId: getPharmacyId() } as any);
       } else {
-        await createMedicine({ ...medData, pharmacyId: DEV_PHARMACY_ID } as any);
+        await createMedicine({ ...medData, pharmacyId: getPharmacyId() } as any);
       }
       await loadInitialData(); // Refresh list
       setIsAddModalOpen(false);
@@ -285,7 +286,7 @@ export default function Inventory() {
                 <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-bold">
                   <th className="px-6 py-4">Medicine Info</th>
                   <th className="px-6 py-4">Stock Level</th>
-                  <th className="px-6 py-4">Expiry</th>
+                  <th className="px-6 py-4">Batches</th>
                   <th className="px-6 py-4">Smart Suggestion</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -379,9 +380,14 @@ export default function Inventory() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold ${expiryStatus}`}>
-                          {expiryLabel}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className={`inline-flex items-center gap-1 text-xs font-semibold ${expiryStatus}`}>
+                            Exp: {expiryLabel}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {item.batches?.filter(b => b.availableQuantity > 0).length || 0} Active Batches
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-start gap-2 max-w-[200px]">
@@ -402,6 +408,12 @@ export default function Inventory() {
                               <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                             </button>
                           )}
+                          <button 
+                            onClick={() => setViewBatchesMed(item)}
+                            className="text-pharmacy-600 hover:text-pharmacy-900 font-medium text-sm transition-colors bg-pharmacy-50 hover:bg-pharmacy-100 px-3 py-1.5 rounded-lg"
+                          >
+                            Batches
+                          </button>
                           <button 
                             onClick={() => {
                               setSelectedMedicine(item);
@@ -557,6 +569,62 @@ export default function Inventory() {
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewBatchesMed && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-500/75 backdrop-blur-sm transition-all" onClick={() => setViewBatchesMed(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Medicine Batches</h3>
+                <p className="text-sm text-slate-500 mt-1">{viewBatchesMed.name} {viewBatchesMed.strength}</p>
+              </div>
+              <button onClick={() => setViewBatchesMed(null)} className="text-slate-400 hover:text-slate-600 text-xl font-bold p-2">&times;</button>
+            </div>
+            <div className="p-0 max-h-[60vh] overflow-y-auto">
+              {!viewBatchesMed.batches || viewBatchesMed.batches.length === 0 ? (
+                <div className="p-12 text-center text-slate-500">No batches recorded for this medicine.</div>
+              ) : (
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead className="bg-white sticky top-0 border-b border-slate-200 shadow-sm">
+                    <tr>
+                      <th className="px-6 py-3 font-semibold text-slate-700">Batch Number</th>
+                      <th className="px-6 py-3 font-semibold text-slate-700">Expiry</th>
+                      <th className="px-6 py-3 font-semibold text-slate-700 text-right">Total Qty</th>
+                      <th className="px-6 py-3 font-semibold text-slate-700 text-right">Available Qty</th>
+                      <th className="px-6 py-3 font-semibold text-slate-700 text-right">Purchase (₹)</th>
+                      <th className="px-6 py-3 font-semibold text-slate-700 text-right">MRP (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {viewBatchesMed.batches.map(batch => (
+                      <tr key={batch.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-3 font-mono text-xs">{batch.batchNumber}</td>
+                        <td className="px-6 py-3">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${new Date(batch.expiryDate) < new Date() ? 'bg-red-100 text-red-700' : 'text-slate-700'}`}>
+                            {new Date(batch.expiryDate).toLocaleDateString('en-IN', {month: 'short', year: 'numeric'})}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3 text-right text-slate-500">{batch.quantity}</td>
+                        <td className="px-6 py-3 text-right font-semibold text-slate-800">{batch.availableQuantity}</td>
+                        <td className="px-6 py-3 text-right text-slate-600">{batch.purchasePrice}</td>
+                        <td className="px-6 py-3 text-right text-slate-600">{batch.mrp}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+              <button 
+                onClick={() => setViewBatchesMed(null)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-medium transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

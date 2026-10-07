@@ -1,44 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, UserCircle, ChevronDown, Menu, ShoppingCart, Pill, Info, CheckCircle2 } from 'lucide-react';
 import { PharmacyService } from '../../services/pharmacyService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { NotificationService, Notification } from '../../services/notificationService';
+import { getPharmacyId } from '../../config/development';
 
 interface HeaderProps {
   pageTitle: string;
   subtitle?: string;
 }
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-  type: 'order' | 'request' | 'system';
-}
-
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'welcome',
-    title: 'Welcome to DavaSetu',
-    message: 'Your pharmacy dashboard is ready. Live orders will appear here.',
-    time: 'Just now',
-    read: false,
-    type: 'system'
-  }
-];
-
 export default function Header({ pageTitle, subtitle }: HeaderProps) {
   const [pharmacyName, setPharmacyName] = useState('Loading...');
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  // Load pharmacy name & notifications
   useEffect(() => {
     // Pharmacy Name
-    PharmacyService.getPharmacyProfile(DEV_PHARMACY_ID)
+    PharmacyService.getPharmacyProfile(getPharmacyId())
       .then(profile => {
         let name = profile?.name || 'DavaSetu Pharmacy';
         const localData = localStorage.getItem('pharmacy_profile_data');
@@ -52,41 +33,30 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
       })
       .catch(() => setPharmacyName('DavaSetu Admin'));
 
-    // Notifications logic
-    const savedNotifications = localStorage.getItem('pharmacy_notifications_v2');
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    } else {
-      setNotifications(INITIAL_NOTIFICATIONS);
-      localStorage.setItem('pharmacy_notifications_v2', JSON.stringify(INITIAL_NOTIFICATIONS));
-    }
+    // Fetch initial notifications
+    fetchNotifications();
 
     // Listen to real-time events from DashboardLayout
     const handleAppNotification = (e: any) => {
-      const newNotif: Notification = {
-        id: Date.now().toString(),
-        title: e.detail.title,
-        message: e.detail.message,
-        time: 'Just now',
-        read: false,
-        type: e.detail.type
-      };
-      
-      setNotifications(prev => {
-        const updated = [newNotif, ...prev].slice(0, 50); // Keep max 50
-        localStorage.setItem('pharmacy_notifications_v2', JSON.stringify(updated));
-        return updated;
-      });
+      // Just re-fetch notifications when a real-time event hits
+      fetchNotifications();
     };
 
     window.addEventListener('app_notification', handleAppNotification);
+    window.addEventListener('new_pharmacy_notification', handleAppNotification);
 
     return () => {
       window.removeEventListener('app_notification', handleAppNotification);
+      window.removeEventListener('new_pharmacy_notification', handleAppNotification);
     };
   }, []);
 
-  // Close dropdown when clicking outside
+  const fetchNotifications = async () => {
+    const notifs = await NotificationService.getNotifications(50);
+    setNotifications(notifs);
+    setUnreadCount(notifs.filter(n => !n.is_read).length);
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -108,26 +78,24 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
     }, 150);
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const markAsRead = (id: string) => {
-    const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
+  const markAsRead = async (id: number) => {
+    await NotificationService.markAsRead(id);
+    const updated = notifications.map(n => n.id === id ? { ...n, is_read: true } : n);
     setNotifications(updated);
-    localStorage.setItem('pharmacy_notifications_v2', JSON.stringify(updated));
+    setUnreadCount(updated.filter(n => !n.is_read).length);
   };
 
-  const markAllAsRead = () => {
-    const updated = notifications.map(n => ({ ...n, read: true }));
+  const markAllAsRead = async () => {
+    await NotificationService.markAllAsRead();
+    const updated = notifications.map(n => ({ ...n, is_read: true }));
     setNotifications(updated);
-    localStorage.setItem('pharmacy_notifications_v2', JSON.stringify(updated));
+    setUnreadCount(0);
   };
 
   const getIconForType = (type: string) => {
-    switch (type) {
-      case 'order': return <ShoppingCart className="w-4 h-4 text-blue-500" />;
-      case 'request': return <Pill className="w-4 h-4 text-emerald-500" />;
-      default: return <Info className="w-4 h-4 text-amber-500" />;
-    }
+    if (type.includes('REQUEST')) return <Pill className="w-4 h-4 text-emerald-500" />;
+    if (type.includes('BILL') || type.includes('PURCHASE')) return <ShoppingCart className="w-4 h-4 text-blue-500" />;
+    return <Info className="w-4 h-4 text-amber-500" />;
   };
 
   return (
@@ -187,23 +155,23 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
                       <div 
                         key={notif.id} 
                         onClick={() => markAsRead(notif.id)}
-                        className={`p-4 hover:bg-slate-50 cursor-pointer transition-colors flex gap-3 ${!notif.read ? 'bg-slate-50/50' : 'opacity-70'}`}
+                        className={`p-4 hover:bg-slate-50 cursor-pointer transition-colors flex gap-3 ${!notif.is_read ? 'bg-slate-50/50' : 'opacity-70'}`}
                       >
                         <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          notif.type === 'order' ? 'bg-blue-100' : 
-                          notif.type === 'request' ? 'bg-emerald-100' : 'bg-amber-100'
+                          notif.type.includes('BILL') ? 'bg-blue-100' : 
+                          notif.type.includes('REQUEST') ? 'bg-emerald-100' : 'bg-amber-100'
                         }`}>
                           {getIconForType(notif.type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <p className={`text-sm truncate ${!notif.read ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+                            <p className={`text-sm truncate ${!notif.is_read ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
                               {notif.title}
                             </p>
-                            {!notif.read && <span className="w-2 h-2 rounded-full bg-pharmacy-500 flex-shrink-0 mt-1.5"></span>}
+                            {!notif.is_read && <span className="w-2 h-2 rounded-full bg-pharmacy-500 flex-shrink-0 mt-1.5"></span>}
                           </div>
                           <p className="text-xs text-slate-500 mt-1 line-clamp-2">{notif.message}</p>
-                          <p className="text-[10px] text-slate-400 mt-2 font-medium">{notif.time}</p>
+                          <p className="text-[10px] text-slate-400 mt-2 font-medium">{new Date(notif.created_at).toLocaleString()}</p>
                         </div>
                       </div>
                     ))}

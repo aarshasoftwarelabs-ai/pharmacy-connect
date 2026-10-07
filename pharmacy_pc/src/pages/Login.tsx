@@ -3,8 +3,7 @@ import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPuls
 import { useNavigate } from 'react-router-dom';
 import OtpVerificationAnimation from '../components/auth/OtpVerificationAnimation';
 
-const hostname = window.location.hostname || 'localhost';
-const API_BASE = `http://${hostname}:3000/api`;
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.davasetu.com/api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -145,23 +144,29 @@ export default function Login() {
     setError('');
 
     try {
-      // Simulate API call for Staff Login
-      setTimeout(() => {
-        if (staffPin.length === 4) {
-          localStorage.setItem('token', 'mock_staff_token');
-          localStorage.setItem('user', JSON.stringify({ name: 'Staff Member', role: 'MANAGER' }));
-          localStorage.setItem('pharmacy_profile_data', JSON.stringify({ id: 1, name: 'DavaSetu Pharmacy' }));
-          localStorage.setItem('business_type', businessType);
-          
-          setIsRedirecting(true);
-          setTimeout(() => {
-            navigate(businessType === 'WHOLESALE' ? '/wholesale-dashboard' : '/dashboard');
-          }, 1500);
-        } else {
-          setError('Invalid PIN');
-          setLoading(false);
+      const response = await fetch(`${API_BASE}/auth/staff-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, pin: staffPin, businessType })
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        if (data.pharmacy) {
+          localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
         }
-      }, 1000);
+        localStorage.setItem('business_type', businessType);
+        
+        setIsRedirecting(true);
+        setTimeout(() => {
+          navigate(businessType === 'WHOLESALE' ? '/wholesale-dashboard' : '/dashboard');
+        }, 1500);
+      } else {
+        setError(data.message || 'Invalid PIN');
+        setLoading(false);
+      }
     } catch (err) {
       setError('Login failed. Please try again.');
       setLoading(false);

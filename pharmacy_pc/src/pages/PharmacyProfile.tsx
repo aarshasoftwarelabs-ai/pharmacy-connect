@@ -3,7 +3,7 @@ import { Building2, Phone, MapPin, Mail, Clock, Award, Shield, FileText, IndianR
 import { PharmacyService, PharmacyProfile as IPharmacyProfile } from '../services/pharmacyService';
 import { MedicineRequestService } from '../services/medicineRequestService';
 import { BillingService } from '../services/billingService';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 
 const CustomTimeSelect = ({ value, onChange, options }: { value: string, onChange: (val: string) => void, options: string[] }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -154,7 +154,7 @@ export default function PharmacyProfile() {
       try {
         setLoading(true);
         
-        let actualPharmacyId = DEV_PHARMACY_ID;
+        let actualPharmacyId = getPharmacyId();
         let cachedProfile = null;
         
         const localData = localStorage.getItem('pharmacy_profile_data');

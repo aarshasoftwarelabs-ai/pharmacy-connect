@@ -4,7 +4,7 @@ import WholesaleSidebar from '../components/layout/WholesaleSidebar';
 import Header from '../components/layout/Header';
 import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
 import { Lock, Sparkles, Bell, X } from 'lucide-react';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 
 export default function WholesaleLayout() {
   const location = useLocation();
@@ -31,7 +31,7 @@ export default function WholesaleLayout() {
         if (p.id) return p.id;
       }
     } catch (e) {}
-    return DEV_PHARMACY_ID;
+    return getPharmacyId();
   };
 
   useEffect(() => {

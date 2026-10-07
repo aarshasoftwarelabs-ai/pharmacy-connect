@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Search, Loader2, AlertCircle, FileText, Printer, Download, Eye } from 'lucide-react';
 import { ReportService, ReportDateRange, BillingReportItem } from '../../services/reportService';
 import { BillingService } from '../../services/billingService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 import ReceiptAnimation from '../billing/ReceiptAnimation';
 import { printBill } from '../../utils/printUtils';
 
@@ -20,7 +20,7 @@ export default function BillingTab({ dateRange }: { dateRange: ReportDateRange }
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await ReportService.getBillingReport(DEV_PHARMACY_ID, { ...dateRange, search });
+        const res = await ReportService.getBillingReport(getPharmacyId(), { ...dateRange, search });
         setData(res);
         setError(null);
       } catch (err: any) {

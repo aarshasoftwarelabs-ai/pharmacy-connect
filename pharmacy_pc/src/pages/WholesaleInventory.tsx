@@ -20,7 +20,7 @@ import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
 import { Medicine } from '../types/medicine';
 import MedicineForm from '../components/medicines/MedicineForm';
 import ExpiryReturns from '../components/inventory/ExpiryReturns';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 
 export default function WholesaleInventory() {
   const getActualPharmacyId = () => {
@@ -31,7 +31,7 @@ export default function WholesaleInventory() {
         if (p.id) return p.id;
       }
     } catch (e) {}
-    return DEV_PHARMACY_ID;
+    return getPharmacyId();
   };
   const [activeTab, setActiveTab] = useState<'inventory' | 'returns'>('inventory');
   const [searchTerm, setSearchTerm] = useState('');

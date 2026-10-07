@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, AlertCircle, FileSpreadsheet } from 'lucide-react';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 import { ReportService, ReportDateRange } from '../../services/reportService';
 
 export default function GstReportTab({ dateRange }: { dateRange: ReportDateRange }) {
@@ -12,7 +12,7 @@ export default function GstReportTab({ dateRange }: { dateRange: ReportDateRange
     let isMounted = true;
     setLoading(true);
     
-    ReportService.getGstReport(DEV_PHARMACY_ID, dateRange)
+    ReportService.getGstReport(getPharmacyId(), dateRange)
       .then(res => {
         if (isMounted) {
           setData(res);

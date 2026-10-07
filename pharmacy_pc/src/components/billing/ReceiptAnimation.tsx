@@ -3,7 +3,7 @@ import { CheckCircle2, Download, Printer, FileText } from 'lucide-react';
 import { Bill } from '../../types/billing';
 import { printBill } from '../../utils/printUtils';
 import { PharmacyService } from '../../services/pharmacyService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 
 interface Props {
   bill: Bill;
@@ -21,7 +21,7 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
       setPrintFormat('B2B_A4');
     }
     // Load Pharmacy details
-    PharmacyService.getPharmacyProfile(DEV_PHARMACY_ID)
+    PharmacyService.getPharmacyProfile(getPharmacyId())
       .then(profile => {
         let pName = profile?.name || 'DavaSetu Pharmacy';
         let oName = profile?.ownerName || 'Admin';

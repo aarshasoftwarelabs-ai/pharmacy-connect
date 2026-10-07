@@ -13,23 +13,27 @@ import {
   Inbox,
   AlertTriangle
 } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Medicine Requests', href: '/medicine-requests', icon: Inbox },
-  { name: 'Orders', href: '/orders', icon: ShoppingCart },
-  { name: 'Smart Inventory', href: '/inventory', icon: Package },
-
-  { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Billing', href: '/billing', icon: Receipt },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Pharmacy Profile', href: '/pharmacy-profile', icon: Store },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, perm: 'DASHBOARD_VIEW' },
+  { name: 'Medicine Requests', href: '/medicine-requests', icon: Inbox, perm: 'MEDICINE_REQUESTS_VIEW' },
+  { name: 'Orders', href: '/orders', icon: ShoppingCart, perm: 'MEDICINE_REQUESTS_VIEW' },
+  { name: 'Smart Inventory', href: '/inventory', icon: Package, perm: 'INVENTORY_VIEW' },
+  { name: 'Suppliers', href: '/suppliers', icon: Users, perm: 'SUPPLIERS_VIEW' },
+  { name: 'Purchases', href: '/purchases', icon: ShoppingCart, perm: 'PURCHASES_VIEW' },
+  { name: 'Customers', href: '/customers', icon: Users, perm: 'CUSTOMERS_VIEW' },
+  { name: 'Prescriptions', href: '/prescriptions', icon: Inbox, perm: 'PRESCRIPTIONS_VIEW' },
+  { name: 'Billing', href: '/billing', icon: Receipt, perm: 'BILLING_VIEW' },
+  { name: 'Reports', href: '/reports', icon: BarChart3, perm: 'REPORTS_VIEW' },
+  { name: 'Pharmacy Profile', href: '/pharmacy-profile', icon: Store, perm: 'PHARMACY_PROFILE_VIEW' },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { hasPermission, isOwner } = useAuth();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -50,18 +54,7 @@ export default function Sidebar() {
       <div className="flex-1 overflow-y-auto flex flex-col justify-between">
         <nav className="py-4 px-3 space-y-1">
           {navigation.map((item) => {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const role = user.role || 'OWNER'; // Default to OWNER for legacy sessions
-            const perms = user.permissions || [];
-            
-            // Permission filtering logic
-            if (role === 'STAFF') {
-              if (item.name === 'Medicine Requests' && !perms.includes('MEDICINE_REQUESTS')) return null;
-              if (item.name === 'Billing' && !perms.includes('BILLING')) return null;
-              if (item.name === 'Smart Inventory' && !perms.includes('MEDICINE_CATALOGUE')) return null;
-              if (item.name === 'Reports' && !perms.includes('REPORTS')) return null;
-              if (item.name === 'Pharmacy Profile' && !perms.includes('PHARMACY_SETTINGS')) return null;
-            }
+            if (item.perm && !hasPermission(item.perm)) return null;
 
             const isActive = location.pathname.startsWith(item.href);
             return (
@@ -82,7 +75,7 @@ export default function Sidebar() {
         </nav>
         
         <div className="p-4 border-t border-slate-200 space-y-1">
-          {(JSON.parse(localStorage.getItem('user') || '{}').role || 'OWNER') === 'OWNER' && (
+          {hasPermission('SETTINGS_VIEW') && (
             <Link to="/settings" className="flex items-center px-3 py-2 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition-colors">
               <Settings className="mr-3 h-5 w-5 text-slate-400" />
               Settings

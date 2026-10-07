@@ -168,6 +168,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           _buildSettingRow(Icons.person_outline_rounded, 'Personal Information', Colors.blue, true),
                           _buildDivider(),
+                          _buildSettingRow(Icons.receipt_long_outlined, 'My Prescriptions', Colors.deepPurple, true, onTap: () => Navigator.pushNamed(context, AppRoutes.myPrescriptions)),
+                          _buildDivider(),
+                          _buildSettingRow(Icons.history_outlined, 'Refill Reminders', Colors.amber, true, onTap: () => Navigator.pushNamed(context, AppRoutes.refillReminders)),
+                          _buildDivider(),
                           _buildSettingRow(Icons.location_on_outlined, 'Saved Addresses', Colors.orange, true),
                           _buildDivider(),
                           _buildSettingRow(Icons.local_pharmacy_outlined, 'My Pharmacy', const Color(0xFF0F766E), false),
@@ -270,11 +274,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSettingRow(IconData icon, String title, Color iconColor, bool showArrow) {
+  Widget _buildSettingRow(IconData icon, String title, Color iconColor, bool showArrow, {VoidCallback? onTap}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {},
+        onTap: onTap ?? () {},
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),

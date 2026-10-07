@@ -12,6 +12,11 @@ export interface StaffMember {
   created_at: string;
 }
 
+export interface StaffPermission {
+  permission_key: string;
+  granted: boolean;
+}
+
 export const StaffService = {
   getPharmacyStaff: async (pharmacyId: number): Promise<StaffMember[]> => {
     try {
@@ -49,5 +54,20 @@ export const StaffService = {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete staff');
+  },
+
+  getPermissions: async (id: number): Promise<StaffPermission[]> => {
+    const response = await fetch(`${API_URL}/api/staff/${id}/permissions`);
+    if (!response.ok) throw new Error('Failed to fetch permissions');
+    return await response.json();
+  },
+
+  updatePermissions: async (id: number, permissions: StaffPermission[]): Promise<void> => {
+    const response = await fetch(`${API_URL}/api/staff/${id}/permissions`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ permissions }),
+    });
+    if (!response.ok) throw new Error('Failed to update permissions');
   }
 };

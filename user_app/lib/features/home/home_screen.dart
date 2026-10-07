@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/routes/app_routes.dart';
 import '../../services/pharmacy_service.dart';
 import '../../services/medicine_request_service.dart';
+import '../../services/notification_service.dart';
 import '../pharmacy/models/pharmacy.dart';
 import '../pharmacy/pharmacy_screen.dart';
 import '../medicines/models/medicine_request.dart';
@@ -62,16 +63,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final requests = await MedicineRequestService.getUserMedicineRequests();
       if (requests.isNotEmpty) {
         _recentRequest = requests.first;
-        
-
-        
-        final currentHash = '${_recentRequest!.id}_${_recentRequest!.status.name}';
-        final savedHash = prefs.getString('last_viewed_notification_hash');
-        
-        _hasUnreadNotifications = (currentHash != savedHash);
-      } else {
-        _hasUnreadNotifications = false;
       }
+      
+      final unreadCount = await NotificationService.getUnreadCount();
+      _hasUnreadNotifications = unreadCount > 0;
     } catch (e) {
       debugPrint('Error loading home data: $e');
     } finally {
@@ -275,10 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           GestureDetector(
             onTap: () async {
-              if (_recentRequest != null) {
-                final prefs = await SharedPreferences.getInstance();
-                final currentHash = '${_recentRequest!.id}_${_recentRequest!.status.name}';
-                await prefs.setString('last_viewed_notification_hash', currentHash);
+              if (_hasUnreadNotifications) {
                 if (mounted) {
                   setState(() {
                     _hasUnreadNotifications = false;

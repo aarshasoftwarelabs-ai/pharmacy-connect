@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, Edit2, Trash2, Shield, KeyRound, Loader2, Search } from 'lucide-react';
 import { StaffService, StaffMember } from '../../services/staffService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 
 export default function StaffManagement() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -24,7 +24,7 @@ export default function StaffManagement() {
       setLoading(true);
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
-      const pharmacyId = user?.pharmacyId || DEV_PHARMACY_ID;
+      const pharmacyId = user?.pharmacyId || getPharmacyId();
 
       const data = await StaffService.getPharmacyStaff(pharmacyId);
       
@@ -54,7 +54,7 @@ export default function StaffManagement() {
       } else {
         const userStr = localStorage.getItem('user');
         const user = userStr ? JSON.parse(userStr) : null;
-        await StaffService.addStaff(user?.pharmacyId || DEV_PHARMACY_ID, formData);
+        await StaffService.addStaff(user?.pharmacyId || getPharmacyId(), formData);
       }
       setIsModalOpen(false);
       fetchStaff();

@@ -6,7 +6,7 @@ import MedicineRequestTable from '../components/medicineRequests/MedicineRequest
 import MedicineRequestDetails from '../components/medicineRequests/MedicineRequestDetails';
 import { MedicineRequest, MedicineRequestStatus } from '../types/medicineRequest';
 import { MedicineRequestService } from '../services/medicineRequestService';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 import { io } from 'socket.io-client';
 
 export default function MedicineRequests() {
@@ -28,7 +28,7 @@ export default function MedicineRequests() {
         if (profile.id) return profile.id;
       }
     } catch (e) {}
-    return DEV_PHARMACY_ID;
+    return getPharmacyId();
   };
 
   const fetchRequests = async (isBackgroundRefresh = false) => {
@@ -58,7 +58,8 @@ export default function MedicineRequests() {
     fetchRequests();
 
     // Connect to Socket.io for real-time live orders
-    const socket = io('http://localhost:3000');
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://api.davasetu.com';
+    const socket = io(socketUrl);
     
     socket.on('connect', () => {
       console.log('Connected to live orders socket');

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Package, Search, Filter, Printer, Download, AlertCircle, Loader2 } from 'lucide-react';
 import { BillingService } from '../services/billingService';
 import { Bill } from '../types/billing';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Bill[]>([]);
@@ -15,7 +15,7 @@ export default function Orders() {
       try {
         setLoading(true);
         // Using finalized bills as orders in this context
-        const data = await BillingService.getPharmacyBills(DEV_PHARMACY_ID);
+        const data = await BillingService.getPharmacyBills(getPharmacyId());
         setOrders(data);
         setError(null);
       } catch (err: any) {

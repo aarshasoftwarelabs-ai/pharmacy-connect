@@ -4,7 +4,7 @@ import {
   Users, Stethoscope, FileText, Activity 
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 import { ReportService, ReportDateRange } from '../services/reportService';
 import SalesTab from '../components/reports/SalesTab';
 import BillingTab from '../components/reports/BillingTab';
@@ -68,9 +68,9 @@ export default function Reports() {
     const fetchSummary = async () => {
       try {
         const [salesData, custData, reqData] = await Promise.all([
-          ReportService.getSalesReport(DEV_PHARMACY_ID, currentRange).catch(() => null),
-          ReportService.getCustomerReport(DEV_PHARMACY_ID, currentRange).catch(() => null),
-          ReportService.getMedicineRequestReport(DEV_PHARMACY_ID, currentRange).catch(() => null)
+          ReportService.getSalesReport(getPharmacyId(), currentRange).catch(() => null),
+          ReportService.getCustomerReport(getPharmacyId(), currentRange).catch(() => null),
+          ReportService.getMedicineRequestReport(getPharmacyId(), currentRange).catch(() => null)
         ]);
 
         setSummary({

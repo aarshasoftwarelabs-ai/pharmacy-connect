@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Loader2, AlertCircle, ShoppingBag, ArrowUpDown } from 'lucide-react';
 import { ReportService, ReportDateRange, MedicineSalesReportItem } from '../../services/reportService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 
 export default function MedicineSalesTab({ dateRange }: { dateRange: ReportDateRange }) {
   const [data, setData] = useState<MedicineSalesReportItem[]>([]);
@@ -14,7 +14,7 @@ export default function MedicineSalesTab({ dateRange }: { dateRange: ReportDateR
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await ReportService.getMedicineSalesReport(DEV_PHARMACY_ID, { ...dateRange, search, sortBy });
+        const res = await ReportService.getMedicineSalesReport(getPharmacyId(), { ...dateRange, search, sortBy });
         setData(res);
         setError(null);
       } catch (err: any) {

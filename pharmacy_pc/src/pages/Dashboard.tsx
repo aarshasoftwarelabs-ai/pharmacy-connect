@@ -5,12 +5,12 @@ import StatCard from '../components/dashboard/StatCard';
 import RecentOrdersTable from '../components/dashboard/RecentOrdersTable';
 import QuickActionCard from '../components/dashboard/QuickActionCard';
 import OrderOverview from '../components/dashboard/OrderOverview';
-import { dashboardStats } from '../utils/mockData';
+
 import { MedicineRequest } from '../types/medicineRequest';
 import { MedicineRequestService } from '../services/medicineRequestService';
 import { BillingService } from '../services/billingService';
 import { Bill } from '../types/billing';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { getPharmacyId } from '../config/development';
 
 export default function Dashboard() {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -21,23 +21,12 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getActualPharmacyId = () => {
-    try {
-      const localData = localStorage.getItem('pharmacy_profile_data');
-      if (localData) {
-        const profile = JSON.parse(localData);
-        if (profile.id) return profile.id;
-      }
-    } catch (e) {}
-    return DEV_PHARMACY_ID;
-  };
-
   const fetchDashboardRequests = async (isBackgroundRefresh = false) => {
     try {
       if (!isBackgroundRefresh) setLoading(true);
       else setRefreshing(true);
 
-      const pharmacyId = getActualPharmacyId();
+      const pharmacyId = getPharmacyId();
       const [reqData, billsData] = await Promise.all([
         MedicineRequestService.getPharmacyRequests(pharmacyId),
         BillingService.getPharmacyBills(pharmacyId)

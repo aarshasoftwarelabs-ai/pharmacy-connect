@@ -1,10 +1,4 @@
-/**
- * Development Configuration
- * 
- * Fetches the currently authenticated pharmacy ID from localStorage.
- * Falls back to 1 if not authenticated.
- */
-function getActualPharmacyId(): number {
+export function getPharmacyId(): number {
   try {
     const localData = localStorage.getItem('pharmacy_profile_data');
     if (localData) {
@@ -12,7 +6,11 @@ function getActualPharmacyId(): number {
       if (profile.id) return profile.id;
     }
   } catch (e) {}
-  return 1;
+  
+  // If we reach here, there is no valid pharmacy context.
+  // We should redirect to login.
+  if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+  }
+  return 0; // Will cause API requests to fail cleanly if caught
 }
-
-export const DEV_PHARMACY_ID = getActualPharmacyId();

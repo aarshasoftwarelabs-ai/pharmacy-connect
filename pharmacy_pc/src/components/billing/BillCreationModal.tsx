@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Plus, Trash2, Loader2 } from 'lucide-react';
 import { BillingQueueItem, Bill } from '../../types/billing';
 import { BillingService } from '../../services/billingService';
-import { DEV_PHARMACY_ID } from '../../config/development';
+import { getPharmacyId } from '../../config/development';
 import ReceiptAnimation from './ReceiptAnimation';
 import { Medicine } from '../../types/medicine';
 import { fetchMedicines } from '../../services/medicineService';
@@ -103,7 +103,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
       const newBill = await BillingService.createBill({
         medicineRequestId: queueItem.id,
         userId: queueItem.userId,
-        pharmacyId: DEV_PHARMACY_ID,
+        pharmacyId: getPharmacyId(),
         customerName: queueItem.customerName,
         subtotal,
         discount,

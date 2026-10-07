@@ -26,46 +26,11 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST;
 
 let win: BrowserWindow | null;
-let backendProcess: ChildProcess | null = null;
-
-function startBackend() {
-  const isDev = !!process.env['VITE_DEV_SERVER_URL'];
-  let backendPath: string;
-  
-  if (isDev) {
-    backendPath = path.join(process.env.APP_ROOT as string, '..', 'backend');
-  } else {
-    // When packaged, backend will be copied to resources/backend
-    backendPath = path.join(process.resourcesPath, 'backend');
-  }
-  
-  try {
-    if (isDev) {
-      backendProcess = spawn('npm.cmd', ['run', 'dev'], {
-        cwd: backendPath,
-        shell: true,
-      });
-    } else {
-      // Use fork to run via Electron's embedded Node.js environment
-      backendProcess = fork('dist/server.js', [], {
-        cwd: backendPath,
-      });
-    }
-
-    backendProcess.on('error', (err) => {
-      console.error('Failed to start backend server:', err);
-    });
-  } catch (error) {
-    console.error('Error starting backend:', error);
-  }
-}
-
 function createWindow() {
   try {
     win = new BrowserWindow({
       width: 1200,
       height: 800,
-      // icon: path.join(process.env.VITE_PUBLIC || '', 'davasetu_logo.png'), // Removed to prevent asar path crash on Windows
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         nodeIntegration: false,
@@ -97,12 +62,6 @@ app.on('activate', () => {
 });
 
 app.whenReady().then(() => {
-  startBackend();
   createWindow();
 });
 
-app.on('before-quit', () => {
-  if (backendProcess) {
-    backendProcess.kill();
-  }
-});

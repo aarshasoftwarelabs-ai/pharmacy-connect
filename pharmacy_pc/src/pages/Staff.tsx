@@ -1,13 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Edit2, Trash2, Shield, UserCircle, Key } from 'lucide-react';
-import { StaffService, StaffMember } from '../services/staffService';
-import { DEV_PHARMACY_ID } from '../config/development';
+import { StaffService, StaffMember, StaffPermission } from '../services/staffService';
+import { getPharmacyId } from '../config/development';
+import { useAuth } from '../components/auth/AuthContext';
+
+const AVAILABLE_PERMISSIONS: { module: string, perms: { key: string, label: string, desc?: string }[] }[] = [
+  { module: 'Dashboard', perms: [{ key: 'DASHBOARD_VIEW', label: 'View Dashboard', desc: 'Can view the main dashboard' }] },
+  { module: 'Medicines', perms: [{ key: 'MEDICINES_VIEW', label: 'View Medicines' }, { key: 'MEDICINES_CREATE', label: 'Create Medicines' }, { key: 'MEDICINES_EDIT', label: 'Edit Medicines' }, { key: 'MEDICINES_DELETE', label: 'Delete Medicines' }] },
+  { module: 'Inventory', perms: [{ key: 'INVENTORY_VIEW', label: 'View Inventory' }, { key: 'INVENTORY_ADJUST', label: 'Adjust Inventory' }] },
+  { module: 'Suppliers', perms: [{ key: 'SUPPLIERS_VIEW', label: 'View Suppliers' }, { key: 'SUPPLIERS_CREATE', label: 'Create Suppliers' }, { key: 'SUPPLIERS_EDIT', label: 'Edit Suppliers' }, { key: 'SUPPLIERS_DEACTIVATE', label: 'Deactivate Suppliers' }] },
+  { module: 'Purchases', perms: [{ key: 'PURCHASES_VIEW', label: 'View Purchases' }, { key: 'PURCHASES_CREATE', label: 'Create Purchases' }, { key: 'PURCHASES_CANCEL', label: 'Cancel Purchases' }] },
+  { module: 'Billing', perms: [{ key: 'BILLING_VIEW', label: 'View Billing' }, { key: 'BILLING_CREATE', label: 'Create Bills' }, { key: 'BILLING_CANCEL', label: 'Cancel Bills' }, { key: 'BILLING_PRINT', label: 'Print Bills' }] },
+  { module: 'Customers', perms: [{ key: 'CUSTOMERS_VIEW', label: 'View Customers' }, { key: 'CUSTOMERS_EDIT', label: 'Edit Customers' }] },
+  { module: 'Medicine Requests', perms: [{ key: 'MEDICINE_REQUESTS_VIEW', label: 'View Requests' }, { key: 'MEDICINE_REQUESTS_RESPOND', label: 'Respond to Requests' }] },
+  { module: 'Reports', perms: [{ key: 'REPORTS_VIEW', label: 'View Reports' }, { key: 'REPORTS_EXPORT', label: 'Export Reports' }] },
+  { module: 'Wholesale', perms: [{ key: 'WHOLESALE_VIEW', label: 'View Wholesale' }, { key: 'WHOLESALE_CREATE', label: 'Create Wholesale' }, { key: 'WHOLESALE_EDIT', label: 'Edit Wholesale' }] },
+  { module: 'Staff', perms: [{ key: 'STAFF_VIEW', label: 'View Staff' }, { key: 'STAFF_CREATE', label: 'Create Staff' }, { key: 'STAFF_EDIT', label: 'Edit Staff' }, { key: 'STAFF_DEACTIVATE', label: 'Deactivate Staff' }, { key: 'STAFF_PERMISSIONS', label: 'Manage Permissions' }] },
+  { module: 'Settings', perms: [{ key: 'PHARMACY_PROFILE_VIEW', label: 'View Profile' }, { key: 'PHARMACY_PROFILE_EDIT', label: 'Edit Profile' }, { key: 'SETTINGS_VIEW', label: 'View Settings' }, { key: 'SETTINGS_EDIT', label: 'Edit Settings' }] }
+];
 
 export default function Staff() {
+  const { isOwner, hasPermission } = useAuth();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+
+  // Permissions state
+  const [isPermsModalOpen, setIsPermsModalOpen] = useState(false);
+  const [managingPermsStaff, setManagingPermsStaff] = useState<StaffMember | null>(null);
+  const [staffPermissions, setStaffPermissions] = useState<StaffPermission[]>([]);
+  const [permsLoading, setPermsLoading] = useState(false);
+  const [savingPerms, setSavingPerms] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -26,7 +50,7 @@ export default function Staff() {
         if (profile.id) return profile.id;
       }
     } catch (e) {}
-    return DEV_PHARMACY_ID;
+    return getPharmacyId();
   };
 
   const fetchStaff = async () => {
@@ -89,6 +113,45 @@ export default function Staff() {
     });
     setEditingStaff(member);
     setIsModalOpen(true);
+  };
+
+  const openPermissionsModal = async (member: StaffMember) => {
+    setManagingPermsStaff(member);
+    setIsPermsModalOpen(true);
+    setPermsLoading(true);
+    try {
+      const perms = await StaffService.getPermissions(member.id);
+      setStaffPermissions(perms);
+    } catch (err) {
+      alert('Failed to load permissions');
+    } finally {
+      setPermsLoading(false);
+    }
+  };
+
+  const handlePermissionToggle = (key: string, granted: boolean) => {
+    setStaffPermissions(prev => {
+      const existing = prev.find(p => p.permission_key === key);
+      if (existing) {
+        return prev.map(p => p.permission_key === key ? { ...p, granted } : p);
+      } else {
+        return [...prev, { permission_key: key, granted }];
+      }
+    });
+  };
+
+  const handleSavePermissions = async () => {
+    if (!managingPermsStaff) return;
+    setSavingPerms(true);
+    try {
+      await StaffService.updatePermissions(managingPermsStaff.id, staffPermissions);
+      setIsPermsModalOpen(false);
+      setManagingPermsStaff(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to save permissions');
+    } finally {
+      setSavingPerms(false);
+    }
   };
 
   return (
@@ -174,10 +237,15 @@ export default function Staff() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button onClick={() => openEditModal(member)} className="text-indigo-600 hover:text-indigo-900 mr-4">
+                      {isOwner() && member.role !== 'OWNER' && (
+                        <button onClick={() => openPermissionsModal(member)} className="text-indigo-600 hover:text-indigo-900 mr-4" title="Manage Permissions">
+                          <Shield className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button onClick={() => openEditModal(member)} className="text-indigo-600 hover:text-indigo-900 mr-4" title="Edit">
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(member.id)} className="text-red-500 hover:text-red-700">
+                      <button onClick={() => handleDelete(member.id)} className="text-red-500 hover:text-red-700" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
@@ -287,6 +355,72 @@ export default function Staff() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Permissions Modal */}
+      {isPermsModalOpen && managingPermsStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-800/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center">
+                <Shield className="w-5 h-5 mr-2 text-indigo-600" />
+                Manage Permissions: {managingPermsStaff.name}
+              </h3>
+              <button onClick={() => setIsPermsModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
+              {permsLoading ? (
+                <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                  {AVAILABLE_PERMISSIONS.map((group, idx) => (
+                    <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                      <h4 className="font-bold text-slate-800 mb-3 border-b pb-2">{group.module}</h4>
+                      <div className="space-y-3">
+                        {group.perms.map(p => {
+                          const isGranted = staffPermissions.find(sp => sp.permission_key === p.key)?.granted || false;
+                          return (
+                            <label key={p.key} className="flex items-start cursor-pointer group">
+                              <div className="flex-shrink-0 mt-0.5">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                                  checked={isGranted}
+                                  onChange={(e) => handlePermissionToggle(p.key, e.target.checked)}
+                                />
+                              </div>
+                              <div className="ml-3">
+                                <span className="block text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">{p.label}</span>
+                                {p.desc && <span className="block text-xs text-slate-500">{p.desc}</span>}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
+              <button 
+                onClick={() => setIsPermsModalOpen(false)}
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSavePermissions}
+                disabled={savingPerms}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              >
+                {savingPerms ? 'Saving...' : 'Save Permissions'}
+              </button>
+            </div>
           </div>
         </div>
       )}
