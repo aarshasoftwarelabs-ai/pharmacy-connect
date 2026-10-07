@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        const userDataStr = localStorage.getItem('user_data');
+        const userDataStr = localStorage.getItem('user');
         if (userDataStr) {
           const userData = JSON.parse(userDataStr);
           setUser(userData);
