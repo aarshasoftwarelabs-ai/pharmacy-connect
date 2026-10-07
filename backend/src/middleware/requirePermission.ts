@@ -11,8 +11,8 @@ export const requirePermission = (permissionKey: string) => {
         return res.status(401).json({ success: false, message: 'Authentication required' });
       }
 
-      // OWNER has full access
-      if (user.role === 'OWNER') {
+      // OWNER and ADMIN have full access
+      if (user.role === 'OWNER' || user.role?.toUpperCase() === 'ADMIN') {
         return next();
       }
 

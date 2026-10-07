@@ -64,12 +64,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const hasPermission = (key: string) => {
-    if (user?.role === 'OWNER') return true;
+    if (user?.role === 'OWNER' || user?.role?.toUpperCase() === 'ADMIN') return true;
     return permissions.includes(key);
   };
 
   const isOwner = () => {
-    return user?.role === 'OWNER';
+    return user?.role === 'OWNER' || user?.role?.toUpperCase() === 'ADMIN';
   };
 
   return (
