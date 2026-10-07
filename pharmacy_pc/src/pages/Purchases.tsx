@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PurchaseService } from '../services/purchaseService';
 import { SupplierService } from '../services/supplierService';
-import { Plus, Eye, Wand2, Calendar, FileText, Package, FileImage, Layers, Hash } from 'lucide-react';
+import { Plus, Eye, Wand2, Calendar, FileText, Package, FileImage, Layers, Hash, X } from 'lucide-react';
 import { fetchMedicines } from '../services/medicineService';
+import MedicineSearchDropdown from '../components/ui/MedicineSearchDropdown';
 
 export default function Purchases() {
   const [purchases, setPurchases] = useState<any[]>([]);
@@ -207,9 +208,9 @@ export default function Purchases() {
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center z-50 p-4 sm:p-6 overflow-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-auto flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-slate-800 flex items-center">
                   <FileText className="w-5 h-5 mr-2 text-indigo-500" />
@@ -219,7 +220,7 @@ export default function Purchases() {
               </div>
             </div>
             
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
               {/* Invoice Meta */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
                 <div className="space-y-1.5">
@@ -264,15 +265,15 @@ export default function Purchases() {
                 <div className="grid grid-cols-12 gap-3 items-end">
                   <div className="col-span-12 md:col-span-3">
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Medicine Product</label>
-                    <div className="relative">
-                      <select className="w-full pl-3 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none outline-none text-slate-700 font-medium" value={selMed} onChange={e=>setSelMed(e.target.value)}>
-                        <option value="">Search & Select...</option>
-                        {medicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                      </select>
-                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-                      </div>
-                    </div>
+                    <MedicineSearchDropdown
+                      catalogue={medicines}
+                      value={selMed ? medicines.find(m => m.id.toString() === selMed)?.name || selMed : ''}
+                      onChange={(val, med) => {
+                        setSelMed(med ? med.id.toString() : val);
+                      }}
+                      placeholder="Search & Select..."
+                      className="w-full"
+                    />
                   </div>
                   <div className="col-span-6 md:col-span-2">
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Batch No.</label>
@@ -351,7 +352,7 @@ export default function Purchases() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
               <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
               <button type="button" onClick={handleSubmit} className="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm flex items-center">
                 Save Invoice
