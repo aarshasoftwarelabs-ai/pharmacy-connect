@@ -231,7 +231,7 @@ export class PurchaseController {
 
       const { GoogleGenerativeAI } = require('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
       const imageParts = [
         {
@@ -262,17 +262,7 @@ Extract the following information and return ONLY a valid JSON object matching t
 If any field cannot be found, use null or 0.`;
 
       let result;
-      try {
         result = await model.generateContent([prompt, ...imageParts]);
-      } catch (err: any) {
-        if (err.message && (err.message.includes('404') || err.message.includes('not found') || err.message.includes('v1beta'))) {
-          console.log("Fallback to gemini-pro-vision in purchaseController");
-          const fallbackModel = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
-          result = await fallbackModel.generateContent([prompt, ...imageParts]);
-        } else {
-          throw err;
-        }
-      }
       let text = result.response.text();
       
       // Clean up markdown json formatting if present
