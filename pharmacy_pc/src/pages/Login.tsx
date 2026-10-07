@@ -36,6 +36,7 @@ export default function Login() {
   const [otpVerificationStatus, setOtpVerificationStatus] = useState<'idle' | 'verifying' | 'success'>('idle');
   const [businessType, setBusinessType] = useState<'RETAIL' | 'WHOLESALE'>('RETAIL');
   const [isExistingUser, setIsExistingUser] = useState(false);
+  const [hasExistingProfileData, setHasExistingProfileData] = useState(false);
   const [staffPin, setStaffPin] = useState('');
 
   useEffect(() => {
@@ -83,8 +84,10 @@ export default function Login() {
             setOwnerName(data.userData?.name || '');
             setAddress(data.userData?.address || '');
             setPassword('ExistingUserDummyPass!123'); // So form validation passes
+            setHasExistingProfileData(!!(data.userData?.name && data.userData?.address));
         } else {
             setIsExistingUser(false);
+            setHasExistingProfileData(false);
             setOwnerName('');
             setAddress('');
             setPassword('');
@@ -591,7 +594,7 @@ export default function Login() {
                   </div>
                   <input type="text" required value={pharmacyName} onChange={e => setPharmacyName(e.target.value)} placeholder={businessType === 'WHOLESALE' ? "Wholesale Business Name" : "Pharmacy Name"} className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
                 </div>
-                {!isExistingUser ? (
+                {!hasExistingProfileData ? (
                   <>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -605,12 +608,14 @@ export default function Login() {
                       </div>
                       <textarea required value={address} onChange={e => setAddress(e.target.value)} placeholder="Full Address" rows={2} className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500 resize-none"></textarea>
                     </div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-slate-400" />
+                    {!isExistingUser && (
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                          <Lock className="h-5 w-5 text-slate-400" />
+                        </div>
+                        <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a strong password" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
                       </div>
-                      <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a strong password" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
-                    </div>
+                    )}
                   </>
                 ) : (
                   <div className="bg-emerald-50 text-emerald-800 text-xs font-medium p-3 rounded-lg border border-emerald-200 text-center mb-2">
