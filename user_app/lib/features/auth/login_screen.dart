@@ -57,6 +57,7 @@ class _LoginScreenState extends State<LoginScreen>
       phone: isEmail ? null : identifier,
     );
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (response['success'] == true) {

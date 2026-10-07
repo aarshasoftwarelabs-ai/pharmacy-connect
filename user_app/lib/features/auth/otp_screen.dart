@@ -79,6 +79,7 @@ class _OtpScreenState extends State<OtpScreen>
       otp: otp,
     );
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (response['success'] == true) {

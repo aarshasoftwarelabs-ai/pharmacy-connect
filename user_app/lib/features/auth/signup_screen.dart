@@ -60,6 +60,7 @@ class _SignupScreenState extends State<SignupScreen>
 
     final response = await _authService.sendOtp(email: email, phone: phone);
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (response['success'] == true) {

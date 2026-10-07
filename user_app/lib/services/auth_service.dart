@@ -13,7 +13,7 @@ class AuthService {
           if (email != null && email.isNotEmpty) 'email': email,
           if (phone != null && phone.isNotEmpty) 'phone': phone,
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       return jsonDecode(response.body);
     } catch (e) {
@@ -38,7 +38,7 @@ class AuthService {
           'otp': otp,
           if (name != null && name.isNotEmpty) 'name': name,
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       return jsonDecode(response.body);
     } catch (e) {
