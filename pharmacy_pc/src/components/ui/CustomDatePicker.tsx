@@ -171,13 +171,13 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <div 
-        className={`w-full bg-white border ${isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200'} rounded-xl text-sm transition-all flex items-center cursor-pointer overflow-hidden group`}
+        className={`w-full bg-white border ${isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200'} rounded-xl text-xs sm:text-sm transition-all flex items-center cursor-pointer overflow-hidden group`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className={`flex items-center justify-center w-10 h-full border-r border-slate-100 ${isOpen ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-400 group-hover:text-indigo-500 group-hover:bg-indigo-50/50'} transition-colors`}>
-          <CalendarIcon className="w-4 h-4" />
+        <div className={`flex items-center justify-center w-8 h-full border-r border-slate-100 py-2.5 ${isOpen ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-400 group-hover:text-indigo-500 group-hover:bg-indigo-50/50'} transition-colors`}>
+          <CalendarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </div>
-        <div className="flex-1 px-3 py-2.5 font-medium text-slate-700 truncate">
+        <div className="flex-1 px-2 py-2.5 font-medium text-slate-700 truncate tracking-tight">
           {displayDate || <span className="text-slate-400 font-normal">{placeholder}</span>}
         </div>
       </div>
@@ -189,7 +189,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute z-50 mt-2 bg-white rounded-2xl shadow-xl shadow-indigo-900/10 border border-slate-200 overflow-hidden bottom-full mb-2 sm:bottom-auto sm:mb-0 sm:top-full"
+            className="absolute z-50 mt-1 bg-white rounded-2xl shadow-xl shadow-indigo-900/10 border border-slate-200 overflow-hidden top-full left-0 right-auto min-w-[280px]"
             style={{ 
               transformOrigin: "top left"
             }}
