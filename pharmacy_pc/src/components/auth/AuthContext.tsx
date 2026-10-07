@@ -64,11 +64,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const hasPermission = (key: string) => {
+    // If user is loaded and not a staff member, they are an owner/admin
+    if (user && !user.isStaff) return true;
     if (user?.role === 'OWNER' || user?.role?.toUpperCase() === 'ADMIN') return true;
+    
+    // For staff members, check their specific permissions
     return permissions.includes(key);
   };
 
   const isOwner = () => {
+    if (user && !user.isStaff) return true;
     return user?.role === 'OWNER' || user?.role?.toUpperCase() === 'ADMIN';
   };
 
