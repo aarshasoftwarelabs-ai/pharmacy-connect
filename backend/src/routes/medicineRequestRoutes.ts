@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { MedicineRequestController } from '../controllers/medicineRequestController';
 import { authenticate } from '../middleware/auth';
+import { requirePermission } from '../middleware/requirePermission';
 
 const router = Router();
 
@@ -11,13 +12,13 @@ router.post('/', MedicineRequestController.createRequest);
 router.get('/user/:userId', MedicineRequestController.getUserRequests);
 
 // Get pharmacy requests (Pharmacy PC)
-router.get('/pharmacy/:pharmacyId', authenticate, MedicineRequestController.getPharmacyRequests);
+router.get('/pharmacy/:pharmacyId', authenticate, requirePermission('MEDICINE_REQUESTS_VIEW'), MedicineRequestController.getPharmacyRequests);
 
 // Get single request (Assuming customer or pharmacy might call this, but typically pharmacy)
-router.get('/:requestId', authenticate, MedicineRequestController.getRequestById);
+router.get('/:requestId', authenticate, requirePermission('MEDICINE_REQUESTS_VIEW'), MedicineRequestController.getRequestById);
 
 // Update status (Pharmacy Response)
-router.patch('/:requestId/status', authenticate, MedicineRequestController.updateStatus);
+router.patch('/:requestId/status', authenticate, requirePermission('MEDICINE_REQUESTS_RESPOND'), MedicineRequestController.updateStatus);
 
 // Customer confirm request
 router.post('/:requestId/confirm', MedicineRequestController.confirmRequest);

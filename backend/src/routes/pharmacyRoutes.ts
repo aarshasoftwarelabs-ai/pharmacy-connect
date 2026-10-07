@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { PharmacyController } from '../controllers/pharmacyController';
 import { authenticate } from '../middleware/auth';
+import { requirePermission } from '../middleware/requirePermission';
 
 const router = Router();
 
@@ -14,10 +15,10 @@ router.get('/:id', PharmacyController.getPharmacyProfile);
 router.use(authenticate);
 
 // Get subscription stats
-router.get('/stats/subscription', PharmacyController.getSubscriptionStats);
+router.get('/stats/subscription', requirePermission('SETTINGS_VIEW'), PharmacyController.getSubscriptionStats);
 // Update pharmacy profile by ID
-router.put('/:id', PharmacyController.updatePharmacyProfile);
+router.put('/:id', requirePermission('PHARMACY_PROFILE_EDIT'), PharmacyController.updatePharmacyProfile);
 // Update pharmacy subscription
-router.post('/:id/subscription', PharmacyController.updateSubscription);
+router.post('/:id/subscription', requirePermission('SETTINGS_EDIT'), PharmacyController.updateSubscription);
 
 export default router;

@@ -37,10 +37,7 @@ export class PharmacyController {
 
   static async updatePharmacyProfile(req: Request, res: Response) {
     try {
-      const pharmacyId = parseInt(req.params.id, 10);
-      if (isNaN(pharmacyId)) {
-        return res.status(400).json({ error: 'Invalid pharmacy ID' });
-      }
+      const pharmacyId = (req as any).user!.pharmacyId;
 
       const { name, address, phone, regNo, gstin, gstRegistered, state, ownerName, email, operationalHours } = req.body;
 

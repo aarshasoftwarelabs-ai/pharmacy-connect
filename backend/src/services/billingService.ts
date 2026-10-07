@@ -169,10 +169,32 @@ export class BillingService {
       const nextNum = parseInt(countQuery.rows[0].count, 10) + 1;
       const billNumber = `PC-${year}-${nextNum.toString().padStart(6, '0')}`;
 
+      // 2.5 Link or Create Customer Profile
+      let customerProfileId: number | null = null;
+      if (data.userId || data.customerPhone) {
+        let profileResult;
+        if (data.userId) {
+          profileResult = await client.query('SELECT id FROM customer_profiles WHERE pharmacy_id = $1 AND user_id = $2', [data.pharmacyId, data.userId]);
+        } else {
+          profileResult = await client.query('SELECT id FROM customer_profiles WHERE pharmacy_id = $1 AND phone = $2 AND user_id IS NULL', [data.pharmacyId, data.customerPhone]);
+        }
+
+        if (profileResult.rows.length > 0) {
+          customerProfileId = profileResult.rows[0].id;
+        } else {
+          // Create profile
+          const insertProfileRes = await client.query(`
+            INSERT INTO customer_profiles (pharmacy_id, user_id, display_name, phone)
+            VALUES ($1, $2, $3, $4) RETURNING id
+          `, [data.pharmacyId, data.userId || null, data.customerName, data.customerPhone || null]);
+          customerProfileId = insertProfileRes.rows[0].id;
+        }
+      }
+
       // 3. Insert into bills
       const insertBillQuery = `
-        INSERT INTO bills (bill_number, medicine_request_id, user_id, pharmacy_id, customer_name, customer_phone, bill_type, subtotal, discount, total, total_taxable_amount, total_cgst, total_sgst, total_igst, total_gst, payment_status, total_profit)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'UNPAID', 0)
+        INSERT INTO bills (bill_number, medicine_request_id, user_id, pharmacy_id, customer_name, customer_phone, bill_type, subtotal, discount, total, total_taxable_amount, total_cgst, total_sgst, total_igst, total_gst, payment_status, total_profit, customer_profile_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'UNPAID', 0, $16)
         RETURNING id
       `;
       const billValues = [
@@ -190,7 +212,8 @@ export class BillingService {
         data.totalCgst || 0,
         data.totalSgst || 0,
         data.totalIgst || 0,
-        data.totalGst || 0
+        data.totalGst || 0,
+        customerProfileId
       ];
       const newBill = await client.query(insertBillQuery, billValues);
       const newBillId = newBill.rows[0].id;
@@ -200,10 +223,20 @@ export class BillingService {
       for (const item of data.items) {
         const lineTotal = item.quantity * item.unitPrice;
         
-        // Fetch current purchase price from DB
-        const medResult = await client.query('SELECT purchase_price FROM medicines WHERE name = $1 AND pharmacy_id = $2', [item.medicineName, data.pharmacyId]);
+        // Fetch current purchase price and stock from DB
+        const medResult = await client.query('SELECT id, purchase_price, current_stock FROM medicines WHERE name = $1 AND pharmacy_id = $2 FOR UPDATE', [item.medicineName, data.pharmacyId]);
+        if (medResult.rows.length === 0) {
+            throw new Error(`Medicine ${item.medicineName} not found`);
+        }
+        const medId = medResult.rows[0].id;
+        const currentStock = medResult.rows[0].current_stock || 0;
+
+        if (currentStock < item.quantity) {
+            throw new Error(`Insufficient stock for ${item.medicineName}. Requested: ${item.quantity}, Available: ${currentStock}`);
+        }
+
         let purchasePrice = 0;
-        if (medResult.rows.length > 0 && medResult.rows[0].purchase_price) {
+        if (medResult.rows[0].purchase_price) {
           purchasePrice = parseFloat(medResult.rows[0].purchase_price);
         }
         const itemProfit = (item.unitPrice - purchasePrice) * item.quantity;
@@ -211,9 +244,9 @@ export class BillingService {
 
         const insertItemQuery = `
           INSERT INTO bill_items (bill_id, medicine_name, quantity, unit_price, line_total, hsn_code, gst_rate, taxable_amount, cgst, sgst, igst, purchase_price, profit)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id
         `;
-        await client.query(insertItemQuery, [
+        const billItemRes = await client.query(insertItemQuery, [
           newBillId, 
           item.medicineName, 
           item.quantity, 
@@ -228,14 +261,108 @@ export class BillingService {
           purchasePrice,
           itemProfit
         ]);
+        const billItemId = billItemRes.rows[0].id;
 
-        // Deduct stock if it's a known medicine
+        // FEFO Batch Deduction
+        let remainingToDeduct = item.quantity;
+        
+        // Find valid batches ordered by expiry date (FEFO)
+        const batchResult = await client.query(`
+          SELECT id, available_quantity, batch_number 
+          FROM medicine_batches 
+          WHERE medicine_id = $1 AND pharmacy_id = $2 
+            AND available_quantity > 0 
+            AND expiry_date >= CURRENT_DATE 
+          ORDER BY expiry_date ASC FOR UPDATE`,
+          [medId, data.pharmacyId]
+        );
+
+        for (const batch of batchResult.rows) {
+            if (remainingToDeduct <= 0) break;
+
+            const deductQty = Math.min(batch.available_quantity, remainingToDeduct);
+            
+            // Deduct from batch
+            await client.query(
+                `UPDATE medicine_batches SET available_quantity = available_quantity - $1 WHERE id = $2`,
+                [deductQty, batch.id]
+            );
+
+            // Record in bill_item_batches
+            await client.query(
+                `INSERT INTO bill_item_batches (bill_item_id, batch_id, quantity) VALUES ($1, $2, $3)`,
+                [billItemId, batch.id, deductQty]
+            );
+
+            // Create stock movement
+            await client.query(
+                `INSERT INTO stock_movements (
+                    pharmacy_id, medicine_id, batch_id, movement_type, reference_type, 
+                    reference_id, quantity, previous_quantity, new_quantity, created_by
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                [
+                    data.pharmacyId, medId, batch.id, 'SALE', 'BILL',
+                    newBillId, -deductQty, batch.available_quantity, batch.available_quantity - deductQty, data.userId || null
+                ]
+            );
+
+            remainingToDeduct -= deductQty;
+        }
+
+        if (remainingToDeduct > 0) {
+            // Handle legacy stock that doesn't have an associated batch record yet
+            const legacyBatchRes = await client.query(
+                `SELECT id, available_quantity FROM medicine_batches 
+                 WHERE medicine_id = $1 AND batch_number = 'LEGACY-OPENING-STOCK' AND pharmacy_id = $2 FOR UPDATE`,
+                 [medId, data.pharmacyId]
+            );
+            
+            let legacyBatchId;
+            let legacyPrevQty = 0;
+            
+            if (legacyBatchRes.rows.length > 0) {
+                legacyBatchId = legacyBatchRes.rows[0].id;
+                legacyPrevQty = legacyBatchRes.rows[0].available_quantity;
+                await client.query(`UPDATE medicine_batches SET available_quantity = available_quantity - $1 WHERE id = $2`, [remainingToDeduct, legacyBatchId]);
+            } else {
+                // Create legacy batch with currentStock - remainingToDeduct because we are deducting right now
+                const newLegacy = await client.query(
+                    `INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, quantity, available_quantity) 
+                     VALUES ($1, $2, 'LEGACY-OPENING-STOCK', '2099-12-31', $3, $4) RETURNING id`,
+                     [medId, data.pharmacyId, currentStock, currentStock - remainingToDeduct]
+                );
+                legacyBatchId = newLegacy.rows[0].id;
+                legacyPrevQty = currentStock;
+            }
+            
+            // Record in bill_item_batches
+            await client.query(
+                `INSERT INTO bill_item_batches (bill_item_id, batch_id, quantity) VALUES ($1, $2, $3)`,
+                [billItemId, legacyBatchId, remainingToDeduct]
+            );
+
+            // Create stock movement
+            await client.query(
+                `INSERT INTO stock_movements (
+                    pharmacy_id, medicine_id, batch_id, movement_type, reference_type, 
+                    reference_id, quantity, previous_quantity, new_quantity, created_by
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                [
+                    data.pharmacyId, medId, legacyBatchId, 'SALE', 'BILL',
+                    newBillId, -remainingToDeduct, legacyPrevQty, legacyPrevQty - remainingToDeduct, data.userId || null
+                ]
+            );
+            
+            remainingToDeduct = 0;
+        }
+
+        // Deduct medicine current_stock
         const updateStockQuery = `
           UPDATE medicines
-          SET stock = GREATEST(stock - $1, 0)
-          WHERE name = $2 AND pharmacy_id = $3
+          SET current_stock = GREATEST(current_stock - $1, 0)
+          WHERE id = $2 AND pharmacy_id = $3
         `;
-        await client.query(updateStockQuery, [item.quantity, item.medicineName, data.pharmacyId]);
+        await client.query(updateStockQuery, [item.quantity, medId, data.pharmacyId]);
       }
 
       // 5. Update total_profit on the bill

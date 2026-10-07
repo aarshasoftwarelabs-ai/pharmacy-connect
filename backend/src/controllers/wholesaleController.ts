@@ -4,10 +4,11 @@ import { WholesaleService } from '../services/wholesaleService';
 export class WholesaleController {
   static async addClient(req: Request, res: Response) {
     try {
-      const { pharmacyId, businessName, ownerName, phone, address, gstin, dlNumber, creditLimit } = req.body;
+      const pharmacyId = (req as any).user!.pharmacyId;
+      const { businessName, ownerName, phone, address, gstin, dlNumber, creditLimit } = req.body;
       
-      if (!pharmacyId || !businessName || !phone) {
-        return res.status(400).json({ error: 'PharmacyId, Business Name and Phone are required' });
+      if (!businessName || !phone) {
+        return res.status(400).json({ error: 'Business Name and Phone are required' });
       }
 
       const newClient = await WholesaleService.addClient({
@@ -23,10 +24,7 @@ export class WholesaleController {
 
   static async getClients(req: Request, res: Response) {
     try {
-      const pharmacyId = parseInt(req.params.pharmacyId, 10);
-      if (isNaN(pharmacyId)) {
-        return res.status(400).json({ error: 'Invalid pharmacy ID' });
-      }
+      const pharmacyId = (req as any).user!.pharmacyId;
 
       const clients = await WholesaleService.getClientsByPharmacy(pharmacyId);
       res.status(200).json({ success: true, data: clients });
@@ -70,10 +68,7 @@ export class WholesaleController {
 
   static async getSchemes(req: Request, res: Response) {
     try {
-      const pharmacyId = parseInt(req.params.pharmacyId, 10);
-      if (isNaN(pharmacyId)) {
-        return res.status(400).json({ error: 'Invalid pharmacy ID' });
-      }
+      const pharmacyId = (req as any).user!.pharmacyId;
 
       const schemes = await WholesaleService.getSchemesByPharmacy(pharmacyId);
       res.status(200).json({ success: true, data: schemes });
@@ -85,10 +80,11 @@ export class WholesaleController {
 
   static async addScheme(req: Request, res: Response) {
     try {
-      const { pharmacyId, schemeName, medicineId, minQuantity, freeQuantity, discountPercent, validUntil } = req.body;
+      const pharmacyId = (req as any).user!.pharmacyId;
+      const { schemeName, medicineId, minQuantity, freeQuantity, discountPercent, validUntil } = req.body;
       
-      if (!pharmacyId || !schemeName) {
-        return res.status(400).json({ error: 'PharmacyId and Scheme Name are required' });
+      if (!schemeName) {
+        return res.status(400).json({ error: 'Scheme Name is required' });
       }
 
       const newScheme = await WholesaleService.addScheme({

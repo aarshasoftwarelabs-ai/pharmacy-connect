@@ -1,19 +1,11 @@
 import express from 'express';
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
-import path from 'path';
-
-dotenv.config({ path: path.join(__dirname, '../../../.env') });
+import pool from '../config/database';
+import { authenticate } from '../middleware/auth';
+import { requirePermission } from '../middleware/requirePermission';
 
 const router = express.Router();
 
-const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'pharmacy_connect',
-  password: process.env.DB_PASSWORD || 'password',
-  port: parseInt(process.env.DB_PORT || '5432'),
-});
+router.use(authenticate);
 
 // GET all offers
 router.get('/offers/:pharmacyId', async (req, res) => {

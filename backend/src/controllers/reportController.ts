@@ -13,8 +13,7 @@ export class ReportController {
   
   static async getSalesReport(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = parseInt(req.params.pharmacyId, 10);
-      if (isNaN(pharmacyId)) throw Object.assign(new Error('Invalid pharmacy ID'), { statusCode: 400 });
+      const pharmacyId = (req as any).user!.pharmacyId;
       
       const params = extractDateRange(req);
       const data = await ReportService.getSalesReport(pharmacyId, params);
@@ -26,8 +25,7 @@ export class ReportController {
 
   static async getBillingReport(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = parseInt(req.params.pharmacyId, 10);
-      if (isNaN(pharmacyId)) throw Object.assign(new Error('Invalid pharmacy ID'), { statusCode: 400 });
+      const pharmacyId = (req as any).user!.pharmacyId;
       
       const params = {
         ...extractDateRange(req),
@@ -43,8 +41,7 @@ export class ReportController {
 
   static async getMedicineSalesReport(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = parseInt(req.params.pharmacyId, 10);
-      if (isNaN(pharmacyId)) throw Object.assign(new Error('Invalid pharmacy ID'), { statusCode: 400 });
+      const pharmacyId = (req as any).user!.pharmacyId;
       
       const params = {
         ...extractDateRange(req),
@@ -61,8 +58,7 @@ export class ReportController {
 
   static async getMedicineRequestReport(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = parseInt(req.params.pharmacyId, 10);
-      if (isNaN(pharmacyId)) throw Object.assign(new Error('Invalid pharmacy ID'), { statusCode: 400 });
+      const pharmacyId = (req as any).user!.pharmacyId;
       
       const params = extractDateRange(req);
       const data = await ReportService.getMedicineRequestReport(pharmacyId, params);
@@ -74,8 +70,7 @@ export class ReportController {
 
   static async getCustomerReport(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = parseInt(req.params.pharmacyId, 10);
-      if (isNaN(pharmacyId)) throw Object.assign(new Error('Invalid pharmacy ID'), { statusCode: 400 });
+      const pharmacyId = (req as any).user!.pharmacyId;
       
       const params = {
         ...extractDateRange(req),
@@ -91,8 +86,7 @@ export class ReportController {
 
   static async getGstReport(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = parseInt(req.params.pharmacyId, 10);
-      if (isNaN(pharmacyId)) throw Object.assign(new Error('Invalid pharmacy ID'), { statusCode: 400 });
+      const pharmacyId = (req as any).user!.pharmacyId;
       
       const params = extractDateRange(req);
       const data = await ReportService.getGstReport(pharmacyId, params);

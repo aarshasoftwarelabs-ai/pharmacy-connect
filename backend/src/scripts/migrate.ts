@@ -1,6 +1,6 @@
 import { Client } from 'pg';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { env } from '../config/env';
 
 const migrate = async () => {
@@ -13,48 +13,84 @@ const migrate = async () => {
     await client.connect();
     console.log('Connected to database.');
 
-    const sqlPath1 = path.join(__dirname, '../../database/migrations/001_initial_schema.sql');
-    const sql1 = fs.readFileSync(sqlPath1, 'utf8');
+    // 1. Create tracking table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        id SERIAL PRIMARY KEY,
+        migration_name VARCHAR(255) UNIQUE NOT NULL,
+        applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-    const sqlPath2 = path.join(__dirname, '../../database/migrations/002_billing_schema.sql');
-    const sql2 = fs.readFileSync(sqlPath2, 'utf8');
+    // 2. Determine baseline if tracking table is empty
+    const trackingCheck = await client.query('SELECT COUNT(*) as count FROM schema_migrations');
+    if (parseInt(trackingCheck.rows[0].count) === 0) {
+      console.log('Migration tracking table is empty. Checking for existing baseline...');
+      
+      // Check if bill_item_batches exists (which means 014 was applied)
+      const tableCheck = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'bill_item_batches'
+        );
+      `);
 
-    const sqlPath3 = path.join(__dirname, '../../database/migrations/003_offline_billing.sql');
-    const sql3 = fs.readFileSync(sqlPath3, 'utf8');
+      if (tableCheck.rows[0].exists) {
+        console.log('Found existing baseline up to 014_batch_billing_integration.sql.');
+        
+        const migrationsDir = path.join(__dirname, '../../database/migrations');
+        const allFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+        
+        // Insert all migrations up to 014 as already applied
+        for (const file of allFiles) {
+          if (file <= '014_batch_billing_integration.sql') {
+            await client.query(
+              'INSERT INTO schema_migrations (migration_name) VALUES ($1) ON CONFLICT DO NOTHING',
+              [file]
+            );
+            console.log(`Marked ${file} as ALREADY APPLIED (Baseline).`);
+          }
+        }
+      }
+    }
 
-    const sqlPath4 = path.join(__dirname, '../../database/migrations/004_medicines_schema.sql');
-    const sql4 = fs.readFileSync(sqlPath4, 'utf8');
+    // 3. Fetch applied migrations
+    const appliedResult = await client.query('SELECT migration_name FROM schema_migrations');
+    const appliedMigrations = new Set(appliedResult.rows.map(r => r.migration_name));
 
-    const sqlPath5 = path.join(__dirname, '../../database/migrations/005_add_password_to_users.sql');
-    const sql5 = fs.readFileSync(sqlPath5, 'utf8');
+    // 4. Execute pending migrations
+    const migrationsDir = path.join(__dirname, '../../database/migrations');
+    const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
 
-    const sqlPath7 = path.join(__dirname, '../../database/migrations/007_add_profile_fields_to_pharmacies.sql');
-    const sql7 = fs.readFileSync(sqlPath7, 'utf8');
+    let executedCount = 0;
+    for (const file of files) {
+      if (appliedMigrations.has(file)) {
+        console.log(`Skipping ${file} - already applied.`);
+        continue;
+      }
 
-    const sqlPath8 = path.join(__dirname, '../../database/migrations/008_gst_schema.sql');
-    const sql8 = fs.readFileSync(sqlPath8, 'utf8');
-
-    const sqlPath9 = path.join(__dirname, '../../database/migrations/009_profit_tracking.sql');
-    const sql9 = fs.readFileSync(sqlPath9, 'utf8');
-
-    const sqlPath10 = path.join(__dirname, '../../database/migrations/010_wholesale_module.sql');
-    const sql10 = fs.readFileSync(sqlPath10, 'utf8');
-
-    const sqlPath11 = path.join(__dirname, '../../database/migrations/011_add_business_type.sql');
-    const sql11 = fs.readFileSync(sqlPath11, 'utf8');
-
-    console.log('Executing migration scripts...');
-    await client.query(sql1);
-    await client.query(sql2);
-    await client.query(sql3);
-    await client.query(sql4);
-    await client.query(sql5);
-    await client.query(sql7);
-    await client.query(sql8);
-    await client.query(sql9);
-    await client.query(sql10);
-    await client.query(sql11);
-    console.log('Migrations completed successfully!');
+      console.log(`Applying pending migration: ${file}...`);
+      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+      
+      try {
+        await client.query('BEGIN');
+        await client.query(sql);
+        await client.query(
+          'INSERT INTO schema_migrations (migration_name) VALUES ($1)',
+          [file]
+        );
+        await client.query('COMMIT');
+        console.log(`Successfully applied ${file}.`);
+        executedCount++;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(`ERROR applying migration ${file}:`, error);
+        throw error;
+      }
+    }
+    
+    console.log(`Migrations completed successfully! (${executedCount} executed)`);
   } catch (error) {
     console.error('Migration failed:', error);
     process.exit(1);

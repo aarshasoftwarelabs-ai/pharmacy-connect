@@ -6,12 +6,7 @@ export class BillingController {
   
   static async getBillingQueue(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number(req.params.pharmacyId);
-      if (isNaN(pharmacyId)) {
-        const error = new Error('Invalid pharmacyId format') as ApiError;
-        error.statusCode = 400;
-        throw error;
-      }
+      const pharmacyId = (req as any).user!.pharmacyId;
 
       const result = await BillingService.getBillingQueue(pharmacyId);
       
@@ -46,12 +41,7 @@ export class BillingController {
 
   static async getPharmacyBills(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number(req.params.pharmacyId);
-      if (isNaN(pharmacyId)) {
-        const error = new Error('Invalid pharmacyId format') as ApiError;
-        error.statusCode = 400;
-        throw error;
-      }
+      const pharmacyId = (req as any).user!.pharmacyId;
 
       const result = await BillingService.getPharmacyBills(pharmacyId);
       
@@ -66,10 +56,11 @@ export class BillingController {
 
   static async createBill(req: Request, res: Response, next: NextFunction) {
     try {
-      const { medicineRequestId, userId, pharmacyId, customerName, customerPhone, billType, subtotal, discount, total, items } = req.body;
+      const pharmacyId = (req as any).user!.pharmacyId;
+      const { medicineRequestId, userId, customerName, customerPhone, billType, subtotal, discount, total, items } = req.body;
 
       // medicineRequestId and userId are optional for OFFLINE bills
-      if (!pharmacyId || !customerName || !items || !Array.isArray(items) || items.length === 0) {
+      if (!customerName || !items || !Array.isArray(items) || items.length === 0) {
         const error = new Error('Missing required fields for bill creation') as ApiError;
         error.statusCode = 400;
         throw error;
@@ -93,6 +84,20 @@ export class BillingController {
         total: Number(total),
         items
       });
+
+      // Notify Customer if applicable
+      if (userId) {
+        const { NotificationService, NotificationType } = require('../services/notificationService');
+        await NotificationService.createNotification({
+          recipient_user_id: Number(userId),
+          pharmacy_id: Number(pharmacyId),
+          type: NotificationType.BILL_READY,
+          title: 'Your Bill is Ready',
+          message: 'Your bill has been generated.',
+          reference_type: 'BILL',
+          reference_id: result.id
+        });
+      }
 
       res.status(201).json({
         success: true,

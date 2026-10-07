@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import pool from '../config/database';
 import { env } from '../config/env';
 
-const JWT_SECRET = env.JWT_SECRET || 'your_super_secret_jwt_key_here';
+const JWT_SECRET = env.JWT_SECRET as string;
 const BREVO_API_KEY = env.BREVO_API_KEY || '';
 
 // In-memory store for OTPs (identifier -> otp)

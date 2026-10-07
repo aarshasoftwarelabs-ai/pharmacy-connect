@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import pool from '../config/database';
 import { env } from '../config/env';
 
-const JWT_SECRET = env.JWT_SECRET || 'your_super_secret_jwt_key_here';
+const JWT_SECRET = env.JWT_SECRET as string;
 const BREVO_API_KEY = env.BREVO_API_KEY || '';
 
 const otpStore: Record<string, string> = {}; // In-memory store for OTPs (phone -> otp)
@@ -297,6 +297,62 @@ export class AuthController {
 
     } catch (error) {
       console.error('Register error:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  }
+  static async staffLogin(req: Request, res: Response) {
+    try {
+      const { phone, pin, businessType } = req.body;
+      
+      if (!phone || !pin) {
+        return res.status(400).json({ success: false, message: 'Pharmacy phone and PIN are required' });
+      }
+
+      // 1. Find the pharmacy by phone and business_type
+      const pharmacyQuery = `SELECT id, name, owner_id FROM pharmacies WHERE phone = $1 AND business_type = $2`;
+      const pharmacyResult = await pool.query(pharmacyQuery, [phone, businessType || 'RETAIL']);
+
+      if (pharmacyResult.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Pharmacy not found with this mobile number' });
+      }
+
+      const pharmacy = pharmacyResult.rows[0];
+
+      // 2. Find the staff member in that pharmacy
+      const staffQuery = `SELECT id, name, phone, role, is_active FROM staff_members WHERE pharmacy_id = $1 AND pin = $2`;
+      const staffResult = await pool.query(staffQuery, [pharmacy.id, pin]);
+
+      if (staffResult.rows.length === 0) {
+        return res.status(401).json({ success: false, message: 'Invalid PIN' });
+      }
+
+      const staff = staffResult.rows[0];
+
+      if (!staff.is_active) {
+        return res.status(403).json({ success: false, message: 'Account is inactive. Please contact the owner.' });
+      }
+
+      // Create Token
+      const token = jwt.sign(
+        { userId: staff.id, phone: staff.phone, pharmacyId: pharmacy.id, role: staff.role, isStaff: true },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: staff.id,
+          name: staff.name,
+          phone: staff.phone,
+          role: staff.role,
+          isStaff: true
+        },
+        pharmacy: pharmacy
+      });
+    } catch (error) {
+      console.error('Staff Login error:', error);
       res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }

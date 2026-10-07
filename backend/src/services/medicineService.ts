@@ -3,14 +3,30 @@ import pool from '../config/database';
 export class MedicineService {
   static async getMedicines(pharmacyId: number) {
     const query = `
-      SELECT id, pharmacy_id as "pharmacyId", name, generic_name as "genericName", 
-             category, strength, sku, current_stock as "currentStock", 
-             minimum_stock as "minimumStock", selling_price as "sellingPrice",
-             image_url as "imageUrl", hsn_code as "hsnCode", gst_rate as "gstRate",
-             manufacturer, expiry_date as "expiryDate", created_at as "createdAt", updated_at as "updatedAt"
-      FROM medicines
-      WHERE pharmacy_id = $1
-      ORDER BY name ASC;
+      SELECT m.id, m.pharmacy_id as "pharmacyId", m.name, m.generic_name as "genericName", 
+             m.category, m.strength, m.sku, m.current_stock as "currentStock", 
+             m.minimum_stock as "minimumStock", m.selling_price as "sellingPrice",
+             m.image_url as "imageUrl", m.hsn_code as "hsnCode", m.gst_rate as "gstRate",
+             m.manufacturer, m.expiry_date as "expiryDate", m.created_at as "createdAt", m.updated_at as "updatedAt",
+             (
+               SELECT COALESCE(json_agg(
+                 json_build_object(
+                   'id', mb.id,
+                   'batchNumber', mb.batch_number,
+                   'expiryDate', mb.expiry_date,
+                   'quantity', mb.quantity,
+                   'availableQuantity', mb.available_quantity,
+                   'purchasePrice', mb.purchase_price,
+                   'mrp', mb.mrp,
+                   'sellingPrice', mb.selling_price
+                 ) ORDER BY mb.expiry_date ASC
+               ), '[]'::json)
+               FROM medicine_batches mb
+               WHERE mb.medicine_id = m.id
+             ) as batches
+      FROM medicines m
+      WHERE m.pharmacy_id = $1
+      ORDER BY m.name ASC;
     `;
     const result = await pool.query(query, [pharmacyId]);
     return result.rows;

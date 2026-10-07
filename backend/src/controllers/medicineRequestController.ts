@@ -3,6 +3,7 @@ import { MedicineRequestService } from '../services/medicineRequestService';
 import { ApiError } from '../middleware/errorHandler';
 
 import { getIo } from '../socket';
+import { NotificationService, NotificationType } from '../services/notificationService';
 
 export class MedicineRequestController {
   
@@ -25,13 +26,27 @@ export class MedicineRequestController {
 
       const result = await MedicineRequestService.createRequest(requestData);
 
-      // Emit real-time notification to the specific pharmacy
+      // Emit real-time notification to the specific pharmacy via socket
       try {
         const io = getIo();
         io.to(`pharmacy_${pharmacyId}`).emit('new_request', result);
       } catch (err) {
         console.error('Socket emit error:', err);
       }
+
+      // Create persistent notifications for pharmacy staff and owner
+      await NotificationService.notifyPharmacyUsers(
+        pharmacyId,
+        'MEDICINE_REQUESTS_VIEW',
+        {
+          type: NotificationType.MEDICINE_REQUEST_CREATED,
+          title: 'New Medicine Request',
+          message: medicineName ? `A customer has requested ${medicineName}.` : 'A customer uploaded a new prescription.',
+          reference_type: 'MEDICINE_REQUEST',
+          reference_id: result.id,
+          data: { medicineName }
+        }
+      );
 
       res.status(201).json({
         success: true,
@@ -64,12 +79,7 @@ export class MedicineRequestController {
 
   static async getPharmacyRequests(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number(req.params.pharmacyId);
-      if (isNaN(pharmacyId)) {
-        const error = new Error('Invalid pharmacyId format') as ApiError;
-        error.statusCode = 400;
-        throw error;
-      }
+      const pharmacyId = (req as any).user!.pharmacyId;
 
       const status = req.query.status as string | undefined;
       const validStatuses = ['WAITING', 'AVAILABLE', 'CAN_ARRANGE', 'NOT_AVAILABLE'];
@@ -134,6 +144,28 @@ export class MedicineRequestController {
         responseMessage
       });
 
+      // Notify Customer
+      const getStatusDetails = (s: string) => {
+        switch(s) {
+          case 'AVAILABLE': return { type: NotificationType.MEDICINE_REQUEST_AVAILABLE, msg: 'Your medicine request is available.' };
+          case 'CAN_ARRANGE': return { type: NotificationType.MEDICINE_REQUEST_CAN_ARRANGE, msg: 'We can arrange your medicine.' };
+          case 'NOT_AVAILABLE': return { type: NotificationType.MEDICINE_REQUEST_NOT_AVAILABLE, msg: 'Your medicine is currently unavailable.' };
+          default: return { type: NotificationType.MEDICINE_REQUEST_AVAILABLE, msg: 'Your medicine request has been updated.' };
+        }
+      };
+
+      const statusDetails = getStatusDetails(status);
+
+      await NotificationService.createNotification({
+        recipient_user_id: result.user_id,
+        pharmacy_id: result.pharmacy_id,
+        type: statusDetails.type,
+        title: 'Request Update',
+        message: statusDetails.msg,
+        reference_type: 'MEDICINE_REQUEST',
+        reference_id: result.id
+      });
+
       res.json({
         success: true,
         data: result
@@ -154,6 +186,19 @@ export class MedicineRequestController {
 
       const result = await MedicineRequestService.confirmRequest(requestId);
 
+      // Notify Pharmacy Users
+      await NotificationService.notifyPharmacyUsers(
+        result.pharmacy_id,
+        'MEDICINE_REQUESTS_VIEW',
+        {
+          type: NotificationType.CUSTOMER_CONFIRMATION_RECEIVED,
+          title: 'Request Confirmed',
+          message: 'Customer confirmed the medicine request.',
+          reference_type: 'MEDICINE_REQUEST',
+          reference_id: result.id
+        }
+      );
+
       res.json({
         success: true,
         data: result
@@ -173,6 +218,19 @@ export class MedicineRequestController {
       }
 
       const result = await MedicineRequestService.cancelRequest(requestId);
+
+      // Notify Pharmacy Users
+      await NotificationService.notifyPharmacyUsers(
+        result.pharmacy_id,
+        'MEDICINE_REQUESTS_VIEW',
+        {
+          type: NotificationType.CUSTOMER_REQUEST_CANCELLED,
+          title: 'Request Cancelled',
+          message: 'Customer cancelled the medicine request.',
+          reference_type: 'MEDICINE_REQUEST',
+          reference_id: result.id
+        }
+      );
 
       res.json({
         success: true,

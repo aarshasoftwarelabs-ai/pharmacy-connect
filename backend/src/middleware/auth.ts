@@ -4,12 +4,14 @@ import pool from '../config/database';
 import { env } from '../config/env';
 import { sendSecurityAlertEmail } from '../services/emailService';
 
-const JWT_SECRET = env.JWT_SECRET || 'your_super_secret_jwt_key_here';
+const JWT_SECRET = env.JWT_SECRET as string;
 
 export interface AuthUser {
   userId: number;
   phone: string;
   pharmacyId: number;
+  role?: string;
+  isStaff?: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -20,32 +22,34 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
-    if (env.NODE_ENV === 'development') {
-      req.user = { userId: 1, phone: '9876543210', pharmacyId: 1 };
-      return next();
-    }
     return res.status(401).json({ success: false, message: 'Authentication required' });
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
-    const userQuery = `SELECT id FROM users WHERE id = $1`;
-    const userResult = await pool.query(userQuery, [decoded.userId]);
-    if (userResult.rows.length === 0) {
-      if (env.NODE_ENV === 'development') {
-        req.user = { userId: 1, phone: '9876543210', pharmacyId: 1 };
-        return next();
+    
+    // Check if user or staff exists based on role
+    // For now we just verify the token is valid, but we could add a DB check here if needed
+    // However, the previous DB check only checked 'users' table which fails for staff!
+    // So we just rely on JWT verification for valid token and extract details.
+    
+    req.user = decoded;
+
+    // Enforce Pharmacy Isolation for STAFF/OWNER
+    if (decoded.role !== 'USER' && decoded.pharmacyId) {
+      if (req.params.pharmacyId && parseInt(req.params.pharmacyId) !== decoded.pharmacyId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Cannot access data for a different pharmacy' });
       }
-      return res.status(401).json({ success: false, message: 'User not found' });
+      if (req.body.pharmacyId && parseInt(req.body.pharmacyId) !== decoded.pharmacyId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Cannot modify data for a different pharmacy' });
+      }
+      if (req.query.pharmacyId && parseInt(req.query.pharmacyId as string) !== decoded.pharmacyId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Cannot query data for a different pharmacy' });
+      }
     }
 
-    req.user = decoded;
     next();
   } catch (error) {
-    if (env.NODE_ENV === 'development') {
-      req.user = { userId: 1, phone: '9876543210', pharmacyId: 1 };
-      return next();
-    }
     return res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
 };

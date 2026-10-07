@@ -33,17 +33,32 @@ router.use('/medicines', medicineRoutes);
 router.use('/distributors', distributorRoutes);
 import reportRoutes from './reportRoutes';
 import paymentRoutes from './paymentRoutes';
+import notificationRoutes from './notificationRoutes';
 
 router.use('/reports', reportRoutes);
 router.use('/payments', paymentRoutes);
-// router.use('/notifications', notificationRoutes);
+router.use('/notifications', notificationRoutes);
+
+import supplierRoutes from './supplierRoutes';
+import purchaseRoutes from './purchaseRoutes';
+import batchRoutes from './batchRoutes';
+
+router.use('/suppliers', supplierRoutes);
+router.use('/purchases', purchaseRoutes);
+router.use('/inventory/batches', batchRoutes);
 
 import wholesaleRoutes from './wholesaleRoutes';
 import staffRoutes from './staffRoutes';
 import marketingRoutes from './marketingRoutes';
+import customerRoutes from './customerRoutes';
+import refillRoutes from './refillRoutes';
+import prescriptionRoutes from './prescriptionRoutes';
 
 router.use('/wholesale', wholesaleRoutes);
 router.use('/staff', staffRoutes);
 router.use('/marketing', marketingRoutes);
+router.use('/customers', customerRoutes);
+router.use('/refills', refillRoutes);
+router.use('/prescriptions', prescriptionRoutes);
 
 export default router;
