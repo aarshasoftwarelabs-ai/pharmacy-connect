@@ -402,10 +402,10 @@ export default function Inventory() {
                           {isLowStock && (
                             <button 
                               onClick={() => setAutoOrderConfirmMed(item)}
-                              className="text-pharmacy-600 hover:text-pharmacy-800 font-semibold text-sm transition-colors flex items-center gap-1 group"
+                              className="text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 font-medium text-sm transition-colors flex items-center gap-1.5 group whitespace-nowrap px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm"
                             >
                               Auto-Order
-                              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                             </button>
                           )}
                           <button 

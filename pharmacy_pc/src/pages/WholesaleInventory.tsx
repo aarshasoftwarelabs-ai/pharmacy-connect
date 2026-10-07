@@ -433,10 +433,10 @@ export default function WholesaleInventory() {
                           {isLowStock && (
                             <button 
                               onClick={() => setAutoOrderConfirmMed(item)}
-                              className="text-indigo-600 hover:text-indigo-800 font-semibold text-sm transition-colors flex items-center gap-1 group"
+                              className="text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 font-medium text-sm transition-colors flex items-center gap-1.5 group whitespace-nowrap px-3 py-1.5 rounded-lg border border-indigo-200 shadow-sm"
                             >
                               Auto-Order
-                              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                             </button>
                           )}
                           <button 
