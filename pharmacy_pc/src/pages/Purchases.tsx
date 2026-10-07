@@ -268,7 +268,7 @@ export default function Purchases() {
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700 flex items-center">Invoice Date</label>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 z-10">
                       <Calendar className="w-4 h-4" />
                     </div>
                     <input type="date" className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium text-slate-700 [color-scheme:light] relative [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" value={invoiceDate} onChange={e=>setInvoiceDate(e.target.value)} />
@@ -303,7 +303,7 @@ export default function Purchases() {
                   <div className="col-span-6 md:col-span-2 relative">
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Expiry</label>
                     <div className="relative">
-                      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 z-10">
                         <Calendar className="w-3.5 h-3.5" />
                       </div>
                       <input type="date" className="w-full pl-8 pr-1 py-2.5 bg-white border border-slate-200 rounded-xl text-xs tracking-tight focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none text-slate-700 [color-scheme:light] relative [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" value={expiry} onChange={e=>setExpiry(e.target.value)} />
