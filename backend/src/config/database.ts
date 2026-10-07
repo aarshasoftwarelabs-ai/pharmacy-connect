@@ -16,13 +16,14 @@ pool.on('error', (err) => {
  * Health check query to verify database connectivity.
  * Executes a lightweight query and returns true if successful.
  */
-export const checkDatabaseHealth = async (): Promise<boolean> => {
+export const checkDatabaseHealth = async (): Promise<{ healthy: boolean, error?: string }> => {
   try {
     const result = await pool.query('SELECT 1 AS health');
-    return result.rowCount !== null && result.rowCount > 0;
-  } catch (error) {
-    console.error('Database health check failed:', error);
-    return false;
+    return { healthy: result.rowCount !== null && result.rowCount > 0 };
+  } catch (error: any) {
+    const safeError = error?.message ? error.message.replace(/postgresql:\/\/[^@]+@/g, 'postgresql://***:***@') : 'Unknown error';
+    console.error('Database health check failed:', safeError);
+    return { healthy: false, error: safeError };
   }
 };
 

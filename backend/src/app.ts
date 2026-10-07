@@ -5,6 +5,8 @@ import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFound';
 import { checkDatabaseHealth } from './config/database';
+import { env } from './config/env';
+import rateLimit from 'express-rate-limit';
 
 const app: Express = express();
 
@@ -12,10 +14,24 @@ const app: Express = express();
 app.use(helmet());
 
 // CORS Configuration
-// In production, this should be restricted to the specific origins of the Flutter app and PC software
+const allowedOrigins = env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',') : (env.NODE_ENV === 'development' ? '*' : []);
+
 app.use(cors({
-  origin: '*', // FIXME: Restrict this in production
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per `window`
+  message: { success: false, message: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api', apiLimiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -30,9 +46,9 @@ app.get('/', (req: Request, res: Response) => {
 
 // Health check endpoint
 app.get('/health', async (req: Request, res: Response) => {
-  const isDbHealthy = await checkDatabaseHealth();
+  const dbStatus = await checkDatabaseHealth();
   
-  if (isDbHealthy) {
+  if (dbStatus.healthy) {
     res.status(200).json({
       success: true,
       service: 'pharmacyconnect-api',
@@ -44,7 +60,8 @@ app.get('/health', async (req: Request, res: Response) => {
       success: false,
       service: 'pharmacyconnect-api',
       status: 'degraded',
-      database: 'disconnected'
+      database: 'disconnected',
+      error: dbStatus.error
     });
   }
 });
