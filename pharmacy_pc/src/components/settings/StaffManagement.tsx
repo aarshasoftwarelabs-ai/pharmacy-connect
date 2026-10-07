@@ -22,21 +22,23 @@ export default function StaffManagement() {
   const fetchStaff = async () => {
     try {
       setLoading(true);
-      const data = await StaffService.getPharmacyStaff(DEV_PHARMACY_ID);
-      // Backend might return empty if not implemented fully, we will simulate one owner if empty
-      if (data.length === 0) {
-        setStaff([{
-          id: 1,
-          pharmacy_id: DEV_PHARMACY_ID,
-          name: 'Owner (Default)',
-          phone: '9999999999',
-          role: 'OWNER',
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const pharmacyId = user?.pharmacyId || DEV_PHARMACY_ID;
+
+      const data = await StaffService.getPharmacyStaff(pharmacyId);
+      
+      const ownerStaff = {
+          id: 0,
+          pharmacy_id: pharmacyId,
+          name: user?.name || 'Owner',
+          phone: user?.phone || '',
+          role: 'OWNER' as const,
           is_active: true,
           created_at: new Date().toISOString()
-        }]);
-      } else {
-        setStaff(data);
-      }
+      };
+
+      setStaff([ownerStaff, ...data]);
     } catch (error) {
       console.error(error);
     } finally {
@@ -50,7 +52,9 @@ export default function StaffManagement() {
       if (editingId) {
         await StaffService.updateStaff(editingId, formData);
       } else {
-        await StaffService.addStaff(DEV_PHARMACY_ID, formData);
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        await StaffService.addStaff(user?.pharmacyId || DEV_PHARMACY_ID, formData);
       }
       setIsModalOpen(false);
       fetchStaff();
