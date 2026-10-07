@@ -27,12 +27,12 @@ const HelpSupport = () => {
         ReviewService.getPublicReviews(),
         ReviewService.getMyReview()
       ]);
-      setReviews(all);
+      setReviews(Array.isArray(all) ? all : []);
       if (mine) {
         setMyReview(mine);
-        setUiRating(mine.ui_rating);
-        setFeaturesRating(mine.features_rating);
-        setServiceRating(mine.service_rating);
+        setUiRating(mine.ui_rating || 0);
+        setFeaturesRating(mine.features_rating || 0);
+        setServiceRating(mine.service_rating || 0);
         setComment(mine.comment || '');
       }
     } catch (err) {
