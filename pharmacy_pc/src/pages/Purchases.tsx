@@ -175,9 +175,26 @@ export default function Purchases() {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-slate-500">Loading...</div>
+          <div className="p-16 flex flex-col items-center justify-center text-slate-500">
+            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+            <p className="font-medium text-slate-600">Loading your purchases...</p>
+          </div>
         ) : purchases.length === 0 ? (
-          <div className="p-12 text-center text-slate-500">No purchases found.</div>
+          <div className="p-20 flex flex-col items-center justify-center text-center bg-slate-50/50">
+            <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 shadow-inner">
+              <Package className="w-12 h-12 text-indigo-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">No purchases yet</h3>
+            <p className="text-slate-500 max-w-sm mb-8">Get started by creating your first wholesale purchase invoice or simply scan it using our AI OCR tool.</p>
+            <div className="flex gap-4">
+              <button onClick={() => setShowModal(true)} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                Enter Manually
+              </button>
+              <button onClick={() => fileInputRef.current?.click()} className="px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 flex items-center">
+                <Wand2 className="w-4 h-4 mr-2" /> AI Scan Invoice
+              </button>
+            </div>
+          </div>
         ) : (
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
