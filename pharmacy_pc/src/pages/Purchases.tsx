@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PurchaseService } from '../services/purchaseService';
 import { SupplierService } from '../services/supplierService';
-import { Plus, Eye } from 'lucide-react';
+import { Plus, Eye, Wand2, Calendar, FileText, Package, FileImage, Layers, Hash } from 'lucide-react';
 import { fetchMedicines } from '../services/medicineService';
 
 export default function Purchases() {
@@ -154,15 +154,19 @@ export default function Purchases() {
           <button 
             onClick={() => fileInputRef.current?.click()} 
             disabled={scanning}
-            className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
+            className="relative overflow-hidden group flex items-center px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-violet-500 hover:to-indigo-500 disabled:opacity-70 transition-all duration-300 shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform hover:-translate-y-0.5"
           >
+            <div className="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 transform origin-left transition-transform duration-500 rounded-xl pointer-events-none"></div>
             {scanning ? (
-              <span className="flex items-center"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div> Scanning...</span>
+              <span className="flex items-center relative z-10"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div> Processing...</span>
             ) : (
-              <><span className="mr-2 text-lg">✨</span> AI Scan Bill</>
+              <span className="flex items-center relative z-10">
+                <Wand2 className="w-4 h-4 mr-2 animate-pulse text-violet-200" />
+                AI Scan Invoice
+              </span>
             )}
           </button>
-          <button onClick={() => setShowModal(true)} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm transition-colors">
+          <button onClick={() => setShowModal(true)} className="flex items-center px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 shadow-md transition-all transform hover:-translate-y-0.5">
             <Plus className="w-4 h-4 mr-2" /> Add Purchase
           </button>
         </div>
@@ -202,92 +206,156 @@ export default function Purchases() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center z-50 p-6 overflow-auto">
-          <div className="bg-white rounded-xl p-6 w-full max-w-4xl my-auto">
-            <h2 className="text-lg font-bold mb-4">Create Purchase Invoice</h2>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center z-50 p-4 sm:p-6 overflow-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-indigo-500" />
+                  Create Purchase Invoice
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">Enter details manually or use AI to extract them from an invoice image.</p>
+              </div>
+            </div>
             
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">Supplier</label>
-                <select className="w-full border p-2 rounded" value={supplierId} onChange={e=>setSupplierId(e.target.value)}>
-                  <option value="">Select Supplier</option>
-                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplier_name}</option>)}
-                </select>
+            <div className="p-6">
+              {/* Invoice Meta */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700 flex items-center">Supplier</label>
+                  <div className="relative">
+                    <select className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none outline-none font-medium text-slate-700" value={supplierId} onChange={e=>setSupplierId(e.target.value)}>
+                      <option value="">Select a supplier...</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplier_name}</option>)}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700 flex items-center">Invoice Number</label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <Hash className="w-4 h-4" />
+                    </div>
+                    <input type="text" placeholder="e.g. INV-2026-001" className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium text-slate-700" value={invoiceNumber} onChange={e=>setInvoiceNumber(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700 flex items-center">Invoice Date</label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <input type="date" className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium text-slate-700 [color-scheme:light]" value={invoiceDate} onChange={e=>setInvoiceDate(e.target.value)} />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Invoice Number</label>
-                <input type="text" className="w-full border p-2 rounded" value={invoiceNumber} onChange={e=>setInvoiceNumber(e.target.value)} />
+
+              {/* Add Item Box */}
+              <div className="bg-gradient-to-br from-indigo-50/50 to-white p-5 rounded-2xl mb-8 border border-indigo-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                <h3 className="font-bold text-slate-800 mb-4 flex items-center text-sm uppercase tracking-wider">
+                  <Package className="w-4 h-4 mr-2 text-indigo-600" />
+                  Add Medicine to Invoice
+                </h3>
+                <div className="grid grid-cols-12 gap-3 items-end">
+                  <div className="col-span-12 md:col-span-3">
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Medicine Product</label>
+                    <div className="relative">
+                      <select className="w-full pl-3 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none outline-none text-slate-700 font-medium" value={selMed} onChange={e=>setSelMed(e.target.value)}>
+                        <option value="">Search & Select...</option>
+                        {medicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                      </select>
+                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-span-6 md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Batch No.</label>
+                    <input type="text" placeholder="BATCH123" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm uppercase focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-mono" value={batch} onChange={e=>setBatch(e.target.value.toUpperCase())} />
+                  </div>
+                  <div className="col-span-6 md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Expiry</label>
+                    <input type="date" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none text-slate-700" value={expiry} onChange={e=>setExpiry(e.target.value)} />
+                  </div>
+                  <div className="col-span-3 md:col-span-1">
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Qty</label>
+                    <input type="number" placeholder="0" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none" value={qty || ''} onChange={e=>setQty(Number(e.target.value))} />
+                  </div>
+                  <div className="col-span-4 md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Purchase (₹)</label>
+                    <input type="number" placeholder="0.00" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none" value={price || ''} onChange={e=>setPrice(Number(e.target.value))} />
+                  </div>
+                  <div className="col-span-5 md:col-span-2">
+                    <button type="button" onClick={addItem} className="w-full px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors shadow-sm flex items-center justify-center">
+                      <Plus className="w-4 h-4 mr-1.5" /> Add
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Invoice Date</label>
-                <input type="date" className="w-full border p-2 rounded" value={invoiceDate} onChange={e=>setInvoiceDate(e.target.value)} />
-              </div>
+
+              {/* Items Table */}
+              {items.length > 0 ? (
+                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm mb-6 bg-white">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          <th className="text-left px-4 py-3 font-semibold text-slate-600">Medicine Product</th>
+                          <th className="text-left px-4 py-3 font-semibold text-slate-600">Batch</th>
+                          <th className="text-left px-4 py-3 font-semibold text-slate-600">Expiry</th>
+                          <th className="text-right px-4 py-3 font-semibold text-slate-600">Quantity</th>
+                          <th className="text-right px-4 py-3 font-semibold text-slate-600">Rate</th>
+                          <th className="text-right px-4 py-3 font-semibold text-slate-600">Total Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {items.map((it, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-4 py-3 font-medium text-slate-800 flex items-center">
+                              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mr-3 font-bold text-xs">{it.medicine_name.charAt(0)}</div>
+                              {it.medicine_name}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-xs text-slate-600 uppercase bg-slate-50 group-hover:bg-transparent transition-colors">{it.batch_number}</td>
+                            <td className="px-4 py-3 text-slate-600">{it.expiry_date}</td>
+                            <td className="px-4 py-3 text-right font-medium text-slate-700">{it.quantity}</td>
+                            <td className="px-4 py-3 text-right text-slate-500">₹{it.purchase_price.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-right font-bold text-slate-800">₹{it.total_amount.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-slate-50 border-t border-slate-200">
+                        <tr>
+                          <td colSpan={5} className="px-4 py-3 text-right font-semibold text-slate-600">Grand Total</td>
+                          <td className="px-4 py-3 text-right font-bold text-lg text-indigo-700">
+                            ₹{items.reduce((acc, curr) => acc + curr.total_amount, 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-dashed border-slate-300 rounded-2xl p-10 flex flex-col items-center justify-center bg-slate-50/50 mb-6 text-slate-500">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                    <Layers className="w-8 h-8 text-slate-300" />
+                  </div>
+                  <p className="font-medium text-slate-700">No items added yet</p>
+                  <p className="text-sm mt-1">Add medicines from the form above or use the AI Scan</p>
+                </div>
+              )}
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-lg mb-6 border border-slate-200">
-              <h3 className="font-semibold mb-2">Add Item</h3>
-              <div className="grid grid-cols-7 gap-2 items-end">
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium mb-1">Medicine</label>
-                  <select className="w-full border p-2 rounded text-sm" value={selMed} onChange={e=>setSelMed(e.target.value)}>
-                    <option value="">Select Medicine</option>
-                    {medicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Batch</label>
-                  <input type="text" className="w-full border p-2 rounded text-sm uppercase" value={batch} onChange={e=>setBatch(e.target.value.toUpperCase())} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Expiry</label>
-                  <input type="date" className="w-full border p-2 rounded text-sm" value={expiry} onChange={e=>setExpiry(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Qty</label>
-                  <input type="number" className="w-full border p-2 rounded text-sm" value={qty} onChange={e=>setQty(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Purchase (₹)</label>
-                  <input type="number" className="w-full border p-2 rounded text-sm" value={price} onChange={e=>setPrice(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">MRP (₹)</label>
-                  <input type="number" className="w-full border p-2 rounded text-sm" value={mrp} onChange={e=>setMrp(Number(e.target.value))} />
-                </div>
-              </div>
-              <button type="button" onClick={addItem} className="mt-4 px-4 py-2 bg-slate-800 text-white rounded text-sm">Add to List</button>
-            </div>
-
-            {items.length > 0 && (
-              <div className="mb-6">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-100">
-                    <tr>
-                      <th className="text-left p-2">Medicine</th>
-                      <th className="text-left p-2">Batch</th>
-                      <th className="text-left p-2">Expiry</th>
-                      <th className="text-right p-2">Qty</th>
-                      <th className="text-right p-2">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((it, idx) => (
-                      <tr key={idx} className="border-b">
-                        <td className="p-2">{it.medicine_name}</td>
-                        <td className="p-2 font-mono text-xs">{it.batch_number}</td>
-                        <td className="p-2 text-xs">{it.expiry_date}</td>
-                        <td className="p-2 text-right">{it.quantity}</td>
-                        <td className="p-2 text-right font-medium">₹{it.total_amount}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 border-t pt-4">
-              <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded">Cancel</button>
-              <button type="button" onClick={handleSubmit} className="px-4 py-2 bg-indigo-600 text-white rounded">Save Purchase</button>
+            {/* Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
+              <button type="button" onClick={handleSubmit} className="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm flex items-center">
+                Save Invoice
+              </button>
             </div>
           </div>
         </div>
