@@ -280,8 +280,8 @@ export default function Purchases() {
               </div>
 
               {/* Add Item Box */}
-              <div className="bg-gradient-to-br from-indigo-50/50 to-white p-5 rounded-2xl mb-8 border border-indigo-100 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+              <div className="bg-gradient-to-br from-indigo-50/50 to-white p-5 rounded-2xl mb-8 border border-indigo-100 shadow-sm relative z-10">
+                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-2xl"></div>
                 <h3 className="font-bold text-slate-800 mb-4 flex items-center text-sm uppercase tracking-wider">
                   <Package className="w-4 h-4 mr-2 text-indigo-600" />
                   Add Medicine to Invoice
