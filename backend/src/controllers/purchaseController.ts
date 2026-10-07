@@ -231,7 +231,7 @@ export class PurchaseController {
 
       const { GoogleGenerativeAI } = require('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
+
 
       const imageParts = [
         {
@@ -262,7 +262,24 @@ Extract the following information and return ONLY a valid JSON object matching t
 If any field cannot be found, use null or 0.`;
 
       let result;
-        result = await model.generateContent([prompt, ...imageParts]);
+      let lastError;
+      const fallbackModels = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.7-flash', 'gemini-3.5-flash'];
+      
+      for (const modelName of fallbackModels) {
+        try {
+          const aiModel = genAI.getGenerativeModel({ model: modelName });
+          result = await aiModel.generateContent([prompt, ...imageParts]);
+          break; // Success! Exit the loop
+        } catch (err: any) {
+          console.log(`Model ${modelName} failed:`, err.message);
+          lastError = err;
+          // Continue to next model in the list
+        }
+      }
+      
+      if (!result) {
+        throw lastError || new Error('All AI models failed');
+      }
       let text = result.response.text();
       
       // Clean up markdown json formatting if present
