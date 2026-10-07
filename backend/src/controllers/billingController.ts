@@ -107,7 +107,7 @@ export class BillingController {
       next(error);
     }
   }
-  static async scanPrescription(req: AuthenticatedRequest, res: Response) {
+  static async scanPrescription(req: any, res: Response) {
     try {
       if (!req.file) {
         return res.status(400).json({ success: false, message: 'No prescription image provided' });

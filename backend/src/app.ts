@@ -14,7 +14,7 @@ const app: Express = express();
 app.use(helmet());
 
 // CORS Configuration
-const allowedOrigins = env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',') : '*';
+const allowedOrigins = env.CORS_ORIGINS === '*' ? '*' : (env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',') : '*');
 
 app.use(cors({
   origin: allowedOrigins,
