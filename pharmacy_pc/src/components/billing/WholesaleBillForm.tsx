@@ -30,6 +30,7 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
   
   const [scanStep, setScanStep] = useState(0); 
   const [showAiModal, setShowAiModal] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchMedicines().then(setCatalogue).catch(console.error);
@@ -168,6 +169,12 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
     setItems([{ medicineName: '', quantity: 1, unitPrice: 0, hsnCode: '', gstRate: 0 }]);
     setDiscount(0);
     setCreatedBill(null);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleSimulateAiPoScan();
+    }
   };
 
   const handleSimulateAiPoScan = () => {
@@ -579,16 +586,25 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
             
             <div className="p-8">
               {scanStep === 0 && (
-                <div 
-                  className="border-2 border-dashed border-blue-200 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-all group"
-                  onClick={handleSimulateAiPoScan}
-                >
-                  <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <FileImage className="w-8 h-8" />
+                <>
+                  <input 
+                    type="file" 
+                    accept=".pdf,.xlsx,.xls,image/*" 
+                    className="hidden" 
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                  />
+                  <div 
+                    className="border-2 border-dashed border-blue-200 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-all group"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <FileImage className="w-8 h-8" />
+                    </div>
+                    <p className="font-semibold text-slate-800 text-center mb-1">Upload Retailer's PO</p>
+                    <p className="text-xs text-slate-500 text-center">Supported: PDF, Excel, JPG, PNG</p>
                   </div>
-                  <p className="font-semibold text-slate-800 text-center mb-1">Upload Retailer's PO</p>
-                  <p className="text-xs text-slate-500 text-center">Supported: PDF, Excel, JPG, PNG</p>
-                </div>
+                </>
               )}
 
               {scanStep === 1 && (

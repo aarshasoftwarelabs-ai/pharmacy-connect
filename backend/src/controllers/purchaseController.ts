@@ -217,4 +217,67 @@ export class PurchaseController {
     // The prompt says POST /cancel but also says do not implement dangerous logic.
     res.status(501).json({ success: false, message: 'Cancel purchase not fully implemented in Step 2' });
   }
+
+  static async scanBill(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No bill image provided' });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ success: false, message: 'Gemini API Key is not configured on the server. Please add GEMINI_API_KEY to your backend .env file.' });
+      }
+
+      const { GoogleGenerativeAI } = require('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const imageParts = [
+        {
+          inlineData: {
+            data: req.file.buffer.toString("base64"),
+            mimeType: req.file.mimetype
+          }
+        }
+      ];
+
+      const prompt = `Analyze this wholesale medicine invoice/bill image.
+Extract the following information and return ONLY a valid JSON object matching this structure exactly (do not wrap in markdown):
+{
+  "supplier_name": "string or null",
+  "invoice_number": "string or null",
+  "invoice_date": "YYYY-MM-DD or null",
+  "items": [
+    {
+      "medicine_name": "string",
+      "batch_number": "string",
+      "expiry_date": "YYYY-MM-DD (guess day as 01 if only month/year)",
+      "quantity": number (integer),
+      "purchase_price": number (float),
+      "mrp": number (float)
+    }
+  ]
+}
+If any field cannot be found, use null or 0.`;
+
+      const result = await model.generateContent([prompt, ...imageParts]);
+      let text = result.response.text();
+      
+      // Clean up markdown json formatting if present
+      text = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+      
+      let parsedData;
+      try {
+        parsedData = JSON.parse(text);
+      } catch(e) {
+        throw new Error('AI returned invalid JSON: ' + text);
+      }
+
+      return res.json({ success: true, data: parsedData });
+    } catch (error: any) {
+      console.error('AI Scan Error:', error);
+      return res.status(500).json({ success: false, message: error.message || 'Failed to scan bill using AI' });
+    }
+  }
 }

@@ -90,13 +90,82 @@ export default function Purchases() {
     }
   };
 
+  const [scanning, setScanning] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setScanning(true);
+      const data = await PurchaseService.scanBill(file);
+      
+      // Try to find the supplier by name (case-insensitive fuzzy match)
+      if (data.supplier_name) {
+        const found = suppliers.find(s => s.supplier_name.toLowerCase().includes(data.supplier_name.toLowerCase()));
+        if (found) setSupplierId(found.id.toString());
+      }
+      
+      if (data.invoice_number) setInvoiceNumber(data.invoice_number);
+      if (data.invoice_date) setInvoiceDate(data.invoice_date);
+      
+      if (data.items && data.items.length > 0) {
+        const newItems = data.items.map((item: any) => {
+          // Find matching medicine in our DB
+          const matchedMed = medicines.find(m => m.name.toLowerCase().includes(item.medicine_name.toLowerCase()));
+          return {
+            medicine_id: matchedMed ? matchedMed.id : '',
+            medicine_name: matchedMed ? matchedMed.name : item.medicine_name,
+            batch_number: item.batch_number || '',
+            expiry_date: item.expiry_date || '',
+            quantity: item.quantity || 0,
+            free_quantity: 0,
+            purchase_price: item.purchase_price || 0,
+            mrp: item.mrp || 0,
+            selling_price: item.mrp || 0,
+            total_amount: (item.purchase_price || 0) * (item.quantity || 0)
+          };
+        });
+        setItems(newItems);
+      }
+      
+      setShowModal(true);
+    } catch (err: any) {
+      alert(err.message || 'Failed to scan bill');
+    } finally {
+      setScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-slate-800">Purchases</h1>
-        <button onClick={() => setShowModal(true)} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
-          <Plus className="w-4 h-4 mr-2" /> Add Purchase
-        </button>
+        <div className="flex items-center gap-3">
+          <input 
+            type="file" 
+            accept="image/*" 
+            className="hidden" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()} 
+            disabled={scanning}
+            className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
+          >
+            {scanning ? (
+              <span className="flex items-center"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div> Scanning...</span>
+            ) : (
+              <><span className="mr-2 text-lg">✨</span> AI Scan Bill</>
+            )}
+          </button>
+          <button onClick={() => setShowModal(true)} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm transition-colors">
+            <Plus className="w-4 h-4 mr-2" /> Add Purchase
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

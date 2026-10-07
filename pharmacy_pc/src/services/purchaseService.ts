@@ -24,4 +24,17 @@ export class PurchaseService {
     if (!res.ok) throw new Error(data.message || 'Failed to create purchase');
     return data.data;
   }
+
+  static async scanBill(file: File) {
+    const formData = new FormData();
+    formData.append('billImage', file);
+
+    const res = await apiFetch(`${API_BASE_URL}/purchases/scan-bill`, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to scan bill using AI');
+    return data.data;
+  }
 }
