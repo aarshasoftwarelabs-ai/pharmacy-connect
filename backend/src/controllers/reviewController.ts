@@ -6,7 +6,7 @@ export const reviewController = {
   getPublicReviews: async (req: Request, res: Response) => {
     try {
       const result = await pool.query(`
-        SELECT r.*, p.business_name as pharmacy_name 
+        SELECT r.*, p.name as pharmacy_name 
         FROM software_reviews r
         JOIN pharmacies p ON r.pharmacy_id = p.id
         WHERE r.is_public = true
@@ -16,7 +16,7 @@ export const reviewController = {
       res.json(result.rows);
     } catch (error) {
       console.error('Error fetching public reviews:', error);
-      res.status(500).json({ error: 'Failed to fetch reviews' });
+      res.status(500).json({ error: 'Failed to fetch reviews', details: error instanceof Error ? error.message : String(error) });
     }
   },
 
