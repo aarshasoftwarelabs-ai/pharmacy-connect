@@ -11,7 +11,8 @@ import {
   LogOut,
   Settings,
   Inbox,
-  AlertTriangle
+  AlertTriangle,
+  HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Billing', href: '/billing', icon: Receipt, perm: 'BILLING_VIEW' },
   { name: 'Reports', href: '/reports', icon: BarChart3, perm: 'REPORTS_VIEW' },
   { name: 'Pharmacy Profile', href: '/pharmacy-profile', icon: Store, perm: 'PHARMACY_PROFILE_VIEW' },
+  { name: 'Help & Support', href: '/help-support', icon: HelpCircle, perm: 'DASHBOARD_VIEW' },
 ];
 
 export default function Sidebar() {

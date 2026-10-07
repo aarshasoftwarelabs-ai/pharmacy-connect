@@ -11,6 +11,7 @@ import Billing from './pages/Billing';
 import Reports from './pages/Reports';
 import PharmacyProfile from './pages/PharmacyProfile';
 import Settings from './pages/Settings';
+import HelpSupport from './pages/HelpSupport';
 import Inventory from './pages/Inventory';
 import Suppliers from './pages/Suppliers';
 import Purchases from './pages/Purchases';
@@ -68,6 +69,7 @@ function App() {
               <Route path="reports" element={<PermissionRoute permissionKey="REPORTS_VIEW"><Reports /></PermissionRoute>} />
               <Route path="pharmacy-profile" element={<PermissionRoute permissionKey="PHARMACY_PROFILE_VIEW"><PharmacyProfile /></PermissionRoute>} />
               <Route path="settings" element={<PermissionRoute permissionKey="SETTINGS_VIEW"><Settings /></PermissionRoute>} />
+              <Route path="help-support" element={<PermissionRoute permissionKey="DASHBOARD_VIEW"><HelpSupport /></PermissionRoute>} />
             </Route>
             
 

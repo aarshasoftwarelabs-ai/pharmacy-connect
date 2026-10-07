@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ShoppingCart, IndianRupee, Clock, PlusCircle, FileText, Inbox, Eye, Loader2, AlertCircle, RefreshCw, Users, Activity, Bell, FileBox, UserCircle, ChevronRight, ActivitySquare, Pill, FileSignature, ArrowRight } from 'lucide-react';
+import { motion, Variants } from 'framer-motion';
+import { ShoppingCart, IndianRupee, Clock, PlusCircle, FileText, Inbox, Eye, Loader2, AlertCircle, RefreshCw, Users, Activity, Bell, FileBox, UserCircle, ChevronRight, ActivitySquare, Pill, FileSignature, ArrowRight, Package } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { MedicineRequestService } from '../services/medicineRequestService';
@@ -10,7 +10,7 @@ import { getPharmacyId } from '../config/development';
 import { MedicineRequest } from '../types/medicineRequest';
 import { Bill } from '../types/billing';
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -18,7 +18,7 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 15 },
   show: { 
     opacity: 1, 
@@ -126,25 +126,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-[1600px] mx-auto pb-16 space-y-8 overflow-hidden px-1">
-      
-      {/* HEADER SECTION */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mt-2">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Good morning, K.Y Pharmacy</h1>
-          <p className="mt-1.5 text-slate-500 font-medium">Here's what's happening at your pharmacy today.</p>
-        </motion.div>
-        
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: "easeOut" }} className="flex items-center gap-3">
-          <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 shadow-sm flex items-center text-sm font-semibold text-slate-700">
-            <Clock className="w-4 h-4 mr-2 text-indigo-500" />
-            {todayDate}
-          </div>
-          <div className="w-10 h-10 bg-white rounded-xl border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer transition-colors relative">
-            <Bell className="w-5 h-5" />
-            {pendingRequestsCount > 0 && <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
-          </div>
-        </motion.div>
-      </header>
+      {/* HEADER SECTION MOVED TO HERO TO SAVE SPACE */}
 
       {/* BENTO GRID */}
       <motion.div 
@@ -163,12 +145,47 @@ export default function Dashboard() {
           <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none group-hover:bg-white/10 transition-all duration-700"></div>
           <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-violet-500/20 rounded-full blur-3xl pointer-events-none group-hover:bg-violet-500/30 transition-all duration-700"></div>
           
-          <div className="relative z-10 flex justify-between items-start mb-8">
-            <div className="inline-flex items-center px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold tracking-wide border border-white/10">
-              <span className="w-2 h-2 bg-emerald-400 rounded-full mr-2 animate-pulse"></span>
-              LIVE TODAY
-            </div>
-            {refreshing && <RefreshCw className="w-4 h-4 text-white/50 animate-spin" />}
+          {/* Animated Background Elements */}
+          <motion.div 
+            animate={{ y: [0, -20, 0], opacity: [0.2, 0.5, 0.2], rotate: [0, 15, 0] }} 
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} 
+            className="absolute top-6 right-[30%] text-white/20 pointer-events-none hidden md:block"
+          >
+            <PlusCircle className="w-16 h-16" />
+          </motion.div>
+          
+          <motion.div 
+            animate={{ y: [0, 15, 0], opacity: [0.1, 0.4, 0.1], rotate: [-45, -20, -45] }} 
+            transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }} 
+            className="absolute bottom-10 right-[45%] text-white/20 pointer-events-none hidden sm:block"
+          >
+            <Pill className="w-12 h-12" />
+          </motion.div>
+          
+          <motion.div 
+            animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }} 
+            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 0.5 }} 
+            className="absolute top-1/2 left-[20%] text-white/10 pointer-events-none hidden lg:block"
+          >
+            <Activity className="w-20 h-20" />
+          </motion.div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-2">Good morning, K.Y Pharmacy</h1>
+              <p className="text-indigo-200 font-medium">Here's what's happening at your pharmacy today.</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: "easeOut" }} className="flex flex-row items-center gap-2 sm:gap-3 shrink-0">
+              {refreshing && <RefreshCw className="w-4 h-4 text-white/50 animate-spin" />}
+              <div className="px-3 sm:px-4 py-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 flex items-center text-xs sm:text-sm font-semibold text-white whitespace-nowrap">
+                <Clock className="w-4 h-4 mr-1.5 sm:mr-2 text-indigo-300" />
+                {todayDate}
+              </div>
+              <div className="inline-flex items-center px-2.5 sm:px-3 py-2 sm:py-2.5 bg-white/10 backdrop-blur-md rounded-xl text-xs font-semibold tracking-wide border border-white/10 whitespace-nowrap">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full mr-1.5 sm:mr-2 animate-pulse"></span>
+                LIVE TODAY
+              </div>
+            </motion.div>
           </div>
 
           <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-8">
