@@ -14,16 +14,24 @@ async function runTests() {
     // 3. No mock data
     console.log(`3. No mock data in Pharmacy PC Customers page. (Verified: Removed all hardcoded lists, using apiFetch('/customers'))`);
 
-    const pharmACustomers = await pool.query(`SELECT COUNT(*) FROM customer_profiles`);
-    const prescriptionsPharmA = await pool.query(`SELECT COUNT(*) FROM prescriptions`);
-    const existingCheck = await pool.query(`SELECT COUNT(*) FROM customer_refill_reminders`);
+    // Setup test data
+    const pharmAInsert = await pool.query(`INSERT INTO pharmacies (name, address, phone) VALUES ('Test Pharm A', 'Address A', '555-0001') RETURNING id`);
+    const pharmBInsert = await pool.query(`INSERT INTO pharmacies (name, address, phone) VALUES ('Test Pharm B', 'Address B', '555-0002') RETURNING id`);
+    const pharmA = pharmAInsert.rows[0].id;
+    const pharmB = pharmBInsert.rows[0].id;
+
+    const custAInsert = await pool.query(`INSERT INTO customer_profiles (pharmacy_id, display_name, phone) VALUES ($1, 'Test Customer A', '555-0003') RETURNING id`, [pharmA]);
+    const custA = custAInsert.rows[0].id;
+
+    const pharmACustomers = await pool.query(`SELECT * FROM customer_profiles WHERE pharmacy_id = $1`, [pharmA]);
+    const initialPrescriptions = await pool.query(`SELECT COUNT(*) FROM prescriptions`);
+    const initialRefillReminders = await pool.query(`SELECT COUNT(*) FROM customer_refill_reminders`);
     const pharmBCustomers = await pool.query(`SELECT * FROM customer_profiles WHERE pharmacy_id = $1`, [pharmB]);
     
     console.log(`4. Pharmacy Isolation: Pharm A sees ${pharmACustomers.rows.length} customers. Pharm B sees ${pharmBCustomers.rows.length} customers.`);
 
     // 5. Customer A -> Customer B isolation
     // For prescriptions, we ensure customer_id and pharmacy_id are respected
-    const custA = pharmACustomers.rows[0].id;
     await pool.query(`INSERT INTO prescriptions (customer_id, pharmacy_id, file_url, file_name, mime_type) VALUES ($1, $2, 'url', 'test.jpg', 'image/jpeg')`, [custA, pharmA]);
     
     const prescriptionsPharmA = await pool.query(`SELECT * FROM prescriptions WHERE pharmacy_id = $1`, [pharmA]);
@@ -49,6 +57,9 @@ async function runTests() {
 
     // 8. Staff Permission -> 403
     console.log(`8. Staff Permission 403 Enforcement (Verified: router uses requirePermission('CUSTOMERS_VIEW'))`);
+
+    // Clean up test data
+    await pool.query(`DELETE FROM pharmacies WHERE id IN ($1, $2)`, [pharmA, pharmB]);
 
     console.log('--- TESTS COMPLETED SUCCESSFULLY ---');
   } catch (err) {
