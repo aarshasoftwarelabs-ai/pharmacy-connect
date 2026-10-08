@@ -50,7 +50,7 @@ export default function Suppliers() {
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-12 px-4 xl:px-8 pt-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight">Suppliers</h1>
+        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight w-fit">Suppliers</h1>
         <button onClick={() => setShowModal(true)} className="flex items-center px-5 py-2.5 bg-pharmacy-600 text-white rounded-xl text-sm font-bold shadow-sm shadow-pharmacy-600/30 hover:bg-pharmacy-700 transition-all hover:-translate-y-0.5">
           <Plus className="w-4 h-4 mr-2" />
           Add Supplier

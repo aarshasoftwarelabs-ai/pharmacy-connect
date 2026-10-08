@@ -16,7 +16,7 @@ export default function WholesaleBilling() {
     <div className="h-full flex flex-col space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight w-fit">
             B2B Billing & Invoices
           </h1>
           <p className="mt-2 text-sm text-slate-500 font-medium">Create invoices and manage transaction history for your wholesale clients.</p>

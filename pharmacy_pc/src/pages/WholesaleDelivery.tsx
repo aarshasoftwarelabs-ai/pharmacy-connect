@@ -62,7 +62,7 @@ export default function WholesaleDelivery() {
     <div className="h-full flex flex-col space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight flex items-center">
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight flex items-center w-fit">
             <Route className="w-8 h-8 mr-3 text-blue-600" />
             AI Delivery Route Planner
           </h1>

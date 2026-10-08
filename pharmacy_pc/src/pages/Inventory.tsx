@@ -163,7 +163,7 @@ export default function Inventory() {
       {/* Smart Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center gap-2">
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center gap-2 w-fit">
             <Sparkles className="w-8 h-8 text-pharmacy-600" />
             Smart Stock Management
           </h2>

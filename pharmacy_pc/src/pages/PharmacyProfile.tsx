@@ -244,7 +244,7 @@ export default function PharmacyProfile() {
     <div className="pb-12 animate-fade-in space-y-6 max-w-[1600px] mx-auto px-4 xl:px-8 pt-4">
       <div className="flex justify-between items-end mb-2">
         <div>
-          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight">Pharmacy Profile</h1>
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight w-fit">Pharmacy Profile</h1>
           <p className="mt-1 text-sm text-slate-500">Manage your business settings and view overall performance.</p>
         </div>
         <button 
