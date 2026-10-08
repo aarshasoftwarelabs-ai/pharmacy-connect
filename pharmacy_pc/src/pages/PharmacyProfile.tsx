@@ -278,7 +278,7 @@ export default function PharmacyProfile() {
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
             {/* Cover Photo Area */}
-            <div className="h-32 bg-gradient-to-r from-pharmacy-400 via-pharmacy-500 to-blue-500 relative">
+            <div className="h-32 bg-gradient-to-r from-pharmacy-600 to-blue-600 relative">
               <div className="absolute inset-0 bg-black/10"></div>
             </div>
             
