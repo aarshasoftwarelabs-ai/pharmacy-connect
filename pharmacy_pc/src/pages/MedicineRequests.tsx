@@ -152,7 +152,7 @@ export default function MedicineRequests() {
         className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-2 gap-4"
       >
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight flex items-center">
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center">
             Medicine Requests
             {refreshing && <RefreshCw className="w-4 h-4 ml-3 text-indigo-500 animate-spin" />}
           </h1>

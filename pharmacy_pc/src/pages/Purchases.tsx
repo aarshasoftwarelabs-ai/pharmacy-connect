@@ -144,7 +144,7 @@ export default function Purchases() {
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-12 px-4 xl:px-8 pt-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-800">Purchases</h1>
+        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight">Purchases</h1>
         <div className="flex items-center gap-3">
           <input 
             type="file" 

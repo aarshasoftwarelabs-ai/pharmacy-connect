@@ -159,8 +159,8 @@ export default function Staff() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center">
-            <Users className="w-6 h-6 mr-3 text-pharmacy-600" />
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center">
+            <Users className="w-8 h-8 mr-3 text-pharmacy-600" />
             Staff Management
           </h1>
           <p className="mt-1 text-sm text-slate-500">Manage your employees, their roles, and access pins.</p>

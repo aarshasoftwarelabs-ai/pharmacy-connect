@@ -231,7 +231,7 @@ export default function Settings() {
           {/* Header Area */}
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-slate-800">Application Settings</h2>
+              <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight">Application Settings</h2>
               <p className="text-sm text-slate-500 mt-1">Manage your pharmacy operations and subscription.</p>
             </div>
             

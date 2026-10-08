@@ -89,8 +89,8 @@ export default function Customers() {
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center">
-            <Users className="w-6 h-6 mr-3 text-pharmacy-600" />
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center">
+            <Users className="w-8 h-8 mr-3 text-pharmacy-600" />
             Customers & CRM
           </h1>
           <p className="mt-1 text-sm text-slate-500 font-medium">Manage pharmacy customers, history, and smart refills.</p>
