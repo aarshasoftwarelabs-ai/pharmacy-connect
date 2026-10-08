@@ -158,7 +158,7 @@ export default function Inventory() {
   const smartReorderCount = lowStockCount;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-[1600px] mx-auto pb-16 space-y-6 px-4 xl:px-8 pt-4">
       
       {/* Smart Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -197,44 +197,48 @@ export default function Inventory() {
 
       {/* Smart Insight Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:border-blue-200 transition-colors cursor-pointer group">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-[2rem] -mr-8 -mt-8 transition-transform group-hover:scale-110 pointer-events-none"></div>
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-hover:scale-110 transition-transform self-start relative z-10 shadow-sm border border-blue-100">
             <Package className="w-6 h-6" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Total Unique Items</p>
-            <h3 className="text-2xl font-bold text-slate-800">{medicines.length}</h3>
+          <div className="mt-6 relative z-10">
+            <p className="text-sm font-bold text-slate-500 tracking-wide uppercase mb-1">Total Unique Items</p>
+            <h3 className="text-3xl font-extrabold text-slate-800">{medicines.length}</h3>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:border-red-200 transition-colors cursor-pointer group">
-          <div className="p-3 bg-red-50 text-red-600 rounded-xl group-hover:scale-110 transition-transform relative">
-            {lowStockCount > 0 && <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>}
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md hover:border-red-200 transition-all cursor-pointer group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-[2rem] -mr-8 -mt-8 transition-transform group-hover:scale-110 pointer-events-none"></div>
+          <div className="p-3 bg-red-50 text-red-600 rounded-2xl group-hover:scale-110 transition-transform self-start relative z-10 shadow-sm border border-red-100">
+            {lowStockCount > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>}
             <AlertTriangle className="w-6 h-6" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Low / Out of Stock</p>
-            <h3 className="text-2xl font-bold text-slate-800">{lowStockCount}</h3>
+          <div className="mt-6 relative z-10">
+            <p className="text-sm font-bold text-slate-500 tracking-wide uppercase mb-1">Low / Out of Stock</p>
+            <h3 className="text-3xl font-extrabold text-slate-800">{lowStockCount}</h3>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:border-amber-200 transition-colors cursor-pointer group">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl group-hover:scale-110 transition-transform">
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md hover:border-amber-200 transition-all cursor-pointer group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-[2rem] -mr-8 -mt-8 transition-transform group-hover:scale-110 pointer-events-none"></div>
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl group-hover:scale-110 transition-transform self-start relative z-10 shadow-sm border border-amber-100">
             <Clock className="w-6 h-6" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Expiring Soon (30d)</p>
-            <h3 className="text-2xl font-bold text-slate-800">{expiringSoonCount}</h3>
+          <div className="mt-6 relative z-10">
+            <p className="text-sm font-bold text-slate-500 tracking-wide uppercase mb-1">Expiring Soon (30d)</p>
+            <h3 className="text-3xl font-extrabold text-slate-800">{expiringSoonCount}</h3>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-pharmacy-50 to-emerald-50 p-5 rounded-2xl shadow-sm border border-pharmacy-100 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer group">
-          <div className="p-3 bg-white text-pharmacy-600 rounded-xl group-hover:scale-110 transition-transform shadow-sm">
+        <div className="bg-gradient-to-br from-pharmacy-50 to-emerald-50 p-6 rounded-[2rem] shadow-sm border border-pharmacy-200 flex flex-col justify-between hover:shadow-md transition-all cursor-pointer group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/50 rounded-bl-[2rem] -mr-8 -mt-8 transition-transform group-hover:scale-110 pointer-events-none"></div>
+          <div className="p-3 bg-white text-pharmacy-600 rounded-2xl group-hover:scale-110 transition-transform self-start relative z-10 shadow-sm border border-pharmacy-100">
             <TrendingUp className="w-6 h-6" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-pharmacy-700">Smart Reorder</p>
-            <h3 className="text-2xl font-bold text-slate-800">{smartReorderCount} items</h3>
+          <div className="mt-6 relative z-10">
+            <p className="text-sm font-bold text-pharmacy-700 tracking-wide uppercase mb-1">Smart Reorder</p>
+            <h3 className="text-3xl font-extrabold text-slate-800">{smartReorderCount} items</h3>
           </div>
         </div>
       </div>
@@ -246,7 +250,7 @@ export default function Inventory() {
       )}
 
       {/* Smart Data Table Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
         
         {/* Table Header/Toolbar */}
         <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between gap-4 bg-slate-50/50">
@@ -452,7 +456,7 @@ export default function Inventory() {
 
       {autoOrderConfirmMed && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-500/75 backdrop-blur-sm transition-all" onClick={() => setAutoOrderConfirmMed(null)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[2rem] shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-center w-12 h-12 rounded-full bg-pharmacy-100 text-pharmacy-600 mb-4">
                 <Sparkles className="w-6 h-6" />
@@ -545,7 +549,7 @@ export default function Inventory() {
 
       {deleteConfirmMed && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-500/75 backdrop-blur-sm transition-all" onClick={() => setDeleteConfirmMed(null)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[2rem] shadow-xl max-w-sm w-full overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 text-center">
               <div className="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600 mb-4">
                 <Trash2 className="w-6 h-6" />
@@ -576,7 +580,7 @@ export default function Inventory() {
 
       {viewBatchesMed && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-500/75 backdrop-blur-sm transition-all" onClick={() => setViewBatchesMed(null)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[2rem] shadow-xl max-w-4xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Medicine Batches</h3>

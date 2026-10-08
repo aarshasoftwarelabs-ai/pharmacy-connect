@@ -204,21 +204,20 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full relative overflow-hidden">
-      {/* Decorative top bar */}
-      <div className="h-2 bg-gradient-to-r from-emerald-400 to-teal-500 absolute top-0 left-0 right-0"></div>
+    <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm flex flex-col h-full min-h-[500px] relative overflow-hidden group hover:shadow-md transition-shadow">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110 pointer-events-none z-0"></div>
       
-      <div className="p-5 border-b border-slate-100 flex items-center justify-between mt-2">
+      <div className="p-6 border-b border-slate-100 flex items-center justify-between relative z-10">
         <h2 className="text-xl font-bold text-slate-800 flex items-center">
-          <Store className="w-5 h-5 mr-2 text-emerald-500" />
+          <Store className="w-6 h-6 mr-3 text-emerald-500" />
           Point of Sale (POS)
         </h2>
-        <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border border-emerald-100">
+        <span className="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider">
           Walk-in
         </span>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 flex-1 flex flex-col">
+      <form onSubmit={handleSubmit} className="p-6 flex-1 flex flex-col relative z-10">
         {error && (
           <div className="mb-5 p-4 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100 flex items-center">
             <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div>

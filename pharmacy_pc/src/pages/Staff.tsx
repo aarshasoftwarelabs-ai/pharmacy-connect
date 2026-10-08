@@ -155,29 +155,29 @@ export default function Staff() {
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="max-w-[1600px] mx-auto pb-16 space-y-6 px-4 xl:px-8 pt-4">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center">
-            <Users className="w-6 h-6 mr-3 text-indigo-600" />
+            <Users className="w-6 h-6 mr-3 text-pharmacy-600" />
             Staff Management
           </h1>
           <p className="mt-1 text-sm text-slate-500">Manage your employees, their roles, and access pins.</p>
         </div>
         <button 
           onClick={openAddModal}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-sm shadow-indigo-600/30 hover:bg-indigo-700 transition-colors flex items-center"
+          className="bg-pharmacy-600 text-white px-4 py-2 rounded-xl font-bold shadow-sm shadow-pharmacy-600/30 hover:bg-pharmacy-700 transition-colors flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" /> Add Staff Member
         </button>
       </div>
 
       {/* Staff List */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center p-12 text-slate-400">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pharmacy-600 mb-4"></div>
             Loading staff...
           </div>
         ) : staff.length === 0 ? (
@@ -203,7 +203,7 @@ export default function Staff() {
                   <tr key={member.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
+                        <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-pharmacy-50 flex items-center justify-center text-pharmacy-700 font-bold border border-pharmacy-100">
                           {member.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="ml-4">
@@ -238,11 +238,11 @@ export default function Staff() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {isOwner() && member.role !== 'OWNER' && (
-                        <button onClick={() => openPermissionsModal(member)} className="text-indigo-600 hover:text-indigo-900 mr-4" title="Manage Permissions">
+                        <button onClick={() => openPermissionsModal(member)} className="text-pharmacy-600 hover:text-pharmacy-900 mr-4" title="Manage Permissions">
                           <Shield className="w-4 h-4" />
                         </button>
                       )}
-                      <button onClick={() => openEditModal(member)} className="text-indigo-600 hover:text-indigo-900 mr-4" title="Edit">
+                      <button onClick={() => openEditModal(member)} className="text-pharmacy-600 hover:text-pharmacy-900 mr-4" title="Edit">
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button onClick={() => handleDelete(member.id)} className="text-red-500 hover:text-red-700" title="Delete">
@@ -260,7 +260,7 @@ export default function Staff() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-800/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-[2rem] shadow-xl w-full max-w-md overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-lg font-bold text-slate-900">
                 {editingStaff ? 'Edit Staff Member' : 'Add Staff Member'}
@@ -276,7 +276,7 @@ export default function Staff() {
                   type="text" 
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-shadow" 
+                  className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent outline-none transition-shadow bg-slate-50 focus:bg-white" 
                 />
               </div>
               
@@ -288,7 +288,7 @@ export default function Staff() {
                     type="tel" 
                     value={formData.phone}
                     onChange={e => setFormData({...formData, phone: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-shadow" 
+                    className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent outline-none transition-shadow bg-slate-50 focus:bg-white" 
                   />
                 </div>
                 <div>
@@ -299,7 +299,7 @@ export default function Staff() {
                     value={formData.pin}
                     onChange={e => setFormData({...formData, pin: e.target.value.replace(/[^0-9]/g, '')})}
                     placeholder="e.g. 1234"
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-shadow" 
+                    className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent outline-none transition-shadow bg-slate-50 focus:bg-white" 
                   />
                 </div>
               </div>
@@ -310,7 +310,7 @@ export default function Staff() {
                   type="email" 
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value})}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-shadow" 
+                  className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent outline-none transition-shadow bg-slate-50 focus:bg-white" 
                 />
               </div>
 
@@ -319,7 +319,7 @@ export default function Staff() {
                 <select 
                   value={formData.role}
                   onChange={e => setFormData({...formData, role: e.target.value as any})}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-shadow"
+                  className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent outline-none transition-shadow bg-slate-50 focus:bg-white"
                 >
                   <option value="BILLER">Biller / Cashier</option>
                   <option value="PHARMACIST">Pharmacist</option>
@@ -334,7 +334,7 @@ export default function Staff() {
                   id="isActive"
                   checked={formData.is_active}
                   onChange={e => setFormData({...formData, is_active: e.target.checked})}
-                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 mr-2"
+                  className="rounded border-slate-300 text-pharmacy-600 focus:ring-pharmacy-500 w-4 h-4 mr-2"
                 />
                 <label htmlFor="isActive" className="text-sm font-medium text-slate-700">Account is Active</label>
               </div>
@@ -343,13 +343,13 @@ export default function Staff() {
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                  className="flex-1 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
-                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-pharmacy-600 text-white rounded-xl font-medium hover:bg-pharmacy-700 transition-colors"
                 >
                   {editingStaff ? 'Save Changes' : 'Add Staff'}
                 </button>
@@ -362,10 +362,10 @@ export default function Staff() {
       {/* Permissions Modal */}
       {isPermsModalOpen && managingPermsStaff && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-800/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-[2rem] shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
               <h3 className="text-lg font-bold text-slate-900 flex items-center">
-                <Shield className="w-5 h-5 mr-2 text-indigo-600" />
+                <Shield className="w-5 h-5 mr-2 text-pharmacy-600" />
                 Manage Permissions: {managingPermsStaff.name}
               </h3>
               <button onClick={() => setIsPermsModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -373,7 +373,7 @@ export default function Staff() {
             
             <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
               {permsLoading ? (
-                <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>
+                <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pharmacy-600"></div></div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   {AVAILABLE_PERMISSIONS.map((group, idx) => (
@@ -387,13 +387,13 @@ export default function Staff() {
                               <div className="flex-shrink-0 mt-0.5">
                                 <input
                                   type="checkbox"
-                                  className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                                  className="w-4 h-4 text-pharmacy-600 border-slate-300 rounded focus:ring-pharmacy-500"
                                   checked={isGranted}
                                   onChange={(e) => handlePermissionToggle(p.key, e.target.checked)}
                                 />
                               </div>
                               <div className="ml-3">
-                                <span className="block text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">{p.label}</span>
+                                <span className="block text-sm font-medium text-slate-700 group-hover:text-pharmacy-600 transition-colors">{p.label}</span>
                                 {p.desc && <span className="block text-xs text-slate-500">{p.desc}</span>}
                               </div>
                             </label>
@@ -406,17 +406,17 @@ export default function Staff() {
               )}
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
+            <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3 rounded-b-[2rem]">
               <button 
                 onClick={() => setIsPermsModalOpen(false)}
-                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleSavePermissions}
                 disabled={savingPerms}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-pharmacy-600 text-white rounded-xl font-medium hover:bg-pharmacy-700 transition-colors disabled:opacity-50"
               >
                 {savingPerms ? 'Saving...' : 'Save Permissions'}
               </button>

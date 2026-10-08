@@ -27,7 +27,7 @@ export default function SalesTab({ dateRange }: { dateRange: ReportDateRange }) 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-48">
-        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-pharmacy-500 animate-spin" />
       </div>
     );
   }
@@ -52,7 +52,7 @@ export default function SalesTab({ dateRange }: { dateRange: ReportDateRange }) 
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+      <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100">
         <div className="flex items-center text-slate-500 mb-2">
           <IndianRupee className="w-5 h-5 mr-2" />
           <h3 className="font-medium">Gross Sales</h3>
@@ -61,7 +61,7 @@ export default function SalesTab({ dateRange }: { dateRange: ReportDateRange }) 
         <p className="text-sm text-slate-500 mt-1">Before discounts</p>
       </div>
 
-      <div className="bg-orange-50 rounded-xl p-6 border border-orange-100">
+      <div className="bg-orange-50 rounded-[2rem] p-6 border border-orange-100">
         <div className="flex items-center text-orange-600 mb-2">
           <Percent className="w-5 h-5 mr-2" />
           <h3 className="font-medium">Total Discount</h3>
@@ -70,16 +70,16 @@ export default function SalesTab({ dateRange }: { dateRange: ReportDateRange }) 
         <p className="text-sm text-orange-600/80 mt-1">Given to customers</p>
       </div>
 
-      <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-100">
-        <div className="flex items-center text-indigo-600 mb-2">
+      <div className="bg-pharmacy-50 rounded-[2rem] p-6 border border-pharmacy-100">
+        <div className="flex items-center text-pharmacy-600 mb-2">
           <TrendingUp className="w-5 h-5 mr-2" />
           <h3 className="font-medium">Net Sales</h3>
         </div>
-        <p className="text-3xl font-bold text-indigo-700">₹{data.netSales.toFixed(2)}</p>
-        <p className="text-sm text-indigo-600/80 mt-1">Final collected amount</p>
+        <p className="text-3xl font-bold text-pharmacy-700">₹{data.netSales.toFixed(2)}</p>
+        <p className="text-sm text-pharmacy-600/80 mt-1">Final collected amount</p>
       </div>
 
-      <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-100">
+      <div className="bg-emerald-50 rounded-[2rem] p-6 border border-emerald-100">
         <div className="flex items-center text-emerald-600 mb-2">
           <TrendingDown className="w-5 h-5 mr-2" />
           <h3 className="font-medium">Net Profit</h3>
@@ -89,7 +89,7 @@ export default function SalesTab({ dateRange }: { dateRange: ReportDateRange }) 
       </div>
 
 
-      <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
+      <div className="bg-blue-50 rounded-[2rem] p-6 border border-blue-100">
         <div className="flex items-center text-blue-600 mb-2">
           <ShoppingBag className="w-5 h-5 mr-2" />
           <h3 className="font-medium">Average Bill Value</h3>

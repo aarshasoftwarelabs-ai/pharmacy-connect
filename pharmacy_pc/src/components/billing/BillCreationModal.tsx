@@ -128,7 +128,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
         <div className="fixed inset-0 transition-opacity bg-slate-900/75 backdrop-blur-sm" onClick={onClose} />
         
-        <div className="relative inline-block w-full max-w-2xl text-left align-middle transition-all transform bg-white rounded-2xl shadow-xl border border-slate-200">
+        <div className="relative inline-block w-full max-w-2xl text-left align-middle transition-all transform bg-white rounded-[2rem] shadow-xl border border-slate-200">
           {createdBill ? (
             <ReceiptAnimation 
               bill={createdBill} 
@@ -145,7 +145,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
 
               <form onSubmit={handleSubmit} className="px-6 py-4">
             {error && (
-              <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">
+              <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">
                 {error}
               </div>
             )}
@@ -153,13 +153,13 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-slate-700">Customer Name</label>
-                <div className="mt-1 p-2 bg-slate-50 rounded-md text-slate-900 font-medium">
+                <div className="mt-1 p-2 bg-slate-50 rounded-xl text-slate-900 font-medium">
                   {queueItem.customerName}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700">Request Date</label>
-                <div className="mt-1 p-2 bg-slate-50 rounded-md text-slate-900 font-medium">
+                <div className="mt-1 p-2 bg-slate-50 rounded-xl text-slate-900 font-medium">
                   {new Date(queueItem.confirmedAt).toLocaleString()}
                 </div>
               </div>
@@ -186,7 +186,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
                         placeholder="Medicine Name"
                         value={item.medicineName}
                         onChange={(e) => handleItemChange(index, 'medicineName', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                         required
                       />
                     </div>
@@ -197,7 +197,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
                         placeholder="Qty"
                         value={item.quantity}
                         onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                         required
                       />
                     </div>
@@ -209,7 +209,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
                         placeholder="Price (₹)"
                         value={item.unitPrice || ''}
                         onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                         required
                       />
                     </div>
@@ -217,7 +217,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
                       <select
                         value={item.gstRate}
                         onChange={(e) => handleItemChange(index, 'gstRate', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                       >
                         <option value={0}>0%</option>
                         <option value={5}>5%</option>
@@ -230,7 +230,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
                       <button 
                         type="button"
                         onClick={() => handleRemoveItem(index)}
-                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md mt-0.5"
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl mt-0.5"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -262,7 +262,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
                       step="0.01"
                       value={discount || ''}
                       onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                      className="w-24 px-2 py-1 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-right"
+                      className="w-24 px-2 py-1 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-right"
                     />
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-slate-100">
@@ -277,14 +277,14 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Finalize Bill

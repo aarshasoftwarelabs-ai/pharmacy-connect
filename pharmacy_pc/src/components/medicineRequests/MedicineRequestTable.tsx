@@ -30,7 +30,7 @@ export default function MedicineRequestTable({ requests, onView }: MedicineReque
 
   if (requests.length === 0) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-16 text-center flex flex-col items-center">
+      <div className="p-16 text-center flex flex-col items-center">
         <FileText className="h-12 w-12 text-slate-300 mb-4" />
         <h3 className="text-xl font-bold text-slate-800 mb-2">No medicine requests found</h3>
         <p className="text-slate-500 font-medium">Try changing your filters or search terms.</p>
@@ -39,62 +39,60 @@ export default function MedicineRequestTable({ requests, onView }: MedicineReque
   }
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100">
-          <thead className="bg-slate-50/50">
-            <tr>
-              <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Request</th>
-              <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Customer</th>
-              <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Requested At</th>
-              <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-              <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-widest rounded-tr-2xl">Action</th>
+    <div className="overflow-x-auto w-full">
+      <table className="min-w-full divide-y divide-slate-100">
+        <thead className="bg-slate-50/50">
+          <tr>
+            <th scope="col" className="px-6 py-5 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Request</th>
+            <th scope="col" className="px-6 py-5 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Customer</th>
+            <th scope="col" className="px-6 py-5 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Requested At</th>
+            <th scope="col" className="px-6 py-5 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
+            <th scope="col" className="px-6 py-5 text-right text-xs font-bold text-slate-400 uppercase tracking-widest">Action</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-slate-50">
+          {requests.map((request) => (
+            <tr key={request.id} className="hover:bg-slate-50/80 transition-colors group cursor-pointer" onClick={() => onView(request)}>
+              <td className="px-6 py-5 whitespace-nowrap">
+                <div className="flex items-center">
+                  <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mr-4 border border-indigo-100 shadow-sm group-hover:scale-105 transition-transform">
+                    {request.imageAttached ? <ImageIcon className="h-6 w-6" /> : <FileText className="h-6 w-6" />}
+                  </div>
+                  <span className="text-sm font-bold text-slate-800">
+                    {request.medicineName || <span className="italic text-slate-400 font-medium">Image Prescription</span>}
+                  </span>
+                </div>
+              </td>
+              <td className="px-6 py-5 whitespace-nowrap">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mr-3 border border-slate-200">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">{request.customerName}</div>
+                    <div className="text-xs font-medium text-slate-500 mt-0.5">{request.customerPhone}</div>
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-slate-500">
+                {formatDate(request.requestedAt)}
+              </td>
+              <td className="px-6 py-5 whitespace-nowrap">
+                {getStatusBadge(request.status)}
+              </td>
+              <td className="px-6 py-5 whitespace-nowrap text-right">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onView(request); }}
+                  className="inline-flex items-center justify-center px-4 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all font-bold shadow-sm hover:shadow-indigo-500/25 border border-indigo-100 hover:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Review
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-slate-50">
-            {requests.map((request) => (
-              <tr key={request.id} className="hover:bg-slate-50/80 transition-colors group">
-                <td className="px-6 py-5 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center mr-4 border border-indigo-100 shadow-sm group-hover:scale-105 transition-transform">
-                      {request.imageAttached ? <ImageIcon className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
-                    </div>
-                    <span className="text-sm font-bold text-slate-800">
-                      {request.medicineName || <span className="italic text-slate-400 font-medium">Image Prescription</span>}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-5 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mr-3 border border-slate-200">
-                      <User className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-800">{request.customerName}</div>
-                      <div className="text-xs font-medium text-slate-500">{request.customerPhone}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-slate-500">
-                  {formatDate(request.requestedAt)}
-                </td>
-                <td className="px-6 py-5 whitespace-nowrap">
-                  {getStatusBadge(request.status)}
-                </td>
-                <td className="px-6 py-5 whitespace-nowrap text-right">
-                  <button
-                    onClick={() => onView(request)}
-                    className="inline-flex items-center justify-center px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg transition-all font-bold shadow-sm hover:shadow-indigo-500/25 border border-indigo-100 hover:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Open Now
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

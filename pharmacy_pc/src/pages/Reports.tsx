@@ -112,7 +112,7 @@ export default function Reports() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="space-y-8 pb-12 max-w-7xl mx-auto"
+      className="space-y-6 pb-12 max-w-[1600px] mx-auto px-4 xl:px-8 pt-4"
     >
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <motion.div 
@@ -120,8 +120,8 @@ export default function Reports() {
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 tracking-tight flex items-center">
-            <BarChart3 className="w-8 h-8 mr-3 text-indigo-600" />
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center">
+            <BarChart3 className="w-8 h-8 mr-3 text-pharmacy-600" />
             Reports Dashboard
           </h1>
           <p className="mt-2 text-sm text-slate-500 font-medium">View real-time metrics and detailed reports.</p>
@@ -131,13 +131,13 @@ export default function Reports() {
           initial={{ x: 20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="flex items-center space-x-3 bg-white/60 backdrop-blur-md p-2 rounded-2xl border border-slate-200/60 shadow-sm"
+          className="flex items-center space-x-3 bg-white p-2 rounded-[2rem] border border-slate-200 shadow-sm"
         >
-          <Calendar className="w-5 h-5 text-indigo-500 ml-2" />
+          <Calendar className="w-5 h-5 text-pharmacy-500 ml-2" />
           <select 
             value={dateRangeType}
             onChange={(e) => setDateRangeType(e.target.value)}
-            className="border-0 bg-transparent text-sm font-semibold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+            className="border-0 bg-transparent text-sm font-semibold text-slate-700 focus:ring-0 cursor-pointer outline-none pl-1 pr-6"
           >
             <option value="today">Today</option>
             <option value="yesterday">Yesterday</option>
@@ -156,14 +156,14 @@ export default function Reports() {
                 type="date" 
                 value={customRange.from || ''}
                 onChange={e => setCustomRange(p => ({ ...p, from: e.target.value }))}
-                className="text-sm border-slate-200 rounded-xl py-1.5 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                className="text-sm border-slate-200 rounded-xl py-1.5 focus:ring-pharmacy-500 focus:border-pharmacy-500 transition-shadow"
               />
               <span className="text-slate-400 font-medium">to</span>
               <input 
                 type="date" 
                 value={customRange.to || ''}
                 onChange={e => setCustomRange(p => ({ ...p, to: e.target.value }))}
-                className="text-sm border-slate-200 rounded-xl py-1.5 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                className="text-sm border-slate-200 rounded-xl py-1.5 focus:ring-pharmacy-500 focus:border-pharmacy-500 transition-shadow"
               />
             </motion.div>
           )}
@@ -177,53 +177,53 @@ export default function Reports() {
         animate="show"
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
       >
-        <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="bg-gradient-to-br from-white to-slate-50 rounded-3xl p-6 shadow-sm hover:shadow-xl border border-slate-200/60 transition-all duration-300 flex flex-col group relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+        <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-md border border-slate-200 transition-all duration-300 flex flex-col group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
           <div className="flex justify-between items-start z-10">
             <div>
               <p className="text-sm font-semibold text-slate-500 tracking-wide">Net Sales</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">₹{summary.sales.toFixed(2)}</p>
             </div>
-            <div className="p-3 bg-emerald-100 rounded-2xl text-emerald-600 shadow-inner">
+            <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600 shadow-sm border border-emerald-100 group-hover:scale-110 transition-transform">
               <IndianRupee className="w-6 h-6" />
             </div>
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="bg-gradient-to-br from-white to-slate-50 rounded-3xl p-6 shadow-sm hover:shadow-xl border border-slate-200/60 transition-all duration-300 flex flex-col group relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+        <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-md border border-slate-200 transition-all duration-300 flex flex-col group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-pharmacy-50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
           <div className="flex justify-between items-start z-10">
             <div>
               <p className="text-sm font-semibold text-slate-500 tracking-wide">Total Bills</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{summary.bills}</p>
             </div>
-            <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-600 shadow-inner">
+            <div className="p-3 bg-pharmacy-50 rounded-2xl text-pharmacy-600 shadow-sm border border-pharmacy-100 group-hover:scale-110 transition-transform">
               <FileText className="w-6 h-6" />
             </div>
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="bg-gradient-to-br from-white to-slate-50 rounded-3xl p-6 shadow-sm hover:shadow-xl border border-slate-200/60 transition-all duration-300 flex flex-col group relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+        <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-md border border-slate-200 transition-all duration-300 flex flex-col group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
           <div className="flex justify-between items-start z-10">
             <div>
               <p className="text-sm font-semibold text-slate-500 tracking-wide">Active Customers</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{summary.customers}</p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-2xl text-blue-600 shadow-inner">
+            <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 shadow-sm border border-blue-100 group-hover:scale-110 transition-transform">
               <Users className="w-6 h-6" />
             </div>
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="bg-gradient-to-br from-white to-slate-50 rounded-3xl p-6 shadow-sm hover:shadow-xl border border-slate-200/60 transition-all duration-300 flex flex-col group relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+        <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-md border border-slate-200 transition-all duration-300 flex flex-col group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
           <div className="flex justify-between items-start z-10">
             <div>
               <p className="text-sm font-semibold text-slate-500 tracking-wide">Medicine Requests</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{summary.requests}</p>
             </div>
-            <div className="p-3 bg-orange-100 rounded-2xl text-orange-600 shadow-inner">
+            <div className="p-3 bg-amber-50 rounded-2xl text-amber-600 shadow-sm border border-amber-100 group-hover:scale-110 transition-transform">
               <Stethoscope className="w-6 h-6" />
             </div>
           </div>
@@ -235,9 +235,9 @@ export default function Reports() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
-        className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-lg border border-slate-200/60 overflow-hidden"
+        className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden"
       >
-        <div className="p-2 border-b border-slate-100 bg-slate-50/50">
+        <div className="p-2 border-b border-slate-100 bg-slate-50">
           <div className="flex space-x-2 overflow-x-auto custom-scrollbar p-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -248,7 +248,7 @@ export default function Reports() {
                   onClick={() => setActiveTab(tab.id as ReportTab)}
                   className={`relative flex items-center px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 whitespace-nowrap z-10 ${
                     isActive
-                      ? 'text-indigo-600 shadow-sm'
+                      ? 'text-pharmacy-700 shadow-sm'
                       : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'
                   }`}
                 >

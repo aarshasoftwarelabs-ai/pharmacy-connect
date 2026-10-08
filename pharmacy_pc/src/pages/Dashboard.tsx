@@ -12,7 +12,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { MedicineRequestService } from '../services/medicineRequestService';
 import { BillingService } from '../services/billingService';
 import { CustomerService, CustomerProfile } from '../services/customerService';
-import { NotificationService } from '../services/notificationService';
 import { getPharmacyId } from '../config/development';
 import { MedicineRequest } from '../types/medicineRequest';
 import { Bill } from '../types/billing';
@@ -45,7 +44,6 @@ export default function Dashboard() {
   const [requests, setRequests] = useState<MedicineRequest[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,17 +55,15 @@ export default function Dashboard() {
       else setRefreshing(true);
 
       const pharmacyId = getPharmacyId();
-      const [reqData, billsData, custData, notifCount] = await Promise.all([
+      const [reqData, billsData, custData] = await Promise.all([
         MedicineRequestService.getPharmacyRequests(pharmacyId),
         BillingService.getPharmacyBills(pharmacyId),
-        CustomerService.getCustomers(),
-        NotificationService.getUnreadCount()
+        CustomerService.getCustomers()
       ]);
       
       setRequests(reqData);
       setBills(billsData);
       setCustomers(custData);
-      setUnreadNotifications(notifCount);
       if (!isBackgroundRefresh) setError(null);
     } catch (err: any) {
       if (!isBackgroundRefresh) {
@@ -190,21 +186,6 @@ export default function Dashboard() {
             {todayDate}
             {refreshing && <RefreshCw className="w-3.5 h-3.5 ml-3 text-emerald-500 animate-spin" />}
           </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Link to="/notifications" className="relative p-2.5 bg-white border border-slate-200 rounded-full text-slate-500 hover:bg-slate-50 hover:text-emerald-600 transition-colors shadow-sm">
-            <Bell className="w-5 h-5" />
-            {unreadNotifications > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-            )}
-          </Link>
-          <div className="flex items-center gap-3 px-3 py-1.5 bg-white border border-slate-200 rounded-full shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-              <User className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-semibold text-slate-700 pr-2">Owner</span>
-          </div>
         </div>
       </motion.div>
 

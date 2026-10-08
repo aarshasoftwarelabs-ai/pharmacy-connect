@@ -113,7 +113,7 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-          className="relative w-full max-w-4xl bg-white rounded-2xl text-left overflow-hidden shadow-2xl border border-slate-100 z-10"
+          className="relative w-full max-w-4xl bg-white rounded-[2rem] text-left overflow-hidden shadow-2xl border border-slate-100 z-10"
         >
           {/* Header */}
           <div className="relative px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80 backdrop-blur-md">

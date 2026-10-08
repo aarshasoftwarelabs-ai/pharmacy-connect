@@ -18,9 +18,9 @@ export default function MedicineRequestFilters({
   onClear
 }: MedicineRequestFiltersProps) {
   return (
-    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row gap-4">
+    <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200 mb-2 flex flex-col sm:flex-row gap-4 transition-all">
       <div className="flex-1 relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-slate-400" />
         </div>
         <input
@@ -28,15 +28,15 @@ export default function MedicineRequestFilters({
           placeholder="Search by medicine, customer name or phone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-pharmacy-500 focus:border-pharmacy-500 text-sm"
+          className="block w-full pl-11 pr-4 py-3 border border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-slate-50 hover:bg-slate-100 transition-colors focus:bg-white"
         />
       </div>
       
-      <div className="sm:w-48">
+      <div className="sm:w-56">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="block w-full pl-3 pr-10 py-2 text-base border border-slate-300 focus:outline-none focus:ring-pharmacy-500 focus:border-pharmacy-500 sm:text-sm rounded-lg"
+          className="block w-full pl-4 pr-10 py-3 text-base border border-slate-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors focus:bg-white font-medium text-slate-700 cursor-pointer appearance-none"
         >
           <option value="ALL">All Statuses</option>
           <option value="WAITING">Waiting</option>
@@ -48,7 +48,7 @@ export default function MedicineRequestFilters({
 
       <button
         onClick={onClear}
-        className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pharmacy-500"
+        className="inline-flex items-center justify-center px-6 py-3 border border-slate-200 shadow-sm text-sm font-bold rounded-2xl text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
       >
         <X className="h-4 w-4 mr-2" />
         Clear

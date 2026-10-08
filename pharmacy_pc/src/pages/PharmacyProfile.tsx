@@ -241,7 +241,7 @@ export default function PharmacyProfile() {
   };
 
   return (
-    <div className="pb-10 animate-fade-in space-y-6">
+    <div className="pb-12 animate-fade-in space-y-6 max-w-[1600px] mx-auto px-4 xl:px-8 pt-4">
       <div className="flex justify-between items-end mb-2">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Pharmacy Profile</h1>
@@ -267,7 +267,7 @@ export default function PharmacyProfile() {
             });
             setIsEditing(true);
           }}
-          className="flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg shadow-sm font-medium transition-colors border border-indigo-200"
+          className="flex items-center px-4 py-2 bg-pharmacy-50 text-pharmacy-700 hover:bg-pharmacy-100 rounded-xl shadow-sm font-medium transition-colors border border-pharmacy-200"
         >
           <Edit className="w-4 h-4 mr-2" /> Edit Profile
         </button>
@@ -276,16 +276,16 @@ export default function PharmacyProfile() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Profile Card */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
             {/* Cover Photo Area */}
-            <div className="h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 relative">
+            <div className="h-32 bg-gradient-to-r from-pharmacy-400 via-pharmacy-500 to-blue-500 relative">
               <div className="absolute inset-0 bg-black/10"></div>
             </div>
             
             <div className="px-6 pb-6">
               {/* Avatar */}
               <div className="w-24 h-24 rounded-2xl bg-white shadow-md relative -mt-12 mb-4 border border-slate-100">
-                <div className="absolute inset-1.5 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center border border-indigo-100 text-indigo-600 font-bold text-4xl leading-none">
+                <div className="absolute inset-1.5 rounded-xl bg-gradient-to-br from-pharmacy-50 to-blue-50 flex items-center justify-center border border-pharmacy-100 text-pharmacy-600 font-bold text-4xl leading-none">
                   {profile.name.charAt(0).toUpperCase()}
                 </div>
               </div>
@@ -314,9 +314,9 @@ export default function PharmacyProfile() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6">
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center">
-              <Clock className="w-4 h-4 mr-2 text-indigo-500" /> Operational Hours
+              <Clock className="w-4 h-4 mr-2 text-pharmacy-500" /> Operational Hours
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
@@ -340,7 +340,7 @@ export default function PharmacyProfile() {
           
           {/* Metrics Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center relative overflow-hidden group">
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6 flex flex-col justify-center relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-50 rounded-full group-hover:scale-110 transition-transform duration-500 z-0"></div>
               <div className="relative z-10">
                 <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
@@ -351,7 +351,7 @@ export default function PharmacyProfile() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center relative overflow-hidden group">
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6 flex flex-col justify-center relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-110 transition-transform duration-500 z-0"></div>
               <div className="relative z-10">
                 <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
@@ -362,7 +362,7 @@ export default function PharmacyProfile() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center relative overflow-hidden group">
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6 flex flex-col justify-center relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-110 transition-transform duration-500 z-0"></div>
               <div className="relative z-10">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
@@ -374,9 +374,9 @@ export default function PharmacyProfile() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-5 border-b border-slate-100 flex items-center">
-              <Building2 className="w-5 h-5 text-indigo-500 mr-2" />
+              <Building2 className="w-5 h-5 text-pharmacy-500 mr-2" />
               <h3 className="text-lg font-bold text-slate-800">About Pharmacy</h3>
             </div>
             <div className="p-6">
@@ -414,9 +414,9 @@ export default function PharmacyProfile() {
 
       {/* Edit Profile Modal */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-500 bg-opacity-75 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
               <h3 className="text-lg font-bold text-slate-900">Edit Pharmacy Profile</h3>
               <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-slate-500">
                 <X className="w-6 h-6" />
@@ -426,41 +426,41 @@ export default function PharmacyProfile() {
             <div className="px-6 py-4 overflow-y-auto flex-1 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700">Pharmacy Name</label>
-                  <input type="text" value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Pharmacy Name</label>
+                  <input type="text" value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-xl shadow-sm py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 sm:text-sm bg-slate-50 focus:bg-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Owner Name</label>
-                  <input type="text" value={editForm.ownerName || ''} onChange={e => setEditForm({...editForm, ownerName: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Owner Name</label>
+                  <input type="text" value={editForm.ownerName || ''} onChange={e => setEditForm({...editForm, ownerName: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-xl shadow-sm py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 sm:text-sm bg-slate-50 focus:bg-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Email</label>
-                  <input type="email" value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                  <input type="email" value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-xl shadow-sm py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 sm:text-sm bg-slate-50 focus:bg-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Phone</label>
-                  <input type="tel" value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
+                  <input type="tel" value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-xl shadow-sm py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 sm:text-sm bg-slate-50 focus:bg-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Registration No.</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Registration No.</label>
                   <div className="relative">
-                    <input type="text" value={editForm.regNo || ''} onChange={e => setEditForm({...editForm, regNo: e.target.value})} className={`mt-1 block w-full border ${validateRegNo(editForm.regNo) === false ? 'border-red-300' : 'border-slate-300'} rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`} />
+                    <input type="text" value={editForm.regNo || ''} onChange={e => setEditForm({...editForm, regNo: e.target.value})} className={`mt-1 block w-full border ${validateRegNo(editForm.regNo) === false ? 'border-red-300' : 'border-slate-300'} rounded-xl shadow-sm py-2.5 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 sm:text-sm bg-slate-50 focus:bg-white`} />
                     {validateRegNo(editForm.regNo) === true && <CheckCircle2 className="absolute right-3 top-3 w-4 h-4 text-emerald-500" />}
                     {validateRegNo(editForm.regNo) === false && <XCircle className="absolute right-3 top-3 w-4 h-4 text-red-500" />}
                   </div>
                   {validateRegNo(editForm.regNo) === false && <p className="mt-1 text-xs text-red-500">Invalid Registration No. format</p>}
                 </div>
                 <div className="md:col-span-2">
-                  <label className="flex items-center space-x-2 text-sm font-medium text-slate-700">
-                    <input type="checkbox" checked={editForm.gstRegistered} onChange={e => setEditForm({...editForm, gstRegistered: e.target.checked})} className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                  <label className="flex items-center space-x-2 text-sm font-medium text-slate-700 mb-1.5">
+                    <input type="checkbox" checked={editForm.gstRegistered} onChange={e => setEditForm({...editForm, gstRegistered: e.target.checked})} className="rounded border-slate-300 text-pharmacy-600 focus:ring-pharmacy-500" />
                     <span>GST Registered</span>
                   </label>
                 </div>
                 {editForm.gstRegistered && (
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700">GSTIN</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">GSTIN</label>
                     <div className="relative">
-                      <input type="text" value={editForm.gstin || ''} onChange={e => setEditForm({...editForm, gstin: e.target.value.toUpperCase()})} className={`mt-1 block w-full border ${validateGstin(editForm.gstin) === false ? 'border-red-300' : 'border-slate-300'} rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`} />
+                      <input type="text" value={editForm.gstin || ''} onChange={e => setEditForm({...editForm, gstin: e.target.value.toUpperCase()})} className={`mt-1 block w-full border ${validateGstin(editForm.gstin) === false ? 'border-red-300' : 'border-slate-300'} rounded-xl shadow-sm py-2.5 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 sm:text-sm bg-slate-50 focus:bg-white`} />
                       {validateGstin(editForm.gstin) === true && <CheckCircle2 className="absolute right-3 top-3 w-4 h-4 text-emerald-500" />}
                       {validateGstin(editForm.gstin) === false && <XCircle className="absolute right-3 top-3 w-4 h-4 text-red-500" />}
                     </div>
@@ -468,16 +468,16 @@ export default function PharmacyProfile() {
                   </div>
                 )}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700">State (Required for GST calculation)</label>
-                  <input type="text" value={editForm.state || ''} onChange={e => setEditForm({...editForm, state: e.target.value})} placeholder="e.g. Gujarat" className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">State (Required for GST calculation)</label>
+                  <input type="text" value={editForm.state || ''} onChange={e => setEditForm({...editForm, state: e.target.value})} placeholder="e.g. Gujarat" className="mt-1 block w-full border border-slate-300 rounded-xl shadow-sm py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 sm:text-sm bg-slate-50 focus:bg-white" />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700">Address</label>
-                  <textarea rows={3} value={editForm.address || ''} onChange={e => setEditForm({...editForm, address: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Address</label>
+                  <textarea rows={3} value={editForm.address || ''} onChange={e => setEditForm({...editForm, address: e.target.value})} className="mt-1 block w-full border border-slate-300 rounded-xl shadow-sm py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 sm:text-sm bg-slate-50 focus:bg-white" />
                 </div>
                 <div className="md:col-span-2 pt-4 border-t border-slate-100 mt-2">
                   <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center">
-                    <Clock className="w-4 h-4 mr-2 text-indigo-500" /> Edit Operational Hours
+                    <Clock className="w-4 h-4 mr-2 text-pharmacy-500" /> Edit Operational Hours
                   </h4>
                   <div className="flex flex-col space-y-3">
                     <DayHoursEditor
@@ -500,11 +500,11 @@ export default function PharmacyProfile() {
               </div>
             </div>
             
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 rounded-b-xl">
-              <button onClick={() => setIsEditing(false)} className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">
+            <div className="px-6 py-5 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 rounded-b-[2rem]">
+              <button onClick={() => setIsEditing(false)} className="px-5 py-2.5 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">
                 Cancel
               </button>
-              <button onClick={handleSave} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
+              <button onClick={handleSave} className="flex items-center px-5 py-2.5 bg-pharmacy-600 text-white rounded-xl text-sm font-medium hover:bg-pharmacy-700 shadow-sm shadow-pharmacy-600/30">
                 <Save className="w-4 h-4 mr-2" /> Save Changes
               </button>
             </div>

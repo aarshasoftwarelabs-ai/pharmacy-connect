@@ -80,7 +80,7 @@ export default function Customers() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="space-y-8 pb-12 max-w-7xl mx-auto"
+      className="space-y-6 pb-12 max-w-[1600px] mx-auto px-4 xl:px-8 pt-4"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -89,11 +89,11 @@ export default function Customers() {
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 tracking-tight flex items-center">
-            <Users className="w-8 h-8 mr-3 text-indigo-600" />
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center">
+            <Users className="w-6 h-6 mr-3 text-pharmacy-600" />
             Customers & CRM
           </h1>
-          <p className="mt-2 text-sm text-slate-500 font-medium">Manage pharmacy customers, history, and smart refills.</p>
+          <p className="mt-1 text-sm text-slate-500 font-medium">Manage pharmacy customers, history, and smart refills.</p>
         </motion.div>
         <motion.div 
           initial={{ x: 20, opacity: 0 }}
@@ -104,13 +104,13 @@ export default function Customers() {
           <button 
             onClick={handleCalculateRefills}
             disabled={calculatingRefills}
-            className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors flex items-center shadow-sm disabled:opacity-50"
+            className="px-4 py-2 bg-pharmacy-50 text-pharmacy-600 rounded-xl font-medium text-sm hover:bg-pharmacy-100 transition-colors flex items-center shadow-sm disabled:opacity-50"
           >
             {calculatingRefills ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Activity className="w-4 h-4 mr-2" />}
             Calculate Refills
           </button>
-          <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200/60 px-4 py-2 shadow-sm flex items-center">
-            <Users className="h-5 w-5 text-indigo-500 mr-2" />
+          <div className="bg-white rounded-xl border border-slate-200 px-4 py-2 shadow-sm flex items-center">
+            <Users className="h-5 w-5 text-pharmacy-500 mr-2" />
             <span className="text-sm font-medium text-slate-700">Total: {customers.length}</span>
           </div>
         </motion.div>
@@ -121,7 +121,7 @@ export default function Customers() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white/60 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col sm:flex-row gap-4 justify-between"
+        className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 justify-between"
       >
         <div className="relative flex-1 w-full max-w-md">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -129,7 +129,7 @@ export default function Customers() {
           </div>
           <input
             type="text"
-            className="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200/60 rounded-2xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+            className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 transition-all focus:bg-white"
             placeholder="Search by name or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -142,7 +142,7 @@ export default function Customers() {
             <Filter className="h-5 w-5 text-slate-400" />
           </div>
           <select
-            className="block w-full sm:w-48 pl-11 pr-10 py-3 bg-white text-sm font-medium text-slate-700 border border-slate-200/60 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm cursor-pointer"
+            className="block w-full sm:w-48 pl-11 pr-10 py-3 bg-slate-50 text-sm font-medium text-slate-700 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 transition-all focus:bg-white cursor-pointer"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           >
@@ -159,10 +159,10 @@ export default function Customers() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white shadow-sm border border-slate-200/60 rounded-3xl overflow-hidden"
+        className="bg-white shadow-sm border border-slate-200 rounded-[2rem] overflow-hidden"
       >
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200/60">
+          <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50/50">
               <tr>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</th>
@@ -182,7 +182,7 @@ export default function Customers() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
-                    <Loader2 className="h-8 w-8 text-indigo-400 animate-spin mx-auto mb-3" />
+                    <Loader2 className="h-8 w-8 text-pharmacy-400 animate-spin mx-auto mb-3" />
                     <p className="text-sm text-slate-500">Loading customers...</p>
                   </td>
                 </tr>
@@ -204,7 +204,7 @@ export default function Customers() {
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200/50">
+                          <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-pharmacy-50 flex items-center justify-center text-pharmacy-700 font-bold border border-pharmacy-100">
                             {customer.display_name?.charAt(0).toUpperCase()}
                           </div>
                           <div className="ml-4">
@@ -257,7 +257,7 @@ export default function Customers() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button className="text-slate-400 hover:text-indigo-600 transition-colors p-1.5 rounded-full hover:bg-slate-100">
+                        <button className="text-slate-400 hover:text-pharmacy-600 transition-colors p-1.5 rounded-full hover:bg-slate-100">
                           <MoreVertical className="h-5 w-5" />
                         </button>
                       </td>

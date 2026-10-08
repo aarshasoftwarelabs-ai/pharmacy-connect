@@ -276,9 +276,9 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
 
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-        <div className="inline-block align-bottom bg-white rounded-2xl text-left shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-slate-100">
+        <div className="inline-block align-bottom bg-white rounded-[2rem] text-left shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-slate-100">
           <form onSubmit={handleSubmit}>
-            <div className="bg-gradient-to-r from-slate-50 to-white px-6 pt-6 pb-5 border-b border-slate-100 flex justify-between items-start text-slate-900 rounded-t-2xl">
+            <div className="bg-gradient-to-r from-slate-50 to-white px-6 pt-6 pb-5 border-b border-slate-100 flex justify-between items-start text-slate-900 rounded-t-[2rem]">
               <div>
                 <h3 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2" id="modal-title">
                   {isEdit ? 'Edit Medicine' : 'Add New Medicine'}
@@ -534,7 +534,7 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
               </div>
             </div>
 
-            <div className="bg-slate-50 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-slate-200 rounded-b-2xl">
+            <div className="bg-slate-50 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-slate-200 rounded-b-[2rem]">
               <button
                 type="submit"
                 className="w-full inline-flex justify-center items-center rounded-xl border border-transparent shadow-md shadow-pharmacy-500/20 px-6 py-2.5 bg-pharmacy-600 text-sm font-bold text-white hover:bg-pharmacy-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pharmacy-500 sm:ml-3 sm:w-auto transition-all hover:-translate-y-0.5"

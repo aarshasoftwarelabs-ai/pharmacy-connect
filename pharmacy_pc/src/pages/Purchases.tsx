@@ -142,7 +142,7 @@ export default function Purchases() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12">
+    <div className="space-y-6 max-w-[1600px] mx-auto pb-12 px-4 xl:px-8 pt-4">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-slate-800">Purchases</h1>
         <div className="flex items-center gap-3">
@@ -158,19 +158,19 @@ export default function Purchases() {
               <button 
                 onClick={() => fileInputRef.current?.click()} 
                 disabled={scanning}
-                className="relative overflow-hidden group flex items-center px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-violet-500 hover:to-indigo-500 disabled:opacity-70 transition-all duration-300 shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform hover:-translate-y-0.5"
+                className="relative overflow-hidden group flex items-center px-5 py-2.5 bg-gradient-to-r from-pharmacy-500 to-blue-500 text-white rounded-xl text-sm font-semibold hover:from-pharmacy-600 hover:to-blue-600 disabled:opacity-70 transition-all duration-300 shadow-lg shadow-pharmacy-200 hover:shadow-pharmacy-300 transform hover:-translate-y-0.5"
               >
                 <div className="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 transform origin-left transition-transform duration-500 rounded-xl pointer-events-none"></div>
                 {scanning ? (
                   <span className="flex items-center relative z-10"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div> Processing...</span>
                 ) : (
                   <span className="flex items-center relative z-10">
-                    <Wand2 className="w-4 h-4 mr-2 animate-pulse text-violet-200" />
+                    <Wand2 className="w-4 h-4 mr-2 animate-pulse text-pharmacy-100" />
                     AI Scan Invoice
                   </span>
                 )}
               </button>
-              <button onClick={() => setShowModal(true)} className="flex items-center px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 shadow-md transition-all transform hover:-translate-y-0.5">
+              <button onClick={() => setShowModal(true)} className="flex items-center px-5 py-2.5 bg-pharmacy-600 text-white rounded-xl text-sm font-semibold hover:bg-pharmacy-700 shadow-sm shadow-pharmacy-500/30 transition-all transform hover:-translate-y-0.5">
                 <Plus className="w-4 h-4 mr-2" /> Add Purchase
               </button>
             </>
@@ -178,16 +178,16 @@ export default function Purchases() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="p-16 flex flex-col items-center justify-center text-slate-500">
-            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+            <div className="w-10 h-10 border-4 border-pharmacy-200 border-t-pharmacy-600 rounded-full animate-spin mb-4"></div>
             <p className="font-medium text-slate-600">Loading your purchases...</p>
           </div>
         ) : purchases.length === 0 ? (
           <div className="p-20 flex flex-col items-center justify-center text-center bg-slate-50/50">
-            <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 shadow-inner">
-              <Package className="w-12 h-12 text-indigo-400" />
+            <div className="w-24 h-24 bg-pharmacy-50 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner">
+              <Package className="w-12 h-12 text-pharmacy-400" />
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">No purchases yet</h3>
             <p className="text-slate-500 max-w-sm mb-8">Get started by creating your first wholesale purchase invoice or simply scan it using our AI OCR tool.</p>
@@ -195,7 +195,7 @@ export default function Purchases() {
               <button onClick={() => setShowModal(true)} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
                 Enter Manually
               </button>
-              <button onClick={() => fileInputRef.current?.click()} className="px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 flex items-center">
+              <button onClick={() => fileInputRef.current?.click()} className="px-6 py-2.5 bg-pharmacy-600 text-white font-semibold rounded-xl hover:bg-pharmacy-700 transition-all shadow-sm shadow-pharmacy-200 flex items-center">
                 <Wand2 className="w-4 h-4 mr-2" /> AI Scan Invoice
               </button>
             </div>
@@ -230,12 +230,12 @@ export default function Purchases() {
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center z-50 p-4 sm:p-6 overflow-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-auto flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl my-auto flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-100">
             {/* Header */}
-            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-slate-800 flex items-center">
-                  <FileText className="w-5 h-5 mr-2 text-indigo-500" />
+                  <FileText className="w-5 h-5 mr-2 text-pharmacy-500" />
                   Create Purchase Invoice
                 </h2>
                 <p className="text-sm text-slate-500 mt-1">Enter details manually or use AI to extract them from an invoice image.</p>
@@ -248,7 +248,7 @@ export default function Purchases() {
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700 flex items-center">Supplier</label>
                   <div className="relative">
-                    <select className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none outline-none font-medium text-slate-700" value={supplierId} onChange={e=>setSupplierId(e.target.value)}>
+                    <select className="w-full pl-3 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 transition-all appearance-none outline-none font-medium text-slate-700" value={supplierId} onChange={e=>setSupplierId(e.target.value)}>
                       <option value="">Select a supplier...</option>
                       {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplier_name}</option>)}
                     </select>
@@ -263,7 +263,7 @@ export default function Purchases() {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                       <Hash className="w-4 h-4" />
                     </div>
-                    <input type="text" placeholder="e.g. INV-2026-001" className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium text-slate-700" value={invoiceNumber} onChange={e=>setInvoiceNumber(e.target.value)} />
+                    <input type="text" placeholder="e.g. INV-2026-001" className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 transition-all outline-none font-medium text-slate-700" value={invoiceNumber} onChange={e=>setInvoiceNumber(e.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -280,10 +280,10 @@ export default function Purchases() {
               </div>
 
               {/* Add Item Box */}
-              <div className="bg-gradient-to-br from-indigo-50/50 to-white p-5 rounded-2xl mb-8 border border-indigo-100 shadow-sm relative z-10">
-                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-2xl"></div>
+              <div className="bg-gradient-to-br from-pharmacy-50/50 to-white p-5 rounded-[2rem] mb-8 border border-pharmacy-100 shadow-sm relative z-10">
+                <div className="absolute top-0 left-0 w-1 h-full bg-pharmacy-500 rounded-l-2xl"></div>
                 <h3 className="font-bold text-slate-800 mb-4 flex items-center text-sm uppercase tracking-wider">
-                  <Package className="w-4 h-4 mr-2 text-indigo-600" />
+                  <Package className="w-4 h-4 mr-2 text-pharmacy-600" />
                   Add Medicine to Invoice
                 </h3>
                 <div className="grid grid-cols-12 gap-3 items-end">
@@ -301,7 +301,7 @@ export default function Purchases() {
                   </div>
                   <div className="col-span-6 md:col-span-2">
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Batch No.</label>
-                    <input type="text" placeholder="BATCH123" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm uppercase focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-mono" value={batch} onChange={e=>setBatch(e.target.value.toUpperCase())} />
+                    <input type="text" placeholder="BATCH123" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm uppercase focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 transition-all outline-none font-mono" value={batch} onChange={e=>setBatch(e.target.value.toUpperCase())} />
                   </div>
                   <div className="col-span-6 md:col-span-2 relative">
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Expiry</label>
@@ -316,11 +316,11 @@ export default function Purchases() {
                   </div>
                   <div className="col-span-3 md:col-span-1">
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Qty</label>
-                    <input type="number" placeholder="0" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none" value={qty || ''} onChange={e=>setQty(Number(e.target.value))} />
+                    <input type="number" placeholder="0" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 transition-all outline-none" value={qty || ''} onChange={e=>setQty(Number(e.target.value))} />
                   </div>
                   <div className="col-span-4 md:col-span-2">
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Purchase (₹)</label>
-                    <input type="number" placeholder="0.00" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none" value={price || ''} onChange={e=>setPrice(Number(e.target.value))} />
+                    <input type="number" placeholder="0.00" className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-pharmacy-500/20 focus:border-pharmacy-500 transition-all outline-none" value={price || ''} onChange={e=>setPrice(Number(e.target.value))} />
                   </div>
                   <div className="col-span-5 md:col-span-2">
                     <button type="button" onClick={addItem} className="w-full px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors shadow-sm flex items-center justify-center">
@@ -349,7 +349,7 @@ export default function Purchases() {
                         {items.map((it, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
                             <td className="px-4 py-3 font-medium text-slate-800 flex items-center">
-                              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mr-3 font-bold text-xs">{it.medicine_name.charAt(0)}</div>
+                              <div className="w-8 h-8 rounded-xl bg-pharmacy-50 text-pharmacy-600 flex items-center justify-center mr-3 font-bold text-xs">{it.medicine_name.charAt(0)}</div>
                               {it.medicine_name}
                             </td>
                             <td className="px-4 py-3 font-mono text-xs text-slate-600 uppercase bg-slate-50 group-hover:bg-transparent transition-colors">{it.batch_number}</td>
@@ -363,7 +363,7 @@ export default function Purchases() {
                       <tfoot className="bg-slate-50 border-t border-slate-200">
                         <tr>
                           <td colSpan={5} className="px-4 py-3 text-right font-semibold text-slate-600">Grand Total</td>
-                          <td className="px-4 py-3 text-right font-bold text-lg text-indigo-700">
+                          <td className="px-4 py-3 text-right font-bold text-lg text-pharmacy-700">
                             ₹{items.reduce((acc, curr) => acc + curr.total_amount, 0).toFixed(2)}
                           </td>
                         </tr>
@@ -383,9 +383,9 @@ export default function Purchases() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0 rounded-b-[2rem]">
               <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
-              <button type="button" onClick={handleSubmit} className="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm flex items-center">
+              <button type="button" onClick={handleSubmit} className="px-5 py-2.5 bg-pharmacy-600 text-white font-semibold rounded-xl hover:bg-pharmacy-700 transition-colors shadow-sm flex items-center">
                 Save Invoice
               </button>
             </div>

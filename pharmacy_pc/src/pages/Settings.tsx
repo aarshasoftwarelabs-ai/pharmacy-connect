@@ -250,9 +250,9 @@ export default function Settings() {
           )}
 
           {/* Subscription & Plans Area */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
             {isEarlyAdopter && (
-              <div className={`px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 transition-all ${isWholesale ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-gradient-to-r from-pharmacy-600 to-indigo-600'}`}>
+              <div className={`px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 transition-all ${isWholesale ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-gradient-to-r from-pharmacy-600 to-blue-600'}`}>
                 <div className="flex items-center text-white">
                   <Sparkles className="w-5 h-5 mr-2 text-yellow-300 animate-pulse shrink-0" />
                   <span className="font-bold text-sm">
@@ -374,10 +374,10 @@ export default function Settings() {
           </div>
 
           {/* Transparency Section */}
-          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl shadow-sm border border-indigo-100 p-6 md:p-8">
+          <div className="bg-gradient-to-br from-pharmacy-50 to-blue-50 rounded-[2rem] shadow-sm border border-pharmacy-100 p-6 md:p-8">
             <div className="text-center mb-8">
               <h3 className="text-xl font-bold text-slate-800 flex items-center justify-center">
-                <HeartHandshake className="w-6 h-6 mr-2 text-indigo-600" />
+                <HeartHandshake className="w-6 h-6 mr-2 text-pharmacy-600" />
                 Our Transparency Promise
               </h3>
               <p className="text-sm text-slate-600 mt-2 max-w-xl mx-auto">
@@ -386,17 +386,17 @@ export default function Settings() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-5 rounded-xl border border-indigo-50 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
+              <div className="bg-white p-5 rounded-xl border border-pharmacy-50 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
                 <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
                   <Coffee className="w-6 h-6" />
                 </div>
                 <h4 className="font-bold text-slate-800 mb-2">Cost Less Than Tea</h4>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  At just <span className="font-bold text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">{isWholesale ? '₹20/day' : '₹16/day'}</span> (Yearly Plan), DavaSetu costs less than a daily cup of tea, while bringing you completely new online customers.
+                  At just <span className="font-bold text-pharmacy-600 bg-pharmacy-50 px-1 py-0.5 rounded">{isWholesale ? '₹20/day' : '₹16/day'}</span> (Yearly Plan), DavaSetu costs less than a daily cup of tea, while bringing you completely new online customers.
                 </p>
               </div>
 
-              <div className="bg-white p-5 rounded-xl border border-indigo-50 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
+              <div className="bg-white p-5 rounded-xl border border-pharmacy-50 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
                 <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
@@ -406,7 +406,7 @@ export default function Settings() {
                 </p>
               </div>
 
-              <div className="bg-white p-5 rounded-xl border border-indigo-50 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
+              <div className="bg-white p-5 rounded-xl border border-pharmacy-50 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
                 <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
                   <TrendingUp className="w-6 h-6" />
                 </div>
@@ -419,7 +419,7 @@ export default function Settings() {
           </div>
 
           {/* Store Operations */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-sm font-bold text-slate-800 flex items-center">
                 <Store className={`w-4 h-4 mr-2 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} />
@@ -445,7 +445,7 @@ export default function Settings() {
           </div>
 
           {/* Notifications */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-sm font-bold text-slate-800 flex items-center">
                 <Bell className={`w-4 h-4 mr-2 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} />
@@ -485,7 +485,7 @@ export default function Settings() {
           </div>
 
           {/* Application Preferences */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden mb-8">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-sm font-bold text-slate-800 flex items-center">
                 <Printer className={`w-4 h-4 mr-2 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} />

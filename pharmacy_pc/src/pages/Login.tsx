@@ -372,8 +372,8 @@ export default function Login() {
             )}
             {step === 5 && (
               <>
-                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-indigo-200">
-                  <Users className="w-8 h-8 text-indigo-600" />
+                <div className="w-16 h-16 bg-pharmacy-100 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-pharmacy-200">
+                  <Users className="w-8 h-8 text-pharmacy-600" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Staff Login</h2>
                 <p className="mt-1 text-slate-500 font-medium text-sm">
@@ -646,7 +646,7 @@ export default function Login() {
                     onClick={() => setBusinessType('RETAIL')}
                     className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
                       businessType === 'RETAIL' 
-                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200' 
+                        ? 'bg-white text-pharmacy-700 shadow-sm border border-slate-200' 
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
@@ -657,7 +657,7 @@ export default function Login() {
                     onClick={() => setBusinessType('WHOLESALE')}
                     className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
                       businessType === 'WHOLESALE' 
-                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200' 
+                        ? 'bg-white text-pharmacy-700 shadow-sm border border-slate-200' 
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
@@ -675,7 +675,7 @@ export default function Login() {
                     maxLength={10}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm" 
+                    className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent transition-all shadow-sm" 
                     placeholder="Pharmacy Mobile Number" 
                   />
                 </div>
@@ -690,7 +690,7 @@ export default function Login() {
                     maxLength={4}
                     value={staffPin}
                     onChange={(e) => setStaffPin(e.target.value.replace(/\D/g, ''))}
-                    className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-medium tracking-widest placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm font-mono" 
+                    className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-medium tracking-widest placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent transition-all shadow-sm font-mono" 
                     placeholder="4-Digit PIN" 
                   />
                 </div>
@@ -698,7 +698,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex justify-center items-center py-3.5 px-4 rounded-xl shadow-lg shadow-indigo-500/30 text-base font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-all transform hover:-translate-y-0.5 disabled:opacity-70"
+                  className="w-full flex justify-center items-center py-3.5 px-4 rounded-xl shadow-lg shadow-pharmacy-500/30 text-base font-bold text-white bg-pharmacy-600 hover:bg-pharmacy-700 focus:outline-none transition-all transform hover:-translate-y-0.5 disabled:opacity-70"
                 >
                   {loading ? 'Logging in...' : 'Login as Staff'}
                 </button>
@@ -718,7 +718,7 @@ export default function Login() {
       {/* Success Overlay */}
       {isRedirecting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 flex flex-col items-center transform scale-100 animate-in zoom-in duration-300">
+          <div className="bg-white rounded-[2rem] shadow-2xl p-8 max-w-sm w-full mx-4 flex flex-col items-center transform scale-100 animate-in zoom-in duration-300">
             <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(16,185,129,0.2)] animate-bounce" style={{ animationDuration: '2s' }}>
               <CheckCircle className="w-10 h-10 text-emerald-500" />
             </div>
