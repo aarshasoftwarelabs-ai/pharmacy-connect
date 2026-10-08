@@ -419,10 +419,6 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
                   <input type="text" name="sku" id="sku" placeholder="Optional" value={formData.sku || ''} onChange={handleChange} className={inputClass} />
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label htmlFor="barcode" className={labelClass}>Barcode</label>
-                  <input type="text" name="barcode" id="barcode" placeholder="Optional" value={formData.barcode || ''} onChange={handleChange} className={inputClass} />
-                </div>
 
                 <div className="sm:col-span-2">
                   <label htmlFor="hsnCode" className={labelClass}>HSN/SAC Code</label>

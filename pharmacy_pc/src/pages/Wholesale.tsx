@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Gift, Plus, Search, Package, Sparkles, Loader2 } from 'lucide-react';
+import { Users, FileText, Gift, Plus, Search, Package, Sparkles, Loader2, Briefcase } from 'lucide-react';
 import { B2BClient } from '../types/wholesale';
 import api from '../config/api';
 

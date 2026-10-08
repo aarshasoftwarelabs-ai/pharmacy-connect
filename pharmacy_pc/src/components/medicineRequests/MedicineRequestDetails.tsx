@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { X, Image as ImageIcon, CheckCircle, Clock, XCircle, Package, Loader2, MessageCircle, Send, User, Calendar, Phone } from 'lucide-react';
+import { X, Image as ImageIcon, CheckCircle, Clock, XCircle, Package, Loader2, MessageCircle, Send, User, Calendar, Phone, Sparkles, AlertTriangle } from 'lucide-react';
 import { MedicineRequest, MedicineRequestStatus } from '../../types/medicineRequest';
+import { Medicine } from '../../types/medicine';
+import { fetchMedicines } from '../../services/medicineService';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface MedicineRequestDetailsProps {
@@ -15,6 +17,52 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
   
   const [activeAction, setActiveAction] = useState<MedicineRequestStatus | null>(null);
   const [actionMessage, setActionMessage] = useState('');
+
+  const [inventoryStatus, setInventoryStatus] = useState<'loading' | 'found' | 'not_found' | 'error'>('loading');
+  const [matchedMedicine, setMatchedMedicine] = useState<Medicine | null>(null);
+
+  React.useEffect(() => {
+    if (!request.medicineName) {
+      setInventoryStatus('not_found');
+      return;
+    }
+    
+    let isMounted = true;
+    const checkInventory = async () => {
+      try {
+        setInventoryStatus('loading');
+        const meds = await fetchMedicines();
+        if (!isMounted) return;
+        
+        const reqName = request.medicineName!.toLowerCase().trim();
+        const cleanReqName = reqName.replace(/[^a-z0-9]/g, '');
+        
+        // Smart match: check if reqName is in medicine name, or medicine name in reqName
+        const match = meds.find(m => {
+          if (!m || (!m.name && !m.genericName)) return false;
+          const cleanName = m.name ? m.name.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+          const cleanGeneric = m.genericName ? m.genericName.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+          
+          return (cleanName && cleanName.includes(cleanReqName)) || 
+                 (cleanName && cleanReqName.includes(cleanName)) ||
+                 (cleanGeneric && cleanGeneric.includes(cleanReqName)) ||
+                 (cleanGeneric && cleanReqName.includes(cleanGeneric));
+        });
+        
+        if (match) {
+          setMatchedMedicine(match);
+          setInventoryStatus('found');
+        } else {
+          setInventoryStatus('not_found');
+        }
+      } catch (err) {
+        if (isMounted) setInventoryStatus('error');
+      }
+    };
+    
+    checkInventory();
+    return () => { isMounted = false; };
+  }, [request.medicineName]);
 
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);
@@ -113,10 +161,10 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-          className="relative w-full max-w-4xl bg-white rounded-[2rem] text-left overflow-hidden shadow-2xl border border-slate-100 z-10"
+          className="relative w-full max-w-4xl bg-white rounded-[2rem] text-left overflow-hidden shadow-2xl border border-slate-100 z-10 flex flex-col max-h-[90vh]"
         >
           {/* Header */}
-          <div className="relative px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80 backdrop-blur-md">
+          <div className="relative px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/80 backdrop-blur-md flex-shrink-0">
             <h3 className="text-xl font-bold text-slate-800 tracking-tight" id="modal-title">
               Request Details
             </h3>
@@ -129,7 +177,7 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
             </button>
           </div>
 
-          <div className="relative px-6 py-8 flex flex-col lg:flex-row gap-8 bg-white">
+          <div className="relative px-6 py-6 flex flex-col lg:flex-row gap-8 bg-white overflow-y-auto flex-1 custom-scrollbar">
             
             {/* Left: Customer & Request Info */}
             <div className="flex-1 space-y-8">
@@ -209,10 +257,75 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
                   </div>
                 </div>
               </section>
+
+              {/* Left Column ends here */}
             </div>
 
             {/* Right: Pharmacy Response Actions */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col gap-6">
+              {/* Smart Inventory Check - Moved to TOP Right for visibility without scrolling */}
+              <section>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center">
+                  <Sparkles className="h-4 w-4 mr-2 text-indigo-500" /> Smart Inventory Match
+                </h4>
+                <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
+                  {inventoryStatus === 'loading' && (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-6 w-6 text-indigo-500 animate-spin mr-3" />
+                      <span className="text-sm font-medium text-slate-600">Scanning inventory...</span>
+                    </div>
+                  )}
+                  
+                  {inventoryStatus === 'error' && (
+                    <div className="flex items-center p-3 bg-red-50 text-red-600 rounded-lg border border-red-100">
+                      <AlertTriangle className="h-5 w-5 mr-2" />
+                      <span className="text-sm font-medium">Failed to check inventory.</span>
+                    </div>
+                  )}
+                  
+                  {inventoryStatus === 'not_found' && (
+                    <div className="flex flex-col items-center justify-center py-2">
+                      <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 mb-2">
+                        <XCircle className="h-5 w-5" />
+                      </div>
+                      <span className="text-sm font-bold text-slate-700">Not found in inventory</span>
+                      <span className="text-xs text-slate-500 text-center mt-1">This medicine isn't in your smart inventory list.</span>
+                    </div>
+                  )}
+                  
+                  {inventoryStatus === 'found' && matchedMedicine && (
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <span className="block text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Match Found</span>
+                          <span className="block text-base font-bold text-slate-800">{matchedMedicine.name}</span>
+                          <span className="block text-xs text-slate-500 mt-0.5">{matchedMedicine.category} • {matchedMedicine.strength}</span>
+                        </div>
+                        <div className={`px-2.5 py-1 rounded-md border text-xs font-bold ${matchedMedicine.currentStock > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                          {matchedMedicine.currentStock > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-200/60">
+                        <div>
+                          <span className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Current Stock</span>
+                          <span className={`text-lg font-black ${matchedMedicine.currentStock > 0 ? 'text-slate-800' : 'text-red-600'}`}>
+                            {matchedMedicine.currentStock} <span className="text-xs font-medium text-slate-500">units</span>
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Selling Price</span>
+                          <span className="text-lg font-black text-slate-800">
+                            ₹{matchedMedicine.sellingPrice} <span className="text-xs font-medium text-slate-500">(MRP ₹{matchedMedicine.mrp})</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="flex-1 flex flex-col">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center">
                 <MessageCircle className="h-4 w-4 mr-2" /> Response & Actions
               </h4>
@@ -351,10 +464,11 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
+    </div>
 
       {/* Image Preview Modal */}
       <AnimatePresence>

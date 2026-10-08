@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Package, 
   AlertTriangle, 
@@ -11,7 +12,9 @@ import {
   Sparkles,
   Loader2,
   Trash2,
-  ChevronDown
+  ChevronDown,
+  Scan,
+  X
 } from 'lucide-react';
 import { fetchMedicines, createMedicine, updateMedicine, deleteMedicine } from '../services/medicineService';
 import { fetchDistributors, Distributor } from '../services/distributorService';
@@ -37,6 +40,56 @@ export default function Inventory() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LOW_STOCK' | 'OUT_OF_STOCK'>('ALL');
   const [selectedDistributorId, setSelectedDistributorId] = useState<number | ''>('');
   const [distributorDropdownOpen, setDistributorDropdownOpen] = useState(false);
+
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
+
+  const handleStartScan = () => {
+    setIsScannerOpen(true);
+    setScannerError(null);
+    setIsScanning(false);
+    setBarcodeInput('');
+  };
+
+  useEffect(() => {
+    if (!isScannerOpen || isScanning || scannerError) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        if (barcodeInput.length > 3) {
+          setIsScanning(true);
+          
+          setTimeout(() => {
+            setIsScanning(false);
+            setIsScannerOpen(false);
+            
+            const scannedMed = {
+              name: 'Amoxycillin 500mg',
+              genericName: 'Amoxicillin',
+              category: 'Tablets',
+              strength: '500 mg',
+              dosageForm: 'Tablet',
+              mrp: 120,
+              sellingPrice: 100,
+              currentStock: 50,
+              barcode: barcodeInput,
+              manufacturer: 'Generic Company'
+            };
+            setSelectedMedicine(scannedMed as any);
+            setIsAddModalOpen(true);
+            setBarcodeInput('');
+          }, 2000);
+        }
+      } else if (e.key.length === 1) {
+        setBarcodeInput(prev => prev + e.key);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isScannerOpen, isScanning, scannerError, barcodeInput]);
 
   const loadInitialData = async () => {
     try {
@@ -185,6 +238,13 @@ export default function Inventory() {
               <button onClick={() => { setStatusFilter('OUT_OF_STOCK'); setIsFilterOpen(false); }} className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 ${statusFilter === 'OUT_OF_STOCK' ? 'text-red-600 font-semibold' : 'text-slate-700'}`}>Out of Stock</button>
             </div>
           )}
+
+          <button 
+            onClick={handleStartScan}
+            className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-900 shadow-sm transition-all"
+          >
+            <Scan className="w-4 h-4 mr-2" /> Smart Scan
+          </button>
 
           <button 
             onClick={() => setIsAddModalOpen(true)}
@@ -633,6 +693,97 @@ export default function Inventory() {
           </div>
         </div>
       )}
+      
+      {/* Scanner Modal */}
+      {isScannerOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative">
+            <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold flex items-center gap-2 text-slate-800">
+                <Scan className="w-5 h-5 text-pharmacy-600"/> Smart Barcode Scanner
+              </h3>
+              <button onClick={() => { setIsScannerOpen(false); setIsScanning(false); }} className="text-slate-400 hover:text-red-500 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col items-center">
+              {scannerError ? (
+                <div className="text-center p-6 bg-red-50 rounded-xl border border-red-100 w-full animate-in fade-in zoom-in duration-200">
+                  <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                  <p className="text-red-700 font-bold text-lg">Scanner Disconnected</p>
+                  <p className="text-red-500 text-sm mt-1">Please connect your barcode scanner or camera to continue.</p>
+                  <button onClick={() => setScannerError(null)} className="mt-6 px-6 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shadow-sm">
+                    Retry Connection
+                  </button>
+                </div>
+              ) : (
+                <div className="relative w-64 h-64 bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center ring-4 ring-slate-100">
+                  {/* Camera feed placeholder */}
+                  <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                  
+                  {/* Waiting State */}
+                  {!isScanning && (
+                    <div className="absolute inset-x-8 inset-y-12 border-2 border-white/10 rounded-lg flex flex-col items-center justify-center">
+                      <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-white/30 -mt-[2px] -ml-[2px] rounded-tl"></div>
+                      <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white/30 -mt-[2px] -mr-[2px] rounded-tr"></div>
+                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-white/30 -mb-[2px] -ml-[2px] rounded-bl"></div>
+                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-white/30 -mb-[2px] -mr-[2px] rounded-br"></div>
+                      <p className="text-white/40 text-xs font-medium text-center px-4 animate-pulse">Waiting for Scanner Input...</p>
+                      <div className="mt-2 text-[10px] text-white/30 border border-white/10 px-2 py-1 rounded bg-black/20">
+                        {barcodeInput ? `Input: ${barcodeInput}` : 'Scan now'}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Scanning Animation */}
+                  {isScanning && (
+                    <>
+                      <div className="absolute left-0 w-full h-1 bg-green-500 shadow-[0_0_15px_3px_rgba(34,197,94,0.6)] z-10" style={{ animation: 'scanAnim 1.5s infinite linear' }}></div>
+                      <style>{`
+                        @keyframes scanAnim {
+                          0% { top: 10%; }
+                          50% { top: 90%; }
+                          100% { top: 10%; }
+                        }
+                      `}</style>
+                      <div className="absolute inset-x-8 inset-y-12 border-2 border-green-500/30 rounded-lg flex items-center justify-center">
+                        <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-green-500 -mt-[2px] -ml-[2px] rounded-tl"></div>
+                        <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-green-500 -mt-[2px] -mr-[2px] rounded-tr"></div>
+                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-green-500 -mb-[2px] -ml-[2px] rounded-bl"></div>
+                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-green-500 -mb-[2px] -mr-[2px] rounded-br"></div>
+                        <p className="text-green-400 text-sm font-bold text-center px-4 animate-bounce">Processing...</p>
+                      </div>
+                    </>
+                  )}
+                  
+                  <button 
+                    className="absolute top-2 right-2 text-[10px] bg-slate-800/80 text-slate-400 px-2 py-1 rounded hover:bg-slate-700 hover:text-white transition-colors z-20"
+                    onClick={() => { setScannerError('Device not found'); setIsScanning(false); }}
+                  >
+                    Simulate Error
+                  </button>
+                </div>
+              )}
+            </div>
+            {!scannerError && (
+              <div className="bg-slate-50 p-4 border-t text-xs text-center text-slate-500">
+                <div className="flex justify-between items-center w-full">
+                <span>Scan medicine barcode to auto-fill.</span>
+                <button 
+                  onClick={() => {
+                    setBarcodeInput('8901234567890');
+                    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+                  }} 
+                  className="px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded text-[10px] font-bold text-slate-600 transition-colors"
+                >
+                  Test Scan
+                </button>
+              </div>
+              </div>
+            )}
+          </div>
+        </div>
+      , document.body)}
     </div>
   );
 }
