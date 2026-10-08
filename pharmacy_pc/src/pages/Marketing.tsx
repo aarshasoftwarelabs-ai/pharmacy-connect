@@ -171,7 +171,7 @@ export default function Marketing() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-20 -mt-20"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight flex items-center">
+            <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center">
               {isWholesale ? <MessageSquare className="w-8 h-8 mr-3 text-blue-300" /> : <Gift className="w-8 h-8 mr-3 text-pink-300" />}
               {isWholesale ? 'B2B Marketing & Broadcasts' : 'Marketing & Offers'}
             </h1>

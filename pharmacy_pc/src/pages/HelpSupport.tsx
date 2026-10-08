@@ -83,7 +83,10 @@ const HelpSupport = () => {
   return (
     <div className="max-w-[1600px] mx-auto pb-16 space-y-8 px-1 mt-4">
       <header className="mb-8">
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Help, Support & About</h1>
+        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center">
+          <HelpCircle className="w-8 h-8 mr-3 text-pharmacy-600" />
+          Help, Support & About
+        </h1>
         <p className="mt-1.5 text-slate-500 font-medium">Get assistance, contact support, and rate our software.</p>
       </header>
 

@@ -177,8 +177,8 @@ export default function WholesaleInventory() {
       {/* Smart Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-indigo-500" />
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center gap-2">
+            <Sparkles className="w-8 h-8 text-pharmacy-600" />
             B2B Stock & Catalog
           </h2>
           <p className="text-sm text-slate-500 mt-1">AI-powered insights to optimize your pharmacy inventory.</p>
