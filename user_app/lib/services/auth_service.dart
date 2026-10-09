@@ -17,7 +17,7 @@ class AuthService {
 
       return jsonDecode(response.body);
     } catch (e) {
-      return {'success': false, 'message': 'Connection error: $e'};
+      return _handleException(e);
     }
   }
 
@@ -42,7 +42,20 @@ class AuthService {
 
       return jsonDecode(response.body);
     } catch (e) {
-      return {'success': false, 'message': 'Connection error: $e'};
+      return _handleException(e);
     }
+  }
+  
+  Map<String, dynamic> _handleException(dynamic e) {
+    String errorMessage = 'An unexpected error occurred. Please try again later.';
+    final errorString = e.toString();
+    
+    if (errorString.contains('SocketException') || errorString.contains('Failed host lookup')) {
+      errorMessage = 'Unable to connect to server. Please check your internet connection.';
+    } else if (errorString.contains('TimeoutException')) {
+      errorMessage = 'Connection timed out. Please try again.';
+    }
+    
+    return {'success': false, 'message': errorMessage};
   }
 }

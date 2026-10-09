@@ -64,6 +64,13 @@ export class UserAuthController {
       }, 5 * 60000);
 
       // Send via Brevo API using native https to avoid fetch version issues
+      if (!BREVO_API_KEY) {
+        console.log(`\n========================================`);
+        console.log(`[DEV MODE] OTP for ${identifier} is: ${generatedOtp}`);
+        console.log(`========================================\n`);
+        return res.json({ success: true, message: 'OTP logged to terminal (Development Mode)!' });
+      }
+
       try {
         const https = require('https');
         const data = JSON.stringify({

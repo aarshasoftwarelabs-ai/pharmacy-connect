@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface MedicineRequestDetailsProps {
   request: MedicineRequest;
   onClose: () => void;
-  onUpdateStatus: (id: string, status: MedicineRequestStatus, message?: string) => Promise<void>;
+  onUpdateStatus: (id: string, status: MedicineRequestStatus, message?: string, estimatedPrice?: number, estimatedDeliveryTime?: string) => Promise<void>;
 }
 
 export default function MedicineRequestDetails({ request, onClose, onUpdateStatus }: MedicineRequestDetailsProps) {
@@ -17,6 +17,8 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
   
   const [activeAction, setActiveAction] = useState<MedicineRequestStatus | null>(null);
   const [actionMessage, setActionMessage] = useState('');
+  const [estimatedPrice, setEstimatedPrice] = useState<string>('');
+  const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState<string>('');
 
   const [inventoryStatus, setInventoryStatus] = useState<'loading' | 'found' | 'not_found' | 'error'>('loading');
   const [matchedMedicine, setMatchedMedicine] = useState<Medicine | null>(null);
@@ -69,10 +71,10 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
     return `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
   };
 
-  const handleStatusUpdate = async (status: MedicineRequestStatus, message?: string) => {
+  const handleStatusUpdate = async (status: MedicineRequestStatus, message?: string, price?: number, time?: string) => {
     try {
       setIsUpdating(true);
-      await onUpdateStatus(request.id, status, message);
+      await onUpdateStatus(request.id, status, message, price, time);
       setActiveAction(null);
     } finally {
       setIsUpdating(false);
@@ -81,18 +83,25 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
 
   const confirmAction = () => {
     if (!activeAction) return;
-    handleStatusUpdate(activeAction, actionMessage);
+    handleStatusUpdate(
+      activeAction, 
+      actionMessage, 
+      estimatedPrice ? Number(estimatedPrice) : undefined, 
+      estimatedDeliveryTime
+    );
   };
 
   const handleActionClick = (status: MedicineRequestStatus) => {
-    if (status === 'AVAILABLE') {
-      handleStatusUpdate('AVAILABLE', 'Medicine is available at this pharmacy.');
+    if (activeAction === status) {
+      setActiveAction(null); // toggle off
     } else {
-      if (activeAction === status) {
-        setActiveAction(null); // toggle off
+      setActiveAction(status);
+      if (status === 'AVAILABLE') {
+        setActionMessage('Medicine is available at this pharmacy.');
+      } else if (status === 'CAN_ARRANGE') {
+        setActionMessage('Pharmacy can arrange this medicine.');
       } else {
-        setActiveAction(status);
-        setActionMessage(status === 'CAN_ARRANGE' ? 'Pharmacy can arrange this medicine.' : 'Medicine is currently not available.');
+        setActionMessage('Medicine is currently not available.');
       }
     }
   };
@@ -227,7 +236,43 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
                   </div>
                   
                   <div className="relative z-10 pt-4 border-t border-slate-100">
-                    <span className="block text-xs text-slate-500 font-medium mb-3">Image Attachment</span>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {request.requestType && (
+                        <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-600 border border-purple-200">
+                          {request.requestType.replace('_', ' ')}
+                        </span>
+                      )}
+                      {request.isDeliveryRequired !== undefined && (
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${request.isDeliveryRequired ? 'bg-amber-50 text-amber-600 border-amber-200 opacity-70' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                          {request.isDeliveryRequired ? 'Home Delivery (Coming Soon)' : 'Self Pickup'}
+                        </span>
+                      )}
+                      {request.allowGenericSubstitute && (
+                        <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-200">
+                          Substitute Allowed
+                        </span>
+                      )}
+                    </div>
+                    
+                    {request.quantity && (
+                      <div className="mb-3">
+                        <span className="block text-xs text-slate-500 font-medium mb-1">Quantity Requested</span>
+                        <span className="block text-sm font-bold text-slate-800">{request.quantity}</span>
+                      </div>
+                    )}
+                    
+                    {request.isDeliveryRequired && (
+                      <div className="mb-4">
+                        <span className="block text-xs text-slate-500 font-medium mb-1.5">Delivery Address</span>
+                        <div className="flex items-center">
+                          <span className="inline-flex items-center text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md uppercase tracking-wider">
+                            Coming Soon
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <span className="block text-xs text-slate-500 font-medium mb-3 mt-4 border-t border-slate-100 pt-4">Image Attachment</span>
                     {request.imageAttached ? (
                       <motion.div 
                         whileHover={{ scale: 1.02 }}
@@ -369,17 +414,56 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
                 <div className="p-5 flex-1 flex flex-col gap-3 justify-center bg-slate-50/50">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 text-center">Update Status</p>
                   
-                  <button
-                    onClick={() => handleActionClick('AVAILABLE')}
-                    className={`relative w-full flex items-center px-4 py-3 border-2 rounded-xl text-sm font-bold transition-all ${
-                      request.status === 'AVAILABLE' 
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
-                    }`}
-                  >
-                    <CheckCircle className={`h-5 w-5 mr-3 ${request.status === 'AVAILABLE' ? 'text-emerald-500' : 'text-slate-400'}`} />
-                    Available Now
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => handleActionClick('AVAILABLE')}
+                      className={`relative w-full flex items-center px-4 py-3 border-2 rounded-xl text-sm font-bold transition-all ${
+                        activeAction === 'AVAILABLE' || request.status === 'AVAILABLE'
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <CheckCircle className={`h-5 w-5 mr-3 ${(activeAction === 'AVAILABLE' || request.status === 'AVAILABLE') ? 'text-emerald-500' : 'text-slate-400'}`} />
+                      Available Now
+                    </button>
+                    
+                    <AnimatePresence>
+                      {activeAction === 'AVAILABLE' && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="p-3 bg-emerald-50/50 border-x-2 border-b-2 border-emerald-500 rounded-b-xl -mt-2 pt-4">
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                              <div>
+                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Total Price (₹)</label>
+                                <input type="number" value={estimatedPrice} onChange={e => setEstimatedPrice(e.target.value)} className="w-full p-2 text-sm border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white" placeholder="e.g. 150" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Delivery Time</label>
+                                <input type="text" value={estimatedDeliveryTime} onChange={e => setEstimatedDeliveryTime(e.target.value)} className="w-full p-2 text-sm border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white" placeholder="e.g. 30-45 mins" />
+                              </div>
+                            </div>
+                            <textarea
+                              value={actionMessage}
+                              onChange={(e) => setActionMessage(e.target.value)}
+                              className="w-full p-2 text-sm border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-none bg-white"
+                              rows={2}
+                              placeholder="Add an optional message..."
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                              <button onClick={() => setActiveAction(null)} className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700">Cancel</button>
+                              <button onClick={confirmAction} className="px-3 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 shadow-sm flex items-center">
+                                Confirm <Send className="w-3 h-3 ml-1" />
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                   
                   <div className="relative">
                     <button
@@ -403,6 +487,16 @@ export default function MedicineRequestDetails({ request, onClose, onUpdateStatu
                           className="overflow-hidden"
                         >
                           <div className="p-3 bg-blue-50/50 border-x-2 border-b-2 border-blue-500 rounded-b-xl -mt-2 pt-4">
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                              <div>
+                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Total Price (₹)</label>
+                                <input type="number" value={estimatedPrice} onChange={e => setEstimatedPrice(e.target.value)} className="w-full p-2 text-sm border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" placeholder="e.g. 150" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Delivery Time</label>
+                                <input type="text" value={estimatedDeliveryTime} onChange={e => setEstimatedDeliveryTime(e.target.value)} className="w-full p-2 text-sm border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" placeholder="e.g. Tomorrow 10 AM" />
+                              </div>
+                            </div>
                             <textarea
                               value={actionMessage}
                               onChange={(e) => setActionMessage(e.target.value)}

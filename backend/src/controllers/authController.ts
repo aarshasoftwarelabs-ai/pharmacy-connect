@@ -77,6 +77,13 @@ export class AuthController {
           }
         }, 60000);
 
+        if (!BREVO_API_KEY) {
+          console.log(`\n========================================`);
+          console.log(`[DEV MODE - Pharmacy] OTP for ${phone} is: ${generatedOtp}`);
+          console.log(`========================================\n`);
+          return res.json({ success: true, message: 'OTP sent successfully (Check backend terminal)' });
+        }
+
         try {
           const https = require('https');
           const data = JSON.stringify({
