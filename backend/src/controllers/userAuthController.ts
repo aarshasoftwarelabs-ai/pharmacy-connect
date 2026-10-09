@@ -73,8 +73,9 @@ export class UserAuthController {
 
       try {
         const https = require('https');
+        const senderEmail = process.env.SENDER_EMAIL || 'davasetu.otp@gmail.com'; 
         const data = JSON.stringify({
-          sender: { name: 'DavaSetu App', email: 'davasetu.otp@gmail.com' },
+          sender: { name: 'DavaSetu App', email: senderEmail },
           to: [{ email: targetEmail }],
           subject: 'Your DavaSetu App Login Code',
           htmlContent: `<div style="font-family: sans-serif; text-align: center; padding: 20px;">

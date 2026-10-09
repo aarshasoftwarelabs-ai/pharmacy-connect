@@ -86,8 +86,9 @@ export class AuthController {
 
         try {
           const https = require('https');
+          const senderEmail = process.env.SENDER_EMAIL || 'davasetu.otp@gmail.com'; 
           const data = JSON.stringify({
-            sender: { name: 'DavaSetu', email: 'davasetu.otp@gmail.com' },
+            sender: { name: 'DavaSetu', email: senderEmail },
             to: [{ email: email }],
             subject: 'Your DavaSetu Verification Code',
             htmlContent: `<div style="font-family: sans-serif; text-align: center; padding: 20px;">
