@@ -11,6 +11,7 @@ import '../../services/notification_service.dart';
 import '../pharmacy/models/pharmacy.dart';
 import '../pharmacy/pharmacy_screen.dart';
 import '../medicines/models/medicine_request.dart';
+import '../medicines/models/medicine.dart';
 import '../../widgets/fade_in_slide.dart';
 import '../../widgets/blinkit_loader.dart';
 import '../../widgets/app_refresh_indicator.dart';
@@ -29,6 +30,26 @@ class _HomeScreenState extends State<HomeScreen> {
   MedicineRequest? _recentRequest;
   bool _isLoading = true;
   bool _hasUnreadNotifications = false;
+
+  // Dummy data for Phase 1 Demo
+  final List<Medicine> _myMedicines = [
+    Medicine(
+      id: '1',
+      name: 'Crocin Advance',
+      dosage: '500mg',
+      currentStock: 3, // Will trigger refill alert (<= 3 days)
+      dosagePerDay: 1,
+      createdAt: DateTime.now(),
+    ),
+    Medicine(
+      id: '2',
+      name: 'Pan-D Capsule',
+      dosage: '40mg',
+      currentStock: 15,
+      dosagePerDay: 1,
+      createdAt: DateTime.now(),
+    ),
+  ];
 
   @override
   void initState() {
@@ -126,8 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildModernHeader(context),
+
               const SizedBox(height: 24),
-              FadeInSlide(delay: 0.1, child: _buildGlassPromoBanner(context)),
+              FadeInSlide(delay: 0.15, child: _buildGlassPromoBanner(context)),
               const SizedBox(height: 32),
               FadeInSlide(delay: 0.2, child: _buildConnectedPharmacy(context)),
               const SizedBox(height: 32),
@@ -325,6 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 
   Widget _buildGlassPromoBanner(BuildContext context) {
     return Padding(
