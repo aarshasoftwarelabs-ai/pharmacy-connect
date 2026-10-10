@@ -1,21 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/routes/app_routes.dart';
-import '../../services/pharmacy_service.dart';
-import '../../services/medicine_request_service.dart';
-import '../../services/notification_service.dart';
-import '../pharmacy/models/pharmacy.dart';
-import '../pharmacy/pharmacy_screen.dart';
-import '../medicines/models/medicine_request.dart';
-import '../medicines/models/medicine.dart';
-import '../../widgets/fade_in_slide.dart';
-import '../../widgets/blinkit_loader.dart';
-import '../../widgets/app_refresh_indicator.dart';
-
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,31 +11,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _userName = 'User';
-  Pharmacy? _pharmacy;
-  MedicineRequest? _recentRequest;
-  bool _isLoading = true;
-  bool _hasUnreadNotifications = false;
-
-  // Dummy data for Phase 1 Demo
-  final List<Medicine> _myMedicines = [
-    Medicine(
-      id: '1',
-      name: 'Crocin Advance',
-      dosage: '500mg',
-      currentStock: 3, // Will trigger refill alert (<= 3 days)
-      dosagePerDay: 1,
-      createdAt: DateTime.now(),
-    ),
-    Medicine(
-      id: '2',
-      name: 'Pan-D Capsule',
-      dosage: '40mg',
-      currentStock: 15,
-      dosagePerDay: 1,
-      createdAt: DateTime.now(),
-    ),
-  ];
+  String _userName = 'Rameshbhai';
 
   @override
   void initState() {
@@ -62,69 +24,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final prefs = await SharedPreferences.getInstance();
       final name = prefs.getString('user_name');
       if (name != null && name.isNotEmpty) {
-        _userName = name;
+        if (mounted) setState(() => _userName = name);
       }
-
-      final pharmacies = await PharmacyService.getPharmacies();
-      if (pharmacies.isNotEmpty) {
-        final selectedId = prefs.getString('selected_pharmacy_id');
-        if (selectedId != null) {
-          try {
-            _pharmacy = pharmacies.firstWhere((p) => p.id == selectedId);
-          } catch (e) {
-            _pharmacy = pharmacies.first;
-          }
-        } else {
-          _pharmacy = pharmacies.first;
-        }
-      } else {
-        _pharmacy = null;
-      }
-
-      final requests = await MedicineRequestService.getUserMedicineRequests();
-      if (requests.isNotEmpty) {
-        _recentRequest = requests.first;
-      }
-      
-      final unreadCount = await NotificationService.getUnreadCount();
-      _hasUnreadNotifications = unreadCount > 0;
     } catch (e) {
       debugPrint('Error loading home data: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-      
-
-    }
-  }
-
-  // Helper colors for status
-  Color _getStatusColor(MedicineRequestStatus status) {
-    switch (status) {
-      case MedicineRequestStatus.waiting:
-        return const Color(0xFFF59E0B); // Amber
-      case MedicineRequestStatus.available:
-        return const Color(0xFF10B981); // Emerald
-      case MedicineRequestStatus.canArrange:
-        return const Color(0xFF3B82F6); // Blue
-      case MedicineRequestStatus.notAvailable:
-        return const Color(0xFFEF4444); // Red
-    }
-  }
-
-  String _getStatusText(MedicineRequestStatus status) {
-    switch (status) {
-      case MedicineRequestStatus.waiting:
-        return 'Waiting Response';
-      case MedicineRequestStatus.available:
-        return 'Available Now';
-      case MedicineRequestStatus.canArrange:
-        return 'Can Arrange';
-      case MedicineRequestStatus.notAvailable:
-        return 'Not Available';
     }
   }
 
@@ -133,28 +36,28 @@ class _HomeScreenState extends State<HomeScreen> {
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
       ),
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Slate 50 for clean background
-      body: AppRefreshIndicator(
-        onRefresh: _loadData,
+      backgroundColor: const Color(0xFFF8F9FE), // Soft purple/blue tint background
+      body: SafeArea(
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildModernHeader(context),
-
+              _buildHeader(),
               const SizedBox(height: 24),
-              FadeInSlide(delay: 0.15, child: _buildGlassPromoBanner(context)),
-              const SizedBox(height: 32),
-              FadeInSlide(delay: 0.2, child: _buildConnectedPharmacy(context)),
-              const SizedBox(height: 32),
-              FadeInSlide(delay: 0.3, child: _buildRecentRequests(context)),
-              const SizedBox(height: 120), // padding for bottom nav
+              _buildTodaysMedicines(),
+              const SizedBox(height: 20),
+              _buildAlertCard(),
+              const SizedBox(height: 24),
+              _buildGridMenu(),
+              const SizedBox(height: 24),
+              _buildInsuranceCard(),
             ],
           ),
         ),
@@ -162,689 +65,220 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildModernHeader(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF064E3B), Color(0xFF0F766E)], // Deep Emerald to Teal
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x330F766E),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
-        ),
-        child: Stack(
-          children: [
-            // Background Medicine Bottle
-            Positioned(
-              right: -20,
-              top: -10,
-              child: Transform.rotate(
-                angle: 0.3,
-                child: Icon(Icons.medication_rounded, size: 120, color: Colors.white.withOpacity(0.05)),
-              ),
-            ),
-            // Background Injection
-            Positioned(
-              left: -20,
-              top: 20,
-              child: Transform.rotate(
-                angle: -0.4,
-                child: Icon(Icons.vaccines_rounded, size: 80, color: Colors.white.withOpacity(0.05)),
-              ),
-            ),
-            // Background Capsule (Pill)
-            Positioned(
-              left: 120,
-              bottom: 10,
-              child: Transform.rotate(
-                angle: 0.6,
-                child: Container(
-                  width: 30,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.04),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.white.withOpacity(0.06), width: 2),
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.06),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(13),
-                              topRight: Radius.circular(13),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Expanded(child: SizedBox()),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Background Round Tablet
-            Positioned(
-              right: 80,
-              bottom: 30,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Container(
-                    width: 14,
-                    height: 2,
-                    color: Colors.white.withOpacity(0.05),
-                  ),
-                ),
-              ),
-            ),
-            // Foreground Content
-            Padding(
-              padding: const EdgeInsets.only(top: 70, left: 24, right: 24, bottom: 40),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Good Morning,',
-                style: GoogleFonts.outfit(
-                  color: Colors.white70,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _userName,
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
-          GestureDetector(
-            onTap: () async {
-              if (_hasUnreadNotifications) {
-                if (mounted) {
-                  setState(() {
-                    _hasUnreadNotifications = false;
-                  });
-                }
-              }
-              if (mounted) {
-                Navigator.pushNamed(context, AppRoutes.notifications);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  const Icon(
-                    Icons.notifications_outlined,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                  if (_hasUnreadNotifications)
-                    Positioned(
-                      right: -2,
-                      top: -2,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444), // Red
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF0F766E), width: 1.5),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          ],
-        ),
-      ),
-          ],
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildGlassPromoBanner(BuildContext context) {
+  Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: GestureDetector(
-        onTap: () => Navigator.pushNamed(context, AppRoutes.medicineRequest),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // Blue gradient
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF3B82F6).withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              // Abstract background elements
-              Positioned(
-                right: -20,
-                top: -20,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.1),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: -30,
-                bottom: -30,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.05),
-                  ),
-                ),
-              ),
-              
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'QUICK ORDER',
-                              style: GoogleFonts.outfit(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Upload\nPrescription',
-                            style: GoogleFonts.outfit(
-                              color: Colors.white,
-                              fontSize: 24,
-                              height: 1.1,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Text(
-                                'Order Now',
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    // Icon inside a glass circle
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.2),
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.document_scanner_rounded,
-                            color: Colors.white,
-                            size: 40,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildConnectedPharmacy(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'My Pharmacy',
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A), // Slate 900
-                ),
+              Row(
+                children: [
+                  Image.asset('assets/images/logo.png', height: 40, errorBuilder: (c, e, s) => const Icon(Icons.favorite, color: Color(0xFF6D28D9))),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Dava Setu',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1E1E2D),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      Text(
+                        'Your Health • Our Priority',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PharmacyScreen(),
-                    ),
-                  ).then((_) {
-                    if (mounted) {
-                      _loadData();
-                    }
-                  });
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    'Change',
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFF0F766E),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
+              Stack(
+                children: [
+                  const Icon(Icons.notifications_none_rounded, size: 28, color: Color(0xFF1E1E2D)),
+                  Positioned(
+                    right: 2,
+                    top: 2,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          
-          if (_isLoading)
-            const Center(child: Padding(padding: EdgeInsets.all(20), child: BlinkitLoader()))
-          else if (_pharmacy == null)
-            _buildEmptyState('No pharmacy connected yet.')
-          else
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Good Morning,',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        _userName,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E1E2D),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('👋', style: TextStyle(fontSize: 24)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Stay healthy, stay happy!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+              // Avatar with soft leaf background
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE5E7EB),
+                  image: const DecorationImage(
+                    image: AssetImage('assets/images/doctor.png'),
+                    fit: BoxFit.cover,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.person, color: Colors.grey),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodaysMedicines() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6D28D9).withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.calendar_today_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Today's Medicines",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                        ),
+                        Text(
+                          "2 medicines • 2 times",
+                          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text(
+                      "View All",
+                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward, color: Colors.white, size: 14),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0F766E).withOpacity(0.06),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFCCFBF1), Color(0xFF99F6E4)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF14B8A6).withOpacity(0.2),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.local_pharmacy_rounded,
-                            color: Color(0xFF0F766E),
-                            size: 32,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _pharmacy!.name,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Icon(
-                                    Icons.location_on_rounded,
-                                    size: 16,
-                                    color: Color(0xFF94A3B8),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      _pharmacy!.address,
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 14,
-                                        color: const Color(0xFF64748B),
-                                        height: 1.2,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                  _buildMedicineListItem(
+                    iconData: Icons.medication_rounded,
+                    iconColor: const Color(0xFF3B82F6),
+                    name: 'Dolo 650',
+                    details: '1 tablet • 9:00 AM',
+                    status: 'Taken',
+                    isTaken: true,
                   ),
-                  Container(
-                    height: 1,
-                    color: const Color(0xFFF1F5F9),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: _pharmacy!.isOpenNow ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: (_pharmacy!.isOpenNow ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withOpacity(0.4),
-                                      blurRadius: 4,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _pharmacy!.isOpenNow ? 'Open Now' : 'Closed',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: _pharmacy!.isOpenNow ? const Color(0xFF059669) : const Color(0xFFB91C1C),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            _buildActionBtn(Icons.directions_rounded, 'Directions', () async {
-                              final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(_pharmacy!.address)}');
-                              try {
-                                await launchUrl(url, mode: LaunchMode.externalApplication);
-                              } catch (e) {
-                                debugPrint('Could not launch maps: $e');
-                              }
-                            }),
-                            const SizedBox(width: 12),
-                            _buildActionBtn(Icons.call_rounded, 'Call', () async {
-                              final url = Uri.parse('tel:${_pharmacy!.phone}');
-                              try {
-                                await launchUrl(url);
-                              } catch (e) {
-                                debugPrint('Could not launch phone: $e');
-                              }
-                            }, isPrimary: true),
-                          ],
-                        ),
-                      ],
-                    ),
+                  Divider(height: 1, color: Colors.grey.shade100, indent: 64),
+                  _buildMedicineListItem(
+                    iconData: Icons.vaccines_rounded,
+                    iconColor: const Color(0xFFEC4899),
+                    name: 'Vitamin D3',
+                    details: '1 capsule • 8:00 PM',
+                    status: 'Upcoming',
+                    isTaken: false,
                   ),
                 ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentRequests(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Recent Requests',
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
-                ),
-              ),
-              InkWell(
-                onTap: () => Navigator.pushNamed(context, AppRoutes.medicineRequests),
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    'View All',
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFF0F766E),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          if (_isLoading)
-            const Center(child: Padding(padding: EdgeInsets.all(20), child: BlinkitLoader()))
-          else if (_recentRequest == null)
-            _buildEmptyState('You have no recent requests.')
-          else
-            InkWell(
-              onTap: () => Navigator.pushNamed(
-                context,
-                AppRoutes.medicineRequestDetails,
-                arguments: _recentRequest,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0F172A).withOpacity(0.04),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Hero(
-                      tag: 'request_icon_${_recentRequest!.id}',
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(_recentRequest!.status).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(
-                          Icons.receipt_long_rounded,
-                          color: _getStatusColor(_recentRequest!.status),
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _recentRequest!.medicineName ?? 'Image Request',
-                            style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _getStatusText(_recentRequest!.status),
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFF64748B),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9), // Slate 100
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.chevron_right_rounded, color: Color(0xFF64748B), size: 20),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionBtn(IconData icon, String label, VoidCallback onTap, {bool isPrimary = false}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isPrimary ? const Color(0xFF0F766E) : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isPrimary ? Colors.white : const Color(0xFF475569),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: GoogleFonts.outfit(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isPrimary ? Colors.white : const Color(0xFF475569),
               ),
             ),
           ],
@@ -853,24 +287,235 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEmptyState(String text) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
+  Widget _buildMedicineListItem({
+    required IconData iconData,
+    required Color iconColor,
+    required String name,
+    required String details,
+    required String status,
+    required bool isTaken,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
         children: [
-          const Icon(Icons.inbox_rounded, size: 40, color: Color(0xFFCBD5E1)),
-          const SizedBox(height: 12),
-          Text(
-            text,
-            style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 14),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(iconData, color: iconColor, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF1E1E2D)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  details,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isTaken ? const Color(0xFF10B981).withOpacity(0.1) : const Color(0xFF8B5CF6).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isTaken ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                  color: isTaken ? const Color(0xFF10B981) : const Color(0xFF8B5CF6),
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  status,
+                  style: TextStyle(
+                    color: isTaken ? const Color(0xFF10B981) : const Color(0xFF8B5CF6),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAlertCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7ED),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFFEDD5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF97316),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.priority_high_rounded, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Your medicine may run out in 3 days.",
+                    style: TextStyle(color: Color(0xFF1E1E2D), fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Request a refill to avoid interruption.",
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridMenu() {
+    final items = [
+      {'title': 'My Medicines', 'icon': Icons.medication_rounded, 'color': const Color(0xFF3B82F6)},
+      {'title': 'Nearby Pharmacy', 'icon': Icons.storefront_rounded, 'color': const Color(0xFF0D9488)},
+      {'title': 'Refill Request', 'icon': Icons.sync_rounded, 'color': const Color(0xFF8B5CF6)},
+      {'title': 'Prescription', 'icon': Icons.description_rounded, 'color': const Color(0xFF8B5CF6)},
+      {'title': 'Health Store', 'icon': Icons.shopping_bag_rounded, 'color': const Color(0xFF0D9488)},
+      {'title': 'Lab Tests', 'icon': Icons.science_rounded, 'color': const Color(0xFF8B5CF6)},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.9,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: Stack(
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: (item['color'] as Color).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(item['icon'] as IconData, color: item['color'] as Color, size: 24),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        item['title'] as String,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E1E2D),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: const Center(
+                    child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 16),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildInsuranceCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F3FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.shield_rounded, color: Color(0xFF6D28D9), size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Insurance & Claims",
+                    style: TextStyle(color: Color(0xFF1E1E2D), fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Get reminders for your insurance claims and save on your medicines.",
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }

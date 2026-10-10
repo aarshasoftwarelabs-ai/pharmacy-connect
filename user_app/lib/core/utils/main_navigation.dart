@@ -4,6 +4,7 @@ import '../../features/home/home_screen.dart';
 import '../../features/pharmacy/pharmacy_screen.dart';
 import '../../features/medicines/screens/medicine_requests_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/medicines/screens/my_medicines_screen.dart';
 import '../../widgets/animated_bottom_nav_bar.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -18,15 +19,16 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const PharmacyScreen(),
+    const MyMedicinesScreen(),
     const MedicineRequestsScreen(),
+    const Scaffold(body: Center(child: Text('Health Screen'))),
     const ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // This is crucial for the floating effect
+      extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
@@ -42,6 +44,5 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
       ),
     );
-
   }
 }
