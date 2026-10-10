@@ -123,17 +123,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   // Welcome Text & Illustration
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        flex: 5,
+                        flex: 3,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             RichText(
                               text: const TextSpan(
                                 style: TextStyle(
-                                  fontSize: 26,
+                                  fontSize: 32,
                                   fontWeight: FontWeight.w800,
                                   color: Color(0xFF1E1E2D),
                                   height: 1.2,
@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Text(
                               'Login to continue your\nhealth journey with us.',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 15,
                                 color: Colors.grey.shade600,
                                 height: 1.4,
                               ),
@@ -159,29 +159,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ),
-                      // Illustration
+                      // Illustration Placeholder
                       Expanded(
-                        flex: 4,
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Image.asset(
-                            'assets/images/doctor.png',
-                            height: 160,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 90,
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade50.withValues(alpha: 0.5),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.local_hospital,
-                                  size: 45,
-                                  color: AppColors.primary.withValues(alpha: 0.5),
-                                ),
-                              );
-                            },
+                        flex: 2,
+                        child: Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.local_hospital,
+                            size: 60,
+                            color: AppColors.primary.withValues(alpha: 0.5),
                           ),
                         ),
                       ),
@@ -326,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Image.network(
-                              'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png',
+                              'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
                               height: 24,
                             ),
                             const SizedBox(width: 12),
