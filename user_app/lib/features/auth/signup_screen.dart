@@ -94,14 +94,13 @@ class _SignupScreenState extends State<SignupScreen> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF1E1E2D)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // Bottom Background Waves
