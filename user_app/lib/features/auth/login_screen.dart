@@ -161,24 +161,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       // Illustration
                       Expanded(
-                        flex: 3,
-                        child: Image.asset(
-                          'assets/images/doctor.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 90,
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50.withValues(alpha: 0.5),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.local_hospital,
-                                size: 45,
-                                color: AppColors.primary.withValues(alpha: 0.5),
-                              ),
-                            );
-                          },
+                        flex: 4,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Image.asset(
+                            'assets/images/doctor.png',
+                            height: 160,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 90,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50.withValues(alpha: 0.5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.local_hospital,
+                                  size: 45,
+                                  color: AppColors.primary.withValues(alpha: 0.5),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ],
