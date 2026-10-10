@@ -126,14 +126,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        flex: 3,
+                        flex: 5,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             RichText(
                               text: const TextSpan(
                                 style: TextStyle(
-                                  fontSize: 32,
+                                  fontSize: 26,
                                   fontWeight: FontWeight.w800,
                                   color: Color(0xFF1E1E2D),
                                   height: 1.2,
@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Text(
                               'Login to continue your\nhealth journey with us.',
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize: 14,
                                 color: Colors.grey.shade600,
                                 height: 1.4,
                               ),
@@ -163,14 +163,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       Expanded(
                         flex: 2,
                         child: Container(
-                          height: 120,
+                          height: 90,
                           decoration: BoxDecoration(
                             color: Colors.blue.shade50.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.local_hospital,
-                            size: 60,
+                            size: 45,
                             color: AppColors.primary.withValues(alpha: 0.5),
                           ),
                         ),
@@ -316,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Image.network(
-                              'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
+                              'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png',
                               height: 24,
                             ),
                             const SizedBox(width: 12),
