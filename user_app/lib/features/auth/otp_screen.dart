@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/routes/app_routes.dart';
@@ -91,36 +90,10 @@ class _OtpScreenState extends State<OtpScreen>
       await prefs.setInt('user_id', response['user']['id']);
       await prefs.setString('user_name', response['user']['name'] ?? '');
 
-      // Show animated success dialog
-      // Show beautifully animated success dialog
       if (mounted) {
-        showGeneralDialog(
-          context: context,
-          pageBuilder: (context, anim1, anim2) => const SizedBox(),
-          barrierDismissible: false,
-          barrierColor: Colors.black.withOpacity(0.3),
-          transitionBuilder: (context, anim1, anim2, child) {
-            return BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10 * anim1.value, sigmaY: 10 * anim1.value),
-              child: Center(
-                child: Opacity(
-                  opacity: Curves.easeIn.transform(anim1.value),
-                  child: const _BeautifulVerifiedDialog(),
-                ),
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 400),
-        );
-      }
-
-      // Wait 1.5 seconds, then navigate
-      await Future.delayed(const Duration(milliseconds: 1500));
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(
+        Navigator.pushReplacementNamed(
           context,
-          AppRoutes.main,
-          (route) => false,
+          AppRoutes.verified,
         );
       }
     } else {
@@ -209,32 +182,52 @@ class _OtpScreenState extends State<OtpScreen>
                         
                         const SizedBox(height: 32),
                         
-                        // Verify Your Email / Number text
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF1E1E2D),
-                              height: 1.2,
-                            ),
-                            children: [
-                              const TextSpan(text: 'Verify Your '),
-                              TextSpan(
-                                text: isEmail ? 'Email' : 'Phone',
-                                style: const TextStyle(color: AppColors.primary),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 6,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF1E1E2D),
+                                        height: 1.2,
+                                      ),
+                                      children: [
+                                        const TextSpan(text: 'Verify Your\n'),
+                                        TextSpan(
+                                          text: isEmail ? 'Email Address' : 'Phone Number',
+                                          style: const TextStyle(color: AppColors.primary),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'We have sent a 6 digit code to\n$identifier',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.grey.shade600,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'We have sent a 6 digit code to $identifier',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey.shade600,
-                            height: 1.4,
-                          ),
+                            ),
+                            Expanded(
+                              flex: 4,
+                              child: Image.asset(
+                                'assets/images/otp_illustration.png',
+                                height: 120,
+                                errorBuilder: (context, error, stackTrace) => const SizedBox(height: 120),
+                              ),
+                            ),
+                          ],
                         ),
                         
                         const SizedBox(height: 32),
@@ -423,62 +416,63 @@ class _OtpScreenState extends State<OtpScreen>
                           ),
                         ),
                         
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         
-                        // Back to Sign Up Link
-                        Center(
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.pop(context);
-                            },
-                            child: RichText(
-                              text: TextSpan(
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                children: const [
-                                  TextSpan(text: 'Back to '),
-                                  TextSpan(
-                                    text: 'Sign Up',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                        // Didn't receive code box
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F3FF),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        ),
-                        
-                        const Spacer(),
-                        const SizedBox(height: 20),
-                        
-                        // Shield Icon (now flows with the layout at the bottom)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEDE9FE),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
-                                  Icons.shield_outlined,
-                                  color: AppColors.primary,
-                                  size: 32,
+                                child: const Icon(Icons.mail_outline, color: AppColors.primary, size: 24),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Didn't receive the code?",
+                                      style: TextStyle(
+                                        color: Color(0xFF1E1E2D),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    RichText(
+                                      text: TextSpan(
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 13,
+                                          height: 1.4,
+                                        ),
+                                        children: const [
+                                          TextSpan(text: 'Check your spam folder or '),
+                                          TextSpan(
+                                            text: 'resend OTP.',
+                                            style: TextStyle(
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         
                         const SizedBox(height: 16),
@@ -495,154 +489,7 @@ class _OtpScreenState extends State<OtpScreen>
   }
 }
 
-class _BeautifulVerifiedDialog extends StatefulWidget {
-  const _BeautifulVerifiedDialog();
 
-  @override
-  State<_BeautifulVerifiedDialog> createState() => _BeautifulVerifiedDialogState();
-}
-
-class _BeautifulVerifiedDialogState extends State<_BeautifulVerifiedDialog> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _checkAnimation;
-  late Animation<double> _textOpacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    );
-    
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.2).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 30),
-      TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)), weight: 70),
-    ]).animate(_controller);
-
-    _checkAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.3, 0.7, curve: Curves.elasticOut)),
-    );
-
-    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic)),
-    );
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: 280,
-        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(40),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF10B981).withOpacity(0.15),
-              blurRadius: 40,
-              spreadRadius: 10,
-              offset: const Offset(0, 20),
-            ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF34D399), Color(0xFF059669)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF10B981).withOpacity(0.4),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Transform.scale(
-                        scale: _checkAnimation.value,
-                        child: const Icon(
-                          Icons.check_rounded,
-                          color: Colors.white,
-                          size: 60,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 32),
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _textOpacity.value,
-                  child: Transform.translate(
-                    offset: Offset(0, 20 * (1 - _textOpacity.value)),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Verified!',
-                          style: GoogleFonts.outfit(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0F172A),
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Your account is ready.',
-                          style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 
 class _BottomWavePainter extends CustomPainter {

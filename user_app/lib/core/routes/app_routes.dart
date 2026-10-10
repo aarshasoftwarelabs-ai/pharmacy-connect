@@ -4,6 +4,7 @@ import '../../features/auth/login_screen.dart';
 import '../../features/auth/signup_screen.dart';
 import '../../features/auth/otp_screen.dart';
 import '../../features/auth/splash_screen.dart';
+import '../../features/auth/verified_screen.dart';
 import '../utils/main_navigation.dart';
 
 import '../../features/medicines/screens/medicine_request_screen.dart';
@@ -20,6 +21,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String signup = '/signup';
   static const String otp = '/otp';
+  static const String verified = '/verified';
   static const String main = '/main'; // Home with Bottom Nav
   
   static const String medicineRequest = '/medicine-request';
@@ -41,6 +43,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const SignupScreen(), settings: settings);
       case otp:
         return MaterialPageRoute(builder: (_) => const OtpScreen(), settings: settings);
+      case verified:
+        return MaterialPageRoute(builder: (_) => const VerifiedScreen(), settings: settings);
       case main:
         return MaterialPageRoute(builder: (_) => const MainNavigation(), settings: settings);
       
