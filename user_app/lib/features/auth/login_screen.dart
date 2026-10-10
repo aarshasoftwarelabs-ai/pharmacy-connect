@@ -123,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   // Welcome Text & Illustration
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
                         flex: 5,
@@ -159,20 +159,26 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ),
-                      // Illustration Placeholder
+                      // Illustration
                       Expanded(
-                        flex: 2,
-                        child: Container(
-                          height: 90,
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50.withValues(alpha: 0.5),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.local_hospital,
-                            size: 45,
-                            color: AppColors.primary.withValues(alpha: 0.5),
-                          ),
+                        flex: 3,
+                        child: Image.asset(
+                          'assets/images/doctor.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 90,
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.local_hospital,
+                                size: 45,
+                                color: AppColors.primary.withValues(alpha: 0.5),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
