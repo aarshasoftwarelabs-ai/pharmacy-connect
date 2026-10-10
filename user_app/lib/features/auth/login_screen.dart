@@ -133,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             RichText(
                               text: const TextSpan(
                                 style: TextStyle(
-                                  fontSize: 32,
+                                  fontSize: 26,
                                   fontWeight: FontWeight.w800,
                                   color: Color(0xFF1E1E2D),
                                   height: 1.2,
@@ -161,16 +161,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       // Illustration Placeholder
                       Expanded(
-                        flex: 2,
+                        flex: 1,
                         child: Container(
-                          height: 120,
+                          height: 80,
                           decoration: BoxDecoration(
                             color: Colors.blue.shade50.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.local_hospital,
-                            size: 60,
+                            size: 40,
                             color: AppColors.primary.withValues(alpha: 0.5),
                           ),
                         ),
@@ -316,8 +316,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Image.network(
-                              'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
+                              'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png',
                               height: 24,
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 30),
                             ),
                             const SizedBox(width: 12),
                             const Text(
@@ -362,7 +363,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   
-                  const SizedBox(height: 60), // Space for bottom waves
+                  const SizedBox(height: 140), // Space for bottom waves
                 ],
               ),
             ),
