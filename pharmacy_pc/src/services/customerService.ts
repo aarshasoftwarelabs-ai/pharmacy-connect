@@ -25,7 +25,11 @@ export const CustomerService = {
     if (filter && filter !== 'All') params.append('filter', filter.toLowerCase());
     
     const response = await apiFetch(`${API_BASE_URL}/customers?${params.toString()}`);
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || data.error || 'Failed to fetch customers');
+    }
+    return data;
   },
 
   getCustomerById: async (id: number): Promise<CustomerProfile> => {

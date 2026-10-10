@@ -47,7 +47,14 @@ export class MedicineRequestService {
     const response = await apiFetch(url);
     if (!response.ok) {
       if (response.status === 403) throw new Error('Forbidden: Insufficient permissions');
-      throw new Error('Failed to fetch medicine requests');
+      let errorMsg = 'Failed to fetch medicine requests';
+      try {
+        const errorData = await response.json();
+        if (errorData.message || errorData.error) {
+          errorMsg = errorData.message || errorData.error;
+        }
+      } catch (e) {}
+      throw new Error(errorMsg);
     }
 
     const result = await response.json();

@@ -67,7 +67,11 @@ export default function Dashboard() {
       if (!isBackgroundRefresh) setError(null);
     } catch (err: any) {
       if (!isBackgroundRefresh) {
-        setError(err.message || 'Unable to load dashboard data');
+        if (err.message === 'Failed to fetch' || err.message === 'Load failed') {
+          setError('Cannot connect to the backend server. Please make sure the backend is running.');
+        } else {
+          setError(err.message || 'Unable to load dashboard data');
+        }
       }
     } finally {
       setLoading(false);
@@ -124,7 +128,7 @@ export default function Dashboard() {
           <AlertCircle className="w-10 h-10" />
         </div>
         <h2 className="text-2xl font-bold text-slate-800 mb-2">Unable to load dashboard data</h2>
-        <p className="text-slate-500 mb-8 max-w-md">We couldn't fetch your latest pharmacy statistics. Please check your connection and try again.</p>
+        <p className="text-slate-500 mb-8 max-w-md">{error}</p>
         <button onClick={() => fetchDashboardData(false)} className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold transition-all shadow-sm shadow-emerald-200">
           Retry Connection
         </button>
