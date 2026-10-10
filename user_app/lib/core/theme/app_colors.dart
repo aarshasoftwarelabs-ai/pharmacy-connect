@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Brand Colors (Pharmacy Green)
-  static const Color primary = Color(0xFF0D9488); // Teal-600 inspired
-  static const Color primaryLight = Color(0xFF14B8A6); // Teal-500
-  static const Color primaryDark = Color(0xFF0F766E); // Teal-700
+  // Brand Colors (Dava Setu Purple)
+  static const Color primary = Color(0xFF7C3AED); // Violet-600
+  static const Color primaryLight = Color(0xFF8B5CF6); // Violet-500
+  static const Color primaryDark = Color(0xFF6D28D9); // Violet-700
   
-  static const Color secondary = Color(0xFF3B82F6); // Blue-500 for secondary actions
+  static const Color secondary = Color(0xFF3B82F6); // Blue-500
   
   // Background & Surface
   static const Color background = Color(0xFFF8FAFC); // Slate-50
