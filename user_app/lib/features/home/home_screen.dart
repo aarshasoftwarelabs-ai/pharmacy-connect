@@ -477,9 +477,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildActionGrid() {
     final items = [
       {
+        'title': 'Nearby Pharmacy',
+        'subtitle': 'Find stores & order',
+        'badgeText': '15 MIN',
+        'hasDot': true,
+        'badgeBg': const Color(0xFFCCFBF1),
+        'badgeTextColor': const Color(0xFF0F766E),
+        'iconWidget': const ModernPharmacyStoreIcon(size: 24),
+        'bgGradient': const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFCCFBF1), Color(0xFF99F6E4)],
+        ),
+        'shadowColor': const Color(0xFF0D9488),
+        'onTap': () => Navigator.pushNamed(context, AppRoutes.medicineRequest),
+      },
+      {
         'title': 'My Medicines',
+        'subtitle': 'Dose timings & log',
+        'badgeText': 'DAILY',
+        'hasDot': false,
+        'badgeBg': const Color(0xFFE0F2FE),
+        'badgeTextColor': const Color(0xFF0369A1),
         'iconWidget': const ModernPillCapsule(
-          size: 28,
+          size: 24,
           primaryColor: Color(0xFF0284C7),
           secondaryColor: Color(0xFF38BDF8),
         ),
@@ -492,30 +513,29 @@ class _HomeScreenState extends State<HomeScreen> {
         'onTap': () => Navigator.pushNamed(context, AppRoutes.refillReminders),
       },
       {
-        'title': 'Nearby Pharmacy',
-        'iconWidget': const ModernPharmacyStoreIcon(size: 28),
-        'bgGradient': const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFCCFBF1), Color(0xFF99F6E4)],
-        ),
-        'shadowColor': const Color(0xFF0D9488),
-        'onTap': () => Navigator.pushNamed(context, AppRoutes.medicineRequest),
-      },
-      {
         'title': 'Refill Request',
-        'iconWidget': const ModernRefillSyncIcon(size: 28),
+        'subtitle': '1-tap quick reorder',
+        'badgeText': 'QUICK',
+        'hasDot': false,
+        'badgeBg': const Color(0xFFFEF3C7),
+        'badgeTextColor': const Color(0xFFB45309),
+        'iconWidget': const ModernRefillSyncIcon(size: 24),
         'bgGradient': const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF3E8FF), Color(0xFFE9D5FF)],
+          colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
         ),
-        'shadowColor': const Color(0xFF7C3AED),
+        'shadowColor': const Color(0xFFD97706),
         'onTap': () => Navigator.pushNamed(context, AppRoutes.refillReminders),
       },
       {
         'title': 'Prescription',
-        'iconWidget': const ModernPrescriptionDocIcon(size: 28),
+        'subtitle': 'Doctor Rx vault',
+        'badgeText': 'VAULT',
+        'hasDot': false,
+        'badgeBg': const Color(0xFFEDE9FE),
+        'badgeTextColor': const Color(0xFF6D28D9),
+        'iconWidget': const ModernPrescriptionDocIcon(size: 24),
         'bgGradient': const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -526,52 +546,130 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       {
         'title': 'Track Orders',
-        'iconWidget': const ModernDeliveryTruckIcon(size: 28),
+        'subtitle': 'Live order status',
+        'badgeText': 'LIVE',
+        'hasDot': true,
+        'badgeBg': const Color(0xFFDCFCE7),
+        'badgeTextColor': const Color(0xFF15803D),
+        'iconWidget': const ModernDeliveryTruckIcon(size: 24),
         'bgGradient': const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFCCFBF1), Color(0xFF99F6E4)],
+          colors: [Color(0xFFDCFCE7), Color(0xFFBBF7D0)],
         ),
-        'shadowColor': const Color(0xFF0D9488),
+        'shadowColor': const Color(0xFF16A34A),
         'onTap': () => Navigator.pushNamed(context, AppRoutes.medicineRequests),
       },
       {
         'title': 'Notifications',
-        'iconWidget': const ModernNotificationBellIcon(size: 28),
+        'subtitle': 'Reminders & alerts',
+        'badgeText': 'ALERTS',
+        'hasDot': false,
+        'badgeBg': const Color(0xFFFFE4E6),
+        'badgeTextColor': const Color(0xFFBE123C),
+        'iconWidget': const ModernNotificationBellIcon(size: 24),
         'bgGradient': const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF3E8FF), Color(0xFFE9D5FF)],
+          colors: [Color(0xFFFFE4E6), Color(0xFFFECDD3)],
         ),
-        'shadowColor': const Color(0xFF7C3AED),
+        'shadowColor': const Color(0xFFE11D48),
         'onTap': () => Navigator.pushNamed(context, AppRoutes.notifications),
       },
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.95,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final shadowColor = item['shadowColor'] as Color;
-        final bgGradient = item['bgGradient'] as Gradient;
-        final iconWidget = item['iconWidget'] as Widget;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header Row
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Quick Services',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E1B4B),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Smart Hub',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
 
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: item['onTap'] as VoidCallback,
-            borderRadius: BorderRadius.circular(20),
-            splashColor: shadowColor.withOpacity(0.12),
-            highlightColor: shadowColor.withOpacity(0.06),
-            child: Container(
+        // 2-Column Bento Deck Grid
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 1.44,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            final shadowColor = item['shadowColor'] as Color;
+            final bgGradient = item['bgGradient'] as Gradient;
+            final iconWidget = item['iconWidget'] as Widget;
+            final badgeBg = item['badgeBg'] as Color;
+            final badgeTextColor = item['badgeTextColor'] as Color;
+            final badgeText = item['badgeText'] as String;
+            final hasDot = item['hasDot'] as bool;
+
+            return Container(
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -581,60 +679,139 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF1E1B4B).withOpacity(0.035),
-                    blurRadius: 12,
+                    color: const Color(0xFF1E1B4B).withOpacity(0.04),
+                    blurRadius: 14,
                     offset: const Offset(0, 4),
                   ),
                   BoxShadow(
-                    color: shadowColor.withOpacity(0.05),
+                    color: shadowColor.withOpacity(0.06),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: bgGradient,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: shadowColor.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: item['onTap'] as VoidCallback,
+                  borderRadius: BorderRadius.circular(20),
+                  splashColor: shadowColor.withOpacity(0.12),
+                  highlightColor: shadowColor.withOpacity(0.06),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Top row: Squircle icon + Micro badge pill
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                gradient: bgGradient,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: shadowColor.withOpacity(0.22),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: iconWidget,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: badgeBg,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (hasDot) ...[
+                                    Container(
+                                      width: 5,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        color: badgeTextColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Text(
+                                    badgeText,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: badgeTextColor,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Bottom info: Title with arrow + Subtitle
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item['title'] as String,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF1E1B4B),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 10,
+                                  color: shadowColor.withOpacity(0.6),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              item['subtitle'] as String,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: iconWidget,
-                    ),
                   ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Text(
-                      item['title'] as String,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1E1B4B),
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ],
     );
   }
 
