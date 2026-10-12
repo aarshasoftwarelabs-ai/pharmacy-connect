@@ -2677,165 +2677,39 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
 // ==========================================
 
 /// Doctor & Storefront Hero Art for Screen 1
+/// Doctor & Storefront Hero Art for Screen 1
 class _DoctorStorefrontHeroArt extends StatelessWidget {
   const _DoctorStorefrontHeroArt();
 
   @override
   Widget build(BuildContext context) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: SizedBox(
-        width: 110,
-        height: 96,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-          // Storefront building in background
-          Positioned(
-            right: 0,
-            bottom: 4,
-            child: Container(
-              width: 56,
-              height: 58,
-              decoration: BoxDecoration(
-                color: const Color(0xFF7C3AED),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 14,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF6D28D9),
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 6,
-                    left: 10,
-                    right: 10,
-                    child: Container(
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return Center(
+      child: Container(
+        width: 76,
+        height: 76,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-
-          // Location Pin Marker above store
-          Positioned(
-            right: 16,
-            top: 2,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Color(0xFF6D28D9),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 14),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6D28D9).withOpacity(0.32),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
             ),
+          ],
+        ),
+        child: const Center(
+          child: Icon(
+            Icons.local_pharmacy_rounded,
+            color: Colors.white,
+            size: 40,
           ),
-
-          // Friendly Male Doctor Illustration
-          Positioned(
-            left: 2,
-            bottom: 0,
-            child: SizedBox(
-              width: 58,
-              height: 86,
-              child: Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  // Hair
-                  Positioned(
-                    top: 2,
-                    child: Container(
-                      width: 26,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                  // Face
-                  Positioned(
-                    top: 8,
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFED7AA),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  // Doctor White Coat & Body
-                  Positioned(
-                    bottom: 0,
-                    child: Container(
-                      width: 44,
-                      height: 58,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 14,
-                            height: 18,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF0284C7),
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          // Card held by doctor
-                          Container(
-                            width: 22,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF38BDF8),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Medical Cross Badge
-          Positioned(
-            left: 0,
-            top: 18,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Color(0xFF0284C7),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add, color: Colors.white, size: 12),
-            ),
-          ),
-        ],
+        ),
       ),
-    ),
     );
   }
 }
@@ -2847,90 +2721,34 @@ class _PrescriptionCardArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: SizedBox(
-        width: 76,
-        height: 94,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // White Prescription paper
-            Container(
-              width: 64,
-              height: 82,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2563EB).withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Rx',
-                        style: GoogleFonts.outfit(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14,
-                          color: const Color(0xFF2563EB),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF2563EB),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.add, color: Colors.white, size: 8),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  _buildLine(36),
-                  const SizedBox(height: 3),
-                  _buildLine(28),
-                  const SizedBox(height: 3),
-                  _buildLine(42),
-                  const SizedBox(height: 3),
-                  _buildLine(22),
-                ],
-              ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2563EB).withOpacity(0.12),
+              shape: BoxShape.circle,
             ),
-
-            // Blue pill circle on bottom right
-            Positioned(
-              right: 2,
-              bottom: 4,
-              child: Container(
-                padding: const EdgeInsets.all(5),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF38BDF8),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.medication_rounded, color: Colors.white, size: 14),
-              ),
+            child: const Icon(Icons.description_rounded, color: Color(0xFF2563EB), size: 28),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Doctor Rx',
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              color: const Color(0xFF1E1B4B),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLine(double width) {
-    return Container(
-      width: width,
-      height: 3,
-      decoration: BoxDecoration(
-        color: const Color(0xFFCBD5E1),
-        borderRadius: BorderRadius.circular(2),
+          ),
+          Text(
+            'Prescription Card',
+            style: GoogleFonts.inter(
+              fontSize: 9.5,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2942,84 +2760,26 @@ class _PharmacyStorefrontGraphic extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 72,
-      height: 68,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Store building
-          Positioned(
-            right: 0,
-            bottom: 2,
-            child: Container(
-              width: 58,
-              height: 52,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Striped awning
-                  Container(
-                    height: 14,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF38BDF8),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  // Glass window
-                  Container(
-                    width: 38,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFF93C5FD)),
-                    ),
-                  ),
-                ],
-              ),
+    return Center(
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
-          ),
-
-          // Location Pin Marker
-          Positioned(
-            right: 4,
-            top: 2,
-            child: Container(
-              padding: const EdgeInsets.all(3),
-              decoration: const BoxDecoration(
-                color: Color(0xFF7C3AED),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 12),
-            ),
-          ),
-
-          // Medical Cross Emblem
-          Positioned(
-            left: 2,
-            bottom: 8,
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              decoration: const BoxDecoration(
-                color: Color(0xFF3B82F6),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add_rounded, color: Colors.white, size: 14),
-            ),
-          ),
-        ],
+          ],
+        ),
+        child: const Icon(
+          Icons.storefront_rounded,
+          color: Color(0xFF7C3AED),
+          size: 34,
+        ),
       ),
     );
   }
