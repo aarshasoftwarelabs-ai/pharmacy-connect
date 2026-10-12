@@ -602,12 +602,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
                 });
               },
             )
-          : (ModalRoute.of(context)?.settings.name == AppRoutes.medicineRequest && Navigator.canPop(context))
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1E1B4B), size: 24),
-                  onPressed: () => Navigator.pop(context),
-                )
-              : null,
+          : null,
       centerTitle: true,
       title: Text(
         _currentStep == 0 ? 'Request Medicine' : 'Select Pharmacy',
@@ -693,7 +688,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
               // 4c. Legal Certification Checkbox
               _buildLegalCertificationCheckbox(),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 120),
             ],
           ),
         ),
@@ -887,46 +882,38 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
                     ],
                   ),
                 )
-              : CustomPaint(
-                  painter: _DashedBorderPainter(
-                    color: const Color(0xFFC4B5FD),
-                    strokeWidth: 1.5,
-                    radius: 18,
-                    dashLength: 5,
-                    gapLength: 4,
+              : Container(
+                  height: 116,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFE),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFC4B5FD), width: 1.5),
                   ),
                   child: InkWell(
                     onTap: _showImagePickerModal,
                     borderRadius: BorderRadius.circular(18),
-                    child: Container(
-                      height: 116,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAFAFE),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2563EB).withOpacity(0.12),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF2563EB), size: 22),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2563EB).withOpacity(0.12),
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap to Upload',
-                            style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 13, color: const Color(0xFF2563EB)),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'or choose from gallery',
-                            style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF94A3B8)),
-                          ),
-                        ],
-                      ),
+                          child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF2563EB), size: 22),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tap to Upload',
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 13, color: const Color(0xFF2563EB)),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'or choose from gallery',
+                          style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF94A3B8)),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -2689,78 +2676,20 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
 // Custom Visual Components & Painters
 // ==========================================
 
-/// Heart Logo Widget for Dava Setu
-class _DavaSetuHeartLogo extends StatelessWidget {
-  final double size;
-  const _DavaSetuHeartLogo({this.size = 32});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _DavaSetuHeartPainter(),
-      ),
-    );
-  }
-}
-
-class _DavaSetuHeartPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final gradient = const LinearGradient(
-      colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
-      begin: Alignment.bottomLeft,
-      end: Alignment.topRight,
-    ).createShader(rect);
-
-    final paint = Paint()
-      ..shader = gradient
-      ..style = PaintingStyle.fill;
-
-    final width = size.width;
-    final height = size.height;
-
-    final path = Path();
-    path.moveTo(width / 2, height * 0.88);
-    path.cubicTo(width * 0.1, height * 0.6, 0, height * 0.28, width * 0.26, height * 0.12);
-    path.cubicTo(width * 0.42, height * 0.02, width / 2, height * 0.25, width / 2, height * 0.25);
-    path.cubicTo(width / 2, height * 0.25, width * 0.58, height * 0.02, width * 0.74, height * 0.12);
-    path.cubicTo(width, height * 0.28, width * 0.9, height * 0.6, width / 2, height * 0.88);
-    path.close();
-
-    canvas.drawPath(path, paint);
-
-    // Inner White Ribbon Motif
-    final ribbonPaint = Paint()
-      ..color = Colors.white.withOpacity(0.9)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.12
-      ..strokeCap = StrokeCap.round;
-
-    final ribbonPath = Path();
-    ribbonPath.moveTo(width * 0.38, height * 0.62);
-    ribbonPath.lineTo(width * 0.62, height * 0.38);
-    canvas.drawPath(ribbonPath, ribbonPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
 /// Doctor & Storefront Hero Art for Screen 1
 class _DoctorStorefrontHeroArt extends StatelessWidget {
   const _DoctorStorefrontHeroArt();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 96,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: SizedBox(
+        width: 110,
+        height: 96,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
           // Storefront building in background
           Positioned(
             right: 0,
@@ -2906,6 +2835,7 @@ class _DoctorStorefrontHeroArt extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -3095,51 +3025,4 @@ class _PharmacyStorefrontGraphic extends StatelessWidget {
   }
 }
 
-/// Dashed Border Painter
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double radius;
-  final double dashLength;
-  final double gapLength;
 
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1.5,
-    this.radius = 16,
-    this.dashLength = 5,
-    this.gapLength = 4,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(radius),
-    );
-
-    final path = Path()..addRRect(rrect);
-    final metrics = path.computeMetrics();
-
-    for (final metric in metrics) {
-      double distance = 0.0;
-      while (distance < metric.length) {
-        final nextDistance = distance + dashLength;
-        final extractPath = metric.extractPath(
-          distance,
-          nextDistance > metric.length ? metric.length : nextDistance,
-        );
-        canvas.drawPath(extractPath, paint);
-        distance += dashLength + gapLength;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
