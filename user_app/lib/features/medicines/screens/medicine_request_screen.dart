@@ -1,11 +1,12 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/routes/app_routes.dart';
-import '../../../widgets/fade_in_slide.dart';
 import '../../pharmacy/models/pharmacy.dart';
 import '../../../services/medicine_request_service.dart';
 import '../../../services/pharmacy_service.dart';
@@ -23,6 +24,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
   int _currentStep = 0;
 
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _medicineTextController = TextEditingController();
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   Pharmacy? _selectedPharmacy;
@@ -110,12 +112,14 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
   @override
   void initState() {
     super.initState();
+    _loadInitialSelectedPharmacy();
     _fetchPharmacies();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _medicineTextController.dispose();
     super.dispose();
   }
 
@@ -411,9 +415,13 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
     );
   }
 
-  Future<void> _submitRequest() async {
+  Future<void> _submitRequest([String? directMedicineText]) async {
     final hasImage = _imageFile != null;
-    final medicineText = _searchController.text.trim();
+    final medicineText = (directMedicineText != null && directMedicineText.isNotEmpty)
+        ? directMedicineText
+        : (_medicineTextController.text.trim().isNotEmpty
+            ? _medicineTextController.text.trim()
+            : _searchController.text.trim());
 
     if (!hasImage && medicineText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -456,6 +464,8 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
         final bytes = await _imageFile!.readAsBytes();
         base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
       }
+
+      await _persistSelectedPharmacy(_selectedPharmacy!);
 
       final request = await MedicineRequestService.createMedicineRequest(
         pharmacyId: pharmacyId,
@@ -569,13 +579,11 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       appBar: _buildAppBar(),
       body: SafeArea(
         top: false,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: _currentStep == 0 ? _buildScreenOne() : _buildScreenTwo(),
-        ),
+        child: _currentStep == 0 ? _buildScreenOne() : _buildScreenTwo(),
       ),
+      bottomNavigationBar: _currentStep == 1 && _selectedPharmacy != null
+          ? _buildBottomFloatingBar()
+          : null,
     );
   }
 
@@ -585,69 +593,30 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       backgroundColor: Colors.white,
       elevation: 0,
       scrolledUnderElevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1E1B4B), size: 24),
-        onPressed: () {
-          if (_currentStep == 1) {
-            setState(() {
-              _currentStep = 0;
-            });
-          } else if (Navigator.canPop(context)) {
-            Navigator.pop(context);
-          }
-        },
-      ),
+      leading: _currentStep == 1
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1E1B4B), size: 24),
+              onPressed: () {
+                setState(() {
+                  _currentStep = 0;
+                });
+              },
+            )
+          : (ModalRoute.of(context)?.settings.name == AppRoutes.medicineRequest && Navigator.canPop(context))
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1E1B4B), size: 24),
+                  onPressed: () => Navigator.pop(context),
+                )
+              : null,
       centerTitle: true,
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const _DavaSetuHeartLogo(size: 34),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Dava Setu',
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1E1B4B),
-                  letterSpacing: -0.3,
-                ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    'Your Health',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: 3,
-                    height: 3,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFF6D28D9),
-                    ),
-                  ),
-                  Text(
-                    'Our Priority',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+      title: Text(
+        _currentStep == 0 ? 'Request Medicine' : 'Select Pharmacy',
+        style: GoogleFonts.outfit(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF1E1B4B),
+          letterSpacing: -0.3,
+        ),
       ),
       actions: [
         Stack(
@@ -686,91 +655,45 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 650),
         child: SingleChildScrollView(
-          key: const ValueKey('ScreenOne'),
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 10.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Hero Banner: Doctor & Pharmacy storefront
-              FadeInSlide(
-                delay: 0.05,
-                child: _buildScreenOneHeroBanner(),
-              ),
+              _buildScreenOneHeroBanner(),
 
-              const SizedBox(height: 22),
+              const SizedBox(height: 14),
+
+              // 1b. Smart Top Action Card: Direct Find Pharmacy Button
+              _buildScreenOneTopActionCard(),
+
+              const SizedBox(height: 16),
 
               // 2. Step 1: Upload Prescription Header
-              FadeInSlide(
-                delay: 0.1,
-                child: _buildScreenOneStepOneHeader(),
-              ),
+              _buildScreenOneStepOneHeader(),
 
               const SizedBox(height: 14),
 
               // 3. Prescription Upload Cards & Action Buttons (Camera, Gallery, Live Scan)
-              FadeInSlide(
-                delay: 0.15,
-                child: _buildScreenOneUploadBox(),
-              ),
+              _buildScreenOneUploadBox(),
 
               const SizedBox(height: 12),
 
               // 4. Action Buttons Row: Camera, Gallery, Live Scan
-              FadeInSlide(
-                delay: 0.2,
-                child: _buildScreenOneButtonsRow(),
-              ),
+              _buildScreenOneButtonsRow(),
 
               const SizedBox(height: 14),
 
               // 4b. Prescription Safety & Verification Notice
-              FadeInSlide(
-                delay: 0.22,
-                child: _buildPrescriptionSafetyNotice(),
-              ),
+              _buildPrescriptionSafetyNotice(),
 
               const SizedBox(height: 12),
 
               // 4c. Legal Certification Checkbox
-              FadeInSlide(
-                delay: 0.24,
-                child: _buildLegalCertificationCheckbox(),
-              ),
+              _buildLegalCertificationCheckbox(),
 
-              const SizedBox(height: 24),
-
-              // 5. Step 2: Select Pharmacy Header
-              FadeInSlide(
-                delay: 0.25,
-                child: _buildScreenOneStepTwoHeader(),
-              ),
-
-              const SizedBox(height: 14),
-
-              // 6. Use My Current Location Card
-              FadeInSlide(
-                delay: 0.3,
-                child: _buildUseLocationCard(),
-              ),
-
-              const SizedBox(height: 12),
-
-              // 7. Trust verification card
-              FadeInSlide(
-                delay: 0.35,
-                child: _buildTrustBadgeCard(),
-              ),
-
-              const SizedBox(height: 18),
-
-              // 8. Find Pharmacy Button
-              FadeInSlide(
-                delay: 0.4,
-                child: _buildFindPharmacyPrimaryButton(),
-              ),
-
-              const SizedBox(height: 30),
+              const SizedBox(height: 28),
             ],
           ),
         ),
@@ -827,6 +750,44 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
                     fontSize: 11.5,
                     color: const Color(0xFF64748B),
                     height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                InkWell(
+                  onTap: _handleFindPharmacy,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6D28D9), Color(0xFF7C3AED)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6D28D9).withOpacity(0.28),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.search_rounded, color: Colors.white, size: 14),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Find Pharmacy',
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 13),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -1054,113 +1015,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
     );
   }
 
-  Widget _buildScreenOneStepTwoHeader() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: const BoxDecoration(
-            color: Color(0xFF6D28D9),
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            '2',
-            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select Pharmacy',
-                style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1E1B4B),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Choose from nearby trusted pharmacies\nor let us find the best one for you.',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: const Color(0xFF64748B),
-                  height: 1.3,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildUseLocationCard() {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _currentStep = 1;
-        });
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(9),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEFF6FF),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.location_on_rounded, color: Color(0xFF2563EB), size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Use My Current Location',
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1E1B4B),
-                    ),
-                  ),
-                  Text(
-                    'Find pharmacies near you',
-                    style: GoogleFonts.inter(
-                      fontSize: 11.5,
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 22),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildPrescriptionSafetyNotice() {
     return Container(
@@ -1267,31 +1122,146 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
     );
   }
 
-  Widget _buildTrustBadgeCard() {
+
+
+  void _handleFindPharmacy() {
+    if (!_isPrescriptionCertified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please accept the prescription certification to proceed.'),
+          backgroundColor: Color(0xFFE11D48),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _currentStep = 1;
+    });
+  }
+
+  Widget _buildScreenOneTopActionCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE9D5FF), width: 1.3),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6D28D9).withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
-            decoration: const BoxDecoration(
-              color: Color(0xFF3B82F6),
-              shape: BoxShape.circle,
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6D28D9).withOpacity(0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            child: const Icon(Icons.verified_rounded, color: Colors.white, size: 14),
+            child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 23),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'Licensed pharmacists verify all prescriptions. Store pickup ready in 15 mins.',
-              style: GoogleFonts.inter(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF1E1B4B),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Find Nearby Pharmacy',
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1E1B4B),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'FAST',
+                        style: GoogleFonts.outfit(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF166534),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Skip upload & select trusted stores directly',
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    color: const Color(0xFF64748B),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _handleFindPharmacy,
+              borderRadius: BorderRadius.circular(12),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6D28D9), Color(0xFF7C3AED)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6D28D9).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.search_rounded, size: 16, color: Colors.white),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Find',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1300,62 +1270,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
     );
   }
 
-  Widget _buildFindPharmacyPrimaryButton() {
-    return Container(
-      width: double.infinity,
-      height: 50,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6D28D9), Color(0xFF7C3AED)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6D28D9).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            if (!_isPrescriptionCertified) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Please accept the prescription certification to proceed.'),
-                  backgroundColor: Color(0xFFE11D48),
-                ),
-              );
-              return;
-            }
-            setState(() {
-              _currentStep = 1;
-            });
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.search_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Find Pharmacy',
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
 
   // =========================================================================
   // SCREEN 2: "Pharmacy Connect / Nearby Pharmacies" (Right Image)
@@ -1366,58 +1281,39 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 650),
         child: SingleChildScrollView(
-          key: const ValueKey('ScreenTwo'),
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 10.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Hero Banner: Pharmacy Connect (Blue-Purple Gradient)
-              FadeInSlide(
-                delay: 0.05,
-                child: _buildScreenTwoHeroBanner(),
-              ),
+              _buildScreenTwoHeroBanner(),
 
               const SizedBox(height: 16),
 
               // 2. Search Bar
-              FadeInSlide(
-                delay: 0.1,
-                child: _buildSearchBar(),
-              ),
+              _buildSearchBar(),
 
               const SizedBox(height: 12),
 
               // Pharmacist Verification & 15-min Pickup Gate Badge
-              FadeInSlide(
-                delay: 0.12,
-                child: _buildPharmacistGateNotice(),
-              ),
+              _buildPharmacistGateNotice(),
 
               if (_detectedRestrictedDrug != null) ...[
                 const SizedBox(height: 12),
                 // Schedule H/X Warning Alert Banner
-                FadeInSlide(
-                  delay: 0.14,
-                  child: _buildScheduleWarningBanner(),
-                ),
+                _buildScheduleWarningBanner(),
               ],
 
               const SizedBox(height: 14),
 
               // 3. Filter Chips: All, Nearby, 24x7, Best Rated
-              FadeInSlide(
-                delay: 0.15,
-                child: _buildFilterChips(),
-              ),
+              _buildFilterChips(),
 
               const SizedBox(height: 20),
 
               // 4. Section Header: Nearby Pharmacies
-              FadeInSlide(
-                delay: 0.2,
-                child: _buildPharmaciesHeader(),
-              ),
+              _buildPharmaciesHeader(),
 
               const SizedBox(height: 12),
 
@@ -1427,21 +1323,15 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
               const SizedBox(height: 16),
 
               // 6. Need Help Card
-              FadeInSlide(
-                delay: 0.45,
-                child: _buildScreenTwoNeedHelpCard(),
-              ),
+              _buildScreenTwoNeedHelpCard(),
 
               // Submit Request button if pharmacy is selected
               if (_selectedPharmacy != null || _imageFile != null) ...[
                 const SizedBox(height: 18),
-                FadeInSlide(
-                  delay: 0.1,
-                  child: _buildSubmitButton(),
-                ),
+                _buildSubmitButton(),
               ],
 
-              const SizedBox(height: 36),
+              SizedBox(height: _selectedPharmacy != null ? 100 : 36),
             ],
           ),
         ),
@@ -1733,12 +1623,9 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
         final data = entry.value;
         final isSelected = _selectedPharmacy?.id == data['id'].toString();
 
-        return FadeInSlide(
-          delay: 0.25 + (index * 0.08),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
-            child: _buildPharmacyCard(data, isSelected),
-          ),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: _buildPharmacyCard(data, isSelected),
         );
       }).toList(),
     );
@@ -1751,21 +1638,24 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
 
     return InkWell(
       onTap: () {
-        setState(() {
-          if (isSelected) {
-            _selectedPharmacy = null;
-          } else {
-            _selectedPharmacy = Pharmacy(
-              id: data['id'].toString(),
-              name: data['name'] as String,
-              address: address,
-              phone: data['phone']?.toString() ?? '+919876543210',
-              latitude: 23.0225,
-              longitude: 72.5714,
-              isConnected: true,
-            );
-          }
-        });
+        HapticFeedback.lightImpact();
+        if (isSelected) {
+          _handlePharmacyAction();
+        } else {
+          final p = Pharmacy(
+            id: data['id'].toString(),
+            name: data['name'] as String,
+            address: address,
+            phone: data['phone']?.toString() ?? '+919876543210',
+            latitude: 23.0225,
+            longitude: 72.5714,
+            isConnected: true,
+          );
+          setState(() {
+            _selectedPharmacy = p;
+          });
+          _persistSelectedPharmacy(p);
+        }
       },
       borderRadius: BorderRadius.circular(20),
       child: AnimatedContainer(
@@ -1972,35 +1862,58 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7.5),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF10B981) : const Color(0xFF6D28D9),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (isSelected ? const Color(0xFF10B981) : const Color(0xFF6D28D9)).withOpacity(0.25),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isSelected) ...[
-                        const Icon(Icons.check_rounded, color: Colors.white, size: 14),
-                        const SizedBox(width: 4),
-                      ],
-                      Text(
-                        isSelected ? 'Selected' : 'Select',
-                        style: GoogleFonts.inter(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    if (isSelected) {
+                      _handlePharmacyAction();
+                    } else {
+                      final p = Pharmacy(
+                        id: data['id'].toString(),
+                        name: data['name'] as String,
+                        address: address,
+                        phone: data['phone']?.toString() ?? '+919876543210',
+                        latitude: 23.0225,
+                        longitude: 72.5714,
+                        isConnected: true,
+                      );
+                      setState(() {
+                        _selectedPharmacy = p;
+                      });
+                      _persistSelectedPharmacy(p);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.5),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF10B981) : const Color(0xFF6D28D9),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isSelected ? const Color(0xFF10B981) : const Color(0xFF6D28D9)).withOpacity(0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isSelected) ...[
+                          const Icon(Icons.check_rounded, color: Colors.white, size: 14),
+                          const SizedBox(width: 4),
+                        ],
+                        Text(
+                          isSelected ? 'Request →' : 'Select',
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -2318,6 +2231,456 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _persistSelectedPharmacy(Pharmacy p) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('selected_pharmacy_id', p.id);
+      await prefs.setString('selected_pharmacy_name', p.name);
+      await prefs.setString('selected_pharmacy_address', p.address);
+      await prefs.setString('selected_pharmacy_phone', p.phone);
+    } catch (_) {}
+  }
+
+  Future<void> _loadInitialSelectedPharmacy() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final id = prefs.getString('selected_pharmacy_id');
+      final name = prefs.getString('selected_pharmacy_name');
+      final address = prefs.getString('selected_pharmacy_address');
+      final phone = prefs.getString('selected_pharmacy_phone');
+      if (id != null && name != null && mounted) {
+        setState(() {
+          _selectedPharmacy = Pharmacy(
+            id: id,
+            name: name,
+            address: address ?? 'Surat, Gujarat',
+            phone: phone ?? '+919876543210',
+            latitude: 23.0225,
+            longitude: 72.5714,
+            isConnected: true,
+          );
+        });
+      }
+    } catch (_) {}
+  }
+
+  Widget _buildBottomFloatingBar() {
+    final pharmacy = _selectedPharmacy;
+    if (pharmacy == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 14,
+        bottom: MediaQuery.of(context).padding.bottom > 0
+            ? MediaQuery.of(context).padding.bottom + 8
+            : 16,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1E1B4B).withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'CONNECTED PHARMACY',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F766E),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  pharmacy.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E1B4B),
+                  ),
+                ),
+                Text(
+                  'Pickup ready in 15 mins',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          ElevatedButton(
+            onPressed: _isSubmitting ? null : _handlePharmacyAction,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6D28D9),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 4,
+              shadowColor: const Color(0xFF6D28D9).withOpacity(0.35),
+            ),
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _imageFile != null ? 'Send Request' : 'Request Medicine',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.arrow_forward_rounded, size: 16),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handlePharmacyAction() {
+    if (_selectedPharmacy == null) return;
+
+    if (_imageFile != null) {
+      _submitRequest();
+      return;
+    }
+
+    _showMedicineRequestBottomSheet();
+  }
+
+  void _showMedicineRequestBottomSheet() {
+    final pharmacy = _selectedPharmacy;
+    if (pharmacy == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (bottomSheetContext, setModalState) {
+            final hasPhoto = _imageFile != null;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(bottomSheetContext).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Request Medicine',
+                              style: GoogleFonts.outfit(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1E1B4B),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Sending directly to ${pharmacy.name}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.storefront_rounded, size: 16, color: Color(0xFF16A34A)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Store: ${pharmacy.name} • Ready in 15 mins',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF166534),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Attach Prescription (Optional)',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (hasPhoto)
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                _imageFile!,
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Prescription Attached',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF16A34A),
+                                    ),
+                                  ),
+                                  Text(
+                                    'Pharmacist will verify Rx',
+                                    style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, color: Color(0xFFEF4444), size: 20),
+                              onPressed: () {
+                                setModalState(() {
+                                  _imageFile = null;
+                                });
+                                setState(() {});
+                              },
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final XFile? pic = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+                                if (pic != null) {
+                                  setModalState(() {
+                                    _imageFile = File(pic.path);
+                                  });
+                                  setState(() {});
+                                }
+                              },
+                              icon: const Icon(Icons.camera_alt_rounded, size: 16, color: Color(0xFF6D28D9)),
+                              label: Text('Take Photo', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF6D28D9))),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFFDDD6FE)),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final XFile? pic = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                                if (pic != null) {
+                                  setModalState(() {
+                                    _imageFile = File(pic.path);
+                                  });
+                                  setState(() {});
+                                }
+                              },
+                              icon: const Icon(Icons.photo_library_rounded, size: 16, color: Color(0xFF6D28D9)),
+                              label: Text('From Gallery', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF6D28D9))),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFFDDD6FE)),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Medicine Names / Note',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: TextField(
+                        controller: _medicineTextController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          hintText: 'e.g., Paracetamol 650mg (1 strip), Vitamin C...',
+                          hintStyle: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.all(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () async {
+                                final text = _medicineTextController.text.trim();
+                                if (_imageFile == null && text.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please attach a prescription photo or enter medicine names.'),
+                                      backgroundColor: Color(0xFFE11D48),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                Navigator.pop(ctx);
+                                await _submitRequest(text);
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6D28D9),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 4,
+                          shadowColor: const Color(0xFF6D28D9).withOpacity(0.35),
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Send Request to ${pharmacy.name}',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.send_rounded, size: 16),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

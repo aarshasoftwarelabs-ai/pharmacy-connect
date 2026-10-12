@@ -28,8 +28,8 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
     super.initState();
     _fetchRequests();
 
-    // Auto-polling every 15 seconds
-    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    // Auto-polling every 5 seconds for near real-time updates
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       _fetchRequests(isBackgroundRefresh: true);
     });
   }

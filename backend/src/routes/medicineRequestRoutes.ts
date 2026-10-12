@@ -14,8 +14,8 @@ router.get('/user/:userId', MedicineRequestController.getUserRequests);
 // Get pharmacy requests (Pharmacy PC)
 router.get('/pharmacy/:pharmacyId', authenticate, requirePermission('MEDICINE_REQUESTS_VIEW'), MedicineRequestController.getPharmacyRequests);
 
-// Get single request (Assuming customer or pharmacy might call this, but typically pharmacy)
-router.get('/:requestId', authenticate, requirePermission('MEDICINE_REQUESTS_VIEW'), MedicineRequestController.getRequestById);
+// Get single request (Customer or Pharmacy)
+router.get('/:requestId', MedicineRequestController.getRequestById);
 
 // Update status (Pharmacy Response)
 router.patch('/:requestId/status', authenticate, requirePermission('MEDICINE_REQUESTS_RESPOND'), MedicineRequestController.updateStatus);

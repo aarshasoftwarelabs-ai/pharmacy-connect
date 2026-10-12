@@ -29,7 +29,7 @@ class _MedicineRequestDetailsScreenState extends State<MedicineRequestDetailsScr
     _request = widget.request;
     _fetchLatestDetails();
     
-    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       _fetchLatestDetails(isBackground: true);
     });
   }

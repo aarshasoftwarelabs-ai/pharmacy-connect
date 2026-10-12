@@ -1,4 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AnimatedBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -12,54 +15,88 @@ class AnimatedBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 18, right: 18, bottom: 12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.9),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1E1B4B).withOpacity(0.08),
+                      blurRadius: 28,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 10),
+                    ),
+                    BoxShadow(
+                      color: const Color(0xFF6D28D9).withOpacity(0.06),
+                      blurRadius: 14,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _NavBarItem(
+                      icon: Icons.home_outlined,
+                      activeIcon: Icons.home_rounded,
+                      label: 'Home',
+                      isSelected: currentIndex == 0,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        onTap(0);
+                      },
+                    ),
+                    _NavBarItem(
+                      icon: Icons.medication_outlined,
+                      activeIcon: Icons.medication_rounded,
+                      label: 'Medicines',
+                      isSelected: currentIndex == 1,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        onTap(1);
+                      },
+                    ),
+                    _NavBarItem(
+                      icon: Icons.assignment_outlined,
+                      activeIcon: Icons.assignment_rounded,
+                      label: 'Requests',
+                      isSelected: currentIndex == 2,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        onTap(2);
+                      },
+                    ),
+                    _NavBarItem(
+                      icon: Icons.person_outline_rounded,
+                      activeIcon: Icons.person_rounded,
+                      label: 'Profile',
+                      isSelected: currentIndex == 3,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        onTap(3);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavBarItem(
-            icon: Icons.home_outlined,
-            activeIcon: Icons.home_rounded,
-            label: 'Home',
-            isSelected: currentIndex == 0,
-            onTap: () => onTap(0),
-          ),
-          _NavBarItem(
-            icon: Icons.medication_outlined,
-            activeIcon: Icons.medication_rounded,
-            label: 'Medicines',
-            isSelected: currentIndex == 1,
-            onTap: () => onTap(1),
-          ),
-          _NavBarItem(
-            icon: Icons.assignment_outlined,
-            activeIcon: Icons.assignment_rounded,
-            label: 'Requests',
-            isSelected: currentIndex == 2,
-            onTap: () => onTap(2),
-          ),
-          _NavBarItem(
-            icon: Icons.person_outline_rounded,
-            activeIcon: Icons.person_rounded,
-            label: 'Profile',
-            isSelected: currentIndex == 3,
-            onTap: () => onTap(3),
-          ),
-        ],
       ),
     );
   }
@@ -82,38 +119,68 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? const Color(0xFF6D28D9) : const Color(0xFF94A3B8);
-    
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 60,
-        child: Column(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 16 : 12,
+          vertical: 9,
+        ),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [Color(0xFF6D28D9), Color(0xFF8B5CF6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF6D28D9).withOpacity(0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              color: color,
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            AnimatedScale(
+              scale: isSelected ? 1.08 : 1.0,
+              duration: const Duration(milliseconds: 250),
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                color: isSelected ? Colors.white : const Color(0xFF64748B),
+                size: 22,
               ),
             ),
-            const SizedBox(height: 4),
-            Container(
-              height: 3,
-              width: 20,
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF6D28D9) : Colors.transparent,
-                borderRadius: BorderRadius.circular(1.5),
-              ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              child: isSelected
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 8),
+                        Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
             ),
           ],
         ),

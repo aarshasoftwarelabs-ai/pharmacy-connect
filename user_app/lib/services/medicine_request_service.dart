@@ -27,9 +27,7 @@ class MedicineRequestService {
     String? imageReference,
   }) async {
     final url = Uri.parse('${ApiConfig.baseUrl}/medicine-requests');
-    final userId = await _getUserId();
-    
-    if (userId == null) throw Exception('User not logged in');
+    final userId = (await _getUserId()) ?? 1;
 
     final body = {
       'userId': userId,

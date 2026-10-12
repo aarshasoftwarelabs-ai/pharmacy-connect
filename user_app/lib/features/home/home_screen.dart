@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/routes/app_routes.dart';
 import '../../services/notification_service.dart';
+import '../../services/pharmacy_service.dart';
 import '../../widgets/fade_in_slide.dart';
 import '../../widgets/modern_icons.dart';
+import '../pharmacy/models/pharmacy.dart';
 import '../profile/widgets/profile_avatar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,11 +21,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _userName = 'User';
   int _unreadCount = 0;
+  Pharmacy? _connectedPharmacy;
+  List<Pharmacy> _availablePharmacies = [];
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadConnectedPharmacy();
   }
 
   Future<void> _loadUser() async {
@@ -64,17 +70,12 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Top Bar: Logo & Notification
-              _buildTopBar(),
+              // 1. Top Header: Greeting & Notification
+              _buildTopHeader(),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
-              // 2. Greeting Section with Senior Avatar
-              _buildGreeting(),
-
-              const SizedBox(height: 16),
-
-              // 3. Today's Medicines Card
+              // 2. Today's Medicines Card
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: FadeInSlide(
@@ -83,9 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
-              // 4. Refill Warning Alert Banner
+              // 3. Refill Warning Alert Banner
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: FadeInSlide(
@@ -94,29 +95,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+
+              // 4. Connected Pharmacies Carousel (Horizontal Scrollable, placed BEFORE buttons)
+              FadeInSlide(
+                delay: 0.2,
+                child: _buildConnectedPharmaciesSection(),
+              ),
+
+              const SizedBox(height: 14),
 
               // 5. 6-Action Grid
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: FadeInSlide(
-                  delay: 0.2,
+                  delay: 0.25,
                   child: _buildActionGrid(),
                 ),
               ),
 
-              const SizedBox(height: 16),
-
-              // 6. Insurance & Claims Card
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: FadeInSlide(
-                  delay: 0.25,
-                  child: _buildInsuranceCard(),
-                ),
-              ),
-
-              const SizedBox(height: 110), // Bottom padding for navigation
+              // Bottom clearance: ensures content clears the floating bottom bar when scrolled
+              const SizedBox(height: 115),
             ],
           ),
         ),
@@ -124,66 +123,72 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTopBar() {
+  Widget _buildTopHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 8.0, bottom: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Image.asset(
-                'assets/images/logo.png',
-                height: 42,
-                errorBuilder: (c, e, s) => Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF6D28D9),
-                    shape: BoxShape.circle,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Good Morning,',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
                   ),
-                  child: const Icon(Icons.health_and_safety_rounded, color: Colors.white, size: 24),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Dava Setu',
-                    style: GoogleFonts.outfit(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1E1B4B),
-                      letterSpacing: -0.5,
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        _userName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF1E1B4B),
+                        ),
+                      ),
                     ),
+                    const SizedBox(width: 6),
+                    const Text('👏', style: TextStyle(fontSize: 18)),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Stay healthy, stay happy!',
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w400,
                   ),
-                  Text(
-                    'Your Health • Our Priority',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: const Color(0xFF64748B),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
@@ -214,76 +219,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildGreeting() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Good Morning,',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: const Color(0xFF64748B),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  Text(
-                    _userName,
-                    style: GoogleFonts.outfit(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1E1B4B),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Text('👏', style: TextStyle(fontSize: 20)),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Stay healthy, stay happy!',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: const Color(0xFF64748B),
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Positioned(
-                right: -10,
-                top: -10,
-                child: SizedBox(
-                  width: 90,
-                  height: 90,
-                  child: CustomPaint(
-                    painter: LeafWatermarkPainter(
-                      color: const Color(0xFF8B5CF6).withOpacity(0.08),
-                    ),
-                  ),
-                ),
-              ),
-              const SeniorAvatarWidget(size: 64),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTodaysMedicinesCard() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -539,50 +478,72 @@ class _HomeScreenState extends State<HomeScreen> {
     final items = [
       {
         'title': 'My Medicines',
-        'isPill': true,
-        'color': const Color(0xFF0284C7),
-        'secColor': const Color(0xFF38BDF8),
-        'bgColor': const Color(0xFFE0F2FE),
+        'iconWidget': const ModernPillCapsule(
+          size: 28,
+          primaryColor: Color(0xFF0284C7),
+          secondaryColor: Color(0xFF38BDF8),
+        ),
+        'bgGradient': const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
+        ),
+        'shadowColor': const Color(0xFF0284C7),
         'onTap': () => Navigator.pushNamed(context, AppRoutes.refillReminders),
       },
       {
         'title': 'Nearby Pharmacy',
-        'isPill': false,
-        'icon': Icons.storefront_rounded,
-        'color': const Color(0xFF0D9488),
-        'bgColor': const Color(0xFFCCFBF1),
+        'iconWidget': const ModernPharmacyStoreIcon(size: 28),
+        'bgGradient': const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFCCFBF1), Color(0xFF99F6E4)],
+        ),
+        'shadowColor': const Color(0xFF0D9488),
         'onTap': () => Navigator.pushNamed(context, AppRoutes.medicineRequest),
       },
       {
         'title': 'Refill Request',
-        'isPill': false,
-        'icon': Icons.sync_rounded,
-        'color': const Color(0xFF8B5CF6),
-        'bgColor': const Color(0xFFF3E8FF),
+        'iconWidget': const ModernRefillSyncIcon(size: 28),
+        'bgGradient': const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF3E8FF), Color(0xFFE9D5FF)],
+        ),
+        'shadowColor': const Color(0xFF7C3AED),
         'onTap': () => Navigator.pushNamed(context, AppRoutes.refillReminders),
       },
       {
         'title': 'Prescription',
-        'isPill': false,
-        'icon': Icons.description_rounded,
-        'color': const Color(0xFF8B5CF6),
-        'bgColor': const Color(0xFFF3E8FF),
+        'iconWidget': const ModernPrescriptionDocIcon(size: 28),
+        'bgGradient': const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF3E8FF), Color(0xFFE9D5FF)],
+        ),
+        'shadowColor': const Color(0xFF7C3AED),
         'onTap': () => Navigator.pushNamed(context, AppRoutes.myPrescriptions),
       },
       {
         'title': 'Track Orders',
-        'isPill': false,
-        'icon': Icons.local_shipping_rounded,
-        'color': const Color(0xFF0D9488),
-        'bgColor': const Color(0xFFCCFBF1),
+        'iconWidget': const ModernDeliveryTruckIcon(size: 28),
+        'bgGradient': const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFCCFBF1), Color(0xFF99F6E4)],
+        ),
+        'shadowColor': const Color(0xFF0D9488),
         'onTap': () => Navigator.pushNamed(context, AppRoutes.medicineRequests),
       },
       {
         'title': 'Notifications',
-        'isPill': false,
-        'icon': Icons.notifications_active_rounded,
-        'color': const Color(0xFF8B5CF6),
-        'bgColor': const Color(0xFFF3E8FF),
+        'iconWidget': const ModernNotificationBellIcon(size: 28),
+        'bgGradient': const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF3E8FF), Color(0xFFE9D5FF)],
+        ),
+        'shadowColor': const Color(0xFF7C3AED),
         'onTap': () => Navigator.pushNamed(context, AppRoutes.notifications),
       },
     ];
@@ -599,79 +560,77 @@ class _HomeScreenState extends State<HomeScreen> {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        return InkWell(
-          onTap: item['onTap'] as VoidCallback,
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
+        final shadowColor = item['shadowColor'] as Color;
+        final bgGradient = item['bgGradient'] as Gradient;
+        final iconWidget = item['iconWidget'] as Widget;
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: item['onTap'] as VoidCallback,
+            borderRadius: BorderRadius.circular(20),
+            splashColor: shadowColor.withOpacity(0.12),
+            highlightColor: shadowColor.withOpacity(0.06),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFFF1F5F9),
+                  width: 1.2,
                 ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: 8,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.grey.shade400,
-                      size: 16,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1E1B4B).withOpacity(0.035),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: shadowColor.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: bgGradient,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: shadowColor.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: iconWidget,
                     ),
                   ),
-                ),
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: item['bgColor'] as Color,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: (item['isPill'] as bool)
-                              ? ModernPillCapsule(
-                                  size: 26,
-                                  primaryColor: item['color'] as Color,
-                                  secondaryColor: item['secColor'] as Color,
-                                )
-                              : Icon(
-                                  item['icon'] as IconData,
-                                  color: item['color'] as Color,
-                                  size: 22,
-                                ),
-                        ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      item['title'] as String,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1E1B4B),
+                        height: 1.2,
                       ),
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
-                          item['title'] as String,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.outfit(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF1E1B4B),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -679,58 +638,758 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildInsuranceCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDE9FE),
-              borderRadius: BorderRadius.circular(14),
+  Widget _buildConnectedPharmaciesSection() {
+    final list = _availablePharmacies.isNotEmpty
+        ? _availablePharmacies
+        : [
+            Pharmacy(
+              id: '1',
+              name: 'Sanjivani Medical & Chemist',
+              address: 'Shop 4, Ring Road, Surat',
+              phone: '+919876543210',
+              latitude: 21.1702,
+              longitude: 72.8311,
+              isConnected: true,
+              isOpenNow: true,
             ),
-            child: const Icon(Icons.shield_rounded, color: Color(0xFF6D28D9), size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Insurance & Claims',
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFF1E1B4B),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+            Pharmacy(
+              id: '2',
+              name: 'Shreeji Pharma & Healthcare',
+              address: 'Opp. Civil Hospital, Surat',
+              phone: '+919823456789',
+              latitude: 21.1800,
+              longitude: 72.8200,
+              isConnected: true,
+              isOpenNow: true,
+            ),
+            Pharmacy(
+              id: '3',
+              name: 'Apollo Pharmacy Express',
+              address: 'Ghod Dod Road, Surat',
+              phone: '+919811122233',
+              latitude: 21.1600,
+              longitude: 72.8000,
+              isConnected: true,
+              isOpenNow: true,
+            ),
+          ];
+
+    // Ensure currently selected pharmacy is first in list if present
+    final sortedList = List<Pharmacy>.from(list);
+    if (_connectedPharmacy != null) {
+      final index = sortedList.indexWhere((p) => p.id == _connectedPharmacy!.id);
+      if (index > 0) {
+        final current = sortedList.removeAt(index);
+        sortedList.insert(0, current);
+      } else if (index == -1) {
+        sortedList.insert(0, _connectedPharmacy!);
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header Row
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCCFBF1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.storefront_rounded, size: 15, color: Color(0xFF0D9488)),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Connected Pharmacies',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E1B4B),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDE9FE),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${sortedList.length}',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF6D28D9),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: _showPharmacySwitcherBottomSheet,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Manage',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF6D28D9),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFF6D28D9)),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  'Get reminders for your insurance claims\nand save on your medicines.',
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF64748B),
-                    fontSize: 11,
-                    height: 1.35,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Horizontal Scrolling Pharmacies Carousel
+        SizedBox(
+          height: 168,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            itemCount: sortedList.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              if (index == sortedList.length) {
+                // "+ Connect Store" Card
+                return InkWell(
+                  onTap: _showPharmacySwitcherBottomSheet,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: 130,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF3E8FF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.add_rounded, color: Color(0xFF6D28D9), size: 24),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Add Store',
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1E1B4B),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Browse nearby',
+                          style: GoogleFonts.inter(
+                            fontSize: 10.5,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              final p = sortedList[index];
+              final isPrimary = p.id == _connectedPharmacy?.id;
+              final isOpen = p.isOpenNow;
+
+              return InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  if (!isPrimary) {
+                    _selectPharmacy(p);
+                  } else {
+                    _showPharmacySwitcherBottomSheet();
+                  }
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 285,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isPrimary ? const Color(0xFF0D9488) : const Color(0xFFE2E8F0),
+                      width: isPrimary ? 1.6 : 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isPrimary ? const Color(0xFF0D9488) : const Color(0xFF1E1B4B))
+                            .withOpacity(isPrimary ? 0.08 : 0.03),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Top Row: Icon + Name + Active Badge
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: isPrimary
+                                    ? [const Color(0xFFCCFBF1), const Color(0xFF99F6E4)]
+                                    : [const Color(0xFFF1F5F9), const Color(0xFFE2E8F0)],
+                              ),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: const Center(
+                              child: ModernPharmacyStoreIcon(size: 22),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  p.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1E1B4B),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.location_on_rounded, size: 12, color: Color(0xFF94A3B8)),
+                                    const SizedBox(width: 3),
+                                    Expanded(
+                                      child: Text(
+                                        p.address,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          // Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                            decoration: BoxDecoration(
+                              color: isPrimary ? const Color(0xFFCCFBF1) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              isPrimary ? 'Active' : 'Connected',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: isPrimary ? const Color(0xFF0F766E) : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Middle status line: Open status & pickup
+                      Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: isOpen ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isOpen ? 'Open Now' : 'Closed',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isOpen ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                            ),
+                          ),
+                          const Text(' • ', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 12)),
+                          const Icon(Icons.bolt_rounded, size: 13, color: Color(0xFF16A34A)),
+                          Text(
+                            '15 min pickup',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF15803D),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const Divider(height: 1, color: Color(0xFFF1F5F9)),
+
+                      // Bottom action row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (isPrimary)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0FDF4),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF16A34A)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Primary Store',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF16A34A),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            InkWell(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                _selectPharmacy(p);
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3E8FF),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.swap_horiz_rounded, size: 12, color: Color(0xFF6D28D9)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Set as Primary',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF6D28D9),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          InkWell(
+                            onTap: () => _callPharmacy(p.phone),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF475569)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Call',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF475569),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+
+  void _showPharmacySwitcherBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filtered = _availablePharmacies.where((p) {
+              if (query.isEmpty) return true;
+              return p.name.toLowerCase().contains(query.toLowerCase()) ||
+                  p.address.toLowerCase().contains(query.toLowerCase());
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.72,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  // Drag Handle
+                  Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(2.5),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Change Connected Pharmacy',
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1E1B4B),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Select your primary store for quick orders',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F9FE),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: TextField(
+                        onChanged: (val) {
+                          setModalState(() {
+                            query = val.trim();
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Search pharmacy name or location...',
+                          hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
+                          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF6D28D9), size: 20),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  // Pharmacy List
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No pharmacies found',
+                              style: GoogleFonts.inter(color: const Color(0xFF94A3B8)),
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final p = filtered[index];
+                              final isSelected = p.id == _connectedPharmacy?.id;
+
+                              return InkWell(
+                                onTap: () async {
+                                  HapticFeedback.lightImpact();
+                                  await _selectPharmacy(p);
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                },
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFFF5F3FF) : Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFFE2E8F0),
+                                      width: isSelected ? 1.5 : 1.0,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          color: isSelected ? const Color(0xFFEDE9FE) : const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.storefront_rounded,
+                                            color: isSelected ? const Color(0xFF6D28D9) : const Color(0xFF475569),
+                                            size: 22,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              p.name,
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF1E1B4B),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              p.address,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                color: const Color(0xFF64748B),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      if (isSelected)
+                                        Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFF6D28D9),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.check_rounded, color: Colors.white, size: 14),
+                                        )
+                                      else
+                                        const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1), size: 20),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _selectPharmacy(Pharmacy p) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_pharmacy_id', p.id);
+    await prefs.setString('selected_pharmacy_name', p.name);
+    await prefs.setString('selected_pharmacy_address', p.address);
+    await prefs.setString('selected_pharmacy_phone', p.phone);
+
+    if (mounted) {
+      setState(() {
+        _connectedPharmacy = p;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Connected to ${p.name}', style: GoogleFonts.inter()),
+          backgroundColor: const Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadConnectedPharmacy() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString('selected_pharmacy_id');
+    final name = prefs.getString('selected_pharmacy_name');
+    final address = prefs.getString('selected_pharmacy_address');
+    final phone = prefs.getString('selected_pharmacy_phone');
+
+    if (name != null && name.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _connectedPharmacy = Pharmacy(
+            id: id ?? '1',
+            name: name,
+            address: address ?? 'Surat, Gujarat',
+            phone: phone ?? '+919876543210',
+            latitude: 23.0225,
+            longitude: 72.5714,
+            isConnected: true,
+            isOpenNow: true,
+          );
+        });
+      }
+    }
+
+    try {
+      final list = await PharmacyService.getPharmacies();
+      if (mounted) {
+        setState(() {
+          _availablePharmacies = list;
+          if (_connectedPharmacy == null && list.isNotEmpty) {
+            _connectedPharmacy = list.first;
+            _selectPharmacy(list.first);
+          } else if (_connectedPharmacy != null && list.isNotEmpty) {
+            final match = list.firstWhere(
+              (p) => p.id == _connectedPharmacy!.id,
+              orElse: () => _connectedPharmacy!,
+            );
+            _connectedPharmacy = match;
+          }
+        });
+      }
+    } catch (_) {
+      if (_availablePharmacies.isEmpty) {
+        final fallbackList = [
+          Pharmacy(
+            id: '1',
+            name: 'Sanjivani Medical & Chemist',
+            address: 'Shop 4, Ring Road, Surat',
+            phone: '+919876543210',
+            latitude: 21.1702,
+            longitude: 72.8311,
+            isConnected: true,
+            isOpenNow: true,
+          ),
+          Pharmacy(
+            id: '2',
+            name: 'Shreeji Pharma & Healthcare',
+            address: 'Opp. Civil Hospital, Surat',
+            phone: '+919823456789',
+            latitude: 21.1800,
+            longitude: 72.8200,
+            isConnected: true,
+            isOpenNow: true,
+          ),
+          Pharmacy(
+            id: '3',
+            name: 'Apollo Pharmacy Express',
+            address: 'Ghod Dod Road, Surat',
+            phone: '+919811122233',
+            latitude: 21.1600,
+            longitude: 72.8000,
+            isConnected: true,
+            isOpenNow: true,
+          ),
+        ];
+        if (mounted) {
+          setState(() {
+            _availablePharmacies = fallbackList;
+            if (_connectedPharmacy == null) {
+              _connectedPharmacy = fallbackList.first;
+              _selectPharmacy(fallbackList.first);
+            }
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _callPharmacy(String phone) async {
+    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    final uri = Uri.parse('tel:$cleanPhone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Phone: $phone', style: GoogleFonts.inter()),
+            backgroundColor: const Color(0xFF1E1B4B),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }

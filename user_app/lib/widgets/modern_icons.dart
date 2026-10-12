@@ -307,3 +307,428 @@ class _BottleIllustrationPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+/// Modern 3D Pharmacy Storefront Icon
+class ModernPharmacyStoreIcon extends StatelessWidget {
+  final double size;
+  const ModernPharmacyStoreIcon({super.key, this.size = 32});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        size: Size(size, size),
+        painter: _PharmacyStorePainter(),
+      ),
+    );
+  }
+}
+
+class _PharmacyStorePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Building body with rounded base
+    final bodyRect = Rect.fromLTWH(w * 0.16, h * 0.32, w * 0.68, h * 0.58);
+    final bodyRRect = RRect.fromRectAndRadius(bodyRect, Radius.circular(w * 0.1));
+    final bodyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF2DD4BF), Color(0xFF0F766E)],
+      ).createShader(bodyRect);
+    canvas.drawRRect(bodyRRect, bodyPaint);
+
+    // Awning / Canopy Roof
+    final awningPath = Path()
+      ..moveTo(w * 0.1, h * 0.34)
+      ..lineTo(w * 0.9, h * 0.34)
+      ..lineTo(w * 0.84, h * 0.22)
+      ..quadraticBezierTo(w * 0.5, h * 0.14, w * 0.16, h * 0.22)
+      ..close();
+    final awningPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF14B8A6), Color(0xFF0D9488)],
+      ).createShader(Rect.fromLTWH(w * 0.1, h * 0.14, w * 0.8, h * 0.2));
+    canvas.drawPath(awningPath, awningPaint);
+
+    // Awning subtle stripes
+    final stripePaint = Paint()
+      ..color = Colors.white.withOpacity(0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.04;
+    canvas.drawLine(Offset(w * 0.35, h * 0.22), Offset(w * 0.32, h * 0.34), stripePaint);
+    canvas.drawLine(Offset(w * 0.65, h * 0.22), Offset(w * 0.68, h * 0.34), stripePaint);
+
+    // Glass Door
+    final doorRect = Rect.fromLTWH(w * 0.36, h * 0.54, w * 0.28, h * 0.36);
+    final doorRRect = RRect.fromRectAndRadius(doorRect, Radius.circular(w * 0.05));
+    final doorPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFCCFBF1), Color(0xFF99F6E4)],
+      ).createShader(doorRect);
+    canvas.drawRRect(doorRRect, doorPaint);
+
+    // Glass shine
+    final shinePaint = Paint()
+      ..color = Colors.white.withOpacity(0.7)
+      ..strokeWidth = w * 0.03
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.42, h * 0.6), Offset(w * 0.46, h * 0.76), shinePaint);
+
+    // Glowing Medical Cross Badge
+    final crossPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = w * 0.065
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.5, h * 0.38), Offset(w * 0.5, h * 0.48), crossPaint);
+    canvas.drawLine(Offset(w * 0.45, h * 0.43), Offset(w * 0.55, h * 0.43), crossPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Modern 3D Refill & Medicine Sync Icon
+class ModernRefillSyncIcon extends StatelessWidget {
+  final double size;
+  const ModernRefillSyncIcon({super.key, this.size = 32});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        size: Size(size, size),
+        painter: _RefillSyncPainter(),
+      ),
+    );
+  }
+}
+
+class _RefillSyncPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final center = Offset(w / 2, h / 2);
+
+    // Circular Orbiting Arrows
+    final orbitRect = Rect.fromCircle(center: center, radius: w * 0.38);
+    final arrowPaint = Paint()
+      ..shader = const SweepGradient(
+        colors: [Color(0xFFA78BFA), Color(0xFF6D28D9), Color(0xFFA78BFA)],
+      ).createShader(orbitRect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.09
+      ..strokeCap = StrokeCap.round;
+
+    // Arcs
+    canvas.drawArc(orbitRect, 0.4, 2.1, false, arrowPaint);
+    canvas.drawArc(orbitRect, 3.5, 2.1, false, arrowPaint);
+
+    // Arrowhead 1
+    final headPaint = Paint()
+      ..color = const Color(0xFF6D28D9)
+      ..style = PaintingStyle.fill;
+    final head1 = Path()
+      ..moveTo(w * 0.88, h * 0.58)
+      ..lineTo(w * 0.76, h * 0.74)
+      ..lineTo(w * 0.95, h * 0.72)
+      ..close();
+    canvas.drawPath(head1, headPaint);
+
+    // Arrowhead 2
+    final head2 = Path()
+      ..moveTo(w * 0.12, h * 0.42)
+      ..lineTo(w * 0.24, h * 0.26)
+      ..lineTo(w * 0.05, h * 0.28)
+      ..close();
+    canvas.drawPath(head2, headPaint);
+
+    // Center 3D Capsule
+    final pillRect = Rect.fromCenter(center: center, width: w * 0.4, height: h * 0.22);
+    final pillRRect = RRect.fromRectAndRadius(pillRect, Radius.circular(h * 0.11));
+    final pillPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+      ).createShader(pillRect);
+    canvas.drawRRect(pillRRect, pillPaint);
+
+    // Pill glossy highlight
+    final glossPaint = Paint()
+      ..color = Colors.white.withOpacity(0.65)
+      ..strokeWidth = w * 0.035
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.36, h * 0.46), Offset(w * 0.64, h * 0.46), glossPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Modern 3D Prescription Pad / Rx Document Icon
+class ModernPrescriptionDocIcon extends StatelessWidget {
+  final double size;
+  const ModernPrescriptionDocIcon({super.key, this.size = 32});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        size: Size(size, size),
+        painter: _PrescriptionDocPainter(),
+      ),
+    );
+  }
+}
+
+class _PrescriptionDocPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Clipboard background
+    final boardRect = Rect.fromLTWH(w * 0.16, h * 0.14, w * 0.68, h * 0.76);
+    final boardRRect = RRect.fromRectAndRadius(boardRect, Radius.circular(w * 0.1));
+    final boardPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFEDE9FE), Color(0xFFDDD6FE)],
+      ).createShader(boardRect);
+    canvas.drawRRect(boardRRect, boardPaint);
+
+    // Paper sheet
+    final paperRect = Rect.fromLTWH(w * 0.22, h * 0.2, w * 0.56, h * 0.66);
+    final paperRRect = RRect.fromRectAndRadius(paperRect, Radius.circular(w * 0.07));
+    final paperPaint = Paint()..color = Colors.white;
+    canvas.drawRRect(paperRRect, paperPaint);
+
+    // Purple header
+    final headerRect = Rect.fromLTWH(w * 0.22, h * 0.2, w * 0.56, h * 0.18);
+    final headerRRect = RRect.fromRectAndCorners(
+      headerRect,
+      topLeft: Radius.circular(w * 0.07),
+      topRight: Radius.circular(w * 0.07),
+    );
+    final headerPaint = Paint()
+      ..shader = const LinearGradient(
+        colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+      ).createShader(headerRect);
+    canvas.drawRRect(headerRRect, headerPaint);
+
+    // Cross on header
+    final crossPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = w * 0.04
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.5, h * 0.24), Offset(w * 0.5, h * 0.34), crossPaint);
+    canvas.drawLine(Offset(w * 0.45, h * 0.29), Offset(w * 0.55, h * 0.29), crossPaint);
+
+    // Text lines
+    final linePaint = Paint()
+      ..color = const Color(0xFFCBD5E1)
+      ..strokeWidth = w * 0.035
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.32, h * 0.46), Offset(w * 0.68, h * 0.46), linePaint);
+    canvas.drawLine(Offset(w * 0.32, h * 0.56), Offset(w * 0.68, h * 0.56), linePaint);
+    canvas.drawLine(Offset(w * 0.32, h * 0.66), Offset(w * 0.52, h * 0.66), linePaint);
+
+    // Green verification mark
+    final checkPaint = Paint()
+      ..color = const Color(0xFF10B981)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.045
+      ..strokeCap = StrokeCap.round;
+    final checkPath = Path()
+      ..moveTo(w * 0.6, h * 0.68)
+      ..lineTo(w * 0.65, h * 0.73)
+      ..lineTo(w * 0.73, h * 0.63);
+    canvas.drawPath(checkPath, checkPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Modern 3D Express Delivery Truck Icon
+class ModernDeliveryTruckIcon extends StatelessWidget {
+  final double size;
+  const ModernDeliveryTruckIcon({super.key, this.size = 32});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        size: Size(size, size),
+        painter: _DeliveryTruckPainter(),
+      ),
+    );
+  }
+}
+
+class _DeliveryTruckPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Truck Cargo Box
+    final boxRect = Rect.fromLTWH(w * 0.12, h * 0.26, w * 0.48, h * 0.44);
+    final boxRRect = RRect.fromRectAndRadius(boxRect, Radius.circular(w * 0.08));
+    final boxPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF14B8A6), Color(0xFF0D9488)],
+      ).createShader(boxRect);
+    canvas.drawRRect(boxRRect, boxPaint);
+
+    // Cross badge on cargo box
+    final crossPaint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..strokeWidth = w * 0.045
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.36, h * 0.41), Offset(w * 0.36, h * 0.55), crossPaint);
+    canvas.drawLine(Offset(w * 0.29, h * 0.48), Offset(w * 0.43, h * 0.48), crossPaint);
+
+    // Front Cab
+    final cabPath = Path()
+      ..moveTo(w * 0.58, h * 0.4)
+      ..lineTo(w * 0.76, h * 0.4)
+      ..quadraticBezierTo(w * 0.88, h * 0.52, w * 0.88, h * 0.7)
+      ..lineTo(w * 0.58, h * 0.7)
+      ..close();
+    final cabPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF2DD4BF), Color(0xFF0F766E)],
+      ).createShader(Rect.fromLTWH(w * 0.58, h * 0.4, w * 0.3, h * 0.3));
+    canvas.drawPath(cabPath, cabPaint);
+
+    // Windshield
+    final winPath = Path()
+      ..moveTo(w * 0.62, h * 0.44)
+      ..lineTo(w * 0.74, h * 0.44)
+      ..quadraticBezierTo(w * 0.82, h * 0.52, w * 0.82, h * 0.56)
+      ..lineTo(w * 0.62, h * 0.56)
+      ..close();
+    final winPaint = Paint()..color = const Color(0xFFCCFBF1);
+    canvas.drawPath(winPath, winPaint);
+
+    // Wheels
+    final wheelPaint = Paint()..color = const Color(0xFF1E293B);
+    final rimPaint = Paint()..color = const Color(0xFF94A3B8);
+
+    canvas.drawCircle(Offset(w * 0.28, h * 0.72), w * 0.1, wheelPaint);
+    canvas.drawCircle(Offset(w * 0.28, h * 0.72), w * 0.045, rimPaint);
+
+    canvas.drawCircle(Offset(w * 0.72, h * 0.72), w * 0.1, wheelPaint);
+    canvas.drawCircle(Offset(w * 0.72, h * 0.72), w * 0.045, rimPaint);
+
+    // Speed streaks
+    final streakPaint = Paint()
+      ..color = const Color(0xFF2DD4BF).withOpacity(0.65)
+      ..strokeWidth = w * 0.03
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.02, h * 0.36), Offset(w * 0.09, h * 0.36), streakPaint);
+    canvas.drawLine(Offset(w * 0.05, h * 0.48), Offset(w * 0.10, h * 0.48), streakPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Modern 3D Notification Bell Icon
+class ModernNotificationBellIcon extends StatelessWidget {
+  final double size;
+  const ModernNotificationBellIcon({super.key, this.size = 32});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        size: Size(size, size),
+        painter: _NotificationBellPainter(),
+      ),
+    );
+  }
+}
+
+class _NotificationBellPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Top loop
+    final loopPaint = Paint()
+      ..color = const Color(0xFF7C3AED)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.06;
+    canvas.drawCircle(Offset(w * 0.5, h * 0.18), w * 0.06, loopPaint);
+
+    // Bell body
+    final bellPath = Path()
+      ..moveTo(w * 0.5, h * 0.2)
+      ..quadraticBezierTo(w * 0.34, h * 0.24, w * 0.32, h * 0.52)
+      ..quadraticBezierTo(w * 0.2, h * 0.66, w * 0.18, h * 0.72)
+      ..lineTo(w * 0.82, h * 0.72)
+      ..quadraticBezierTo(w * 0.8, h * 0.66, w * 0.68, h * 0.52)
+      ..quadraticBezierTo(w * 0.66, h * 0.24, w * 0.5, h * 0.2)
+      ..close();
+
+    final bellPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFA78BFA), Color(0xFF6D28D9)],
+      ).createShader(Rect.fromLTWH(w * 0.18, h * 0.2, w * 0.64, h * 0.52));
+    canvas.drawPath(bellPath, bellPaint);
+
+    // Clapper
+    final clapperPaint = Paint()..color = const Color(0xFF4C1D95);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.78), w * 0.08, clapperPaint);
+
+    // Highlight
+    final glossPaint = Paint()
+      ..color = Colors.white.withOpacity(0.55)
+      ..strokeWidth = w * 0.04
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.38, h * 0.34), Offset(w * 0.34, h * 0.58), glossPaint);
+
+    // Notification alert red/pink badge
+    final ringPaint = Paint()..color = Colors.white;
+    canvas.drawCircle(Offset(w * 0.76, h * 0.26), w * 0.13, ringPaint);
+
+    final dotPaint = Paint()
+      ..shader = const RadialGradient(
+        colors: [Color(0xFFFB7185), Color(0xFFE11D48)],
+      ).createShader(Rect.fromCircle(center: Offset(w * 0.76, h * 0.26), radius: w * 0.1));
+    canvas.drawCircle(Offset(w * 0.76, h * 0.26), w * 0.1, dotPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
