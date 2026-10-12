@@ -7,6 +7,7 @@ import '../../features/profile/profile_screen.dart';
 import '../../features/medicines/screens/my_medicines_screen.dart';
 import '../../widgets/animated_bottom_nav_bar.dart';
 
+
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 

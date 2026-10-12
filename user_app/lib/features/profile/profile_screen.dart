@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/routes/app_routes.dart';
 import '../../widgets/fade_in_slide.dart';
+import '../../widgets/modern_icons.dart';
 import 'widgets/profile_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -47,110 +48,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showHealthServicesSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Health Services',
-                  style: GoogleFonts.outfit(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1E1B4B),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.pop(ctx),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildServiceItem(
-              icon: Icons.science_outlined,
-              title: 'Lab Tests',
-              subtitle: 'Book full body checkups & blood tests at home',
-              color: const Color(0xFF0284C7),
-              bgColor: const Color(0xFFE0F2FE),
-            ),
-            const SizedBox(height: 12),
-            _buildServiceItem(
-              icon: Icons.local_mall_outlined,
-              title: 'Health Store',
-              subtitle: 'Supplements, personal care & medical devices',
-              color: const Color(0xFF10B981),
-              bgColor: const Color(0xFFD1FAE5),
-            ),
-            const SizedBox(height: 12),
-            _buildServiceItem(
-              icon: Icons.shield_outlined,
-              title: 'Insurance & Claims',
-              subtitle: 'Cashless claims assistance & policy support',
-              color: const Color(0xFF8B5CF6),
-              bgColor: const Color(0xFFF3E8FF),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildServiceItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required Color bgColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FE),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF1E1B4B)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
-        ],
-      ),
-    );
-  }
 
   void _showHelpSupportSheet() {
     showModalBottomSheet(
@@ -534,8 +431,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Expanded(
                         child: _buildStatCard(
-                          icon: Icons.medication_rounded,
-                          iconColor: const Color(0xFF0284C7),
+                          customIcon: const ModernPillCapsule(
+                            size: 18,
+                            primaryColor: Color(0xFF0284C7),
+                            secondaryColor: Color(0xFF38BDF8),
+                          ),
                           bgColor: const Color(0xFFE0F2FE),
                           title: 'Total Orders',
                           value: '12',
@@ -578,84 +478,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 16),
 
-              // 4. "Your Health Matters" Banner
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: FadeInSlide(
-                  delay: 0.2,
-                  child: InkWell(
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.refillReminders),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFF3E8FF),
-                            Color(0xFFEDE9FE),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFDDD6FE)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 46,
-                            height: 46,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                              color: Colors.white,
-                            ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/images/doctor.png',
-                                fit: BoxFit.cover,
-                                errorBuilder: (c, e, s) => const Icon(
-                                  Icons.medical_services_rounded,
-                                  color: Color(0xFF7C3AED),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Your Health Matters',
-                                  style: GoogleFonts.outfit(
-                                    color: const Color(0xFF5B21B6),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Stay on track with your medicines and health goals.',
-                                  style: GoogleFonts.inter(
-                                    color: const Color(0xFF64748B),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            color: Color(0xFF7C3AED),
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
 
               // 5. Menu Items List
               Padding(
@@ -692,15 +514,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 10),
                       _buildMenuCard(
-                        icon: Icons.health_and_safety_outlined,
-                        iconColor: const Color(0xFFEC4899),
-                        bgColor: const Color(0xFFFCE7F3),
-                        title: 'Health Services',
-                        subtitle: 'Lab tests, health store and insurance',
-                        onTap: _showHealthServicesSheet,
-                      ),
-                      const SizedBox(height: 10),
-                      _buildMenuCard(
                         icon: Icons.headset_mic_outlined,
                         iconColor: const Color(0xFF8B5CF6),
                         bgColor: const Color(0xFFF3E8FF),
@@ -731,8 +544,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStatCard({
-    required IconData icon,
-    required Color iconColor,
+    IconData? icon,
+    Widget? customIcon,
+    Color? iconColor,
     required Color bgColor,
     required String title,
     required String value,
@@ -758,7 +572,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: bgColor,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: iconColor, size: 16),
+            child: customIcon ??
+                Icon(
+                  icon ?? Icons.circle,
+                  color: iconColor,
+                  size: 16,
+                ),
           ),
           const SizedBox(height: 6),
           Text(
