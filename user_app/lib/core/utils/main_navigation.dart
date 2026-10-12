@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../features/home/home_screen.dart';
 import '../../features/pharmacy/pharmacy_screen.dart';
-import '../../features/medicines/screens/medicine_requests_screen.dart';
+import '../../features/medicines/screens/medicine_request_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/medicines/screens/my_medicines_screen.dart';
 import '../../widgets/animated_bottom_nav_bar.dart';
@@ -21,7 +21,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const MyMedicinesScreen(),
-    const MedicineRequestsScreen(),
+    const MedicineRequestScreen(),
     const ProfileScreen(),
   ];
 
