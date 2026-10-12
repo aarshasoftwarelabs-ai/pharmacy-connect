@@ -21,7 +21,6 @@ class _MainNavigationState extends State<MainNavigation> {
     const HomeScreen(),
     const MyMedicinesScreen(),
     const MedicineRequestsScreen(),
-    const Scaffold(body: Center(child: Text('Health Screen'))),
     const ProfileScreen(),
   ];
 

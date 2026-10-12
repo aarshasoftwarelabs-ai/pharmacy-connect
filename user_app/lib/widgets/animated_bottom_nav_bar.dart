@@ -29,7 +29,7 @@ class AnimatedBottomNavBar extends StatelessWidget {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _NavBarItem(
             icon: Icons.home_outlined,
@@ -53,18 +53,11 @@ class AnimatedBottomNavBar extends StatelessWidget {
             onTap: () => onTap(2),
           ),
           _NavBarItem(
-            icon: Icons.favorite_border_rounded,
-            activeIcon: Icons.favorite_rounded,
-            label: 'Health',
-            isSelected: currentIndex == 3,
-            onTap: () => onTap(3),
-          ),
-          _NavBarItem(
             icon: Icons.person_outline_rounded,
             activeIcon: Icons.person_rounded,
             label: 'Profile',
-            isSelected: currentIndex == 4,
-            onTap: () => onTap(4),
+            isSelected: currentIndex == 3,
+            onTap: () => onTap(3),
           ),
         ],
       ),

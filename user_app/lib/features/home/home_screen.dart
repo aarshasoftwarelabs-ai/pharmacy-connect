@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/routes/app_routes.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -11,25 +10,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _userName = 'Rameshbhai';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final name = prefs.getString('user_name');
-      if (name != null && name.isNotEmpty) {
-        if (mounted) setState(() => _userName = name);
-      }
-    } catch (e) {
-      debugPrint('Error loading home data: $e');
-    }
-  }
+  int _selectedTabIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -41,25 +22,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FE), // Soft purple/blue tint background
+      backgroundColor: const Color(0xFFF8F9FE),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 100),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildTodaysMedicines(),
-              const SizedBox(height: 20),
-              _buildAlertCard(),
-              const SizedBox(height: 24),
-              _buildGridMenu(),
-              const SizedBox(height: 24),
-              _buildInsuranceCard(),
-            ],
-          ),
+        child: Column(
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 16),
+            _buildSegmentedControl(),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Stack(
+                children: [
+                  _buildMedicineList(),
+                  Positioned(
+                    left: 24,
+                    right: 24,
+                    bottom: 24,
+                    child: _buildRefillBanner(),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -140,21 +124,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(
-                        _userName,
-                        style: const TextStyle(
+                      const Text(
+                        'Rameshbhai',
+                        style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1E1E2D),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text('👋', style: TextStyle(fontSize: 24)),
+                      const Text('☀️', style: TextStyle(fontSize: 20)),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Stay healthy, stay happy!',
+                    'Take care of your health, one step at a time.',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -162,7 +146,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              // Avatar with soft leaf background
               Container(
                 width: 70,
                 height: 70,
@@ -190,96 +173,253 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTodaysMedicines() {
+  Widget _buildSegmentedControl() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6D28D9).withOpacity(0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.calendar_today_rounded, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Today's Medicines",
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
-                        ),
-                        Text(
-                          "2 medicines • 2 times",
-                          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
+            _buildTab('Current', 4, 0),
+            _buildTab('Past', 3, 1),
+            _buildTab('All', 7, 2),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTab(String title, int count, int index) {
+    final isSelected = _selectedTabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedTabIndex = index;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF6D28D9) : Colors.transparent,
+            borderRadius: BorderRadius.circular(26),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey.shade600,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 14,
                 ),
-                Row(
-                  children: [
-                    Text(
-                      "View All",
-                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward, color: Colors.white, size: 14),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
               ),
-              child: Column(
-                children: [
-                  _buildMedicineListItem(
-                    iconData: Icons.medication_rounded,
-                    iconColor: const Color(0xFF3B82F6),
-                    name: 'Dolo 650',
-                    details: '1 tablet • 9:00 AM',
-                    status: 'Taken',
-                    isTaken: true,
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white.withOpacity(0.2) : Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  count.toString(),
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey.shade600,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
                   ),
-                  Divider(height: 1, color: Colors.grey.shade100, indent: 64),
-                  _buildMedicineListItem(
-                    iconData: Icons.vaccines_rounded,
-                    iconColor: const Color(0xFFEC4899),
-                    name: 'Vitamin D3',
-                    details: '1 capsule • 8:00 PM',
-                    status: 'Upcoming',
-                    isTaken: false,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMedicineList() {
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      children: [
+        _buildMedicineCard(
+          icon: Icons.medication_rounded,
+          iconColor: const Color(0xFF3B82F6),
+          name: 'Dolo 650',
+          dosage: '1 tablet • 9:00 AM',
+          tag: 'Today',
+          remaining: 'Remaining: 3 tablets',
+          isTaken: true,
+        ),
+        const SizedBox(height: 16),
+        _buildMedicineCard(
+          icon: Icons.vaccines_rounded,
+          iconColor: const Color(0xFFEC4899),
+          name: 'Vitamin D3',
+          dosage: '1 capsule • 8:00 PM',
+          tag: 'Today',
+          remaining: 'Remaining: 15 capsules',
+          isTaken: false,
+        ),
+        const SizedBox(height: 16),
+        _buildMedicineCard(
+          icon: Icons.medication_liquid_rounded,
+          iconColor: const Color(0xFFF59E0B),
+          name: 'Metformin 500',
+          dosage: '1 tablet • 9:00 PM',
+          tag: 'Today',
+          remaining: 'Remaining: 20 tablets',
+          isTaken: false,
+        ),
+        const SizedBox(height: 16),
+        _buildMedicineCard(
+          icon: Icons.medication_rounded,
+          iconColor: const Color(0xFF10B981),
+          name: 'Amlodipine 5',
+          dosage: '1 tablet • 8:00 AM',
+          tag: 'Tomorrow',
+          remaining: 'Remaining: 12 tablets',
+          isTaken: false,
+        ),
+        const SizedBox(height: 120), // Padding for the bottom floating banner
+      ],
+    );
+  }
+
+  Widget _buildMedicineCard({
+    required IconData icon,
+    required Color iconColor,
+    required String name,
+    required String dosage,
+    required String tag,
+    required String remaining,
+    required bool isTaken,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, AppRoutes.medicineDetails);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E1E2D),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    dosage,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2FF),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      tag,
+                      style: const TextStyle(
+                        color: Color(0xFF4F46E5),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.inventory_2_rounded, size: 14, color: Colors.grey.shade500),
+                      const SizedBox(width: 4),
+                      Text(
+                        remaining,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isTaken ? const Color(0xFF10B981).withOpacity(0.1) : const Color(0xFF8B5CF6).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isTaken ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                        color: isTaken ? const Color(0xFF10B981) : const Color(0xFF8B5CF6),
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isTaken ? 'Taken' : 'Upcoming',
+                        style: TextStyle(
+                          color: isTaken ? const Color(0xFF10B981) : const Color(0xFF8B5CF6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              ],
             ),
           ],
         ),
@@ -287,235 +427,76 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMedicineListItem({
-    required IconData iconData,
-    required Color iconColor,
-    required String name,
-    required String details,
-    required String status,
-    required bool isTaken,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
+  Widget _buildRefillBanner() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F0FF),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6D28D9).withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFE0D4FC),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(iconData, color: iconColor, size: 24),
+            child: const Icon(Icons.autorenew_rounded, color: Color(0xFF6D28D9), size: 28),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF1E1E2D)),
+                const Text(
+                  'Running low on medicine?',
+                  style: TextStyle(
+                    color: Color(0xFF6D28D9),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  details,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  'Request a refill and stay on track.',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: isTaken ? const Color(0xFF10B981).withOpacity(0.1) : const Color(0xFF8B5CF6).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6D28D9),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              elevation: 0,
             ),
             child: Row(
-              children: [
-                Icon(
-                  isTaken ? Icons.check_circle_rounded : Icons.schedule_rounded,
-                  color: isTaken ? const Color(0xFF10B981) : const Color(0xFF8B5CF6),
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
+              children: const [
                 Text(
-                  status,
-                  style: TextStyle(
-                    color: isTaken ? const Color(0xFF10B981) : const Color(0xFF8B5CF6),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  'Request Refill',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAlertCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF7ED),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFFFEDD5)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF97316),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.priority_high_rounded, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Your medicine may run out in 3 days.",
-                    style: TextStyle(color: Color(0xFF1E1E2D), fontWeight: FontWeight.w700, fontSize: 13),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    "Request a refill to avoid interruption.",
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGridMenu() {
-    final items = [
-      {'title': 'My Medicines', 'icon': Icons.medication_rounded, 'color': const Color(0xFF3B82F6)},
-      {'title': 'Nearby Pharmacy', 'icon': Icons.storefront_rounded, 'color': const Color(0xFF0D9488)},
-      {'title': 'Refill Request', 'icon': Icons.sync_rounded, 'color': const Color(0xFF8B5CF6)},
-      {'title': 'Prescription', 'icon': Icons.description_rounded, 'color': const Color(0xFF8B5CF6)},
-      {'title': 'Health Store', 'icon': Icons.shopping_bag_rounded, 'color': const Color(0xFF0D9488)},
-      {'title': 'Lab Tests', 'icon': Icons.science_rounded, 'color': const Color(0xFF8B5CF6)},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 0.9,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: (item['color'] as Color).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(item['icon'] as IconData, color: item['color'] as Color, size: 24),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        item['title'] as String,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1E1E2D),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  right: 8,
-                  top: 0,
-                  bottom: 0,
-                  child: const Center(
-                    child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 16),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildInsuranceCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5)),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F3FF),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.shield_rounded, color: Color(0xFF6D28D9), size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Insurance & Claims",
-                    style: TextStyle(color: Color(0xFF1E1E2D), fontWeight: FontWeight.w700, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Get reminders for your insurance claims and save on your medicines.",
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-          ],
-        ),
       ),
     );
   }
