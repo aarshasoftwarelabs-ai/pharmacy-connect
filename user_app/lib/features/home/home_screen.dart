@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -114,8 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Bottom clearance: ensures content clears the floating bottom bar when scrolled
-              const SizedBox(height: 115),
+              // Bottom clearance: ensures content completely clears the floating bottom bar when scrolled
+              const SizedBox(height: 160),
             ],
           ),
         ),
@@ -938,7 +938,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Horizontal Scrolling Pharmacies Carousel
         SizedBox(
-          height: 168,
+          height: 180,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -952,7 +952,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: _showPharmacySwitcherBottomSheet,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    width: 130,
+                    width: 135,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -1008,7 +1008,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  width: 285,
+                  width: 320,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -1020,7 +1020,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     boxShadow: [
                       BoxShadow(
                         color: (isPrimary ? const Color(0xFF0D9488) : const Color(0xFF1E1B4B))
-                            .withOpacity(isPrimary ? 0.08 : 0.03),
+                            .withOpacity(isPrimary ? 0.08 : 0.035),
                         blurRadius: 14,
                         offset: const Offset(0, 4),
                       ),
@@ -1035,8 +1035,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 42,
+                            height: 42,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
@@ -1061,7 +1061,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.outfit(
-                                    fontSize: 14.5,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF1E1B4B),
                                   ),
@@ -1118,11 +1118,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 5),
                           Text(
                             isOpen ? 'Open Now' : 'Closed',
                             style: GoogleFonts.inter(
-                              fontSize: 11,
+                              fontSize: 11.5,
                               fontWeight: FontWeight.w600,
                               color: isOpen ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                             ),
@@ -1132,7 +1132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             '15 min pickup',
                             style: GoogleFonts.inter(
-                              fontSize: 11,
+                              fontSize: 11.5,
                               fontWeight: FontWeight.w500,
                               color: const Color(0xFF15803D),
                             ),
@@ -1142,13 +1142,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
-                      // Bottom action row
+                      // Bottom action row: Primary/Set Primary + Direction + Call
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           if (isPrimary)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF0FDF4),
                                 borderRadius: BorderRadius.circular(8),
@@ -1177,7 +1176,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF3E8FF),
                                   borderRadius: BorderRadius.circular(8),
@@ -1188,7 +1187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     const Icon(Icons.swap_horiz_rounded, size: 12, color: Color(0xFF6D28D9)),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Set as Primary',
+                                      'Set Primary',
                                       style: GoogleFonts.inter(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
@@ -1199,11 +1198,46 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                             ),
+
+                          const Spacer(),
+
+                          // Directions Button (Google Maps)
+                          InkWell(
+                            onTap: () => _openDirections(p),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE0F2FE),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFBAE6FD)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.directions_rounded, size: 13, color: Color(0xFF0284C7)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Direction',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF0369A1),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(width: 6),
+
+                          // Call Button
                           InkWell(
                             onTap: () => _callPharmacy(p.phone),
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(8),
@@ -1562,6 +1596,43 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Phone: $phone', style: GoogleFonts.inter()),
+            backgroundColor: const Color(0xFF1E1B4B),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openDirections(Pharmacy p) async {
+    HapticFeedback.lightImpact();
+    // Direct Google Maps navigation / directions URL
+    final mapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}';
+    final uri = Uri.parse(mapsUrl);
+    final queryUrl = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent('${p.name}, ${p.address}')}';
+    final queryUri = Uri.parse(queryUrl);
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(queryUri)) {
+        await launchUrl(queryUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open map for ${p.name}', style: GoogleFonts.inter()),
+              backgroundColor: const Color(0xFF1E1B4B),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Pharmacy: ${p.name} (${p.address})', style: GoogleFonts.inter()),
             backgroundColor: const Color(0xFF1E1B4B),
             behavior: SnackBarBehavior.floating,
           ),
