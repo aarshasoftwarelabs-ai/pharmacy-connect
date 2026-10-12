@@ -118,10 +118,10 @@ class _RequestSentScreenState extends State<RequestSentScreen> with SingleTicker
               FadeInSlide(
                 delay: 0.3,
                 child: Text(
-                  'Your medicine request has been securely routed to ${widget.request.pharmacyName}.',
+                  'Your request has been securely routed to ${widget.request.pharmacyName}.\nA licensed pharmacist is reviewing your prescription.\nReady for store pickup in ~15 mins once approved.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: const Color(0xFF64748B),
                     height: 1.5,
                   ),

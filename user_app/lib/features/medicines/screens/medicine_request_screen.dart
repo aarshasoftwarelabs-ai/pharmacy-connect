@@ -28,6 +28,17 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
   Pharmacy? _selectedPharmacy;
   String _selectedFilter = 'All';
   bool _isSubmitting = false;
+  bool _isPrescriptionCertified = true; // Strict legal certification
+  String? _detectedRestrictedDrug;
+
+  // Schedule H, H1 & Schedule X restricted drug keywords (India Drugs & Cosmetics Act)
+  static const List<String> _restrictedDrugsList = [
+    'alprazolam', 'alprax', 'diazepam', 'valium', 'clonazepam', 'clonotril',
+    'lorazepam', 'ativan', 'tramadol', 'ultram', 'codeine', 'corex',
+    'phensedyl', 'morphine', 'zolpidem', 'ambien', 'chlordiazepoxide',
+    'librium', 'ketamine', 'buprenorphine', 'pentazocine', 'fentanyl',
+    'nitrazepam', 'midazolam', 'etizolam', 'oxazepam', 'spasmoproxyvon'
+  ];
 
   List<Pharmacy> _apiPharmacies = [];
   bool _isLoadingPharmacies = true;
@@ -44,7 +55,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       'reviews': '1.2k reviews',
       'distance': '0.8 km',
       'hours': '24x7',
-      'deliveryTime': 'Delivery: 30-45 mins',
+      'deliveryTime': 'Pickup: Ready in 15 mins',
       'logoType': 'apollo',
       'isOpen': true,
       'address': 'MG Road, Near Metro Station',
@@ -59,7 +70,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       'reviews': '980 reviews',
       'distance': '1.2 km',
       'hours': 'Open 8 AM - 11 PM',
-      'deliveryTime': 'Delivery: 45-60 mins',
+      'deliveryTime': 'Pickup: Ready in 20 mins',
       'logoType': 'medplus',
       'isOpen': true,
       'address': 'Station Road, City Center',
@@ -74,7 +85,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       'reviews': '760 reviews',
       'distance': '1.5 km',
       'hours': 'Open 8 AM - 10 PM',
-      'deliveryTime': 'Delivery: 45-70 mins',
+      'deliveryTime': 'Pickup: Ready in 15 mins',
       'logoType': 'sunpharma',
       'isOpen': true,
       'address': 'Ring Road, Sector 4',
@@ -89,7 +100,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       'reviews': '540 reviews',
       'distance': '2.1 km',
       'hours': 'Open 8 AM - 10 PM',
-      'deliveryTime': 'Delivery: 60-90 mins',
+      'deliveryTime': 'Pickup: Ready in 25 mins',
       'logoType': 'healthplus',
       'isOpen': true,
       'address': 'Civil Hospital Lane',
@@ -289,11 +300,132 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
     );
   }
 
+  void _checkRestrictedDrugs(String query) {
+    final lower = query.toLowerCase().trim();
+    if (lower.isEmpty) {
+      if (_detectedRestrictedDrug != null) {
+        setState(() {
+          _detectedRestrictedDrug = null;
+        });
+      }
+      return;
+    }
+    String? matched;
+    for (final drug in _restrictedDrugsList) {
+      if (lower.contains(drug)) {
+        matched = drug;
+        break;
+      }
+    }
+    if (matched != _detectedRestrictedDrug) {
+      setState(() {
+        _detectedRestrictedDrug = matched;
+      });
+      if (matched != null) {
+        _showRestrictedDrugDialog(matched);
+      }
+    }
+  }
+
+  void _showRestrictedDrugDialog(String drugName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEE2E2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Schedule H / X Alert',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF991B1B),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Restricted Drug: ${drugName.toUpperCase()}',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: const Color(0xFFB91C1C),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Drugs and Cosmetics Act, 1940 mujab aa dava Schedule H / Schedule X category ma aave che.',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '⚠️ Doctor na original physical prescription vagar aani request karvi illegal (gairkaydesar) che.\n\nStore par pickup vakhate Doctor nu original stamp & sign valu prescription batavvu farjiyaat che.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: const Color(0xFF475569),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'I Understand & Have Original Rx',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF6D28D9),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submitRequest() async {
     if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please upload a prescription photo first.'),
+          backgroundColor: Color(0xFFE11D48),
+        ),
+      );
+      return;
+    }
+
+    if (!_isPrescriptionCertified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please accept the prescription certification to proceed.'),
           backgroundColor: Color(0xFFE11D48),
         ),
       );
@@ -567,6 +699,22 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
           FadeInSlide(
             delay: 0.2,
             child: _buildScreenOneButtonsRow(),
+          ),
+
+          const SizedBox(height: 14),
+
+          // 4b. Prescription Safety & Verification Notice
+          FadeInSlide(
+            delay: 0.22,
+            child: _buildPrescriptionSafetyNotice(),
+          ),
+
+          const SizedBox(height: 12),
+
+          // 4c. Legal Certification Checkbox
+          FadeInSlide(
+            delay: 0.24,
+            child: _buildLegalCertificationCheckbox(),
           ),
 
           const SizedBox(height: 24),
@@ -987,6 +1135,111 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
     );
   }
 
+  Widget _buildPrescriptionSafetyNotice() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7).withOpacity(0.45),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD97706),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.verified_user_rounded, color: Colors.white, size: 16),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Prescription Safety & Verification Notice',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF92400E),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Only genuine doctor prescriptions accepted. Controlled medicines (Schedule H/X) strictly require original physical prescription. All requests are verified by licensed pharmacists before pickup.',
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    color: const Color(0xFF78350F),
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegalCertificationCheckbox() {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _isPrescriptionCertified = !_isPrescriptionCertified;
+        });
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: _isPrescriptionCertified ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: _isPrescriptionCertified ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
+            width: _isPrescriptionCertified ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: Checkbox(
+                value: _isPrescriptionCertified,
+                activeColor: const Color(0xFF16A34A),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                onChanged: (val) {
+                  setState(() {
+                    _isPrescriptionCertified = val ?? false;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'હું પ્રમાણિત કરું છું કે આ પ્રિસ્ક્રિપ્શન માન્ય રજિસ્ટર્ડ મેડિકલ પ્રેક્ટિશનર (ડૉક્ટર) દ્વારા લખાયેલું છે. (I certify that this prescription is issued by a Registered Medical Doctor).',
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF334155),
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTrustBadgeCard() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
@@ -1002,12 +1255,12 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
               color: Color(0xFF3B82F6),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.add_rounded, color: Colors.white, size: 14),
+            child: const Icon(Icons.verified_rounded, color: Colors.white, size: 14),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'All pharmacies are verified and trusted by Dava Setu.',
+              'Licensed pharmacists verify all prescriptions. Store pickup ready in 15 mins.',
               style: GoogleFonts.inter(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w500,
@@ -1041,6 +1294,15 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            if (!_isPrescriptionCertified) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please accept the prescription certification to proceed.'),
+                  backgroundColor: Color(0xFFE11D48),
+                ),
+              );
+              return;
+            }
             setState(() {
               _currentStep = 1;
             });
@@ -1092,6 +1354,23 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
             delay: 0.1,
             child: _buildSearchBar(),
           ),
+
+          const SizedBox(height: 12),
+
+          // Pharmacist Verification & 15-min Pickup Gate Badge
+          FadeInSlide(
+            delay: 0.12,
+            child: _buildPharmacistGateNotice(),
+          ),
+
+          if (_detectedRestrictedDrug != null) ...[
+            const SizedBox(height: 12),
+            // Schedule H/X Warning Alert Banner
+            FadeInSlide(
+              delay: 0.14,
+              child: _buildScheduleWarningBanner(),
+            ),
+          ],
 
           const SizedBox(height: 14),
 
@@ -1218,7 +1497,10 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (_) => setState(() {}),
+        onChanged: (val) {
+          _checkRestrictedDrugs(val);
+          setState(() {});
+        },
         style: GoogleFonts.inter(fontSize: 13.5, color: const Color(0xFF1E1B4B)),
         decoration: InputDecoration(
           hintText: 'Search pharmacy, area or store name...',
@@ -1338,7 +1620,7 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
             'reviews': '500+ reviews',
             'distance': '1.8 km',
             'hours': 'Open 8 AM - 10 PM',
-            'deliveryTime': 'Delivery: 30-45 mins',
+            'deliveryTime': 'Pickup: Ready in 15 mins',
             'logoType': 'generic',
             'isOpen': p.isOpenNow,
             'address': p.address,
@@ -1489,14 +1771,14 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.delivery_dining_rounded, color: Color(0xFF0284C7), size: 15),
+                  const Icon(Icons.timer_outlined, color: Color(0xFF059669), size: 14),
                   const SizedBox(width: 3),
                   Text(
                     data['deliveryTime'] as String,
                     style: GoogleFonts.inter(
                       fontSize: 10.5,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF0284C7),
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF059669),
                     ),
                   ),
                 ],
@@ -1640,6 +1922,96 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
             const Icon(Icons.chevron_right_rounded, color: Color(0xFF3B82F6), size: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPharmacistGateNotice() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.verified_rounded, color: Color(0xFF16A34A), size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Store Pickup in 15 mins • Verified by Licensed Pharmacist',
+              style: GoogleFonts.inter(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF166534),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleWarningBanner() {
+    if (_detectedRestrictedDrug == null) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFECACA), width: 1.2),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDC2626),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.gavel_rounded, color: Colors.white, size: 15),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Schedule H / X Drug Alert: ${_detectedRestrictedDrug!.toUpperCase()}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF991B1B),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _detectedRestrictedDrug = null;
+                        });
+                      },
+                      child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF991B1B)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Controlled medicine requires original doctor physical prescription with doctor stamp & registration number during pickup.',
+                  style: GoogleFonts.inter(
+                    fontSize: 10.5,
+                    color: const Color(0xFF7F1D1D),
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

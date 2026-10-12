@@ -14,6 +14,7 @@ class _PrescriptionUploadScreenState extends State<PrescriptionUploadScreen> {
   File? _imageFile;
   final _picker = ImagePicker();
   bool _isUploading = false;
+  bool _isCertified = true;
   final TextEditingController _notesController = TextEditingController();
 
   Future<void> _pickImage(ImageSource source) async {
@@ -35,6 +36,16 @@ class _PrescriptionUploadScreenState extends State<PrescriptionUploadScreen> {
     if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a prescription image first')),
+      );
+      return;
+    }
+
+    if (!_isCertified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please accept the prescription certification to proceed.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -175,7 +186,103 @@ class _PrescriptionUploadScreenState extends State<PrescriptionUploadScreen> {
               ),
             ),
             
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
+
+            // Prescription Safety Notice
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7).withOpacity(0.5),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.verified_user_rounded, color: Color(0xFFD97706), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Prescription Safety Notice',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF92400E),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Only genuine doctor prescriptions accepted. Controlled drugs (Schedule H/X) require original physical prescription. All prescriptions verified by licensed pharmacists before store pickup (Ready in 15 mins).',
+                          style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF78350F), height: 1.35),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Legal Certification Checkbox
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _isCertified = !_isCertified;
+                });
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _isCertified ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _isCertified ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
+                    width: _isCertified ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: _isCertified,
+                        activeColor: const Color(0xFF16A34A),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                        onChanged: (val) {
+                          setState(() {
+                            _isCertified = val ?? false;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          'હું પ્રમાણિત કરું છું કે આ પ્રિસ્ક્રિપ્શન માન્ય ડૉક્ટર દ્વારા અપાયેલું સાચું પ્રિસ્ક્રિપ્શન છે. (I certify that this is a genuine doctor prescription).',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF334155),
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 24),
             
             // Submit Button
             ElevatedButton(

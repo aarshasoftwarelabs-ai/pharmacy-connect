@@ -348,7 +348,7 @@ class MedicineDetailsScreen extends StatelessWidget {
           icon: Icons.storefront_outlined,
           iconColor: const Color(0xFF6D28D9),
           title: 'Request from Pharmacy',
-          subtitle: 'Order this medicine for home delivery',
+          subtitle: 'Reserve for quick store pickup (Ready in 15 mins)',
         ),
         const SizedBox(height: 12),
         _buildListItem(
