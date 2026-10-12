@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../widgets/fade_in_slide.dart';
 import '../../../widgets/modern_icons.dart';
@@ -16,35 +18,70 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
   String _searchQuery = '';
   bool _isSearching = false;
 
-  final List<Map<String, dynamic>> _medicines = [
+  List<Map<String, dynamic>> _medicines = [];
+
+  static const List<Map<String, dynamic>> _defaultMedicines = [
     {
       'name': 'Dolo 650',
       'dosage': '1 tablet • 9:00 AM',
       'remaining': 'Remaining: 3 tablets',
+      'remainingCount': 3,
       'status': 'Current',
-      'primaryColor': const Color(0xFF0284C7),
-      'secColor': const Color(0xFF38BDF8),
-      'bgColor': const Color(0xFFE0F2FE),
+      'primaryColor': 0xFF0284C7,
+      'secColor': 0xFF38BDF8,
+      'bgColor': 0xFFE0F2FE,
     },
     {
       'name': 'Vitamin D3',
       'dosage': '1 capsule • 8:00 PM',
       'remaining': 'Remaining: 15 capsules',
+      'remainingCount': 15,
       'status': 'Current',
-      'primaryColor': const Color(0xFFD97706),
-      'secColor': const Color(0xFFFBBF24),
-      'bgColor': const Color(0xFFFEF3C7),
+      'primaryColor': 0xFFD97706,
+      'secColor': 0xFFFBBF24,
+      'bgColor': 0xFFFEF3C7,
     },
     {
       'name': 'Metformin 500',
       'dosage': '1 tablet • 9:00 PM',
       'remaining': 'Remaining: 20 tablets',
+      'remainingCount': 20,
       'status': 'Current',
-      'primaryColor': const Color(0xFFDB2777),
-      'secColor': const Color(0xFFF472B6),
-      'bgColor': const Color(0xFFFCE7F3),
+      'primaryColor': 0xFFDB2777,
+      'secColor': 0xFFF472B6,
+      'bgColor': 0xFFFCE7F3,
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMedicines();
+  }
+
+  Future<void> _loadMedicines() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString('user_medicines');
+    if (jsonStr != null && jsonStr.isNotEmpty) {
+      try {
+        final List<dynamic> list = jsonDecode(jsonStr);
+        setState(() {
+          _medicines = list.map((e) => Map<String, dynamic>.from(e)).toList();
+        });
+        return;
+      } catch (_) {}
+    }
+
+    setState(() {
+      _medicines = List.from(_defaultMedicines);
+    });
+    _saveMedicines();
+  }
+
+  Future<void> _saveMedicines() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_medicines', jsonEncode(_medicines));
+  }
 
   void _showAddMedicineDialog() {
     final nameController = TextEditingController();
@@ -133,11 +170,13 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
                         'name': name,
                         'dosage': dosage.isNotEmpty ? dosage : '1 tablet • 8:00 AM',
                         'remaining': 'Remaining: ${count.isNotEmpty ? count : '10'} tablets',
+                        'remainingCount': int.tryParse(count) ?? 10,
                         'status': 'Current',
-                        'primaryColor': const Color(0xFF7C3AED),
-                        'secColor': const Color(0xFFA78BFA),
-                        'bgColor': const Color(0xFFF3E8FF),
+                        'primaryColor': 0xFF7C3AED,
+                        'secColor': 0xFFA78BFA,
+                        'bgColor': 0xFFF3E8FF,
                       });
+                      _saveMedicines();
                     });
                     Navigator.pop(ctx);
                   }
@@ -219,60 +258,66 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 120),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 650),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 120),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
 
-            // 1. Segmented Filter Tabs (Current, Past, All)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: FadeInSlide(
-                delay: 0.1,
-                child: _buildFilterTabs(),
-              ),
-            ),
-
-            const SizedBox(height: 18),
-
-            // 2. Medicine Cards List
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: FadeInSlide(
-                delay: 0.15,
-                child: Column(
-                  children: filteredMedicines.map((med) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14.0),
-                    child: _buildMedicineCard(med),
-                  )).toList(),
+                // 1. Segmented Filter Tabs (Current, Past, All)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: FadeInSlide(
+                    delay: 0.1,
+                    child: _buildFilterTabs(),
+                  ),
                 ),
-              ),
+
+                const SizedBox(height: 18),
+
+                // 2. Medicine Cards List
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: FadeInSlide(
+                    delay: 0.15,
+                    child: Column(
+                      children: filteredMedicines.map((med) => Padding(
+                        padding: const EdgeInsets.only(bottom: 14.0),
+                        child: _buildMedicineCard(med),
+                      )).toList(),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // 3. "+ Add Medicine" Outline Button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: FadeInSlide(
+                    delay: 0.2,
+                    child: _buildAddMedicineButton(),
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // 4. "Never miss a dose!" Banner with 3D Bottle
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: FadeInSlide(
+                    delay: 0.25,
+                    child: _buildNeverMissBanner(),
+                  ),
+                ),
+              ],
             ),
-
-            const SizedBox(height: 10),
-
-            // 3. "+ Add Medicine" Outline Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: FadeInSlide(
-                delay: 0.2,
-                child: _buildAddMedicineButton(),
-              ),
-            ),
-
-            const SizedBox(height: 18),
-
-            // 4. "Never miss a dose!" Banner with 3D Bottle
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: FadeInSlide(
-                delay: 0.25,
-                child: _buildNeverMissBanner(),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -357,14 +402,14 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: med['bgColor'] as Color,
+                  color: _getColor(med['bgColor'], const Color(0xFFE0F2FE)),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: ModernPillCapsule(
                     size: 32,
-                    primaryColor: med['primaryColor'] as Color,
-                    secondaryColor: med['secColor'] as Color,
+                    primaryColor: _getColor(med['primaryColor'], const Color(0xFF0284C7)),
+                    secondaryColor: _getColor(med['secColor'], const Color(0xFF38BDF8)),
                   ),
                 ),
               ),
@@ -523,5 +568,11 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
         ],
       ),
     );
+  }
+
+  Color _getColor(dynamic val, Color fallback) {
+    if (val is Color) return val;
+    if (val is int) return Color(val);
+    return fallback;
   }
 }

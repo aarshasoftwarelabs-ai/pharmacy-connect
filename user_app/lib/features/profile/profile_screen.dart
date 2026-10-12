@@ -5,6 +5,9 @@ import '../../core/routes/app_routes.dart';
 import '../../widgets/fade_in_slide.dart';
 import '../../widgets/modern_icons.dart';
 import 'widgets/profile_avatar.dart';
+import '../../services/medicine_request_service.dart';
+import '../medicines/models/medicine_request.dart';
+import '../../core/config/api_config.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +19,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String _userName = 'Rajesh Kumar';
   String _userEmail = 'rajesh.kumar@gmail.com';
+  int _totalOrders = 0;
+  int _prescriptionsCount = 0;
+  int _deliveredCount = 0;
 
   @override
   void initState() {
@@ -38,6 +44,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       });
     }
+
+    try {
+      final requests = await MedicineRequestService.getUserMedicineRequests();
+      if (mounted) {
+        setState(() {
+          _totalOrders = requests.length;
+          _prescriptionsCount = requests.where((r) => r.imageReference != null && r.imageReference!.isNotEmpty).length;
+          _deliveredCount = requests.where((r) => r.customerConfirmation == CustomerConfirmationStatus.confirmed).length;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _logout() async {
@@ -438,7 +455,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           bgColor: const Color(0xFFE0F2FE),
                           title: 'Total Orders',
-                          value: '12',
+                          value: '$_totalOrders',
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -448,7 +465,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           iconColor: const Color(0xFF8B5CF6),
                           bgColor: const Color(0xFFF3E8FF),
                           title: 'Prescriptions',
-                          value: '5',
+                          value: '$_prescriptionsCount',
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -458,7 +475,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           iconColor: const Color(0xFF0284C7),
                           bgColor: const Color(0xFFE0F2FE),
                           title: 'Delivered',
-                          value: '10',
+                          value: '$_deliveredCount',
                         ),
                       ),
                       const SizedBox(width: 10),

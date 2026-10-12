@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/routes/app_routes.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/fade_in_slide.dart';
 import '../../widgets/modern_icons.dart';
 import '../profile/widgets/profile_avatar.dart';
@@ -15,7 +16,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _userName = 'Rameshbhai';
+  String _userName = 'User';
+  int _unreadCount = 0;
 
   @override
   void initState() {
@@ -33,6 +35,15 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+
+    try {
+      final count = await NotificationService.getUnreadCount();
+      if (mounted) {
+        setState(() {
+          _unreadCount = count;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -182,18 +193,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Color(0xFF1E1B4B),
                   ),
                 ),
-                Positioned(
-                  right: 8,
-                  top: 6,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEF4444),
-                      shape: BoxShape.circle,
+                if (_unreadCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 6,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -558,20 +570,20 @@ class _HomeScreenState extends State<HomeScreen> {
         'onTap': () => Navigator.pushNamed(context, AppRoutes.myPrescriptions),
       },
       {
-        'title': 'Health Store',
+        'title': 'Track Orders',
         'isPill': false,
-        'icon': Icons.shopping_bag_rounded,
+        'icon': Icons.local_shipping_rounded,
         'color': const Color(0xFF0D9488),
         'bgColor': const Color(0xFFCCFBF1),
-        'onTap': () {},
+        'onTap': () => Navigator.pushNamed(context, AppRoutes.medicineRequests),
       },
       {
-        'title': 'Lab Tests',
+        'title': 'Notifications',
         'isPill': false,
-        'icon': Icons.science_rounded,
+        'icon': Icons.notifications_active_rounded,
         'color': const Color(0xFF8B5CF6),
         'bgColor': const Color(0xFFF3E8FF),
-        'onTap': () {},
+        'onTap': () => Navigator.pushNamed(context, AppRoutes.notifications),
       },
     ];
 

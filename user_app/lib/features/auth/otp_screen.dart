@@ -88,7 +88,18 @@ class _OtpScreenState extends State<OtpScreen>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', response['token']);
       await prefs.setInt('user_id', response['user']['id']);
-      await prefs.setString('user_name', response['user']['name'] ?? '');
+      
+      final userName = response['user']['name'] ?? _args?['name'] ?? 'User';
+      final userEmail = response['user']['email'] ?? _args?['email'] ?? '';
+      final userPhone = response['user']['phone'] ?? _args?['phone'] ?? '';
+      
+      await prefs.setString('user_name', userName);
+      if (userEmail.isNotEmpty) {
+        await prefs.setString('user_email', userEmail);
+      }
+      if (userPhone.isNotEmpty) {
+        await prefs.setString('user_phone', userPhone);
+      }
 
       if (mounted) {
         Navigator.pushReplacementNamed(

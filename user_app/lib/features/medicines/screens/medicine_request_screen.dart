@@ -412,10 +412,13 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
   }
 
   Future<void> _submitRequest() async {
-    if (_imageFile == null) {
+    final hasImage = _imageFile != null;
+    final medicineText = _searchController.text.trim();
+
+    if (!hasImage && medicineText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please upload a prescription photo first.'),
+          content: Text('Please upload a prescription photo or enter medicine name.'),
           backgroundColor: Color(0xFFE11D48),
         ),
       );
@@ -448,12 +451,15 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
 
     try {
       final pharmacyId = int.tryParse(_selectedPharmacy!.id) ?? 1;
-      final bytes = await _imageFile!.readAsBytes();
-      final base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      String? base64Image;
+      if (_imageFile != null) {
+        final bytes = await _imageFile!.readAsBytes();
+        base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      }
 
       final request = await MedicineRequestService.createMedicineRequest(
         pharmacyId: pharmacyId,
-        medicineName: 'Prescription Order',
+        medicineName: medicineText.isNotEmpty ? medicineText : 'Prescription Order',
         imageReference: base64Image,
       );
 
@@ -466,12 +472,23 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: const Color(0xFFE11D48),
-          ),
-        );
+        final errorMsg = e.toString().replaceAll('Exception: ', '');
+        if (errorMsg.contains('User not logged in')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please log in to submit your medicine request.'),
+              backgroundColor: Color(0xFFE11D48),
+            ),
+          );
+          Navigator.pushNamed(context, AppRoutes.login);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: const Color(0xFFE11D48),
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) {
@@ -664,93 +681,99 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
   // SCREEN 1: "Upload Prescription & Location Selection" (Left Image)
   // =========================================================================
   Widget _buildScreenOne() {
-    return SingleChildScrollView(
-      key: const ValueKey('ScreenOne'),
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 10.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Hero Banner: Doctor & Pharmacy storefront
-          FadeInSlide(
-            delay: 0.05,
-            child: _buildScreenOneHeroBanner(),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 650),
+        child: SingleChildScrollView(
+          key: const ValueKey('ScreenOne'),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Hero Banner: Doctor & Pharmacy storefront
+              FadeInSlide(
+                delay: 0.05,
+                child: _buildScreenOneHeroBanner(),
+              ),
+
+              const SizedBox(height: 22),
+
+              // 2. Step 1: Upload Prescription Header
+              FadeInSlide(
+                delay: 0.1,
+                child: _buildScreenOneStepOneHeader(),
+              ),
+
+              const SizedBox(height: 14),
+
+              // 3. Prescription Upload Cards & Action Buttons (Camera, Gallery, Live Scan)
+              FadeInSlide(
+                delay: 0.15,
+                child: _buildScreenOneUploadBox(),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 4. Action Buttons Row: Camera, Gallery, Live Scan
+              FadeInSlide(
+                delay: 0.2,
+                child: _buildScreenOneButtonsRow(),
+              ),
+
+              const SizedBox(height: 14),
+
+              // 4b. Prescription Safety & Verification Notice
+              FadeInSlide(
+                delay: 0.22,
+                child: _buildPrescriptionSafetyNotice(),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 4c. Legal Certification Checkbox
+              FadeInSlide(
+                delay: 0.24,
+                child: _buildLegalCertificationCheckbox(),
+              ),
+
+              const SizedBox(height: 24),
+
+              // 5. Step 2: Select Pharmacy Header
+              FadeInSlide(
+                delay: 0.25,
+                child: _buildScreenOneStepTwoHeader(),
+              ),
+
+              const SizedBox(height: 14),
+
+              // 6. Use My Current Location Card
+              FadeInSlide(
+                delay: 0.3,
+                child: _buildUseLocationCard(),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 7. Trust verification card
+              FadeInSlide(
+                delay: 0.35,
+                child: _buildTrustBadgeCard(),
+              ),
+
+              const SizedBox(height: 18),
+
+              // 8. Find Pharmacy Button
+              FadeInSlide(
+                delay: 0.4,
+                child: _buildFindPharmacyPrimaryButton(),
+              ),
+
+              const SizedBox(height: 30),
+            ],
           ),
-
-          const SizedBox(height: 22),
-
-          // 2. Step 1: Upload Prescription Header
-          FadeInSlide(
-            delay: 0.1,
-            child: _buildScreenOneStepOneHeader(),
-          ),
-
-          const SizedBox(height: 14),
-
-          // 3. Prescription Upload Cards & Action Buttons (Camera, Gallery, Live Scan)
-          FadeInSlide(
-            delay: 0.15,
-            child: _buildScreenOneUploadBox(),
-          ),
-
-          const SizedBox(height: 12),
-
-          // 4. Action Buttons Row: Camera, Gallery, Live Scan
-          FadeInSlide(
-            delay: 0.2,
-            child: _buildScreenOneButtonsRow(),
-          ),
-
-          const SizedBox(height: 14),
-
-          // 4b. Prescription Safety & Verification Notice
-          FadeInSlide(
-            delay: 0.22,
-            child: _buildPrescriptionSafetyNotice(),
-          ),
-
-          const SizedBox(height: 12),
-
-          // 4c. Legal Certification Checkbox
-          FadeInSlide(
-            delay: 0.24,
-            child: _buildLegalCertificationCheckbox(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // 5. Step 2: Select Pharmacy Header
-          FadeInSlide(
-            delay: 0.25,
-            child: _buildScreenOneStepTwoHeader(),
-          ),
-
-          const SizedBox(height: 14),
-
-          // 6. Use My Current Location Card
-          FadeInSlide(
-            delay: 0.3,
-            child: _buildUseLocationCard(),
-          ),
-
-          const SizedBox(height: 12),
-
-          // 7. Trust verification card
-          FadeInSlide(
-            delay: 0.35,
-            child: _buildTrustBadgeCard(),
-          ),
-
-          const SizedBox(height: 18),
-
-          // 8. Find Pharmacy Button
-          FadeInSlide(
-            delay: 0.4,
-            child: _buildFindPharmacyPrimaryButton(),
-          ),
-
-          const SizedBox(height: 30),
-        ],
+        ),
       ),
     );
   }
@@ -1017,9 +1040,13 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
           children: [
             Icon(icon, color: const Color(0xFF6D28D9), size: 17),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: GoogleFonts.outfit(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF1E1B4B)),
+            Flexible(
+              child: Text(
+                label,
+                style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1E1B4B)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -1334,84 +1361,90 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
   // SCREEN 2: "Pharmacy Connect / Nearby Pharmacies" (Right Image)
   // =========================================================================
   Widget _buildScreenTwo() {
-    return SingleChildScrollView(
-      key: const ValueKey('ScreenTwo'),
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 10.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Hero Banner: Pharmacy Connect (Blue-Purple Gradient)
-          FadeInSlide(
-            delay: 0.05,
-            child: _buildScreenTwoHeroBanner(),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 650),
+        child: SingleChildScrollView(
+          key: const ValueKey('ScreenTwo'),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Hero Banner: Pharmacy Connect (Blue-Purple Gradient)
+              FadeInSlide(
+                delay: 0.05,
+                child: _buildScreenTwoHeroBanner(),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 2. Search Bar
+              FadeInSlide(
+                delay: 0.1,
+                child: _buildSearchBar(),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Pharmacist Verification & 15-min Pickup Gate Badge
+              FadeInSlide(
+                delay: 0.12,
+                child: _buildPharmacistGateNotice(),
+              ),
+
+              if (_detectedRestrictedDrug != null) ...[
+                const SizedBox(height: 12),
+                // Schedule H/X Warning Alert Banner
+                FadeInSlide(
+                  delay: 0.14,
+                  child: _buildScheduleWarningBanner(),
+                ),
+              ],
+
+              const SizedBox(height: 14),
+
+              // 3. Filter Chips: All, Nearby, 24x7, Best Rated
+              FadeInSlide(
+                delay: 0.15,
+                child: _buildFilterChips(),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 4. Section Header: Nearby Pharmacies
+              FadeInSlide(
+                delay: 0.2,
+                child: _buildPharmaciesHeader(),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 5. 4 Pharmacies List (Apollo, MedPlus, Sun Pharma, Health Plus)
+              _buildPharmaciesList(),
+
+              const SizedBox(height: 16),
+
+              // 6. Need Help Card
+              FadeInSlide(
+                delay: 0.45,
+                child: _buildScreenTwoNeedHelpCard(),
+              ),
+
+              // Submit Request button if pharmacy is selected
+              if (_selectedPharmacy != null || _imageFile != null) ...[
+                const SizedBox(height: 18),
+                FadeInSlide(
+                  delay: 0.1,
+                  child: _buildSubmitButton(),
+                ),
+              ],
+
+              const SizedBox(height: 36),
+            ],
           ),
-
-          const SizedBox(height: 16),
-
-          // 2. Search Bar
-          FadeInSlide(
-            delay: 0.1,
-            child: _buildSearchBar(),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Pharmacist Verification & 15-min Pickup Gate Badge
-          FadeInSlide(
-            delay: 0.12,
-            child: _buildPharmacistGateNotice(),
-          ),
-
-          if (_detectedRestrictedDrug != null) ...[
-            const SizedBox(height: 12),
-            // Schedule H/X Warning Alert Banner
-            FadeInSlide(
-              delay: 0.14,
-              child: _buildScheduleWarningBanner(),
-            ),
-          ],
-
-          const SizedBox(height: 14),
-
-          // 3. Filter Chips: All, Nearby, 24x7, Best Rated
-          FadeInSlide(
-            delay: 0.15,
-            child: _buildFilterChips(),
-          ),
-
-          const SizedBox(height: 20),
-
-          // 4. Section Header: Nearby Pharmacies
-          FadeInSlide(
-            delay: 0.2,
-            child: _buildPharmaciesHeader(),
-          ),
-
-          const SizedBox(height: 12),
-
-          // 5. 4 Pharmacies List (Apollo, MedPlus, Sun Pharma, Health Plus)
-          _buildPharmaciesList(),
-
-          const SizedBox(height: 16),
-
-          // 6. Need Help Card
-          FadeInSlide(
-            delay: 0.45,
-            child: _buildScreenTwoNeedHelpCard(),
-          ),
-
-          // Submit Request button if pharmacy is selected
-          if (_selectedPharmacy != null || _imageFile != null) ...[
-            const SizedBox(height: 18),
-            FadeInSlide(
-              delay: 0.1,
-              child: _buildSubmitButton(),
-            ),
-          ],
-
-          const SizedBox(height: 36),
-        ],
+        ),
       ),
     );
   }
@@ -1523,43 +1556,91 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
   Widget _buildFilterChips() {
     final chips = ['All', 'Nearby', '24x7', 'Best Rated'];
 
-    return Row(
-      children: chips.map((label) {
-        final isSelected = _selectedFilter == label;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 360;
 
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _selectedFilter = label;
-                });
-              },
-              borderRadius: BorderRadius.circular(24),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF6D28D9) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: isSelected ? const Color(0xFF6D28D9) : const Color(0xFFE2E8F0),
+        if (isNarrow) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: chips.map((label) {
+                final isSelected = _selectedFilter == label;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedFilter = label;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(24),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF6D28D9) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF6D28D9) : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        label,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? Colors.white : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                );
+              }).toList(),
+            ),
+          );
+        }
+
+        return Row(
+          children: chips.map((label) {
+            final isSelected = _selectedFilter == label;
+
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedFilter = label;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF6D28D9) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF6D28D9) : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      label,
+                      style: GoogleFonts.inter(
+                        fontSize: 11.5,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? Colors.white : const Color(0xFF64748B),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 
@@ -1605,28 +1686,29 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
   Widget _buildPharmaciesList() {
     final query = _searchController.text.toLowerCase().trim();
 
-    List<Map<String, dynamic>> combined = List.from(_curatedPharmacies);
+    List<Map<String, dynamic>> combined = [];
 
     if (_apiPharmacies.isNotEmpty) {
       for (final p in _apiPharmacies) {
-        if (!combined.any((item) => item['name'].toString().toLowerCase() == p.name.toLowerCase())) {
-          combined.add({
-            'id': p.id,
-            'name': p.name,
-            'badge': 'Verified',
-            'badgeColor': const Color(0xFFD1FAE5),
-            'badgeTextColor': const Color(0xFF059669),
-            'rating': 4.7,
-            'reviews': '500+ reviews',
-            'distance': '1.8 km',
-            'hours': 'Open 8 AM - 10 PM',
-            'deliveryTime': 'Pickup: Ready in 15 mins',
-            'logoType': 'generic',
-            'isOpen': p.isOpenNow,
-            'address': p.address,
-          });
-        }
+        combined.add({
+          'id': p.id,
+          'name': p.name,
+          'badge': 'Verified Partner',
+          'badgeColor': const Color(0xFFDCFCE7),
+          'badgeTextColor': const Color(0xFF16A34A),
+          'rating': 4.8,
+          'reviews': 'Verified Partner',
+          'distance': '0.8 km',
+          'hours': 'Open 8 AM - 10 PM',
+          'deliveryTime': 'Pickup: Ready in 15 mins',
+          'logoType': 'generic',
+          'isOpen': p.isOpenNow,
+          'address': p.address,
+          'phone': p.phone,
+        });
       }
+    } else {
+      combined = List.from(_curatedPharmacies);
     }
 
     if (query.isNotEmpty) {
@@ -1664,164 +1746,267 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
 
   Widget _buildPharmacyCard(Map<String, dynamic> data, bool isSelected) {
     final hasBadge = data['badge'] != null && data['badge'].toString().isNotEmpty;
+    final address = data['address']?.toString() ?? 'Near You';
+    final deliveryTime = data['deliveryTime']?.toString() ?? 'Pickup: Ready in 15 mins';
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isSelected ? const Color(0xFF6D28D9) : const Color(0xFFF1F5F9),
-          width: isSelected ? 1.5 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isSelected ? const Color(0xFF6D28D9).withOpacity(0.08) : Colors.black.withOpacity(0.025),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+    return InkWell(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            _selectedPharmacy = null;
+          } else {
+            _selectedPharmacy = Pharmacy(
+              id: data['id'].toString(),
+              name: data['name'] as String,
+              address: address,
+              phone: data['phone']?.toString() ?? '+919876543210',
+              latitude: 23.0225,
+              longitude: 72.5714,
+              isConnected: true,
+            );
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFAF5FF) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF7C3AED) : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.8 : 1,
           ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Logo
-          _buildPharmacyLogo(data['logoType'] as String),
-
-          const SizedBox(width: 12),
-
-          // Middle info
-          Expanded(
-            child: Column(
+          boxShadow: [
+            BoxShadow(
+              color: isSelected ? const Color(0xFF7C3AED).withOpacity(0.12) : Colors.black.withOpacity(0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Logo + Full Name + Address + Badge
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        data['name'] as String,
-                        style: GoogleFonts.outfit(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1E1B4B),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (hasBadge) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: data['badgeColor'] as Color,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          data['badge'] as String,
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: data['badgeTextColor'] as Color,
+                _buildPharmacyLogo(data['logoType'] as String),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              data['name'] as String,
+                              style: GoogleFonts.outfit(
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1E1B4B),
+                                height: 1.2,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
+                          if (hasBadge) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                              decoration: BoxDecoration(
+                                color: data['badgeColor'] as Color,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                data['badge'] as String,
+                                style: GoogleFonts.inter(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: data['badgeTextColor'] as Color,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded, size: 13, color: Color(0xFF64748B)),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              address,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w400,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
-                    const SizedBox(width: 3),
-                    Text(
-                      '${data['rating']}',
-                      style: GoogleFonts.inter(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1E1B4B),
-                      ),
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      '(${data['reviews']})',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: const Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${data['distance']}  •  ${data['hours']}',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: const Color(0xFF64748B),
                   ),
                 ),
               ],
             ),
-          ),
 
-          // Right delivery info & Select button
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
+            const SizedBox(height: 12),
+
+            // Row 2: Info chips (Rating, Distance, Hours) with responsive wrap
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Icon(Icons.timer_outlined, color: Color(0xFF059669), size: 14),
-                  const SizedBox(width: 3),
-                  Text(
-                    data['deliveryTime'] as String,
-                    style: GoogleFonts.inter(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF059669),
-                    ),
+                  // Rating
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 16),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${data['rating']}',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1E1B4B),
+                        ),
+                      ),
+                      if (data['reviews'] != null && data['reviews'].toString().isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${data['reviews']})',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const Text('•', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13)),
+                  // Distance
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.near_me_rounded, color: Color(0xFF0284C7), size: 13),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${data['distance']}',
+                        style: GoogleFonts.inter(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF475569),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Text('•', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13)),
+                  // Timing
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.schedule_rounded, color: Color(0xFF10B981), size: 13),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${data['hours']}',
+                        style: GoogleFonts.inter(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF10B981),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      _selectedPharmacy = null;
-                    } else {
-                      _selectedPharmacy = Pharmacy(
-                        id: data['id'].toString(),
-                        name: data['name'] as String,
-                        address: data['address'] as String,
-                        phone: '+919876543210',
-                        latitude: 23.0225,
-                        longitude: 72.5714,
-                        isConnected: true,
-                      );
-                    }
-                  });
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF10B981) : const Color(0xFF6D28D9),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    isSelected ? 'Selected ✓' : 'Select',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Row 3: Bottom Action Row (Pickup Time + Select Button)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFDCFCE7),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.bolt_rounded, color: Color(0xFF16A34A), size: 14),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          deliveryTime,
+                          style: GoogleFonts.inter(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF15803D),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7.5),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF10B981) : const Color(0xFF6D28D9),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isSelected ? const Color(0xFF10B981) : const Color(0xFF6D28D9)).withOpacity(0.25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        const Icon(Icons.check_rounded, color: Colors.white, size: 14),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        isSelected ? 'Selected' : 'Select',
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1829,60 +2014,114 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
   Widget _buildPharmacyLogo(String logoType) {
     if (logoType == 'apollo') {
       return Container(
-        width: 44,
-        height: 44,
+        width: 46,
+        height: 46,
         decoration: BoxDecoration(
-          color: const Color(0xFF0D9488),
-          borderRadius: BorderRadius.circular(13),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0D9488).withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         alignment: Alignment.center,
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
       );
     } else if (logoType == 'medplus') {
       return Container(
-        width: 44,
-        height: 44,
+        width: 46,
+        height: 46,
         decoration: BoxDecoration(
-          color: const Color(0xFF0284C7),
-          borderRadius: BorderRadius.circular(13),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0284C7), Color(0xFF38BDF8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0284C7).withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         alignment: Alignment.center,
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
       );
     } else if (logoType == 'sunpharma') {
       return Container(
-        width: 44,
-        height: 44,
+        width: 46,
+        height: 46,
         decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFDC2626), width: 2),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFEA580C), Color(0xFFFB923C)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFEA580C).withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         alignment: Alignment.center,
-        child: const Icon(Icons.add_rounded, color: Color(0xFF16A34A), size: 24),
+        child: const Icon(Icons.local_pharmacy_rounded, color: Colors.white, size: 24),
       );
     } else if (logoType == 'healthplus') {
       return Container(
-        width: 44,
-        height: 44,
+        width: 46,
+        height: 46,
         decoration: BoxDecoration(
-          color: const Color(0xFF0284C7),
-          borderRadius: BorderRadius.circular(13),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF059669), Color(0xFF34D399)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF059669).withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         alignment: Alignment.center,
-        child: const Icon(Icons.add_rounded, color: Color(0xFF4ADE80), size: 26),
+        child: const Icon(Icons.health_and_safety_rounded, color: Colors.white, size: 24),
       );
     }
 
     return Container(
-      width: 44,
-      height: 44,
+      width: 46,
+      height: 46,
       decoration: BoxDecoration(
-        color: const Color(0xFF6D28D9),
-        borderRadius: BorderRadius.circular(13),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6D28D9), Color(0xFF8B5CF6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6D28D9).withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       alignment: Alignment.center,
-      child: const Icon(Icons.local_pharmacy_rounded, color: Colors.white, size: 22),
+      child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 24),
     );
   }
 
@@ -1981,14 +2220,19 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Schedule H / X Drug Alert: ${_detectedRestrictedDrug!.toUpperCase()}',
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF991B1B),
+                    Expanded(
+                      child: Text(
+                        'Schedule H / X Drug Alert: ${_detectedRestrictedDrug!.toUpperCase()}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF991B1B),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     InkWell(
                       onTap: () {
                         setState(() {
@@ -2047,22 +2291,29 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
                     height: 22,
                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                   )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _imageFile == null
-                            ? 'Upload & Request'
-                            : 'Send Request to $pharmacyName',
-                        style: GoogleFonts.outfit(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _imageFile == null
+                                ? 'Upload & Request'
+                                : 'Send Request to $pharmacyName',
+                            style: GoogleFonts.outfit(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 19),
-                    ],
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 19),
+                      ],
+                    ),
                   ),
           ),
         ),
