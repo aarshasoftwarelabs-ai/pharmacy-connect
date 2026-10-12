@@ -17,7 +17,7 @@ class MyMedicinesScreen extends StatefulWidget {
 class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
   int _selectedTabIndex = 0; // 0: Current, 1: Past, 2: All
   String _searchQuery = '';
-  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _medicines = [];
 
@@ -73,6 +73,12 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
   void initState() {
     super.initState();
     _loadMedicines();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMedicines() async {
@@ -473,9 +479,14 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredMedicines = _medicines.where((med) {
-      if (_searchQuery.isNotEmpty &&
-          !med['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase())) {
-        return false;
+      if (_searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        final name = (med['name'] ?? '').toString().toLowerCase();
+        final dosage = (med['dosage'] ?? '').toString().toLowerCase();
+        final type = (med['type'] ?? '').toString().toLowerCase();
+        if (!name.contains(query) && !dosage.contains(query) && !type.contains(query)) {
+          return false;
+        }
       }
       if (_selectedTabIndex == 1) return med['status'] == 'Past';
       if (_selectedTabIndex == 0) return med['status'] == 'Current';
@@ -490,67 +501,29 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF1E1B4B)),
-        title: _isSearching
-            ? TextField(
-                autofocus: true,
-                onChanged: (val) => setState(() => _searchQuery = val),
-                style: GoogleFonts.outfit(color: const Color(0xFF1E1B4B), fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: 'Search medicines by name...',
-                  hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 14),
-                  border: InputBorder.none,
-                ),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'My Medicines',
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFF1E1B4B),
-                      fontWeight: FontWeight.w800,
-                      fontSize: 21,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  Text(
-                    '${_medicines.where((m) => m['status'] == 'Current').length} Active in Daily Routine',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF64748B),
-                      fontWeight: FontWeight.w500,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ],
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'My Medicines',
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF1E1B4B),
+                fontWeight: FontWeight.w800,
+                fontSize: 21,
+                letterSpacing: -0.3,
               ),
+            ),
+            Text(
+              '${_medicines.where((m) => m['status'] == 'Current').length} Active in Daily Routine',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
+                fontSize: 11.5,
+              ),
+            ),
+          ],
+        ),
         centerTitle: false,
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isSearching ? Icons.close_rounded : Icons.search_rounded,
-              color: const Color(0xFF1E1B4B),
-              size: 24,
-            ),
-            onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) _searchQuery = '';
-              });
-            },
-          ),
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF6D28D9).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add_rounded, color: Color(0xFF6D28D9), size: 20),
-            ),
-            onPressed: _showAddMedicineDialog,
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Align(
         alignment: Alignment.topCenter,
@@ -573,9 +546,20 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // 2. Segmented Filter Tabs (Current, Past, All)
+                // 2. Integrated Search Bar (Seamlessly mixed into layout)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: FadeInSlide(
+                    delay: 0.08,
+                    child: _buildSearchBar(),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // 3. Segmented Filter Tabs (Current, Past, All)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: FadeInSlide(
@@ -758,7 +742,71 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
   }
 
   // ==========================================
-  // 2. Segmented Filter Tabs
+  // Integrated Modern Search Bar
+  // ==========================================
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _searchQuery.isNotEmpty
+              ? const Color(0xFF6D28D9).withOpacity(0.4)
+              : const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6D28D9).withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val.trim();
+          });
+        },
+        style: GoogleFonts.outfit(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF1E1B4B),
+        ),
+        decoration: InputDecoration(
+          hintText: 'Search medicines by name, dose or type...',
+          hintStyle: GoogleFonts.inter(
+            color: const Color(0xFF94A3B8),
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: Color(0xFF6D28D9),
+            size: 20,
+          ),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.cancel_rounded, size: 18, color: Color(0xFF94A3B8)),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // 3. Segmented Filter Tabs
   // ==========================================
   Widget _buildFilterTabs() {
     final currentCount = _medicines.where((m) => m['status'] == 'Current').length;
@@ -944,15 +992,29 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
                           const Icon(Icons.schedule_rounded, size: 12.5, color: Color(0xFF64748B)),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(
-                              '${med['dosage']} • ${med['time'] ?? '9:00 AM'} (${med['meal'] ?? 'After Meal'})',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF64748B),
-                              ),
+                            child: Builder(
+                              builder: (context) {
+                                String cleanDosage = (med['dosage'] ?? '1 tablet').toString();
+                                if (cleanDosage.contains('•')) {
+                                  cleanDosage = cleanDosage.split('•').first.trim();
+                                }
+                                final timeStr = (med['time'] != null && med['time'].toString().isNotEmpty)
+                                    ? med['time'].toString()
+                                    : '9:00 AM';
+                                final mealStr = (med['meal'] != null && med['meal'].toString().isNotEmpty)
+                                    ? '(${med['meal']})'
+                                    : '';
+                                return Text(
+                                  '$cleanDosage • $timeStr $mealStr'.trim(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ],
