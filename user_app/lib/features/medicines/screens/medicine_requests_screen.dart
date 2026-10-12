@@ -74,19 +74,20 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        automaticallyImplyLeading: Navigator.canPop(context),
         title: Text(
-          'My Orders',
+          'My Requests',
           style: GoogleFonts.outfit(
-            fontWeight: FontWeight.w600,
-            fontSize: 22,
-            color: const Color(0xFF1E293B),
-            letterSpacing: -0.5,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: const Color(0xFF1E1B4B),
+            letterSpacing: -0.3,
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
+        iconTheme: const IconThemeData(color: Color(0xFF1E1B4B)),
       ),
       body: _buildBody(),
     );
@@ -213,7 +214,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
                   ),
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pushReplacementNamed(
+                      Navigator.pushNamed(
                         context,
                         AppRoutes.medicineRequest,
                       );

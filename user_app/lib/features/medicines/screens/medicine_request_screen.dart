@@ -602,7 +602,12 @@ class _MedicineRequestScreenState extends State<MedicineRequestScreen> {
                 });
               },
             )
-          : null,
+          : (Navigator.canPop(context)
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1E1B4B), size: 24),
+                  onPressed: () => Navigator.pop(context),
+                )
+              : null),
       centerTitle: true,
       title: Text(
         _currentStep == 0 ? 'Request Medicine' : 'Select Pharmacy',
