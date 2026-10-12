@@ -531,7 +531,7 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
           constraints: const BoxConstraints(maxWidth: 650),
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-            padding: const EdgeInsets.only(bottom: 140),
+            padding: const EdgeInsets.only(bottom: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

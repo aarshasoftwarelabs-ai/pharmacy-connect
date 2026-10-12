@@ -73,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // 1. Top Header: Greeting & Notification
               _buildTopHeader(),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               // 2. Today's Medicines Card
               Padding(
@@ -84,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               // 3. Refill Warning Alert Banner
               Padding(
@@ -95,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               // 4. Connected Pharmacies Carousel (Horizontal Scrollable, placed BEFORE buttons)
               FadeInSlide(
@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildConnectedPharmaciesSection(),
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               // 5. 6-Action Grid
               Padding(
@@ -114,8 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Bottom clearance: gives just enough space above bottom navigation bar without excessive empty scrolling
-              const SizedBox(height: 75),
+              // Bottom clearance: stops precisely at bottom of 6 action cards above the floating navigation bar
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -222,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTodaysMedicinesCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -340,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool isTaken,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -419,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () => Navigator.pushNamed(context, AppRoutes.refillReminders),
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: const Color(0xFFFFF7ED),
           borderRadius: BorderRadius.circular(18),
@@ -652,6 +652,7 @@ class _HomeScreenState extends State<HomeScreen> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             childAspectRatio: 1.44,
@@ -938,7 +939,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Horizontal Scrolling Pharmacies Carousel
         SizedBox(
-          height: 192,
+          height: 184,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
