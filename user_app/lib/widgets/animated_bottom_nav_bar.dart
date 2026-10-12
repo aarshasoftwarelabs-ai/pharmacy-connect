@@ -18,18 +18,18 @@ class AnimatedBottomNavBar extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.only(left: 18, right: 18, bottom: 12),
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
+          constraints: const BoxConstraints(maxWidth: 430),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(36),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
-                  borderRadius: BorderRadius.circular(32),
+                  color: Colors.white.withOpacity(0.88),
+                  borderRadius: BorderRadius.circular(36),
                   border: Border.all(
                     color: Colors.white.withOpacity(0.9),
                     width: 1.5,
@@ -126,8 +126,8 @@ class _NavBarItem extends StatelessWidget {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 16 : 12,
-          vertical: 9,
+          horizontal: isSelected ? 18 : 13,
+          vertical: 12,
         ),
         decoration: BoxDecoration(
           gradient: isSelected
@@ -137,7 +137,7 @@ class _NavBarItem extends StatelessWidget {
                   end: Alignment.bottomRight,
                 )
               : null,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(26),
           boxShadow: isSelected
               ? [
                   BoxShadow(
@@ -157,7 +157,7 @@ class _NavBarItem extends StatelessWidget {
               child: Icon(
                 isSelected ? activeIcon : icon,
                 color: isSelected ? Colors.white : const Color(0xFF64748B),
-                size: 22,
+                size: 23,
               ),
             ),
             AnimatedSize(

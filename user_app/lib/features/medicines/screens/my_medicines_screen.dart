@@ -496,7 +496,7 @@ class _MyMedicinesScreenState extends State<MyMedicinesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       appBar: AppBar(
-        automaticallyImplyLeading: Navigator.canPop(context),
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,

@@ -74,7 +74,7 @@ class _MedicineRequestsScreenState extends State<MedicineRequestsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        automaticallyImplyLeading: Navigator.canPop(context),
+        automaticallyImplyLeading: false,
         title: Text(
           'My Requests',
           style: GoogleFonts.outfit(
