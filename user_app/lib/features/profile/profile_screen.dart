@@ -800,9 +800,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         children: [
                           Expanded(
                             child: _StatCard(
-                              title: 'Delivered',
+                              title: 'Picked Up',
                               value: '$_deliveredCount',
-                              badgeText: 'Fulfilled',
+                              badgeText: 'Completed',
                               badgeColor: const Color(0xFF059669),
                               badgeBg: const Color(0xFFD1FAE5),
                               iconData: Icons.check_circle_outline_rounded,
@@ -966,7 +966,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         icon: Icons.inventory_2_outlined,
                         iconGradient: const [Color(0xFF38BDF8), Color(0xFF0284C7)],
                         title: 'My Orders & Requests',
-                        subtitle: 'Track live medicine deliveries and status updates',
+                        subtitle: 'Track order status and 15-min store pickup',
                         badgeText: '$_totalOrders Total',
                         badgeColor: const Color(0xFF0284C7),
                         badgeBg: const Color(0xFFE0F2FE),

@@ -546,12 +546,12 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       {
         'title': 'Track Orders',
-        'subtitle': 'Live order status',
-        'badgeText': 'LIVE',
+        'subtitle': 'Store pickup status',
+        'badgeText': 'PICKUP',
         'hasDot': true,
         'badgeBg': const Color(0xFFDCFCE7),
         'badgeTextColor': const Color(0xFF15803D),
-        'iconWidget': const ModernDeliveryTruckIcon(size: 24),
+        'iconWidget': const Icon(Icons.shopping_bag_rounded, color: Color(0xFF15803D), size: 24),
         'bgGradient': const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
