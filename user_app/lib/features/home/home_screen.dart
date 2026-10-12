@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+          physics: const ClampingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -114,8 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Bottom clearance: ensures content completely clears the floating bottom bar when scrolled
-              const SizedBox(height: 160),
+              // Bottom clearance: gives just enough space above bottom navigation bar without excessive empty scrolling
+              const SizedBox(height: 75),
             ],
           ),
         ),
@@ -938,7 +938,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Horizontal Scrolling Pharmacies Carousel
         SizedBox(
-          height: 180,
+          height: 192,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -952,7 +952,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: _showPharmacySwitcherBottomSheet,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    width: 135,
+                    width: 140,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -962,19 +962,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 42,
-                          height: 42,
+                          width: 44,
+                          height: 44,
                           decoration: const BoxDecoration(
                             color: Color(0xFFF3E8FF),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.add_rounded, color: Color(0xFF6D28D9), size: 24),
+                          child: const Icon(Icons.add_rounded, color: Color(0xFF6D28D9), size: 26),
                         ),
                         const SizedBox(height: 10),
                         Text(
                           'Add Store',
                           style: GoogleFonts.outfit(
-                            fontSize: 13,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF1E1B4B),
                           ),
@@ -983,7 +983,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           'Browse nearby',
                           style: GoogleFonts.inter(
-                            fontSize: 10.5,
+                            fontSize: 11,
                             color: const Color(0xFF64748B),
                           ),
                         ),
@@ -996,6 +996,8 @@ class _HomeScreenState extends State<HomeScreen> {
               final p = sortedList[index];
               final isPrimary = p.id == _connectedPharmacy?.id;
               final isOpen = p.isOpenNow;
+              final screenWidth = MediaQuery.of(context).size.width;
+              final cardWidth = (screenWidth * 0.88).clamp(345.0, 480.0);
 
               return InkWell(
                 onTap: () {
@@ -1008,7 +1010,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  width: 320,
+                  width: cardWidth,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -1030,13 +1032,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Top Row: Icon + Name + Active Badge
+                      // Top Row: Icon + Name & Auto-Adjusting Address + Active Badge
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            width: 42,
-                            height: 42,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
@@ -1048,7 +1050,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(13),
                             ),
                             child: const Center(
-                              child: ModernPharmacyStoreIcon(size: 22),
+                              child: ModernPharmacyStoreIcon(size: 24),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -1061,24 +1063,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.outfit(
-                                    fontSize: 15,
+                                    fontSize: 15.5,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF1E1B4B),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(Icons.location_on_rounded, size: 12, color: Color(0xFF94A3B8)),
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 2.0),
+                                      child: Icon(Icons.location_on_rounded, size: 12, color: Color(0xFF94A3B8)),
+                                    ),
                                     const SizedBox(width: 3),
                                     Expanded(
                                       child: Text(
                                         p.address,
-                                        maxLines: 1,
+                                        maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.inter(
                                           fontSize: 11,
                                           color: const Color(0xFF64748B),
+                                          height: 1.25,
                                         ),
                                       ),
                                     ),
@@ -1087,10 +1094,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 8),
                           // Badge
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: isPrimary ? const Color(0xFFCCFBF1) : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(8),
@@ -1142,12 +1149,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
-                      // Bottom action row: Primary/Set Primary + Direction + Call
+                      // Bottom action row: Primary/Set Primary + Direction + Call (Auto-adjusted spacing)
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           if (isPrimary)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF0FDF4),
                                 borderRadius: BorderRadius.circular(8),
@@ -1155,7 +1163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF16A34A)),
+                                  const Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF16A34A)),
                                   const SizedBox(width: 4),
                                   Text(
                                     'Primary Store',
@@ -1176,7 +1184,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF3E8FF),
                                   borderRadius: BorderRadius.circular(8),
@@ -1184,7 +1192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.swap_horiz_rounded, size: 12, color: Color(0xFF6D28D9)),
+                                    const Icon(Icons.swap_horiz_rounded, size: 13, color: Color(0xFF6D28D9)),
                                     const SizedBox(width: 4),
                                     Text(
                                       'Set Primary',
@@ -1199,66 +1207,70 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
 
-                          const Spacer(),
-
-                          // Directions Button (Google Maps)
-                          InkWell(
-                            onTap: () => _openDirections(p),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE0F2FE),
+                          // Right actions: Direction + Call
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Directions Button (Google Maps)
+                              InkWell(
+                                onTap: () => _openDirections(p),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFBAE6FD)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.directions_rounded, size: 13, color: Color(0xFF0284C7)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Direction',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF0369A1),
-                                    ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE0F2FE),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFBAE6FD)),
                                   ),
-                                ],
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.directions_rounded, size: 13, color: Color(0xFF0284C7)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Direction',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF0369A1),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
 
-                          const SizedBox(width: 6),
+                              const SizedBox(width: 6),
 
-                          // Call Button
-                          InkWell(
-                            onTap: () => _callPharmacy(p.phone),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
+                              // Call Button
+                              InkWell(
+                                onTap: () => _callPharmacy(p.phone),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF475569)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Call',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF475569),
-                                    ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
                                   ),
-                                ],
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF475569)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Call',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF475569),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ],
                       ),
