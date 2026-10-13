@@ -64,13 +64,8 @@ export class BillingService {
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
              b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst", 
              b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst",
-             b.delivery_staff_id AS "deliveryStaffId", b.delivery_status AS "deliveryStatus",
-             b.cash_collection_status AS "cashCollectionStatus", b.cash_collected_amount AS "cashCollectedAmount",
-             b.delivery_notes AS "deliveryNotes", b.assigned_at AS "assignedAt", b.delivered_at AS "deliveredAt",
-             sm.name AS "deliveryStaffName", sm.phone AS "deliveryStaffPhone",
              b.created_at AS "createdAt"
       FROM bills b
-      LEFT JOIN staff_members sm ON b.delivery_staff_id = sm.id
       WHERE b.id = $1
     `;
     const billResult = await pool.query(billQuery, [billId]);
@@ -107,10 +102,6 @@ export class BillingService {
              b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
              b.customer_phone AS "customerPhone", b.bill_type AS "billType",
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
-             b.delivery_staff_id AS "deliveryStaffId", b.delivery_status AS "deliveryStatus",
-             b.cash_collection_status AS "cashCollectionStatus", b.cash_collected_amount AS "cashCollectedAmount",
-             b.delivery_notes AS "deliveryNotes", b.assigned_at AS "assignedAt", b.delivered_at AS "deliveredAt",
-             sm.name AS "deliveryStaffName", sm.phone AS "deliveryStaffPhone",
              b.created_at AS "createdAt",
              (
                SELECT COALESCE(json_agg(
@@ -133,7 +124,6 @@ export class BillingService {
              ) as items,
              b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst", b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst"
       FROM bills b
-      LEFT JOIN staff_members sm ON b.delivery_staff_id = sm.id
       WHERE b.pharmacy_id = $1
       ORDER BY b.created_at DESC
     `;
