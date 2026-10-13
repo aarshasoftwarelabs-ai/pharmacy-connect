@@ -25,7 +25,6 @@ import MedicineForm from '../components/medicines/MedicineForm';
 import { getPharmacyId } from '../config/development';
 import ExpiryReturnModule from '../components/inventory/ExpiryReturnModule';
 import DistributorCsvImport from '../components/inventory/DistributorCsvImport';
-import BarcodeStickerModal from '../components/inventory/BarcodeStickerModal';
 import MedicineBatchesModal from '../components/inventory/MedicineBatchesModal';
 import { BatchService } from '../services/batchService';
 
@@ -43,7 +42,6 @@ export default function Inventory() {
   const [viewBatchesMed, setViewBatchesMed] = useState<Medicine | null>(null);
   const [autoOrderConfirmMed, setAutoOrderConfirmMed] = useState<Medicine | null>(null);
   const [deleteConfirmMed, setDeleteConfirmMed] = useState<Medicine | null>(null);
-  const [barcodeModalMed, setBarcodeModalMed] = useState<Medicine | null>(null);
   const [generatingBarcodes, setGeneratingBarcodes] = useState(false);
   const [initializingBatches, setInitializingBatches] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -598,14 +596,6 @@ export default function Inventory() {
                             Batches
                           </button>
                           <button 
-                            onClick={() => setBarcodeModalMed(item)}
-                            className="text-indigo-600 hover:text-indigo-900 font-medium text-sm transition-colors bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-indigo-200"
-                            title="Print Barcode Sticker"
-                          >
-                            <Tag className="w-3.5 h-3.5" />
-                            Sticker
-                          </button>
-                          <button 
                             onClick={() => {
                               setSelectedMedicine(item);
                               setIsAddModalOpen(true);
@@ -640,15 +630,6 @@ export default function Inventory() {
           existingMedicines={medicines}
           onClose={() => { setIsAddModalOpen(false); setSelectedMedicine(null); }} 
           onSave={handleSaveMedicine} 
-        />
-      )}
-
-      {barcodeModalMed && (
-        <BarcodeStickerModal
-          medicine={barcodeModalMed}
-          pharmacyName={pharmacy?.name || 'K.Y Pharmacy'}
-          isOpen={!!barcodeModalMed}
-          onClose={() => setBarcodeModalMed(null)}
         />
       )}
 
