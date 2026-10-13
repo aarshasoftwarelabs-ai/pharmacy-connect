@@ -95,4 +95,15 @@ export class ReportController {
       next(error);
     }
   }
+
+  static async getCaTaxFilingReport(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = (req as any).user!.pharmacyId;
+      const params = extractDateRange(req);
+      const data = await ReportService.getCaTaxFilingReport(pharmacyId, params);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

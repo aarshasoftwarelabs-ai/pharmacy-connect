@@ -52,4 +52,19 @@ export class MedicineController {
       next(error);
     }
   }
+
+  static async bulkImport(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const { items } = req.body;
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Items array is required for bulk import' });
+      }
+
+      const result = await MedicineService.bulkImportMedicines(pharmacyId, items);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

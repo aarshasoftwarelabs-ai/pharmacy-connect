@@ -22,8 +22,11 @@ import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
 import { Medicine } from '../types/medicine';
 import MedicineForm from '../components/medicines/MedicineForm';
 import { getPharmacyId } from '../config/development';
+import ExpiryReturnModule from '../components/inventory/ExpiryReturnModule';
+import DistributorCsvImport from '../components/inventory/DistributorCsvImport';
 
 export default function Inventory() {
+  const [activeInventoryTab, setActiveInventoryTab] = useState<'STOCK' | 'EXPIRY_RETURNS' | 'CSV_IMPORT'>('STOCK');
   const [searchTerm, setSearchTerm] = useState('');
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [distributors, setDistributors] = useState<Distributor[]>([]);
@@ -255,7 +258,57 @@ export default function Inventory() {
         </div>
       </div>
 
-      {/* Smart Insight Cards */}
+      {/* Module Tabs Navigation */}
+      <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit">
+        <button
+          onClick={() => setActiveInventoryTab('STOCK')}
+          className={`flex items-center px-5 py-2.5 font-bold text-xs rounded-xl transition-all ${
+            activeInventoryTab === 'STOCK'
+              ? 'bg-white text-indigo-600 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Package className="w-4 h-4 mr-2" />
+          Catalogue & Stock
+        </button>
+
+        <button
+          onClick={() => setActiveInventoryTab('EXPIRY_RETURNS')}
+          className={`flex items-center px-5 py-2.5 font-bold text-xs rounded-xl transition-all ${
+            activeInventoryTab === 'EXPIRY_RETURNS'
+              ? 'bg-white text-red-600 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 mr-2 text-amber-500" />
+          Expiry & Return to Distributor
+          {expiringSoonCount > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-red-100 text-red-700">
+              {expiringSoonCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveInventoryTab('CSV_IMPORT')}
+          className={`flex items-center px-5 py-2.5 font-bold text-xs rounded-xl transition-all ${
+            activeInventoryTab === 'CSV_IMPORT'
+              ? 'bg-white text-emerald-600 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4 mr-2 text-emerald-500" />
+          Distributor CSV Import
+        </button>
+      </div>
+
+      {activeInventoryTab === 'EXPIRY_RETURNS' ? (
+        <ExpiryReturnModule />
+      ) : activeInventoryTab === 'CSV_IMPORT' ? (
+        <DistributorCsvImport onSuccess={() => { loadInitialData(); setActiveInventoryTab('STOCK'); }} />
+      ) : (
+        <>
+          {/* Smart Insight Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-[2rem] -mr-8 -mt-8 transition-transform group-hover:scale-110 pointer-events-none"></div>
@@ -504,6 +557,8 @@ export default function Inventory() {
           )}
         </div>
       </div>
+        </>
+      )}
       
       {isAddModalOpen && (
         <MedicineForm 

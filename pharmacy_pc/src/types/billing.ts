@@ -33,6 +33,15 @@ export interface Bill {
   totalSgst?: number;
   totalIgst?: number;
   totalGst?: number;
+  deliveryStaffId?: number | null;
+  deliveryStaffName?: string;
+  deliveryStaffPhone?: string;
+  deliveryStatus?: 'DIRECT_PICKUP' | 'ASSIGNED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED';
+  cashCollectionStatus?: 'PAID' | 'COD_PENDING' | 'COLLECTED' | 'SETTLED';
+  cashCollectedAmount?: number;
+  deliveryNotes?: string;
+  assignedAt?: string;
+  deliveredAt?: string;
   createdAt: string;
   items?: BillItem[];
 }

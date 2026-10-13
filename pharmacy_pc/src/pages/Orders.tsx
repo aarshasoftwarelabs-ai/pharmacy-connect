@@ -1,79 +1,94 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Package, Search, Filter, Printer, Download, AlertCircle, Loader2 } from 'lucide-react';
+import { 
+  Package, 
+  Search, 
+  Filter, 
+  Printer, 
+  AlertCircle, 
+  Loader2, 
+  MessageCircle, 
+  Receipt,
+  Store,
+  CheckCircle2, 
+  Clock, 
+  IndianRupee, 
+  ShoppingBag
+} from 'lucide-react';
 import { BillingService } from '../services/billingService';
 import { Bill } from '../types/billing';
 import { getPharmacyId } from '../config/development';
+import { printBill } from '../utils/printUtils';
+import { sendWhatsAppBill } from '../utils/whatsappUtils';
+
+type FilterTab = 'ALL' | 'PICKUP' | 'PAID' | 'PENDING';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const data = await BillingService.getPharmacyBills(getPharmacyId());
+      setOrders(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load orders');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        // Using finalized bills as orders in this context
-        const data = await BillingService.getPharmacyBills(getPharmacyId());
-        setOrders(data);
-        setError(null);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load orders');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrders();
   }, []);
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter(order => 
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      order.billNumber.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [orders, searchTerm]);
+  // Stats
+  const stats = useMemo(() => {
+    let paidCount = 0;
+    let pendingCount = 0;
+    let pendingAmount = 0;
 
-  const handlePrint = (bill: Bill) => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Order ${bill.billNumber}</title>
-            <style>
-              body { font-family: sans-serif; padding: 20px; }
-              .header { text-align: center; margin-bottom: 30px; }
-              .details { margin-bottom: 20px; }
-              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-              th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-              .totals { text-align: right; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>PharmacyConnect Order/Bill</h1>
-              <h2>Order #: ${bill.billNumber}</h2>
-            </div>
-            <div class="details">
-              <p><strong>Customer Name:</strong> ${bill.customerName}</p>
-              <p><strong>Date:</strong> ${new Date(bill.createdAt).toLocaleString()}</p>
-              <p><strong>Payment Status:</strong> ${bill.paymentStatus}</p>
-            </div>
-            <div class="totals">
-              <p>Subtotal: ₹${bill.subtotal}</p>
-              <p>Discount: ₹${bill.discount}</p>
-              <h3>Total: ₹${bill.total}</h3>
-            </div>
-            <script>
-              window.onload = () => { window.print(); }
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
-  };
+    orders.forEach(o => {
+      if (o.paymentStatus === 'PAID') {
+        paidCount++;
+      } else {
+        pendingCount++;
+        pendingAmount += Number(o.total || 0);
+      }
+    });
+
+    return {
+      total: orders.length,
+      pickupCount: orders.length,
+      paidCount,
+      pendingCount,
+      pendingAmount
+    };
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      // Tab filter
+      if (activeTab === 'PAID' && order.paymentStatus !== 'PAID') {
+        return false;
+      }
+      if (activeTab === 'PENDING' && order.paymentStatus === 'PAID') {
+        return false;
+      }
+
+      // Search filter
+      const matchesSearch = 
+        order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        order.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.customerPhone && order.customerPhone.includes(searchTerm));
+
+      return matchesSearch;
+    });
+  }, [orders, searchTerm, activeTab]);
 
   return (
     <div className="space-y-6 pb-8">
@@ -82,51 +97,117 @@ export default function Orders() {
         <div>
           <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight flex items-center w-fit">
             <Package className="w-8 h-8 mr-3 text-pharmacy-600" />
-            Orders Management
+            Orders Management (Pickup at Medical Shop)
           </h1>
-          <p className="mt-1 text-sm text-slate-500">View, search, and manage all your customer orders and bills.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            View, search, and manage all customer orders and bills for direct pickup at the medical store.
+          </p>
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="relative w-full sm:w-96">
+      {/* Insight Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-3">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+            <ShoppingBag className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Orders</p>
+            <h3 className="text-xl font-black text-slate-800">{stats.total}</h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-3">
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+            <Store className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pickup at Medical Shop</p>
+            <h3 className="text-xl font-black text-indigo-600">{stats.pickupCount}</h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-3">
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Paid Bills</p>
+            <h3 className="text-xl font-black text-emerald-600">{stats.paidCount}</h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-3">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+            <IndianRupee className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Payment Due</p>
+            <h3 className="text-xl font-black text-amber-600">
+              ₹{stats.pendingAmount.toFixed(0)} <span className="text-xs font-semibold text-slate-400">({stats.pendingCount})</span>
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs & Search Toolbar */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+        {/* Filter Pills */}
+        <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
+          {[
+            { key: 'ALL', label: 'All Orders' },
+            { key: 'PICKUP', label: 'Pickup at Medical Shop 🏪' },
+            { key: 'PAID', label: 'Paid Bills' },
+            { key: 'PENDING', label: 'Payment Due' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as FilterTab)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                activeTab === tab.key
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="relative w-full md:w-80">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-slate-400" />
+            <Search className="h-4 w-4 text-slate-400" />
           </div>
           <input
             type="text"
-            placeholder="Search by Order ID or Customer Name..."
+            placeholder="Search Order ID, Customer Name, Phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg leading-5 bg-white placeholder-slate-500 focus:outline-none focus:placeholder-slate-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
+            className="block w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 font-medium transition-all"
           />
         </div>
-        <button className="flex items-center px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors w-full sm:w-auto">
-          <Filter className="w-4 h-4 mr-2" />
-          Filter Options
-        </button>
       </div>
 
-      {/* Main Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
+      {/* Main Table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64">
             <Loader2 className="h-8 w-8 text-indigo-400 animate-spin mb-4" />
-            <p className="text-slate-500">Loading orders...</p>
+            <p className="text-slate-500 font-medium text-xs">Loading orders...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-64 px-4 text-center">
             <AlertCircle className="h-10 w-10 text-red-400 mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-1">Failed to load orders</h3>
-            <p className="text-slate-500">{error}</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Failed to load orders</h3>
+            <p className="text-xs text-slate-500">{error}</p>
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 px-4 text-center">
             <Package className="h-12 w-12 text-slate-300 mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-1">No orders found</h3>
-            <p className="text-slate-500">
-              {searchTerm ? "No orders match your search criteria." : "You haven't received any orders yet."}
+            <h3 className="text-base font-bold text-slate-900 mb-1">No orders found</h3>
+            <p className="text-xs text-slate-500">
+              {searchTerm ? "No orders match your search criteria." : "No orders found in this view."}
             </p>
           </div>
         ) : (
@@ -134,53 +215,89 @@ export default function Orders() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Order ID</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Date & Time</th>
-                  <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+                  <th scope="col" className="px-5 py-3.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-wider">Order ID</th>
+                  <th scope="col" className="px-5 py-3.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-wider">Customer</th>
+                  <th scope="col" className="px-5 py-3.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-wider">Amount</th>
+                  <th scope="col" className="px-5 py-3.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-wider">Fulfillment</th>
+                  <th scope="col" className="px-5 py-3.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-wider">Payment Status</th>
+                  <th scope="col" className="px-5 py-3.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-wider">Date & Time</th>
+                  <th scope="col" className="px-5 py-3.5 text-right text-[11px] font-black text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
+              <tbody className="bg-white divide-y divide-slate-100">
                 {filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-bold text-indigo-600">{order.billNumber}</span>
+                  <tr key={order.id} className="hover:bg-slate-50/80 transition-colors">
+                    {/* Order ID */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className="text-xs font-black text-indigo-600 block">{order.billNumber}</span>
+                      <span className="text-[10px] text-slate-400 font-semibold">{order.billType || 'RETAIL'}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-slate-900">{order.customerName}</div>
+
+                    {/* Customer */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <div className="text-xs font-bold text-slate-900">{order.customerName}</div>
+                      <div className="text-[11px] text-slate-500 font-medium">📞 {order.customerPhone || 'N/A'}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-slate-700">₹{order.total}</div>
+
+                    {/* Amount */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <div className="text-xs font-black text-slate-900">₹{order.total}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full ${
-                        order.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'
+
+                    {/* Fulfillment: Pickup at Medical Shop */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className="px-3 py-1 inline-flex items-center text-[11px] font-black rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <Store className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+                        Pickup at Medical Shop
+                      </span>
+                    </td>
+
+                    {/* Payment Status */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`px-2.5 py-1 inline-flex text-[10px] font-black rounded-full ${
+                        order.paymentStatus === 'PAID' 
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                          : 'bg-amber-100 text-amber-800 border border-amber-200'
                       }`}>
                         {order.paymentStatus}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {new Date(order.createdAt).toLocaleString('en-US', {
-                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+
+                    {/* Date */}
+                    <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-500 font-medium">
+                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                       })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
+
+                    {/* Actions */}
+                    <td className="px-5 py-4 whitespace-nowrap text-right text-xs font-medium">
+                      <div className="flex justify-end items-center space-x-1.5">
+                        {/* Print Thermal POS Receipt */}
                         <button 
-                          onClick={() => handlePrint(order)}
-                          className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors shadow-sm border border-transparent hover:border-indigo-100"
-                          title="Print / View"
+                          onClick={() => printBill(order, 'THERMAL')}
+                          className="p-1.5 text-slate-600 hover:text-emerald-700 bg-slate-50 hover:bg-emerald-50 rounded-lg transition-colors border border-slate-200"
+                          title="Thermal POS Receipt (58mm/80mm)"
+                        >
+                          <Receipt className="w-4 h-4" />
+                        </button>
+
+                        {/* Print A4 Invoice */}
+                        <button 
+                          onClick={() => printBill(order, 'A4')}
+                          className="p-1.5 text-slate-600 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 rounded-lg transition-colors border border-slate-200"
+                          title="Print A4 Tax Invoice"
                         >
                           <Printer className="w-4 h-4" />
                         </button>
+
+                        {/* WhatsApp Bill Share */}
                         <button 
-                          onClick={() => handlePrint(order)}
-                          className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors shadow-sm border border-transparent hover:border-indigo-100"
-                          title="Download PDF"
+                          onClick={() => sendWhatsAppBill(order, order.customerPhone)}
+                          className="p-1.5 text-slate-600 hover:text-emerald-700 bg-slate-50 hover:bg-emerald-50 rounded-lg transition-colors border border-slate-200"
+                          title="Share Bill via WhatsApp"
                         >
-                          <Download className="w-4 h-4" />
+                          <MessageCircle className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

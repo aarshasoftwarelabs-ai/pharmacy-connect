@@ -6,6 +6,7 @@ import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
 import { Lock, Sparkles, Bell, X } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { getPharmacyId } from '../config/development';
+import NewOrderRingModal, { RingAlertData } from '../components/layout/NewOrderRingModal';
 
 export default function DashboardLayout() {
   const location = useLocation();
@@ -33,6 +34,7 @@ export default function DashboardLayout() {
   const [profile, setProfile] = useState<PharmacyProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{title: string, message: string} | null>(null);
+  const [ringAlert, setRingAlert] = useState<RingAlertData | null>(null);
   const navigate = useNavigate();
 
   const getActualPharmacyId = () => {
@@ -66,50 +68,91 @@ export default function DashboardLayout() {
       socket.emit('join_pharmacy', getActualPharmacyId().toString());
     });
 
-    socket.on('new_request', (newReq: any) => {
-      if (Notification.permission === 'granted') {
-        new Notification('New Medicine Request!', {
-          body: newReq.medicineName ? `Request for: ${newReq.medicineName}` : 'New prescription image uploaded.',
-        });
-      }
-      
-      const title = 'New Order Received!';
-      const message = newReq.medicineName ? `Customer requested: ${newReq.medicineName}` : 'New prescription image uploaded.';
-
-      setNotification({ title, message });
-      
-      const event = new CustomEvent('app_notification', {
-        detail: {
-          title: 'New Medicine Request',
-          message: message,
-          type: 'request'
-        }
+    const triggerRingAlert = (data: { title: string; message: string; type: 'REQUEST' | 'PRESCRIPTION' | 'ORDER'; customerName?: string; medicineName?: string; id?: any }) => {
+      setRingAlert({
+        title: data.title,
+        message: data.message,
+        type: data.type,
+        customerName: data.customerName,
+        medicineName: data.medicineName,
+        id: data.id,
+        timestamp: new Date()
       });
-      window.dispatchEvent(event);
 
-      setTimeout(() => setNotification(null), 5000);
-    });
-
-    socket.on('new_pharmacy_notification', (notif: any) => {
-      // Show native browser notification if allowed
       if (Notification.permission === 'granted') {
-        new Notification(notif.title, {
-          body: notif.message,
+        new Notification(data.title, {
+          body: data.message,
         });
       } else if (Notification.permission !== 'denied') {
         Notification.requestPermission();
       }
-      
-      setNotification({ title: notif.title, message: notif.message });
-      
-      // Dispatch event to update Header dropdown
-      const event = new CustomEvent('new_pharmacy_notification');
-      window.dispatchEvent(event);
+    };
 
-      setTimeout(() => setNotification(null), 5000);
+    socket.on('new_request', (newReq: any) => {
+      const isPrescription = newReq.isPrescription || !newReq.medicineName;
+      const title = isPrescription ? 'New Prescription Received!' : 'New Customer Order/Request!';
+      const message = newReq.medicineName ? `Medicine: ${newReq.medicineName}` : 'A customer uploaded a new prescription.';
+
+      triggerRingAlert({
+        title,
+        message,
+        type: isPrescription ? 'PRESCRIPTION' : 'REQUEST',
+        customerName: newReq.customerName || 'Mobile App Customer',
+        medicineName: newReq.medicineName,
+        id: newReq.id
+      });
+      
+      const event = new CustomEvent('app_notification', {
+        detail: {
+          title: title,
+          message: message,
+          type: isPrescription ? 'prescription' : 'request'
+        }
+      });
+      window.dispatchEvent(event);
     });
 
+    socket.on('new_prescription', (presc: any) => {
+      triggerRingAlert({
+        title: 'New Prescription Uploaded!',
+        message: 'A patient sent a new prescription slip.',
+        type: 'PRESCRIPTION',
+        customerName: 'Mobile Patient',
+        id: presc.id
+      });
+    });
+
+    socket.on('new_pharmacy_notification', (notif: any) => {
+      if (notif.type === 'MEDICINE_REQUEST_CREATED' || notif.type === 'CUSTOMER_CONFIRMATION_RECEIVED') {
+        triggerRingAlert({
+          title: notif.title || 'New Order Alert!',
+          message: notif.message,
+          type: 'REQUEST',
+          id: notif.reference_id
+        });
+      } else {
+        setNotification({ title: notif.title, message: notif.message });
+        setTimeout(() => setNotification(null), 5000);
+      }
+      
+      const event = new CustomEvent('new_pharmacy_notification');
+      window.dispatchEvent(event);
+    });
+
+    // Custom window listener for testing audio ring from settings or header
+    const testRingListener = () => {
+      triggerRingAlert({
+        title: '🔔 Test Order Bell Alert',
+        message: 'Mobile Customer has sent a sample order for Paracetamol 650mg.',
+        type: 'REQUEST',
+        customerName: 'Ramesh Patel (Test)',
+        medicineName: 'Dolo 650 Tablet'
+      });
+    };
+    window.addEventListener('test_order_ring', testRingListener);
+
     return () => {
+      window.removeEventListener('test_order_ring', testRingListener);
       socket.disconnect();
     };
   }, []);
@@ -192,6 +235,8 @@ export default function DashboardLayout() {
           </div>
         </div>
       )}
+      {/* Global New Order Ring Alert Modal */}
+      <NewOrderRingModal alert={ringAlert} onDismiss={() => setRingAlert(null)} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import app from './app';
 import { env } from './config/env';
 import pool, { checkDatabaseHealth } from './config/database';
+import { ensureSchema } from './scripts/ensureSchema';
 
 const startServer = async () => {
   try {
@@ -8,6 +9,7 @@ const startServer = async () => {
     const isDbConnected = await checkDatabaseHealth();
     if (isDbConnected) {
       console.log('✅ Successfully connected to the database.');
+      await ensureSchema();
     } else {
       console.warn('⚠️ WARNING: Database connection failed during startup.');
     }

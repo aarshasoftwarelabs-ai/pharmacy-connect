@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Download, Printer, FileText } from 'lucide-react';
+import { CheckCircle2, Download, Printer, FileText, MessageCircle } from 'lucide-react';
 import { Bill } from '../../types/billing';
 import { printBill } from '../../utils/printUtils';
+import { sendWhatsAppBill } from '../../utils/whatsappUtils';
+import { AudioAlert } from '../../utils/audioAlertService';
 import { PharmacyService } from '../../services/pharmacyService';
 import { getPharmacyId } from '../../config/development';
 
@@ -12,11 +14,18 @@ interface Props {
 
 export default function ReceiptAnimation({ bill, onClose }: Props) {
   const [stage, setStage] = useState<'printing' | 'ready'>('printing');
-  const [printFormat, setPrintFormat] = useState<'A4' | 'THERMAL' | 'B2B_A4'>('A4');
+  const [printFormat, setPrintFormat] = useState<'A4' | 'THERMAL_80MM' | 'THERMAL_58MM' | 'B2B_A4'>(() => {
+    const defaultFormat = localStorage.getItem('default_printer_format');
+    if (defaultFormat === 'THERMAL_58MM') return 'THERMAL_58MM';
+    if (defaultFormat === 'A4') return 'A4';
+    return 'THERMAL_80MM';
+  });
   const [pharmacyName, setPharmacyName] = useState('DavaSetu Pharmacy');
   const [ownerName, setOwnerName] = useState('Admin');
 
   useEffect(() => {
+    AudioAlert.playSuccessChime();
+
     if (bill.billType === 'WHOLESALE') {
       setPrintFormat('B2B_A4');
     }
@@ -41,16 +50,25 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
 
     const timer = setTimeout(() => {
       setStage('ready');
-    }, 2500); // 2.5s animation
+
+      // Auto-print receipt if enabled in settings
+      const autoPrint = localStorage.getItem('auto_print_receipt') === 'true';
+      if (autoPrint) {
+        setTimeout(() => {
+          printBill(bill, printFormat, pharmacyName, ownerName);
+        }, 300);
+      }
+    }, 1800); // 1.8s animation
     return () => clearTimeout(timer);
   }, []);
+
+  const isThermal = printFormat === 'THERMAL_80MM' || printFormat === 'THERMAL_58MM';
 
   return (
     <div className="flex flex-col items-center justify-center p-8 bg-slate-50 min-h-[450px] rounded-2xl relative overflow-hidden">
 
-
        <div className="relative w-full h-80 flex flex-col items-center justify-center">
-          {printFormat === 'THERMAL' ? (
+          {isThermal ? (
             <>
               {/* Printer Top */}
               <div className="w-64 h-4 bg-slate-800 rounded-t-xl z-20"></div>
@@ -179,51 +197,67 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
           {stage === 'printing' ? (
              <div className="flex items-center text-indigo-600 animate-pulse mt-4">
                 <Printer className="w-5 h-5 mr-2 animate-bounce" />
-                <span className="font-medium">Generating Receipt...</span>
+                <span className="font-medium">Processing Bill & Receipt...</span>
              </div>
           ) : (
                 <div className="flex flex-col items-center w-full animate-fade-in" style={{ animation: 'fadeIn 0.5s ease-out forwards' }}>
-                   <div className="flex items-center text-emerald-600 mb-4">
+                   <div className="flex items-center text-emerald-600 mb-3">
                       <CheckCircle2 className="w-5 h-5 mr-2" />
-                      <span className="font-medium">Bill Created Successfully</span>
+                      <span className="font-bold text-base">Bill Generated Successfully!</span>
                    </div>
                    
-                   <div className="flex bg-slate-100 p-1 rounded-lg mb-4 w-full max-w-[320px]">
+                   {/* Format Switcher */}
+                   <div className="flex bg-slate-100 p-1 rounded-xl mb-4 w-full max-w-md">
                      {bill.billType === 'WHOLESALE' ? (
                        <button
                          onClick={() => setPrintFormat('B2B_A4')}
-                         className={`flex-1 flex items-center justify-center py-1.5 text-xs font-semibold rounded-md transition-all ${printFormat === 'B2B_A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                         className={`flex-1 flex items-center justify-center py-1.5 text-xs font-bold rounded-lg transition-all ${printFormat === 'B2B_A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
                        >
-                         <FileText className="w-3.5 h-3.5 mr-1.5" /> B2B Tax Invoice
+                         <FileText className="w-3.5 h-3.5 mr-1" /> B2B Tax Invoice
                        </button>
                      ) : (
                        <button
                          onClick={() => setPrintFormat('A4')}
-                         className={`flex-1 flex items-center justify-center py-1.5 text-xs font-semibold rounded-md transition-all ${printFormat === 'A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                         className={`flex-1 flex items-center justify-center py-1.5 text-xs font-bold rounded-lg transition-all ${printFormat === 'A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
                        >
-                         <FileText className="w-3.5 h-3.5 mr-1.5" /> A4 Size
+                         <FileText className="w-3.5 h-3.5 mr-1" /> A4 Invoice
                        </button>
                      )}
                      <button
-                       onClick={() => setPrintFormat('THERMAL')}
-                       className={`flex-1 flex items-center justify-center py-1.5 text-xs font-semibold rounded-md transition-all ${printFormat === 'THERMAL' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                       onClick={() => setPrintFormat('THERMAL_80MM')}
+                       className={`flex-1 flex items-center justify-center py-1.5 text-xs font-bold rounded-lg transition-all ${printFormat === 'THERMAL_80MM' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500 hover:text-slate-700'}`}
                      >
-                       <Printer className="w-3.5 h-3.5 mr-1.5" /> Thermal
+                       <Printer className="w-3.5 h-3.5 mr-1" /> 80mm POS
+                     </button>
+                     <button
+                       onClick={() => setPrintFormat('THERMAL_58MM')}
+                       className={`flex-1 flex items-center justify-center py-1.5 text-xs font-bold rounded-lg transition-all ${printFormat === 'THERMAL_58MM' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500 hover:text-slate-700'}`}
+                     >
+                       <Printer className="w-3.5 h-3.5 mr-1" /> 58mm POS
                      </button>
                    </div>
 
-                   <div className="flex gap-3 justify-center w-full">
+                   {/* Action Buttons */}
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 justify-center w-full max-w-md">
                       <button 
                         onClick={() => printBill(bill, printFormat, pharmacyName, ownerName)}
-                        className="flex-1 flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+                        className="flex items-center justify-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md text-sm font-bold transition-all"
                       >
-                         <Printer className="w-4 h-4 mr-2" /> Print Bill
+                         <Printer className="w-4 h-4 mr-1.5" /> Print Slip
                       </button>
+
+                      <button 
+                        onClick={() => sendWhatsAppBill(bill, bill.customerPhone, pharmacyName)}
+                        className="flex items-center justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md text-sm font-bold transition-all"
+                      >
+                         <MessageCircle className="w-4 h-4 mr-1.5" /> WhatsApp Bill
+                      </button>
+
                       <button 
                         onClick={onClose} 
-                        className="flex-1 px-4 py-2 bg-slate-800 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-slate-900 transition-colors"
+                        className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl shadow-md text-sm font-bold transition-all text-center"
                       >
-                         Done
+                         Done (New Bill)
                       </button>
                    </div>
                 </div>

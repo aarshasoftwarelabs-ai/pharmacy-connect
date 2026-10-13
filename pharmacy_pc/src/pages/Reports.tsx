@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, Calendar, IndianRupee, ShoppingBag, 
-  Users, Stethoscope, FileText, Activity 
+  Users, Stethoscope, FileText, Activity, FileSpreadsheet 
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { getPharmacyId } from '../config/development';
@@ -11,7 +11,7 @@ import BillingTab from '../components/reports/BillingTab';
 import MedicineSalesTab from '../components/reports/MedicineSalesTab';
 import MedicineRequestsTab from '../components/reports/MedicineRequestsTab';
 import CustomersTab from '../components/reports/CustomersTab';
-import GstReportTab from '../components/reports/GstReportTab';
+import CaTaxFilingTab from '../components/reports/CaTaxFilingTab';
 
 export type ReportTab = 'sales' | 'billing' | 'medicine-sales' | 'medicine-requests' | 'customers' | 'gst';
 
@@ -92,7 +92,7 @@ export default function Reports() {
     { id: 'medicine-sales', label: 'Medicine Sales', icon: ShoppingBag },
     { id: 'medicine-requests', label: 'Medicine Requests', icon: Stethoscope },
     { id: 'customers', label: 'Customers', icon: Users },
-    { id: 'gst', label: 'GST Report', icon: FileText },
+    { id: 'gst', label: 'CA / GST Filing (GSTR-1 & 3B)', icon: FileSpreadsheet },
   ] as const;
 
   const containerVariants: Variants = {
@@ -281,7 +281,7 @@ export default function Reports() {
               {activeTab === 'medicine-sales' && <MedicineSalesTab dateRange={currentRange} />}
               {activeTab === 'medicine-requests' && <MedicineRequestsTab dateRange={currentRange} />}
               {activeTab === 'customers' && <CustomersTab dateRange={currentRange} />}
-              {activeTab === 'gst' && <GstReportTab dateRange={currentRange} />}
+              {activeTab === 'gst' && <CaTaxFilingTab dateRange={currentRange} />}
             </motion.div>
           </AnimatePresence>
         </div>

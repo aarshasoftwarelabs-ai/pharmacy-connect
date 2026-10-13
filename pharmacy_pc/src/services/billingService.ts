@@ -85,4 +85,28 @@ export class BillingService {
     
     return data.data;
   }
+
+  /**
+   * Update Delivery Staff Assignment and Cash Collection
+   */
+  static async updateDeliveryAssignment(billId: number, data: {
+    deliveryStaffId?: number | null;
+    deliveryStatus?: string;
+    cashCollectionStatus?: string;
+    cashCollectedAmount?: number;
+    deliveryNotes?: string;
+  }): Promise<Bill> {
+    const response = await apiFetch(`${API_BASE_URL}/billing/${billId}/delivery`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const resData = await response.json();
+    if (!response.ok) {
+      throw new Error(resData.message || 'Failed to update delivery assignment');
+    }
+
+    return resData.data;
+  }
 }

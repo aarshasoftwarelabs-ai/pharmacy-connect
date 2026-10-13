@@ -57,4 +57,40 @@ export class DistributorController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  static async getExpiringMedicines(req: AuthenticatedRequest, res: Response) {
+    try {
+      const pharmacyId = req.user?.pharmacyId || 1;
+      const days = parseInt(req.query.days as string) || 90;
+      const expiring = await DistributorService.getExpiringMedicines(pharmacyId, days);
+      res.json(expiring);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async createReturnChallan(req: AuthenticatedRequest, res: Response) {
+    try {
+      const pharmacyId = req.user?.pharmacyId || 1;
+      const { items } = req.body;
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Return items are required' });
+      }
+
+      const result = await DistributorService.createReturnChallan(pharmacyId, req.body);
+      res.status(201).json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getReturnChallans(req: AuthenticatedRequest, res: Response) {
+    try {
+      const pharmacyId = req.user?.pharmacyId || 1;
+      const returns = await DistributorService.getReturnChallans(pharmacyId);
+      res.json(returns);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }

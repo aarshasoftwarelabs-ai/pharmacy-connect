@@ -58,15 +58,20 @@ export class BillingService {
    */
   static async getBillById(billId: number) {
     const billQuery = `
-      SELECT id, bill_number AS "billNumber", medicine_request_id AS "medicineRequestId",
-             user_id AS "userId", pharmacy_id AS "pharmacyId", customer_name AS "customerName",
-             customer_phone AS "customerPhone", bill_type AS "billType",
-             bill_date AS "billDate", subtotal, discount, total, payment_status AS "paymentStatus",
-             total_taxable_amount AS "totalTaxableAmount", total_cgst AS "totalCgst", 
-             total_sgst AS "totalSgst", total_igst AS "totalIgst", total_gst AS "totalGst",
-             created_at AS "createdAt"
-      FROM bills
-      WHERE id = $1
+      SELECT b.id, b.bill_number AS "billNumber", b.medicine_request_id AS "medicineRequestId",
+             b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
+             b.customer_phone AS "customerPhone", b.bill_type AS "billType",
+             b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
+             b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst", 
+             b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst",
+             b.delivery_staff_id AS "deliveryStaffId", b.delivery_status AS "deliveryStatus",
+             b.cash_collection_status AS "cashCollectionStatus", b.cash_collected_amount AS "cashCollectedAmount",
+             b.delivery_notes AS "deliveryNotes", b.assigned_at AS "assignedAt", b.delivered_at AS "deliveredAt",
+             sm.name AS "deliveryStaffName", sm.phone AS "deliveryStaffPhone",
+             b.created_at AS "createdAt"
+      FROM bills b
+      LEFT JOIN staff_members sm ON b.delivery_staff_id = sm.id
+      WHERE b.id = $1
     `;
     const billResult = await pool.query(billQuery, [billId]);
     
@@ -102,6 +107,10 @@ export class BillingService {
              b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
              b.customer_phone AS "customerPhone", b.bill_type AS "billType",
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
+             b.delivery_staff_id AS "deliveryStaffId", b.delivery_status AS "deliveryStatus",
+             b.cash_collection_status AS "cashCollectionStatus", b.cash_collected_amount AS "cashCollectedAmount",
+             b.delivery_notes AS "deliveryNotes", b.assigned_at AS "assignedAt", b.delivered_at AS "deliveredAt",
+             sm.name AS "deliveryStaffName", sm.phone AS "deliveryStaffPhone",
              b.created_at AS "createdAt",
              (
                SELECT COALESCE(json_agg(
@@ -124,6 +133,7 @@ export class BillingService {
              ) as items,
              b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst", b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst"
       FROM bills b
+      LEFT JOIN staff_members sm ON b.delivery_staff_id = sm.id
       WHERE b.pharmacy_id = $1
       ORDER BY b.created_at DESC
     `;
@@ -382,5 +392,69 @@ export class BillingService {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Assign staff member to delivery & track cash collection
+   */
+  static async updateDeliveryAssignment(billId: number, data: {
+    deliveryStaffId?: number | null;
+    deliveryStatus?: string;
+    cashCollectionStatus?: string;
+    cashCollectedAmount?: number;
+    deliveryNotes?: string;
+  }) {
+    const billCheck = await pool.query('SELECT id, total, payment_status FROM bills WHERE id = $1', [billId]);
+    if (billCheck.rows.length === 0) {
+      const error = new Error('Bill not found') as ApiError;
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const currentBill = billCheck.rows[0];
+    const deliveryStatus = data.deliveryStatus || 'DIRECT_PICKUP';
+    const cashCollectionStatus = data.cashCollectionStatus || (currentBill.payment_status === 'PAID' ? 'PAID' : 'COD_PENDING');
+    const cashCollectedAmount = data.cashCollectedAmount !== undefined 
+      ? data.cashCollectedAmount 
+      : ((cashCollectionStatus === 'COLLECTED' || cashCollectionStatus === 'SETTLED') ? currentBill.total : 0);
+
+    let assignedAtClause = '';
+    if (data.deliveryStaffId) {
+      assignedAtClause = ', assigned_at = COALESCE(assigned_at, CURRENT_TIMESTAMP)';
+    }
+
+    let deliveredAtClause = '';
+    if (deliveryStatus === 'DELIVERED') {
+      deliveredAtClause = ', delivered_at = COALESCE(delivered_at, CURRENT_TIMESTAMP)';
+    }
+
+    let paymentStatusClause = '';
+    if (cashCollectionStatus === 'COLLECTED' || cashCollectionStatus === 'SETTLED') {
+      paymentStatusClause = ", payment_status = 'PAID'";
+    }
+
+    const query = `
+      UPDATE bills
+      SET delivery_staff_id = $1,
+          delivery_status = $2,
+          cash_collection_status = $3,
+          cash_collected_amount = $4,
+          delivery_notes = COALESCE($5, delivery_notes)
+          ${assignedAtClause}
+          ${deliveredAtClause}
+          ${paymentStatusClause}
+      WHERE id = $6
+    `;
+
+    await pool.query(query, [
+      data.deliveryStaffId !== undefined ? data.deliveryStaffId : null,
+      deliveryStatus,
+      cashCollectionStatus,
+      cashCollectedAmount,
+      data.deliveryNotes || null,
+      billId
+    ]);
+
+    return this.getBillById(billId);
   }
 }

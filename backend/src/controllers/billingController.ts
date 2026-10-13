@@ -190,4 +190,38 @@ If any field cannot be found, use null or 0.`;
       return res.status(500).json({ success: false, message: error.message || 'Failed to scan using AI' });
     }
   }
+  static async updateDelivery(req: Request, res: Response, next: NextFunction) {
+    try {
+      const billId = Number(req.params.billId);
+      if (isNaN(billId)) {
+        const error = new Error('Invalid billId format') as ApiError;
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const {
+        deliveryStaffId,
+        deliveryStatus,
+        cashCollectionStatus,
+        cashCollectedAmount,
+        deliveryNotes
+      } = req.body;
+
+      const updatedBill = await BillingService.updateDeliveryAssignment(billId, {
+        deliveryStaffId: deliveryStaffId ? Number(deliveryStaffId) : null,
+        deliveryStatus,
+        cashCollectionStatus,
+        cashCollectedAmount: cashCollectedAmount !== undefined ? Number(cashCollectedAmount) : undefined,
+        deliveryNotes
+      });
+
+      res.json({
+        success: true,
+        message: 'Delivery assignment updated successfully',
+        data: updatedBill
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

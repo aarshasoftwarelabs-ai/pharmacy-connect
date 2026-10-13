@@ -50,3 +50,85 @@ export const deleteDistributor = async (id: number): Promise<void> => {
     throw new Error('Failed to delete distributor');
   }
 };
+
+export interface ExpiringMedicineItem {
+  medicineId: number;
+  medicineName: string;
+  genericName?: string;
+  category?: string;
+  manufacturer?: string;
+  currentStock: number;
+  batchId: number;
+  batchNumber: string;
+  expiryDate: string;
+  quantity: number;
+  purchasePrice: number;
+  mrp: number;
+  sellingPrice: number;
+  daysRemaining: number;
+  expiryStatus: 'EXPIRED' | 'CRITICAL_30' | 'WARNING_60' | 'UPCOMING_90';
+}
+
+export interface DistributorReturnItem {
+  id?: number;
+  medicineId?: number;
+  batchId?: number;
+  medicineName: string;
+  batchNumber: string;
+  expiryDate: string;
+  quantity: number;
+  purchasePrice: number;
+  totalAmount?: number;
+  reason?: string;
+}
+
+export interface DistributorReturn {
+  id: number;
+  challanNumber: string;
+  returnDate: string;
+  totalItems: number;
+  totalAmount: number;
+  status: string;
+  creditNoteNumber?: string;
+  reason?: string;
+  createdAt: string;
+  distributorName?: string;
+  supplierName?: string;
+  items: DistributorReturnItem[];
+}
+
+export const fetchExpiringMedicines = async (days: number = 90): Promise<ExpiringMedicineItem[]> => {
+  const response = await apiFetch(`${API_BASE_URL}/distributors/expiring-medicines?days=${days}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch expiring medicines');
+  }
+  return response.json();
+};
+
+export const createDistributorReturn = async (data: {
+  distributorId?: number;
+  supplierId?: number;
+  challanNumber?: string;
+  returnDate?: string;
+  reason?: string;
+  items: DistributorReturnItem[];
+}): Promise<DistributorReturn> => {
+  const response = await apiFetch(`${API_BASE_URL}/distributors/returns`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to create distributor return');
+  }
+  return response.json();
+};
+
+export const fetchDistributorReturns = async (): Promise<DistributorReturn[]> => {
+  const response = await apiFetch(`${API_BASE_URL}/distributors/returns`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch distributor returns');
+  }
+  return response.json();
+};
+

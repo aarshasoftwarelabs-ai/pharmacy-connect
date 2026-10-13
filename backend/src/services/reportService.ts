@@ -283,4 +283,218 @@ export class ReportService {
       totalAmount: parseFloat(row.totalAmount) || 0
     }));
   }
+
+  /**
+   * 8. CA / TAX FILING REPORT (GSTR-1 & GSTR-3B)
+   */
+  static async getCaTaxFilingReport(pharmacyId: number, params: ReportDateRange) {
+    // 1. Pharmacy Profile
+    const pharmacyRes = await pool.query(
+      `SELECT name, gstin, state, address, phone FROM pharmacies WHERE id = $1`,
+      [pharmacyId]
+    );
+    const pharmacy = pharmacyRes.rows[0] || { name: 'Pharmacy', gstin: '24AAAAA0000A1Z5', state: 'Gujarat' };
+
+    // Date filters
+    const billValues: any[] = [];
+    const billFilter = buildDateFilter(pharmacyId, 'b.bill_date', params, billValues, 'b.pharmacy_id');
+
+    // 2. B2B Sales (Wholesale bills or bills with B2B clients)
+    const b2bQuery = `
+      SELECT 
+        b.id,
+        b.bill_number as "invoiceNumber",
+        b.bill_date as "invoiceDate",
+        b.customer_name as "receiverName",
+        COALESCE(c.gstin, '24AAAAA0000A1Z5') as "receiverGstin",
+        COALESCE(c.business_name, b.customer_name) as "tradeName",
+        COALESCE(b.total_taxable_amount, b.subtotal) as "taxableValue",
+        COALESCE(b.total_cgst, 0) as "cgst",
+        COALESCE(b.total_sgst, 0) as "sgst",
+        COALESCE(b.total_igst, 0) as "igst",
+        b.total as "invoiceValue",
+        b.payment_status as "paymentStatus"
+      FROM bills b
+      LEFT JOIN b2b_clients c ON b.b2b_client_id = c.id
+      WHERE ${billFilter} 
+        AND b.payment_status != 'CANCELLED'
+        AND (b.bill_type = 'WHOLESALE' OR b.b2b_client_id IS NOT NULL)
+      ORDER BY b.bill_date DESC
+    `;
+    const b2bRes = await pool.query(b2bQuery, billValues);
+
+    // 3. B2CS (Retail Consumer Sales grouped by GST rate)
+    const b2csQuery = `
+      SELECT 
+        bi.gst_rate as "rate",
+        COALESCE(SUM(bi.taxable_amount), 0) as "taxableValue",
+        COALESCE(SUM(bi.cgst), 0) as "cgst",
+        COALESCE(SUM(bi.sgst), 0) as "sgst",
+        COALESCE(SUM(bi.igst), 0) as "igst",
+        COALESCE(SUM(bi.line_total), 0) as "totalValue"
+      FROM bill_items bi
+      JOIN bills b ON bi.bill_id = b.id
+      WHERE ${billFilter}
+        AND b.payment_status != 'CANCELLED'
+        AND (b.bill_type != 'WHOLESALE' OR b.bill_type IS NULL)
+        AND b.b2b_client_id IS NULL
+      GROUP BY bi.gst_rate
+      ORDER BY bi.gst_rate ASC
+    `;
+    const b2csRes = await pool.query(b2csQuery, billValues);
+
+    // 4. HSN Summary (Grouped by HSN code and GST rate)
+    const hsnQuery = `
+      SELECT 
+        COALESCE(NULLIF(bi.hsn_code, ''), '3004') as "hsnCode",
+        MIN(bi.medicine_name) as "description",
+        'NOS' as "uqc",
+        SUM(bi.quantity) as "totalQuantity",
+        SUM(bi.line_total) as "totalValue",
+        SUM(bi.taxable_amount) as "taxableValue",
+        bi.gst_rate as "rate",
+        SUM(bi.cgst) as "cgst",
+        SUM(bi.sgst) as "sgst",
+        SUM(bi.igst) as "igst"
+      FROM bill_items bi
+      JOIN bills b ON bi.bill_id = b.id
+      WHERE ${billFilter} AND b.payment_status != 'CANCELLED'
+      GROUP BY COALESCE(NULLIF(bi.hsn_code, ''), '3004'), bi.gst_rate
+      ORDER BY bi.gst_rate ASC
+    `;
+    const hsnRes = await pool.query(hsnQuery, billValues);
+
+    // 5. Document Issued Summary
+    const docQuery = `
+      SELECT 
+        MIN(bill_number) as "fromSerial",
+        MAX(bill_number) as "toSerial",
+        COUNT(id) as "totalCount",
+        COUNT(CASE WHEN payment_status = 'CANCELLED' THEN 1 END) as "cancelledCount"
+      FROM bills b
+      WHERE ${billFilter}
+    `;
+    const docRes = await pool.query(docQuery, billValues);
+
+    // 6. Overall Outward Taxable Supplies (GSTR-3B Table 3.1)
+    const outwardQuery = `
+      SELECT 
+        COALESCE(SUM(taxable_amount), 0) as "taxableAmount",
+        COALESCE(SUM(cgst), 0) as "cgst",
+        COALESCE(SUM(sgst), 0) as "sgst",
+        COALESCE(SUM(igst), 0) as "igst",
+        COALESCE(SUM(cgst + sgst + igst), 0) as "totalTax",
+        COALESCE(SUM(line_total), 0) as "totalAmount"
+      FROM bill_items bi
+      JOIN bills b ON bi.bill_id = b.id
+      WHERE ${billFilter} AND b.payment_status != 'CANCELLED'
+    `;
+    const outwardRes = await pool.query(outwardQuery, billValues);
+
+    // 7. Eligible Input Tax Credit (ITC) from Purchases (GSTR-3B Table 4)
+    const purchaseValues: any[] = [];
+    let purchaseFilter = ` pharmacy_id = $1 `;
+    purchaseValues.push(pharmacyId);
+    if (params.startDate) {
+      purchaseFilter += ` AND (invoice_date >= $${purchaseValues.length + 1} OR created_at >= $${purchaseValues.length + 1}) `;
+      purchaseValues.push(params.startDate);
+    }
+    if (params.endDate) {
+      purchaseFilter += ` AND (invoice_date <= $${purchaseValues.length + 1} OR created_at <= $${purchaseValues.length + 1}) `;
+      purchaseValues.push(params.endDate);
+    }
+
+    const purchaseQuery = `
+      SELECT 
+        COALESCE(SUM(taxable_amount), 0) as "taxableAmount",
+        COALESCE(SUM(cgst_amount), 0) as "cgst",
+        COALESCE(SUM(sgst_amount), 0) as "sgst",
+        COALESCE(SUM(igst_amount), 0) as "igst",
+        COALESCE(SUM(total_tax), 0) as "totalTax",
+        COALESCE(SUM(grand_total), 0) as "totalPurchases",
+        COUNT(id) as "totalInvoices"
+      FROM purchase_invoices
+      WHERE ${purchaseFilter} AND payment_status != 'CANCELLED'
+    `;
+    const purchaseRes = await pool.query(purchaseQuery, purchaseValues);
+
+    const outward = {
+      taxableAmount: parseFloat(outwardRes.rows[0]?.taxableAmount || 0),
+      cgst: parseFloat(outwardRes.rows[0]?.cgst || 0),
+      sgst: parseFloat(outwardRes.rows[0]?.sgst || 0),
+      igst: parseFloat(outwardRes.rows[0]?.igst || 0),
+      totalTax: parseFloat(outwardRes.rows[0]?.totalTax || 0),
+      totalAmount: parseFloat(outwardRes.rows[0]?.totalAmount || 0),
+    };
+
+    const itc = {
+      taxableAmount: parseFloat(purchaseRes.rows[0]?.taxableAmount || 0),
+      cgst: parseFloat(purchaseRes.rows[0]?.cgst || 0),
+      sgst: parseFloat(purchaseRes.rows[0]?.sgst || 0),
+      igst: parseFloat(purchaseRes.rows[0]?.igst || 0),
+      totalTax: parseFloat(purchaseRes.rows[0]?.totalTax || 0),
+      totalPurchases: parseFloat(purchaseRes.rows[0]?.totalPurchases || 0),
+      totalInvoices: parseInt(purchaseRes.rows[0]?.totalInvoices || 0, 10),
+    };
+
+    const netTaxPayable = {
+      cgst: Math.max(0, outward.cgst - itc.cgst),
+      sgst: Math.max(0, outward.sgst - itc.sgst),
+      igst: Math.max(0, outward.igst - itc.igst),
+      totalTax: Math.max(0, outward.totalTax - itc.totalTax),
+    };
+
+    return {
+      pharmacy: {
+        name: pharmacy.name,
+        gstin: pharmacy.gstin || '24AAAAA0000A1Z5',
+        state: pharmacy.state || 'Gujarat',
+      },
+      gstr1: {
+        b2b: b2bRes.rows.map(r => ({
+          invoiceNumber: r.invoiceNumber,
+          invoiceDate: r.invoiceDate,
+          receiverName: r.receiverName,
+          receiverGstin: r.receiverGstin,
+          tradeName: r.tradeName,
+          taxableValue: parseFloat(r.taxableValue || 0),
+          cgst: parseFloat(r.cgst || 0),
+          sgst: parseFloat(r.sgst || 0),
+          igst: parseFloat(r.igst || 0),
+          invoiceValue: parseFloat(r.invoiceValue || 0),
+        })),
+        b2cs: b2csRes.rows.map(r => ({
+          rate: parseFloat(r.rate || 0),
+          taxableValue: parseFloat(r.taxableValue || 0),
+          cgst: parseFloat(r.cgst || 0),
+          sgst: parseFloat(r.sgst || 0),
+          igst: parseFloat(r.igst || 0),
+          totalValue: parseFloat(r.totalValue || 0),
+        })),
+        hsnSummary: hsnRes.rows.map(r => ({
+          hsnCode: r.hsnCode,
+          description: r.description,
+          uqc: r.uqc,
+          totalQuantity: parseInt(r.totalQuantity || 0, 10),
+          totalValue: parseFloat(r.totalValue || 0),
+          taxableValue: parseFloat(r.taxableValue || 0),
+          rate: parseFloat(r.rate || 0),
+          cgst: parseFloat(r.cgst || 0),
+          sgst: parseFloat(r.sgst || 0),
+          igst: parseFloat(r.igst || 0),
+        })),
+        docSummary: {
+          fromSerial: docRes.rows[0]?.fromSerial || 'N/A',
+          toSerial: docRes.rows[0]?.toSerial || 'N/A',
+          totalCount: parseInt(docRes.rows[0]?.totalCount || 0, 10),
+          cancelledCount: parseInt(docRes.rows[0]?.cancelledCount || 0, 10),
+        },
+      },
+      gstr3b: {
+        outwardSupplies: outward,
+        eligibleItc: itc,
+        netTaxPayable,
+      },
+    };
+  }
 }

@@ -261,89 +261,123 @@ export const generateA4PrintHTML = (bill: Bill, pharmacyName: string = 'Pharmacy
   `;
 };
 
-export const generateThermalPrintHTML = (bill: Bill, pharmacyName: string = 'PharmacyConnect') => {
+export const generateThermalPrintHTML = (
+  bill: Bill, 
+  pharmacyName: string = 'PharmacyConnect',
+  widthType: '58MM' | '80MM' = '80MM'
+) => {
   const isOnline = bill.billType === 'ONLINE';
-  const displayName = isOnline ? 'DavaSetu' : pharmacyName;
+  const displayName = isOnline ? 'DavaSetu Medicals' : pharmacyName;
+  const is58mm = widthType === '58MM';
+  const paperWidth = is58mm ? '58mm' : '80mm';
+  const bodyWidth = is58mm ? '50mm' : '72mm';
+  const fontSize = is58mm ? '10px' : '12px';
+  const titleSize = is58mm ? '13px' : '16px';
   
-  // Simpler, narrow thermal receipt style
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Receipt - ${bill.billNumber}</title>
+      <title>Thermal Receipt - ${bill.billNumber}</title>
       <style>
-        body { font-family: monospace; font-size: 12px; width: 80mm; margin: 0 auto; padding: 10px; color: #000; }
+        @page {
+          size: ${paperWidth} auto;
+          margin: 0;
+        }
+        body { 
+          font-family: 'Courier New', Courier, monospace; 
+          font-size: ${fontSize}; 
+          width: ${bodyWidth}; 
+          margin: 0 auto; 
+          padding: 2mm; 
+          color: #000;
+          line-height: 1.25;
+        }
         .center { text-align: center; }
-        .divider { border-bottom: 1px dashed #000; margin: 5px 0; }
-        table { width: 100%; border-collapse: collapse; }
-        td, th { text-align: left; vertical-align: top; }
+        .divider { border-bottom: 1px dashed #000; margin: 4px 0; }
+        .double-divider { border-bottom: 2px solid #000; margin: 4px 0; }
+        table { width: 100%; border-collapse: collapse; font-size: inherit; }
+        td, th { text-align: left; vertical-align: top; padding: 2px 0; }
         .text-right { text-align: right; }
         .bold { font-weight: bold; }
         @media print {
-          body { width: 100%; padding: 0; }
+          html, body { width: ${paperWidth}; margin: 0; padding: 2mm 1mm; }
         }
       </style>
     </head>
     <body>
       <div class="center">
-        <h2 style="margin: 0; font-size: 16px;">${displayName}</h2>
-        <p style="margin: 2px 0;">Receipt: ${bill.billNumber}</p>
-        <p style="margin: 2px 0;">Date: ${new Date(bill.createdAt).toLocaleString()}</p>
+        <h2 style="margin: 0; font-size: ${titleSize}; text-transform: uppercase;">${displayName}</h2>
+        <p style="margin: 1px 0; font-size: 9px;">${is58mm ? 'RETAIL PHARMACY SLIP' : 'RETAIL PHARMACY TAX INVOICE'}</p>
+        <p style="margin: 2px 0;">Bill No: <strong>${bill.billNumber}</strong></p>
+        <p style="margin: 1px 0;">Date: ${new Date(bill.createdAt).toLocaleDateString()} ${new Date(bill.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
       </div>
+
       <div class="divider"></div>
-      <p style="margin: 2px 0;">Customer: ${bill.customerName}</p>
-      ${bill.customerPhone ? `<p style="margin: 2px 0;">Phone: ${bill.customerPhone}</p>` : ''}
+      <p style="margin: 1px 0;">Customer: <strong>${bill.customerName}</strong></p>
+      ${bill.customerPhone ? `<p style="margin: 1px 0;">Phone: ${bill.customerPhone}</p>` : ''}
       <div class="divider"></div>
+
       <table>
-        <tr>
-          <th>Item</th>
-          <th class="text-right">Qty</th>
-          <th class="text-right">Taxable</th>
-          <th class="text-right">GST</th>
-          <th class="text-right">Amt</th>
-        </tr>
+        <thead>
+          <tr style="border-bottom: 1px solid #000;">
+            <th style="width: 55%;">Item</th>
+            <th class="text-right" style="width: 15%;">Qty</th>
+            <th class="text-right" style="width: 30%;">Amt</th>
+          </tr>
+        </thead>
+        <tbody>
         ${(bill.items || []).map(item => `
           <tr>
-            <td>${item.medicineName}<br><span style="font-size:10px;">HSN: ${item.hsnCode||'-'}</span></td>
+            <td style="word-break: break-word;">
+              <strong>${item.medicineName}</strong>
+              ${!is58mm && item.hsnCode ? `<br><span style="font-size:9px;color:#555;">HSN:${item.hsnCode}</span>` : ''}
+            </td>
             <td class="text-right">${item.quantity}</td>
-            <td class="text-right">${Number(item.taxableAmount||0).toFixed(2)}</td>
-            <td class="text-right">${Number((item.cgst||0)+(item.sgst||0)).toFixed(2)}</td>
-            <td class="text-right">${Number(item.lineTotal).toFixed(2)}</td>
+            <td class="text-right">${Number(item.lineTotal || (item.quantity * item.unitPrice)).toFixed(2)}</td>
           </tr>
         `).join('')}
+        </tbody>
       </table>
+
       <div class="divider"></div>
       <table>
         <tr>
           <td>Subtotal:</td>
-          <td class="text-right">${Number(bill.subtotal).toFixed(2)}</td>
+          <td class="text-right">₹${Number(bill.subtotal).toFixed(2)}</td>
         </tr>
+        ${Number(bill.discount) > 0 ? `
         <tr>
           <td>Discount:</td>
-          <td class="text-right">${Number(bill.discount).toFixed(2)}</td>
+          <td class="text-right">-₹${Number(bill.discount).toFixed(2)}</td>
         </tr>
+        ` : ''}
+        ${Number(bill.totalGst || 0) > 0 ? `
         <tr>
-          <td>Taxable Amt:</td>
-          <td class="text-right">${Number(bill.totalTaxableAmount||0).toFixed(2)}</td>
+          <td>GST Included:</td>
+          <td class="text-right">₹${Number(bill.totalGst || 0).toFixed(2)}</td>
         </tr>
-        <tr>
-          <td>CGST:</td>
-          <td class="text-right">${Number(bill.totalCgst||0).toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td>SGST:</td>
-          <td class="text-right">${Number(bill.totalSgst||0).toFixed(2)}</td>
-        </tr>
-        <tr class="bold" style="font-size: 14px;">
-          <td>Total:</td>
-          <td class="text-right">${Number(bill.total).toFixed(2)}</td>
+        ` : ''}
+        <tr class="bold" style="font-size: ${titleSize};">
+          <td style="padding-top: 4px;">TOTAL:</td>
+          <td class="text-right" style="padding-top: 4px;">₹${Number(bill.total).toFixed(2)}</td>
         </tr>
       </table>
-      <div class="divider"></div>
-      <p class="center" style="margin-top: 10px;">Thank You!</p>
+
+      <div class="double-divider"></div>
+      <div class="center" style="margin-top: 6px; font-size: 9px;">
+        <p style="margin: 1px 0;">Payment: <strong>${bill.paymentStatus || 'PAID'}</strong></p>
+        <p style="margin: 2px 0;">Wish you a speedy recovery!</p>
+        <p style="margin: 1px 0;">Powered by DavaSetu</p>
+      </div>
+
       <script>
-        window.onload = () => { setTimeout(() => window.print(), 500); }
+        window.onload = () => {
+          setTimeout(() => {
+            window.print();
+          }, 250);
+        };
       </script>
     </body>
     </html>
@@ -491,7 +525,12 @@ export const generateB2BPrintHTML = (bill: Bill, pharmacyName: string = 'Pharmac
   `;
 };
 
-export const printBill = (bill: Bill, format: 'A4' | 'THERMAL' | 'B2B_A4' = 'A4', defaultPharmacyName = 'DavaSetu Pharmacy', defaultOwnerName = 'Admin') => {
+export const printBill = (
+  bill: Bill, 
+  format: 'A4' | 'THERMAL' | 'THERMAL_80MM' | 'THERMAL_58MM' | 'B2B_A4' = 'THERMAL', 
+  defaultPharmacyName = 'DavaSetu Pharmacy', 
+  defaultOwnerName = 'Admin'
+) => {
   let pharmacyName = defaultPharmacyName;
   let ownerName = defaultOwnerName;
   
@@ -509,16 +548,166 @@ export const printBill = (bill: Bill, format: 'A4' | 'THERMAL' | 'B2B_A4' = 'A4'
     alert('Please allow popups to print bills.');
     return;
   }
-  
-  let html = '';
-  if (format === 'B2B_A4') {
-    html = generateB2BPrintHTML(bill, pharmacyName, ownerName);
-  } else if (format === 'A4') {
-    html = generateA4PrintHTML(bill, pharmacyName, ownerName);
-  } else {
-    html = generateThermalPrintHTML(bill, pharmacyName);
+
+  // Determine actual format
+  let chosenFormat = format;
+  if (chosenFormat === 'THERMAL') {
+    const saved = localStorage.getItem('default_printer_format');
+    if (saved === 'THERMAL_58MM' || saved === 'THERMAL_80MM' || saved === 'A4') {
+      chosenFormat = saved as any;
+    } else {
+      chosenFormat = 'THERMAL_80MM';
+    }
   }
   
+  let html = '';
+  if (chosenFormat === 'B2B_A4') {
+    html = generateB2BPrintHTML(bill, pharmacyName, ownerName);
+  } else if (chosenFormat === 'A4') {
+    html = generateA4PrintHTML(bill, pharmacyName, ownerName);
+  } else if (chosenFormat === 'THERMAL_58MM') {
+    html = generateThermalPrintHTML(bill, pharmacyName, '58MM');
+  } else {
+    html = generateThermalPrintHTML(bill, pharmacyName, '80MM');
+  }
+  
+  printWindow.document.write(html);
+  printWindow.document.close();
+};
+
+export const printReturnChallan = (challan: any, defaultPharmacyName = 'DavaSetu Pharmacy') => {
+  let pharmacyName = defaultPharmacyName;
+  let ownerName = 'Admin';
+  try {
+    const localData = localStorage.getItem('pharmacy_profile_data');
+    if (localData) {
+      const profile = JSON.parse(localData);
+      if (profile.name) pharmacyName = profile.name;
+      if (profile.ownerName) ownerName = profile.ownerName;
+    }
+  } catch (e) {}
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Please allow popups to print return challans.');
+    return;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Return Challan - ${challan.challanNumber}</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; color: #1e293b; }
+        .container { max-width: 800px; margin: 0 auto; border: 1px solid #cbd5e1; padding: 25px; border-radius: 8px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 20px; }
+        .title { text-align: right; }
+        .title h1 { margin: 0; font-size: 24px; color: #0f172a; }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
+        .card { background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 13px; }
+        th { background: #f1f5f9; text-transform: uppercase; font-size: 11px; }
+        .text-right { text-align: right; }
+        .totals { width: 300px; margin-left: auto; margin-bottom: 30px; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 60px; padding-top: 20px; }
+        .sig-box { text-align: center; border-top: 1px solid #94a3b8; width: 200px; padding-top: 6px; font-size: 12px; font-weight: bold; }
+        @media print { body { padding: 0; } .container { border: none; } }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div>
+            <h2 style="margin: 0; font-size: 20px; color: #0f172a;">${pharmacyName}</h2>
+            <p style="margin: 3px 0; font-size: 12px; color: #64748b;">Proprietor: ${ownerName}</p>
+            <p style="margin: 3px 0; font-size: 12px; color: #64748b;">Retail Drug Store & Pharmacy</p>
+          </div>
+          <div class="title">
+            <h1>RETURN CHALLAN</h1>
+            <p style="margin: 3px 0; font-size: 13px; font-weight: bold; color: #dc2626;">(Expiry / Breakage Debit Note)</p>
+            <p style="margin: 3px 0; font-size: 12px;">Challan No: <strong>${challan.challanNumber}</strong></p>
+            <p style="margin: 3px 0; font-size: 12px;">Date: ${new Date(challan.returnDate || challan.createdAt).toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        <div class="details-grid">
+          <div class="card">
+            <h4 style="margin: 0 0 5px 0; font-size: 12px; text-transform: uppercase; color: #64748b;">Return Given By (Store)</h4>
+            <p style="margin: 2px 0; font-weight: bold;">${pharmacyName}</p>
+            <p style="margin: 2px 0; font-size: 12px;">Contact: Local Store</p>
+          </div>
+          <div class="card">
+            <h4 style="margin: 0 0 5px 0; font-size: 12px; text-transform: uppercase; color: #64748b;">Distributor / Agency</h4>
+            <p style="margin: 2px 0; font-weight: bold;">${challan.distributorName || challan.supplierName || 'General Return'}</p>
+            <p style="margin: 2px 0; font-size: 12px;">Reason: <strong>${challan.reason || 'Expired / Near Expiry Return'}</strong></p>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 5%;">#</th>
+              <th style="width: 35%;">Medicine Description</th>
+              <th style="width: 15%;">Batch No</th>
+              <th style="width: 15%;">Expiry Date</th>
+              <th style="width: 10%;" class="text-right">Qty</th>
+              <th style="width: 10%;" class="text-right">Rate (₹)</th>
+              <th style="width: 10%;" class="text-right">Total (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(challan.items || []).map((it: any, idx: number) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td><strong>${it.medicineName}</strong></td>
+                <td>${it.batchNumber || '-'}</td>
+                <td>${it.expiryDate ? new Date(it.expiryDate).toLocaleDateString() : '-'}</td>
+                <td class="text-right">${it.quantity}</td>
+                <td class="text-right">₹${Number(it.purchasePrice || 0).toFixed(2)}</td>
+                <td class="text-right font-bold">₹${Number(it.totalAmount || (it.quantity * it.purchasePrice)).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <table style="margin: 0;">
+            <tr>
+              <td>Total Returned Quantity</td>
+              <td class="text-right font-bold">${challan.totalItems || (challan.items?.reduce((s: any, i: any) => s + i.quantity, 0))} Units</td>
+            </tr>
+            <tr style="font-size: 15px; font-weight: bold; background: #fef2f2; color: #991b1b;">
+              <td>Total Debit Amount</td>
+              <td class="text-right">₹${Number(challan.totalAmount).toFixed(2)}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p style="font-size: 11px; color: #64748b; margin-top: 10px;">
+          Note: Please credit this debit amount against our pending account or issue Credit Note against these returned expired/damaged items.
+        </p>
+
+        <div class="signatures">
+          <div class="sig-box">
+            Pharmacist Signature / Stamp<br>
+            <span style="font-size: 10px; font-weight: normal; color: #64748b;">${pharmacyName}</span>
+          </div>
+          <div class="sig-box">
+            Distributor Receiver Signature<br>
+            <span style="font-size: 10px; font-weight: normal; color: #64748b;">Name & Date Received</span>
+          </div>
+        </div>
+      </div>
+      <script>
+        window.onload = () => { setTimeout(() => window.print(), 350); };
+      </script>
+    </body>
+    </html>
+  `;
+
   printWindow.document.write(html);
   printWindow.document.close();
 };

@@ -26,4 +26,7 @@ router.post('/', requirePermission('BILLING_CREATE'), BillingController.createBi
 // Scan Prescription AI
 router.post('/scan-prescription', requirePermission('BILLING_CREATE'), upload.single('prescriptionImage'), BillingController.scanPrescription);
 
+// Update delivery assignment & cash collection
+router.patch('/:billId/delivery', BillingController.updateDelivery);
+
 export default router;

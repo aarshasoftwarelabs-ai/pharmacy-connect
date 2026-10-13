@@ -444,19 +444,29 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Notifications */}
+          {/* Notifications & Audio Alerts */}
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
               <h3 className="text-sm font-bold text-slate-800 flex items-center">
                 <Bell className={`w-4 h-4 mr-2 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} />
-                Notifications & Alerts
+                Notifications & Audio Ring Alerts
               </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('test_order_ring'));
+                }}
+                className="inline-flex items-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl border border-red-200 transition-colors"
+              >
+                <Volume2 className="w-3.5 h-3.5 mr-1 text-red-500 animate-pulse" />
+                🔔 Test Order Ring Bell
+              </button>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <SettingRow 
                 icon={Bell}
                 title="Push Notifications"
-                description="Receive alerts in your browser"
+                description="Receive alerts in your browser/OS"
                 value={settings.pushNotifications}
                 onChange={() => toggleSetting('pushNotifications')}
               />
@@ -476,30 +486,57 @@ export default function Settings() {
               />
               <SettingRow 
                 icon={Volume2}
-                title="Sound Alerts"
-                description="Play sound for new orders"
+                title="Loud Order Ring Alert"
+                description="Loud bell/ring chime when customer orders or uploads prescription"
                 value={settings.soundEnabled}
-                onChange={() => toggleSetting('soundEnabled')}
+                onChange={() => {
+                  toggleSetting('soundEnabled');
+                  const nextVal = !settings.soundEnabled;
+                  localStorage.setItem('sound_alert_enabled', String(nextVal));
+                }}
               />
             </div>
           </div>
 
-          {/* Application Preferences */}
+          {/* Printer & POS Thermal Receipts */}
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden mb-8">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-sm font-bold text-slate-800 flex items-center">
                 <Printer className={`w-4 h-4 mr-2 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} />
-                System Preferences
+                Thermal Receipt & Printing Preferences
               </h3>
             </div>
             <div className="p-6 space-y-4">
               <SettingRow 
                 icon={Printer}
-                title="Auto-print Receipts"
-                description="Automatically print invoice when order is completed"
+                title="Auto-Print POS Thermal Slip"
+                description="Instantly trigger printer receipt when billing is completed"
                 value={settings.autoPrintReceipts}
-                onChange={() => toggleSetting('autoPrintReceipts')}
+                onChange={() => {
+                  toggleSetting('autoPrintReceipts');
+                  localStorage.setItem('auto_print_receipt', String(!settings.autoPrintReceipts));
+                }}
               />
+
+              <div className="p-4 border border-slate-100 rounded-xl bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-800">Default Receipt Slip Format</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">Select your medical store thermal printer roll width</p>
+                </div>
+                <select
+                  value={localStorage.getItem('default_printer_format') || 'THERMAL_80MM'}
+                  onChange={(e) => {
+                    localStorage.setItem('default_printer_format', e.target.value);
+                    setIsSaved(true);
+                    setTimeout(() => setIsSaved(false), 2000);
+                  }}
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pharmacy-500"
+                >
+                  <option value="THERMAL_80MM">Thermal 80mm (3-inch Standard POS)</option>
+                  <option value="THERMAL_58MM">Thermal 58mm (2-inch Mini Slip)</option>
+                  <option value="A4">Standard A4 Sheet / PDF</option>
+                </select>
+              </div>
             </div>
           </div>
 

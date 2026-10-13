@@ -43,3 +43,15 @@ export const deleteMedicine = async (id: string): Promise<void> => {
     throw new Error(errorData.error || errorData.message || 'Failed to delete medicine');
   }
 };
+
+export const bulkImportMedicines = async (items: any[]): Promise<{ success: boolean; importedCount: number; totalStockAdded: number; message: string }> => {
+  const response = await apiFetch(`${API_BASE_URL}/medicines/bulk-import`, {
+    method: 'POST',
+    body: JSON.stringify({ items }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || errorData.message || 'Failed to bulk import medicines');
+  }
+  return response.json();
+};

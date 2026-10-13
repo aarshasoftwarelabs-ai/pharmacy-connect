@@ -26,6 +26,23 @@ export const PrescriptionController = {
       );
       
       // Notify Pharmacy Owner/Staff about the new prescription
+      try {
+        const { getIo } = require('../socket');
+        const io = getIo();
+        io.to(`pharmacy_${pharmacyId}`).emit('new_prescription', result);
+        io.to(`pharmacy_${pharmacyId}`).emit('new_request', {
+          id: result.id,
+          pharmacy_id: pharmacyId,
+          medicineName: null,
+          prescriptionUrl: fileUrl,
+          customerName: 'App Customer',
+          isPrescription: true,
+          created_at: new Date()
+        });
+      } catch (e) {
+        console.error('Socket emit error for prescription:', e);
+      }
+
       await NotificationService.notifyPharmacyUsers(pharmacyId, 'PRESCRIPTIONS_VIEW', {
         type: NotificationType.MEDICINE_REQUEST_CREATED, // Reuse or create a new type if needed
         title: 'New Prescription Uploaded',

@@ -111,4 +111,84 @@ export class ReportService {
     const data = await response.json();
     return data.data;
   }
+
+  static async getCaTaxFilingReport(pharmacyId: number, params: ReportDateRange): Promise<CaTaxFilingData> {
+    const response = await apiFetch(`${API_BASE_URL}/reports/ca-tax-filing/${pharmacyId}${this.buildQuery(params)}`);
+    if (!response.ok) throw new Error('Failed to fetch CA tax filing report');
+    const data = await response.json();
+    return data.data;
+  }
+}
+
+export interface CaTaxFilingData {
+  pharmacy: {
+    name: string;
+    gstin: string;
+    state: string;
+  };
+  gstr1: {
+    b2b: {
+      invoiceNumber: string;
+      invoiceDate: string;
+      receiverName: string;
+      receiverGstin: string;
+      tradeName: string;
+      taxableValue: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+      invoiceValue: number;
+    }[];
+    b2cs: {
+      rate: number;
+      taxableValue: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+      totalValue: number;
+    }[];
+    hsnSummary: {
+      hsnCode: string;
+      description: string;
+      uqc: string;
+      totalQuantity: number;
+      totalValue: number;
+      taxableValue: number;
+      rate: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+    }[];
+    docSummary: {
+      fromSerial: string;
+      toSerial: string;
+      totalCount: number;
+      cancelledCount: number;
+    };
+  };
+  gstr3b: {
+    outwardSupplies: {
+      taxableAmount: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+      totalTax: number;
+      totalAmount: number;
+    };
+    eligibleItc: {
+      taxableAmount: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+      totalTax: number;
+      totalPurchases: number;
+      totalInvoices: number;
+    };
+    netTaxPayable: {
+      cgst: number;
+      sgst: number;
+      igst: number;
+      totalTax: number;
+    };
+  };
 }

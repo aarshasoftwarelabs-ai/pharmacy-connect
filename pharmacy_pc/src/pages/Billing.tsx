@@ -8,6 +8,7 @@ import BillCreationModal from '../components/billing/BillCreationModal';
 import OfflineBillForm from '../components/billing/OfflineBillForm';
 
 import { printBill } from '../utils/printUtils';
+import { sendWhatsAppBill } from '../utils/whatsappUtils';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -80,16 +81,7 @@ export default function Billing() {
   };
 
   const handleWhatsAppBill = (bill: Bill) => {
-    let phone = bill.customerPhone?.replace(/\D/g, '') || '';
-    if (phone.length === 10) phone = `91${phone}`;
-    if (!phone || phone === '91') {
-      alert("No valid phone number available for this customer.");
-      return;
-    }
-    
-    const text = `Hello ${bill.customerName},\n\nHere is your bill from DavaSetu Pharmacy.\nBill No: ${bill.billNumber}\nAmount: ₹${bill.total}\n\nThank you for choosing us!`;
-    
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+    sendWhatsAppBill(bill, bill.customerPhone, 'DavaSetu Pharmacy');
   };
 
   return (

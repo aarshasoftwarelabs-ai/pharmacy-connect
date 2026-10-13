@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText, Barcode, CheckCircle, AlertTriangle } from 'lucide-react';
 import { BillingService } from '../../services/billingService';
 import { getPharmacyId } from '../../config/development';
 import { Bill } from '../../types/billing';
@@ -7,6 +7,7 @@ import ReceiptAnimation from './ReceiptAnimation';
 import { Medicine } from '../../types/medicine';
 import { fetchMedicines } from '../../services/medicineService';
 import MedicineSearchDropdown from '../ui/MedicineSearchDropdown';
+import { AudioAlert } from '../../utils/audioAlertService';
 
 interface Props {
   onSuccess: () => void;
@@ -26,11 +27,111 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const [isScanning, setIsScanning] = useState(false);
   const [scanStep, setScanStep] = useState(0); // 0: upload, 1: scanning, 2: success
   const [showAiModal, setShowAiModal] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Barcode / QR Scanner States
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [barcodeStatus, setBarcodeStatus] = useState<{ type: 'success' | 'error' | 'idle'; message: string } | null>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchMedicines().then(setCatalogue).catch(console.error);
   }, []);
+
+  const handleBarcodeScan = (rawCode: string) => {
+    const code = rawCode.trim();
+    if (!code) return;
+
+    // Search medicine by barcode, SKU, ID, batch number, or name
+    const match = catalogue.find(m => 
+      (m.barcode && m.barcode.toLowerCase() === code.toLowerCase()) ||
+      (m.sku && m.sku.toLowerCase() === code.toLowerCase()) ||
+      (m.id && m.id.toString() === code) ||
+      (m.batches && m.batches.some(b => b.batchNumber.toLowerCase() === code.toLowerCase())) ||
+      (m.name.toLowerCase() === code.toLowerCase())
+    );
+
+    if (match) {
+      AudioAlert.playBarcodeBeep();
+      setBarcodeStatus({ 
+        type: 'success', 
+        message: `Scanned: ${match.name} (₹${match.sellingPrice || 0})` 
+      });
+      setTimeout(() => setBarcodeStatus(null), 3000);
+
+      // Check if medicine already exists in cart
+      const existingIdx = items.findIndex(it => it.medicineName.toLowerCase() === match.name.toLowerCase());
+      if (existingIdx !== -1) {
+        const updated = [...items];
+        updated[existingIdx].quantity += 1;
+        setItems(updated);
+      } else {
+        // If the only item is empty, replace it
+        if (items.length === 1 && !items[0].medicineName.trim()) {
+          setItems([{
+            medicineName: match.name,
+            quantity: 1,
+            unitPrice: match.sellingPrice || 0,
+            hsnCode: match.hsnCode || '',
+            gstRate: match.gstRate || 0
+          }]);
+        } else {
+          setItems([...items, {
+            medicineName: match.name,
+            quantity: 1,
+            unitPrice: match.sellingPrice || 0,
+            hsnCode: match.hsnCode || '',
+            gstRate: match.gstRate || 0
+          }]);
+        }
+      }
+    } else {
+      setBarcodeStatus({ 
+        type: 'error', 
+        message: `Barcode "${code}" not found in catalogue.` 
+      });
+      setTimeout(() => setBarcodeStatus(null), 4000);
+    }
+
+    setBarcodeInput('');
+    if (barcodeInputRef.current) {
+      barcodeInputRef.current.focus();
+    }
+  };
+
+  // Global listener for USB Barcode Scanners (rapid keyboard stroke sequence ending with Enter)
+  useEffect(() => {
+    let keyBuffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Don't capture if user is actively typing in a standard text field (except barcode field)
+      const activeEl = document.activeElement;
+      if (activeEl && activeEl !== barcodeInputRef.current && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+        return;
+      }
+
+      const now = Date.now();
+      // Scanners type very quickly (< 60ms between chars)
+      if (now - lastKeyTime > 120) {
+        keyBuffer = '';
+      }
+      lastKeyTime = now;
+
+      if (e.key === 'Enter') {
+        if (keyBuffer.trim().length >= 2) {
+          e.preventDefault();
+          handleBarcodeScan(keyBuffer);
+          keyBuffer = '';
+        }
+      } else if (e.key.length === 1) {
+        keyBuffer += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [catalogue, items]);
 
   const handleAddItem = () => {
     setItems([...items, { medicineName: '', quantity: 1, unitPrice: 0, hsnCode: '', gstRate: 0 }]);
@@ -246,6 +347,72 @@ export default function OfflineBillForm({ onSuccess }: Props) {
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
             />
           </div>
+        </div>
+
+        {/* Barcode & QR Scanner Bar */}
+        <div className="mb-5 p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200 rounded-2xl shadow-sm">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex-1 flex items-center gap-2">
+              <div className="p-2 bg-emerald-600 text-white rounded-xl shadow-sm flex items-center justify-center">
+                <Barcode className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="flex-1 relative">
+                <input
+                  ref={barcodeInputRef}
+                  type="text"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleBarcodeScan(barcodeInput);
+                    }
+                  }}
+                  placeholder="⚡ Point Barcode Gun Scanner or type Barcode / SKU & press Enter..."
+                  className="w-full pl-3 pr-24 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleBarcodeScan(barcodeInput)}
+                  className="absolute right-1.5 top-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                >
+                  Scan
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Demo Scanner Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">Quick Test:</span>
+              {catalogue.slice(0, 3).map((med) => (
+                <button
+                  key={med.id}
+                  type="button"
+                  onClick={() => handleBarcodeScan(med.barcode || med.sku || med.name)}
+                  className="px-2 py-1 bg-white hover:bg-emerald-100 border border-slate-200 hover:border-emerald-300 text-slate-700 rounded-lg text-xs font-medium transition-colors shadow-2xs"
+                  title={`Click to simulate scanning ${med.name}`}
+                >
+                  🏷️ {med.name.slice(0, 12)}...
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Scan Status Feedback */}
+          {barcodeStatus && (
+            <div className={`mt-2.5 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center transition-all ${
+              barcodeStatus.type === 'success' 
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                : 'bg-red-100 text-red-800 border border-red-300'
+            }`}>
+              {barcodeStatus.type === 'success' ? (
+                <CheckCircle className="w-4 h-4 mr-1.5 text-emerald-600" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 mr-1.5 text-red-600" />
+              )}
+              {barcodeStatus.message}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 min-h-[250px]">
