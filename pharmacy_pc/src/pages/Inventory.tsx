@@ -374,7 +374,7 @@ export default function Inventory() {
       </div>
 
       {activeInventoryTab === 'EXPIRY_RETURNS' ? (
-        <ExpiryReturnModule />
+        <ExpiryReturnModule fallbackMedicines={medicines} onStockUpdated={loadInitialData} />
       ) : activeInventoryTab === 'CSV_IMPORT' ? (
         <DistributorCsvImport onSuccess={() => { loadInitialData(); setActiveInventoryTab('STOCK'); }} />
       ) : activeInventoryTab === 'DEAD_STOCK' ? (

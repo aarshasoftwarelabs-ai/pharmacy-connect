@@ -77,10 +77,9 @@ export class DistributorService {
       FROM medicines m
       LEFT JOIN medicine_batches mb ON mb.medicine_id = m.id AND mb.quantity > 0
       WHERE m.pharmacy_id = $1
-        AND (
-          (mb.expiry_date IS NOT NULL AND mb.expiry_date <= (CURRENT_DATE + ($2 || 90) * INTERVAL '1 day'))
-          OR (mb.id IS NULL AND m.expiry_date IS NOT NULL AND m.expiry_date <= (CURRENT_DATE + ($2 || 90) * INTERVAL '1 day'))
-        )
+        AND COALESCE(mb.quantity, m.current_stock) > 0
+        AND COALESCE(mb.expiry_date, m.expiry_date) IS NOT NULL
+        AND COALESCE(mb.expiry_date, m.expiry_date) <= (CURRENT_DATE + ($2 * INTERVAL '1 day'))
       ORDER BY COALESCE(mb.expiry_date, m.expiry_date) ASC;
     `;
     const result = await pool.query(query, [pharmacyId, days]);

@@ -27,8 +27,14 @@ import {
   DistributorReturn 
 } from '../../services/distributorService';
 import { printReturnChallan } from '../../utils/printUtils';
+import { Medicine } from '../../types/medicine';
 
-export default function ExpiryReturnModule() {
+interface ExpiryReturnModuleProps {
+  fallbackMedicines?: Medicine[];
+  onStockUpdated?: () => void;
+}
+
+export default function ExpiryReturnModule({ fallbackMedicines = [], onStockUpdated }: ExpiryReturnModuleProps) {
   const [activeSubTab, setActiveSubTab] = useState<'EXPIRING_LIST' | 'RETURN_HISTORY'>('EXPIRING_LIST');
   const [filterDays, setFilterDays] = useState<number>(90);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'EXPIRED' | 'CRITICAL_30' | 'WARNING_60'>('ALL');
@@ -55,12 +61,75 @@ export default function ExpiryReturnModule() {
     try {
       setLoading(true);
       setError(null);
-      const [expData, distData, histData] = await Promise.all([
-        fetchExpiringMedicines(filterDays).catch(() => []),
-        fetchDistributors().catch(() => []),
-        fetchDistributorReturns().catch(() => [])
+      const [apiExpData, distData, histData] = await Promise.all([
+        fetchExpiringMedicines(filterDays).catch(() => [] as ExpiringMedicineItem[]),
+        fetchDistributors().catch(() => [] as Distributor[]),
+        fetchDistributorReturns().catch(() => [] as DistributorReturn[])
       ]);
-      setExpiringList(expData);
+
+      let finalExpList = apiExpData;
+
+      // Resilient fallback from already loaded medicines if API returned empty
+      if ((!finalExpList || finalExpList.length === 0) && fallbackMedicines.length > 0) {
+        const now = Date.now();
+        const extracted: ExpiringMedicineItem[] = [];
+
+        for (const m of fallbackMedicines) {
+          if (m.batches && m.batches.length > 0) {
+            for (const b of m.batches) {
+              const expDateStr = b.expiryDate || m.expiryDate;
+              if (expDateStr && ((b.availableQuantity ?? b.quantity) > 0 || m.currentStock > 0)) {
+                const expMs = new Date(expDateStr).getTime();
+                const diffDays = Math.ceil((expMs - now) / (1000 * 60 * 60 * 24));
+                if (diffDays <= filterDays) {
+                  extracted.push({
+                    medicineId: Number(m.id),
+                    medicineName: m.name,
+                    genericName: m.genericName,
+                    category: m.category,
+                    manufacturer: m.manufacturer,
+                    currentStock: m.currentStock,
+                    batchId: b.id,
+                    batchNumber: b.batchNumber || 'BATCH-DEF',
+                    expiryDate: expDateStr,
+                    quantity: b.availableQuantity ?? b.quantity ?? m.currentStock,
+                    purchasePrice: b.purchasePrice || (m.sellingPrice * 0.7),
+                    mrp: b.mrp || m.sellingPrice,
+                    sellingPrice: b.sellingPrice || m.sellingPrice,
+                    daysRemaining: diffDays,
+                    expiryStatus: diffDays <= 0 ? 'EXPIRED' : diffDays <= 30 ? 'CRITICAL_30' : diffDays <= 60 ? 'WARNING_60' : 'UPCOMING_90'
+                  });
+                }
+              }
+            }
+          } else if (m.expiryDate && m.currentStock > 0) {
+            const expMs = new Date(m.expiryDate).getTime();
+            const diffDays = Math.ceil((expMs - now) / (1000 * 60 * 60 * 24));
+            if (diffDays <= filterDays) {
+              extracted.push({
+                medicineId: Number(m.id),
+                medicineName: m.name,
+                genericName: m.genericName,
+                category: m.category,
+                manufacturer: m.manufacturer,
+                currentStock: m.currentStock,
+                batchId: 0,
+                batchNumber: 'DEFAULT',
+                expiryDate: m.expiryDate,
+                quantity: m.currentStock,
+                purchasePrice: m.sellingPrice * 0.7,
+                mrp: m.sellingPrice,
+                sellingPrice: m.sellingPrice,
+                daysRemaining: diffDays,
+                expiryStatus: diffDays <= 0 ? 'EXPIRED' : diffDays <= 30 ? 'CRITICAL_30' : diffDays <= 60 ? 'WARNING_60' : 'UPCOMING_90'
+              });
+            }
+          }
+        }
+        finalExpList = extracted.sort((a, b) => a.daysRemaining - b.daysRemaining);
+      }
+
+      setExpiringList(finalExpList);
       setDistributors(distData);
       setReturnHistory(histData);
     } catch (err: any) {
@@ -72,7 +141,7 @@ export default function ExpiryReturnModule() {
 
   useEffect(() => {
     loadData();
-  }, [filterDays]);
+  }, [filterDays, fallbackMedicines.length]);
 
   const getItemKey = (item: ExpiringMedicineItem) => `${item.medicineId}-${item.batchNumber}`;
 
@@ -159,6 +228,7 @@ export default function ExpiryReturnModule() {
       setIsModalOpen(false);
       setSelectedKeys(new Set());
       await loadData();
+      onStockUpdated?.();
 
       // Offer immediate print
       setTimeout(() => {
@@ -308,15 +378,26 @@ export default function ExpiryReturnModule() {
               </button>
             </div>
 
-            <div className="relative w-full md:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search medicine / batch..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-              />
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search medicine / batch..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => loadData()}
+                disabled={loading}
+                title="Refresh Expiry List"
+                className="p-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl transition-all shadow-xs disabled:opacity-50"
+              >
+                <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-500' : ''}`} />
+              </button>
             </div>
           </div>
 
