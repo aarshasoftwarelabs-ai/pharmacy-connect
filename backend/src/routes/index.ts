@@ -46,6 +46,7 @@ import batchRoutes from './batchRoutes';
 router.use('/suppliers', supplierRoutes);
 router.use('/purchases', purchaseRoutes);
 router.use('/inventory/batches', batchRoutes);
+router.use('/batches', batchRoutes);
 
 import wholesaleRoutes from './wholesaleRoutes';
 import staffRoutes from './staffRoutes';

@@ -27,7 +27,7 @@ export interface CreateBatchPayload {
 
 export const BatchService = {
   async getBatchesByMedicine(medicineId: number | string): Promise<BatchItem[]> {
-    const res = await apiFetch(`${API_BASE_URL}/batches/medicine/${medicineId}`);
+    const res = await apiFetch(`${API_BASE_URL}/inventory/batches/medicine/${medicineId}`);
     if (!res.ok) {
       throw new Error('Failed to fetch batches for medicine');
     }
@@ -36,7 +36,7 @@ export const BatchService = {
   },
 
   async createBatch(payload: CreateBatchPayload): Promise<BatchItem> {
-    const res = await apiFetch(`${API_BASE_URL}/batches`, {
+    const res = await apiFetch(`${API_BASE_URL}/inventory/batches`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -49,7 +49,7 @@ export const BatchService = {
   },
 
   async deleteBatch(batchId: number): Promise<void> {
-    const res = await apiFetch(`${API_BASE_URL}/batches/${batchId}`, {
+    const res = await apiFetch(`${API_BASE_URL}/inventory/batches/${batchId}`, {
       method: 'DELETE',
     });
     if (!res.ok) {
@@ -59,7 +59,7 @@ export const BatchService = {
   },
 
   async initializeMissingBatches(medicineId?: number | string): Promise<{ success: boolean; count: number; message: string }> {
-    const res = await apiFetch(`${API_BASE_URL}/batches/initialize-missing`, {
+    const res = await apiFetch(`${API_BASE_URL}/inventory/batches/initialize-missing`, {
       method: 'POST',
       body: JSON.stringify(medicineId ? { medicineId } : {}),
     });
