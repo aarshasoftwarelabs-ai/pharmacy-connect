@@ -419,6 +419,32 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
                   <input type="text" name="sku" id="sku" placeholder="Optional" value={formData.sku || ''} onChange={handleChange} className={inputClass} />
                 </div>
 
+                <div className="sm:col-span-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <label htmlFor="barcode" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Barcode</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const randomBarcode = `890${String(Math.floor(Math.random() * 900000000) + 100000000)}`;
+                        setFormData(prev => ({ ...prev, barcode: randomBarcode }));
+                      }}
+                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                      title="Generate unique store barcode"
+                    >
+                      🪄 Auto-Generate
+                    </button>
+                  </div>
+                  <input 
+                    type="text" 
+                    name="barcode" 
+                    id="barcode" 
+                    placeholder="Scan gun or auto-generate" 
+                    value={formData.barcode || ''} 
+                    onChange={handleChange} 
+                    className={`${inputClass} font-mono`} 
+                  />
+                </div>
+
 
                 <div className="sm:col-span-2">
                   <label htmlFor="hsnCode" className={labelClass}>HSN/SAC Code</label>

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Loader2 } from 'lucide-react';
+import { X, Plus, Trash2, Loader2, Barcode } from 'lucide-react';
 import { BillingQueueItem, Bill } from '../../types/billing';
 import { BillingService } from '../../services/billingService';
 import { getPharmacyId } from '../../config/development';
 import ReceiptAnimation from './ReceiptAnimation';
 import { Medicine } from '../../types/medicine';
 import { fetchMedicines } from '../../services/medicineService';
+import { AudioAlert } from '../../utils/audioAlertService';
 
 interface Props {
   queueItem: BillingQueueItem;
@@ -21,10 +22,60 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
   const [items, setItems] = useState([{ medicineName: queueItem.medicineName || '', quantity: 1, unitPrice: 0, hsnCode: '', gstRate: 0 }]);
   const [discount, setDiscount] = useState(0);
   const [catalogue, setCatalogue] = useState<Medicine[]>([]);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [barcodeStatus, setBarcodeStatus] = useState<{ text: string; error?: boolean } | null>(null);
 
   React.useEffect(() => {
     fetchMedicines().then(setCatalogue).catch(console.error);
   }, []);
+
+  const handleBarcodeScan = (rawCode: string) => {
+    const code = rawCode.trim();
+    if (!code) return;
+
+    const match = catalogue.find(m => 
+      (m.barcode && m.barcode.toLowerCase() === code.toLowerCase()) ||
+      (m.sku && m.sku.toLowerCase() === code.toLowerCase()) ||
+      (m.id && m.id.toString() === code) ||
+      (m.batches && m.batches.some(b => b.batchNumber.toLowerCase() === code.toLowerCase())) ||
+      (m.name.toLowerCase() === code.toLowerCase())
+    );
+
+    if (match) {
+      AudioAlert.playBarcodeBeep();
+      setBarcodeStatus({ text: `✓ ${match.name} added` });
+      setTimeout(() => setBarcodeStatus(null), 2500);
+
+      const existingIdx = items.findIndex(it => it.medicineName.toLowerCase() === match.name.toLowerCase());
+      if (existingIdx !== -1) {
+        const updated = [...items];
+        updated[existingIdx].quantity += 1;
+        setItems(updated);
+      } else {
+        if (items.length === 1 && !items[0].medicineName.trim()) {
+          setItems([{
+            medicineName: match.name,
+            quantity: 1,
+            unitPrice: match.sellingPrice || 0,
+            hsnCode: match.hsnCode || '',
+            gstRate: match.gstRate || 0
+          }]);
+        } else {
+          setItems([...items, {
+            medicineName: match.name,
+            quantity: 1,
+            unitPrice: match.sellingPrice || 0,
+            hsnCode: match.hsnCode || '',
+            gstRate: match.gstRate || 0
+          }]);
+        }
+      }
+    } else {
+      setBarcodeStatus({ text: `Barcode "${code}" not found`, error: true });
+      setTimeout(() => setBarcodeStatus(null), 3000);
+    }
+    setBarcodeInput('');
+  };
 
   const handleAddItem = () => {
     setItems([...items, { medicineName: '', quantity: 1, unitPrice: 0, hsnCode: '', gstRate: 0 }]);
@@ -163,6 +214,38 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
                   {new Date(queueItem.confirmedAt).toLocaleString()}
                 </div>
               </div>
+            </div>
+
+            {/* Barcode Gun Quick Scanner */}
+            <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="flex items-center gap-2">
+                <Barcode className="w-5 h-5 text-indigo-600 shrink-0" />
+                <input
+                  type="text"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleBarcodeScan(barcodeInput);
+                    }
+                  }}
+                  placeholder="⚡ Scan medicine barcode or SKU with gun (Press Enter)..."
+                  className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleBarcodeScan(barcodeInput)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Scan
+                </button>
+              </div>
+              {barcodeStatus && (
+                <p className={`text-xs mt-1.5 font-semibold ${barcodeStatus.error ? 'text-red-500' : 'text-emerald-600'}`}>
+                  {barcodeStatus.text}
+                </p>
+              )}
             </div>
 
             <div className="mb-6">

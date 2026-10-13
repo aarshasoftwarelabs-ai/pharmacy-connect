@@ -55,3 +55,14 @@ export const bulkImportMedicines = async (items: any[]): Promise<{ success: bool
   }
   return response.json();
 };
+
+export const generateMissingBarcodes = async (): Promise<{ success: boolean; updatedCount: number; message: string }> => {
+  const response = await apiFetch(`${API_BASE_URL}/medicines/generate-barcodes`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || errorData.message || 'Failed to auto-generate barcodes');
+  }
+  return response.json();
+};

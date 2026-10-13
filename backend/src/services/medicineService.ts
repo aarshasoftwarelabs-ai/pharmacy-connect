@@ -44,9 +44,13 @@ export class MedicineService {
                 image_url as "imageUrl", hsn_code as "hsnCode", gst_rate as "gstRate",
                 manufacturer, expiry_date as "expiryDate", created_at as "createdAt", updated_at as "updatedAt"
     `;
+    const generatedBarcode = data.barcode && data.barcode.trim() !== '' 
+      ? data.barcode.trim() 
+      : `890${String(pharmacyId).padStart(3, '0').slice(-3)}${String(Math.floor(Math.random() * 900000) + 100000)}`;
+
     const values = [
       pharmacyId, data.name, data.genericName, data.category, data.strength === '' ? null : data.strength, 
-      data.sku === '' ? null : data.sku, data.barcode === '' ? null : data.barcode,
+      data.sku === '' ? null : data.sku, generatedBarcode,
       data.currentStock || 0, data.minimumStock || 0, data.sellingPrice || 0,
       data.imageUrl === '' ? null : data.imageUrl, data.hsnCode === '' ? null : data.hsnCode, data.gstRate || 0,
       data.manufacturer === '' ? null : data.manufacturer, data.expiryDate === '' ? null : data.expiryDate
@@ -271,5 +275,43 @@ export class MedicineService {
     } finally {
       client.release();
     }
+  }
+
+  static async generateMissingBarcodes(pharmacyId: number) {
+    const medicinesRes = await pool.query(
+      `SELECT id, name FROM medicines WHERE pharmacy_id = $1 AND (barcode IS NULL OR TRIM(barcode) = '')`,
+      [pharmacyId]
+    );
+
+    let updatedCount = 0;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const med of medicinesRes.rows) {
+        const barcode = `890${String(pharmacyId).padStart(3, '0').slice(-3)}${String(med.id).padStart(5, '0').slice(-5)}${Math.floor(Math.random() * 10)}`;
+        await client.query(
+          `UPDATE medicines SET barcode = $1 WHERE id = $2`,
+          [barcode, med.id]
+        );
+        // Also update batches if batch barcode is missing
+        await client.query(
+          `UPDATE medicine_batches SET barcode = $1 WHERE medicine_id = $2 AND (barcode IS NULL OR TRIM(barcode) = '')`,
+          [barcode, med.id]
+        );
+        updatedCount++;
+      }
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+
+    return {
+      success: true,
+      updatedCount,
+      message: `Generated barcodes for ${updatedCount} medicines.`
+    };
   }
 }

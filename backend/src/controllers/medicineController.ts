@@ -67,4 +67,14 @@ export class MedicineController {
       next(error);
     }
   }
+
+  static async generateBarcodes(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const result = await MedicineService.generateMissingBarcodes(pharmacyId);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
