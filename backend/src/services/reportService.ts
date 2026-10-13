@@ -497,4 +497,129 @@ export class ReportService {
       },
     };
   }
+
+  /**
+   * 8. DEAD STOCK & SLOW MOVING INVENTORY REPORT
+   */
+  static async getDeadStockReport(pharmacyId: number, minDays = 30) {
+    const query = `
+      SELECT 
+        m.id,
+        m.name,
+        m.generic_name as "genericName",
+        m.category,
+        m.strength,
+        m.sku,
+        m.barcode,
+        m.current_stock as "currentStock",
+        m.selling_price as "sellingPrice",
+        COALESCE(m.mrp, m.selling_price * 1.15) as "mrp",
+        COALESCE(
+          (SELECT purchase_price FROM medicine_batches WHERE medicine_id = m.id AND purchase_price > 0 ORDER BY id DESC LIMIT 1),
+          m.selling_price * 0.75
+        ) as "purchasePrice",
+        COALESCE(
+          (SELECT MIN(expiry_date) FROM medicine_batches WHERE medicine_id = m.id AND available_quantity > 0),
+          m.expiry_date
+        ) as "nearestExpiry",
+        m.created_at as "createdAt",
+        (
+          SELECT MAX(b.created_at) 
+          FROM bill_items bi 
+          JOIN bills b ON bi.bill_id = b.id 
+          WHERE bi.medicine_name ILIKE m.name AND b.pharmacy_id = m.pharmacy_id AND b.payment_status != 'CANCELLED'
+        ) as "lastSoldAt",
+        (
+          SELECT COALESCE(SUM(bi.quantity), 0)
+          FROM bill_items bi 
+          JOIN bills b ON bi.bill_id = b.id 
+          WHERE bi.medicine_name ILIKE m.name AND b.pharmacy_id = m.pharmacy_id 
+            AND b.created_at >= CURRENT_DATE - INTERVAL '90 days'
+            AND b.payment_status != 'CANCELLED'
+        ) as "soldLast90Days"
+      FROM medicines m
+      WHERE m.pharmacy_id = $1 
+        AND m.current_stock > 0
+      ORDER BY m.current_stock DESC;
+    `;
+
+    const result = await pool.query(query, [pharmacyId]);
+    const now = Date.now();
+
+    const items = result.rows.map(row => {
+      const currentStock = parseInt(row.currentStock, 10) || 0;
+      const purchasePrice = parseFloat(row.purchasePrice) || 0;
+      const sellingPrice = parseFloat(row.sellingPrice) || 0;
+      const mrp = parseFloat(row.mrp) || 0;
+      const soldLast90 = parseInt(row.soldLast90Days, 10) || 0;
+
+      let lastActiveDate = row.lastSoldAt ? new Date(row.lastSoldAt) : new Date(row.createdAt);
+      let daysInactive = Math.max(0, Math.floor((now - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const neverSold = !row.lastSoldAt;
+
+      let daysToExpiry = 999;
+      let isNearExpiry = false;
+      let isExpired = false;
+      if (row.nearestExpiry) {
+        const expDate = new Date(row.nearestExpiry);
+        daysToExpiry = Math.ceil((expDate.getTime() - now) / (1000 * 60 * 60 * 24));
+        isNearExpiry = daysToExpiry <= 180 && daysToExpiry > 0;
+        isExpired = daysToExpiry <= 0;
+      }
+
+      const blockedCapital = currentStock * purchasePrice;
+      const retailValue = currentStock * sellingPrice;
+
+      let severity: 'CRITICAL' | 'WARNING' | 'MODERATE' = 'MODERATE';
+      if (daysInactive >= 90 || isNearExpiry || isExpired) {
+        severity = 'CRITICAL';
+      } else if (daysInactive >= 60) {
+        severity = 'WARNING';
+      }
+
+      return {
+        id: row.id,
+        name: row.name,
+        genericName: row.genericName,
+        category: row.category,
+        strength: row.strength,
+        barcode: row.barcode,
+        currentStock,
+        purchasePrice,
+        sellingPrice,
+        mrp,
+        blockedCapital,
+        retailValue,
+        lastSoldAt: row.lastSoldAt,
+        createdAt: row.createdAt,
+        daysInactive,
+        neverSold,
+        soldLast90,
+        nearestExpiry: row.nearestExpiry,
+        daysToExpiry,
+        isNearExpiry,
+        isExpired,
+        severity
+      };
+    }).filter(item => item.daysInactive >= minDays || item.isNearExpiry || item.neverSold);
+
+    const totalBlockedCapital = items.reduce((sum, it) => sum + it.blockedCapital, 0);
+    const totalRetailValue = items.reduce((sum, it) => sum + it.retailValue, 0);
+    const totalDeadItems = items.length;
+    const criticalItemsCount = items.filter(it => it.severity === 'CRITICAL').length;
+    const nearExpiryItemsCount = items.filter(it => it.isNearExpiry || it.isExpired).length;
+    const nearExpiryBlockedCapital = items.filter(it => it.isNearExpiry || it.isExpired).reduce((sum, it) => sum + it.blockedCapital, 0);
+
+    return {
+      summary: {
+        totalDeadItems,
+        totalBlockedCapital,
+        totalRetailValue,
+        criticalItemsCount,
+        nearExpiryItemsCount,
+        nearExpiryBlockedCapital
+      },
+      items
+    };
+  }
 }

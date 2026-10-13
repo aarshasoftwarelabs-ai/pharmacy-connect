@@ -106,4 +106,15 @@ export class ReportController {
       next(error);
     }
   }
+
+  static async getDeadStockReport(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = (req as any).user!.pharmacyId || parseInt(req.params.pharmacyId);
+      const minDays = req.query.minDays ? parseInt(req.query.minDays as string, 10) : 30;
+      const data = await ReportService.getDeadStockReport(pharmacyId, minDays);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

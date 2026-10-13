@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { MedicineService } from '../services/medicineService';
+import { ReportService } from '../services/reportService';
 import { ApiError } from '../middleware/errorHandler';
 
 export class MedicineController {
@@ -73,6 +74,17 @@ export class MedicineController {
       const pharmacyId = (req as any).user?.pharmacyId || 1;
       const result = await MedicineService.generateMissingBarcodes(pharmacyId);
       res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getDeadStock(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const minDays = req.query.minDays ? parseInt(req.query.minDays as string, 10) : 30;
+      const result = await ReportService.getDeadStockReport(pharmacyId, minDays);
+      res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }

@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Scan,
   Tag,
+  Flame,
   X
 } from 'lucide-react';
 import { fetchMedicines, createMedicine, updateMedicine, deleteMedicine, generateMissingBarcodes } from '../services/medicineService';
@@ -26,10 +27,11 @@ import { getPharmacyId } from '../config/development';
 import ExpiryReturnModule from '../components/inventory/ExpiryReturnModule';
 import DistributorCsvImport from '../components/inventory/DistributorCsvImport';
 import MedicineBatchesModal from '../components/inventory/MedicineBatchesModal';
+import DeadStockModule from '../components/inventory/DeadStockModule';
 import { BatchService } from '../services/batchService';
 
 export default function Inventory() {
-  const [activeInventoryTab, setActiveInventoryTab] = useState<'STOCK' | 'EXPIRY_RETURNS' | 'CSV_IMPORT'>('STOCK');
+  const [activeInventoryTab, setActiveInventoryTab] = useState<'STOCK' | 'EXPIRY_RETURNS' | 'CSV_IMPORT' | 'DEAD_STOCK'>('STOCK');
   const [searchTerm, setSearchTerm] = useState('');
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [distributors, setDistributors] = useState<Distributor[]>([]);
@@ -357,12 +359,26 @@ export default function Inventory() {
           <TrendingUp className="w-4 h-4 mr-2 text-emerald-500" />
           Distributor CSV Import
         </button>
+
+        <button
+          onClick={() => setActiveInventoryTab('DEAD_STOCK')}
+          className={`flex items-center px-5 py-2.5 font-bold text-xs rounded-xl transition-all ${
+            activeInventoryTab === 'DEAD_STOCK'
+              ? 'bg-white text-rose-600 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Flame className="w-4 h-4 mr-2 text-rose-500" />
+          Dead Stock & Clearance
+        </button>
       </div>
 
       {activeInventoryTab === 'EXPIRY_RETURNS' ? (
         <ExpiryReturnModule />
       ) : activeInventoryTab === 'CSV_IMPORT' ? (
         <DistributorCsvImport onSuccess={() => { loadInitialData(); setActiveInventoryTab('STOCK'); }} />
+      ) : activeInventoryTab === 'DEAD_STOCK' ? (
+        <DeadStockModule pharmacy={pharmacy} onOpenReturnModule={() => setActiveInventoryTab('EXPIRY_RETURNS')} />
       ) : (
         <>
           {/* Smart Insight Cards */}

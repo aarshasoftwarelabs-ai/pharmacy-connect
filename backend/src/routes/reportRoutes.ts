@@ -15,5 +15,7 @@ router.get('/medicine-requests/:pharmacyId', requirePermission('REPORTS_VIEW'), 
 router.get('/customers/:pharmacyId', requirePermission('CUSTOMERS_VIEW'), ReportController.getCustomerReport);
 router.get('/gst/:pharmacyId', requirePermission('REPORTS_VIEW'), ReportController.getGstReport);
 router.get('/ca-tax-filing/:pharmacyId', requirePermission('REPORTS_VIEW'), ReportController.getCaTaxFilingReport);
+router.get('/dead-stock', requirePermission('REPORTS_VIEW'), ReportController.getDeadStockReport);
+router.get('/dead-stock/:pharmacyId', requirePermission('REPORTS_VIEW'), ReportController.getDeadStockReport);
 
 export default router;

@@ -66,3 +66,50 @@ export const generateMissingBarcodes = async (): Promise<{ success: boolean; upd
   }
   return response.json();
 };
+
+export interface DeadStockItem {
+  id: number;
+  name: string;
+  genericName?: string;
+  category: string;
+  strength?: string;
+  barcode?: string;
+  currentStock: number;
+  purchasePrice: number;
+  sellingPrice: number;
+  mrp: number;
+  blockedCapital: number;
+  retailValue: number;
+  lastSoldAt?: string;
+  createdAt: string;
+  daysInactive: number;
+  neverSold: boolean;
+  soldLast90: number;
+  nearestExpiry?: string;
+  daysToExpiry: number;
+  isNearExpiry: boolean;
+  isExpired: boolean;
+  severity: 'CRITICAL' | 'WARNING' | 'MODERATE';
+}
+
+export interface DeadStockResponse {
+  summary: {
+    totalDeadItems: number;
+    totalBlockedCapital: number;
+    totalRetailValue: number;
+    criticalItemsCount: number;
+    nearExpiryItemsCount: number;
+    nearExpiryBlockedCapital: number;
+  };
+  items: DeadStockItem[];
+}
+
+export const fetchDeadStock = async (minDays = 30): Promise<DeadStockResponse> => {
+  const response = await apiFetch(`${API_BASE_URL}/medicines/dead-stock?minDays=${minDays}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || errorData.message || 'Failed to fetch dead stock');
+  }
+  const result = await response.json();
+  return result.data;
+};
