@@ -26,6 +26,8 @@ import { getPharmacyId } from '../config/development';
 import ExpiryReturnModule from '../components/inventory/ExpiryReturnModule';
 import DistributorCsvImport from '../components/inventory/DistributorCsvImport';
 import BarcodeStickerModal from '../components/inventory/BarcodeStickerModal';
+import MedicineBatchesModal from '../components/inventory/MedicineBatchesModal';
+import { BatchService } from '../services/batchService';
 
 export default function Inventory() {
   const [activeInventoryTab, setActiveInventoryTab] = useState<'STOCK' | 'EXPIRY_RETURNS' | 'CSV_IMPORT'>('STOCK');
@@ -43,6 +45,7 @@ export default function Inventory() {
   const [deleteConfirmMed, setDeleteConfirmMed] = useState<Medicine | null>(null);
   const [barcodeModalMed, setBarcodeModalMed] = useState<Medicine | null>(null);
   const [generatingBarcodes, setGeneratingBarcodes] = useState(false);
+  const [initializingBatches, setInitializingBatches] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LOW_STOCK' | 'OUT_OF_STOCK'>('ALL');
   const [selectedDistributorId, setSelectedDistributorId] = useState<number | ''>('');
@@ -151,6 +154,19 @@ export default function Inventory() {
     }
   };
 
+  const handleBulkInitializeBatches = async () => {
+    try {
+      setInitializingBatches(true);
+      const res = await BatchService.initializeMissingBatches();
+      alert(`Success: ${res.message}`);
+      await loadInitialData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to auto-create batches');
+    } finally {
+      setInitializingBatches(false);
+    }
+  };
+
   const handleAutoOrder = async () => {
     if (!autoOrderConfirmMed) return;
     const targetStock = autoOrderConfirmMed.minimumStock * 2;
@@ -230,6 +246,7 @@ export default function Inventory() {
   
   const smartReorderCount = lowStockCount;
   const missingBarcodeCount = medicines.filter(m => !m.barcode || m.barcode.trim() === '').length;
+  const missingBatchCount = medicines.filter(m => !m.batches || m.batches.length === 0).length;
 
   return (
     <div className="max-w-[1600px] mx-auto pb-16 space-y-6 px-4 xl:px-8 pt-4">
@@ -269,6 +286,18 @@ export default function Inventory() {
             >
               {generatingBarcodes ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2 text-amber-300" />}
               Auto-Barcode ({missingBarcodeCount})
+            </button>
+          )}
+
+          {missingBatchCount > 0 && (
+            <button 
+              onClick={handleBulkInitializeBatches}
+              disabled={initializingBatches}
+              className="flex items-center px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 shadow-sm shadow-emerald-500/20 transition-all disabled:opacity-50"
+              title="Auto-create initial batches for all medicines missing batches"
+            >
+              {initializingBatches ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Package className="w-4 h-4 mr-2 text-white" />}
+              Auto-Batches ({missingBatchCount})
             </button>
           )}
 
@@ -748,59 +777,13 @@ export default function Inventory() {
       )}
 
       {viewBatchesMed && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-500/75 backdrop-blur-sm transition-all" onClick={() => setViewBatchesMed(null)}>
-          <div className="bg-white rounded-[2rem] shadow-xl max-w-4xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">Medicine Batches</h3>
-                <p className="text-sm text-slate-500 mt-1">{viewBatchesMed.name} {viewBatchesMed.strength}</p>
-              </div>
-              <button onClick={() => setViewBatchesMed(null)} className="text-slate-400 hover:text-slate-600 text-xl font-bold p-2">&times;</button>
-            </div>
-            <div className="p-0 max-h-[60vh] overflow-y-auto">
-              {!viewBatchesMed.batches || viewBatchesMed.batches.length === 0 ? (
-                <div className="p-12 text-center text-slate-500">No batches recorded for this medicine.</div>
-              ) : (
-                <table className="w-full text-left border-collapse text-sm">
-                  <thead className="bg-white sticky top-0 border-b border-slate-200 shadow-sm">
-                    <tr>
-                      <th className="px-6 py-3 font-semibold text-slate-700">Batch Number</th>
-                      <th className="px-6 py-3 font-semibold text-slate-700">Expiry</th>
-                      <th className="px-6 py-3 font-semibold text-slate-700 text-right">Total Qty</th>
-                      <th className="px-6 py-3 font-semibold text-slate-700 text-right">Available Qty</th>
-                      <th className="px-6 py-3 font-semibold text-slate-700 text-right">Purchase (₹)</th>
-                      <th className="px-6 py-3 font-semibold text-slate-700 text-right">MRP (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {viewBatchesMed.batches.map(batch => (
-                      <tr key={batch.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-3 font-mono text-xs">{batch.batchNumber}</td>
-                        <td className="px-6 py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${new Date(batch.expiryDate) < new Date() ? 'bg-red-100 text-red-700' : 'text-slate-700'}`}>
-                            {new Date(batch.expiryDate).toLocaleDateString('en-IN', {month: 'short', year: 'numeric'})}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3 text-right text-slate-500">{batch.quantity}</td>
-                        <td className="px-6 py-3 text-right font-semibold text-slate-800">{batch.availableQuantity}</td>
-                        <td className="px-6 py-3 text-right text-slate-600">{batch.purchasePrice}</td>
-                        <td className="px-6 py-3 text-right text-slate-600">{batch.mrp}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-              <button 
-                onClick={() => setViewBatchesMed(null)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-medium transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <MedicineBatchesModal
+          medicine={viewBatchesMed}
+          pharmacyName={pharmacy?.name || 'K.Y Pharmacy'}
+          isOpen={!!viewBatchesMed}
+          onClose={() => setViewBatchesMed(null)}
+          onUpdate={loadInitialData}
+        />
       )}
       
       {/* Scanner Modal */}

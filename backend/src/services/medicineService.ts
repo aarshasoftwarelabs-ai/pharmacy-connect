@@ -18,7 +18,8 @@ export class MedicineService {
                    'availableQuantity', mb.available_quantity,
                    'purchasePrice', mb.purchase_price,
                    'mrp', mb.mrp,
-                   'sellingPrice', mb.selling_price
+                   'sellingPrice', mb.selling_price,
+                   'barcode', mb.barcode
                  ) ORDER BY mb.expiry_date ASC
                ), '[]'::json)
                FROM medicine_batches mb
