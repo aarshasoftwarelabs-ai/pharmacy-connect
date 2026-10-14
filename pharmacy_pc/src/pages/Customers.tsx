@@ -80,7 +80,7 @@ export default function Customers() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="space-y-6 pb-12 max-w-[1600px] mx-auto px-4 xl:px-8 pt-4"
+      className="space-y-6 pb-12 w-full"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

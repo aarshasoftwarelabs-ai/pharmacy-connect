@@ -115,7 +115,7 @@ export default function Billing() {
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto pb-16 space-y-6 px-4 xl:px-8 pt-4">
+    <div className="w-full pb-12 space-y-6">
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}

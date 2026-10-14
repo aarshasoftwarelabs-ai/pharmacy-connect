@@ -140,8 +140,8 @@ export default function WholesaleLayout() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* We can reuse Header or create WholesaleHeader. Let's reuse Header */}
         <Header pageTitle={title} subtitle={subtitle} />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative bg-slate-100">
-          <div className="max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 lg:px-6 relative bg-slate-100">
+          <div className="w-full">
             {loading ? (
                <div className="flex justify-center items-center h-64">
                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>

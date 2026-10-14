@@ -158,16 +158,17 @@ export default function DashboardLayout() {
 
   const path = location.pathname;
   const isRestrictedRoute = path.includes('inventory') || path.includes('reports');
+  const isBillingPage = path.includes('billing');
 
   const showLockScreen = isLocked && isRestrictedRoute;
 
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden relative">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header pageTitle={title} subtitle={subtitle} />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative">
-          <div className="max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 lg:px-6 relative">
+          <div className="w-full transition-all duration-300">
             {loading ? (
                <div className="flex justify-center items-center h-64">
                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pharmacy-600"></div>

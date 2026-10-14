@@ -223,12 +223,9 @@ export default function Settings() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-transparent overflow-hidden">
+    <div className="w-full space-y-6 pb-16">
       
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          
-          {/* Header Area */}
+      {/* Header Area */}
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight w-fit">Application Settings</h2>
@@ -533,9 +530,6 @@ export default function Settings() {
               </div>
             </div>
           </div>
-
         </div>
-      </div>
-    </div>
   );
 }

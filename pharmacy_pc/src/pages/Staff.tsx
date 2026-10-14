@@ -155,7 +155,7 @@ export default function Staff() {
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto pb-16 space-y-6 px-4 xl:px-8 pt-4">
+    <div className="w-full pb-16 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

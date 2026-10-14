@@ -249,7 +249,7 @@ export default function Inventory() {
   const missingBatchCount = medicines.filter(m => !m.batches || m.batches.length === 0).length;
 
   return (
-    <div className="max-w-[1600px] mx-auto pb-16 space-y-6 px-4 xl:px-8 pt-4">
+    <div className="w-full pb-12 space-y-6">
       
       {/* Smart Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

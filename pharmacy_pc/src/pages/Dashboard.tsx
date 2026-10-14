@@ -5,7 +5,7 @@ import {
   PlusCircle, Users, Activity, Bell, FileBox, 
   ActivitySquare, Pill, FileSignature, 
   ArrowRight, Package, Loader2, AlertCircle, RefreshCw, 
-  User, TrendingUp, UserCircle
+  User, TrendingUp, UserCircle, CheckCircle2, Receipt, Sparkles
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -15,6 +15,7 @@ import { CustomerService, CustomerProfile } from '../services/customerService';
 import { getPharmacyId } from '../config/development';
 import { MedicineRequest } from '../types/medicineRequest';
 import { Bill } from '../types/billing';
+import SalesOverviewChart from '../components/dashboard/SalesOverviewChart';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -136,43 +137,8 @@ export default function Dashboard() {
     );
   }
 
-  // Generate last 7 days chart data
-  const chartData = [...Array(7)].map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const dayStr = d.toDateString();
-    const dayBills = bills.filter(b => new Date(b.createdAt).toDateString() === dayStr);
-    const daySales = dayBills.reduce((s, b) => s + Number(b.total), 0);
-    return { 
-      day: d.toLocaleDateString('en-US', { weekday: 'short' }), 
-      sales: daySales 
-    };
-  });
-  
-  const maxSales = Math.max(100, ...chartData.map(d => d.sales));
-  
-  const generateAreaPath = () => {
-    if (chartData.length === 0) return '';
-    const points = chartData.map((d, i) => {
-      const x = (i / (chartData.length - 1)) * 100;
-      const y = 100 - (d.sales / maxSales) * 80;
-      return `${x},${y}`;
-    });
-    return `M 0,100 L ${points.join(' L ')} L 100,100 Z`;
-  };
-
-  const generateLinePath = () => {
-    if (chartData.length === 0) return '';
-    const points = chartData.map((d, i) => {
-      const x = (i / (chartData.length - 1)) * 100;
-      const y = 100 - (d.sales / maxSales) * 80;
-      return `${x},${y}`;
-    });
-    return `M ${points.join(' L ')}`;
-  };
-
   return (
-    <div className="max-w-[1600px] mx-auto pb-16 space-y-6 px-4 xl:px-8 pt-4">
+    <div className="w-full pb-12 space-y-6">
       
       {/* 1. TOP HEADER */}
       <motion.div 
@@ -199,138 +165,186 @@ export default function Dashboard() {
         animate="show"
         className="grid grid-cols-1 md:grid-cols-12 gap-6"
       >
-        {/* 2. PRIMARY BENTO METRICS */}
-        <motion.div variants={itemVariants} className="col-span-1 md:col-span-6 lg:col-span-3 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
-          <div className="relative z-10 flex justify-between items-start mb-4">
-            <div className="p-3 bg-emerald-100/50 text-emerald-600 rounded-2xl">
-              <IndianRupee className="w-6 h-6" />
-            </div>
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Today</span>
-          </div>
-          <p className="text-slate-500 text-sm font-medium mb-1">Today's Sales</p>
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight">₹<AnimatedNumber value={todaysSalesValue} /></h2>
-        </motion.div>
+        {/* 2. PRIMARY BENTO METRICS - ULTRA CREATIVE, ANIMATED & INTERACTIVE */}
+        <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* CARD 1: TODAY'S SALES */}
+          <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -6, transition: { duration: 0.25 } }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate('/billing')}
+            className="group relative bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer"
+          >
+            {/* Ambient Animated Blob */}
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-all duration-500 pointer-events-none"></div>
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
-        <motion.div variants={itemVariants} className="col-span-1 md:col-span-6 lg:col-span-3 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
-          <div className="relative z-10 flex justify-between items-start mb-4">
-            <div className="p-3 bg-blue-100/50 text-blue-600 rounded-2xl">
-              <FileSignature className="w-6 h-6" />
-            </div>
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Today</span>
-          </div>
-          <p className="text-slate-500 text-sm font-medium mb-1">Today's Bills</p>
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight"><AnimatedNumber value={todaysBills.length} /></h2>
-        </motion.div>
+            <div>
+              {/* Header: Icon + Live Badge */}
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                  <IndianRupee className="w-6 h-6" />
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Live POS
+                </span>
+              </div>
 
-        <motion.div variants={itemVariants} className="col-span-1 md:col-span-6 lg:col-span-3 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
-          <div className="relative z-10 flex justify-between items-start mb-4">
-            <div className="p-3 bg-amber-100/50 text-amber-600 rounded-2xl">
-              <ActivitySquare className="w-6 h-6" />
+              {/* Title & Big Amount */}
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Today's Sales</p>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight relative z-10 flex items-baseline">
+                ₹<AnimatedNumber value={todaysSalesValue} />
+              </h2>
             </div>
-            <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">Action</span>
-          </div>
-          <p className="text-slate-500 text-sm font-medium mb-1">Pending Requests</p>
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight"><AnimatedNumber value={pendingRequestsCount} /></h2>
-        </motion.div>
 
-        <motion.div variants={itemVariants} className="col-span-1 md:col-span-6 lg:col-span-3 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
-          <div className="relative z-10 flex justify-between items-start mb-4">
-            <div className="p-3 bg-indigo-100/50 text-indigo-600 rounded-2xl">
-              <CheckCircle className="w-6 h-6" />
+            {/* Bottom Action / Sub-metric */}
+            <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs relative z-10">
+              <span className="font-semibold text-slate-500">
+                {todaysBills.length} {todaysBills.length === 1 ? 'Bill' : 'Bills'} today
+              </span>
+              <span className="font-bold text-emerald-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                New Bill <ArrowRight className="w-3.5 h-3.5" />
+              </span>
             </div>
-            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">Ready</span>
-          </div>
-          <p className="text-slate-500 text-sm font-medium mb-1">Confirmed to Bill</p>
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight"><AnimatedNumber value={confirmedRequestsCount} /></h2>
-        </motion.div>
+          </motion.div>
+
+          {/* CARD 2: TODAY'S BILLS */}
+          <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -6, transition: { duration: 0.25 } }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate('/billing')}
+            className="group relative bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer"
+          >
+            {/* Ambient Animated Blob */}
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-all duration-500 pointer-events-none"></div>
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+            <div>
+              {/* Header: Icon + Badge */}
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                  <Receipt className="w-6 h-6" />
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/60 shadow-sm">
+                  Invoices
+                </span>
+              </div>
+
+              {/* Title & Count */}
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Today's Invoices</p>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight relative z-10">
+                <AnimatedNumber value={todaysBills.length} />
+              </h2>
+            </div>
+
+            {/* Bottom Action / Sub-metric */}
+            <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs relative z-10">
+              <span className="font-semibold text-slate-500">
+                ₹{todaysBills.length > 0 ? Math.round(todaysSalesValue / todaysBills.length).toLocaleString('en-IN') : 0} avg / bill
+              </span>
+              <span className="font-bold text-blue-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                View History <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </motion.div>
+
+          {/* CARD 3: PENDING REQUESTS */}
+          <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -6, transition: { duration: 0.25 } }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate('/medicine-requests')}
+            className="group relative bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 hover:border-amber-300 hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer"
+          >
+            {/* Ambient Animated Blob */}
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-all duration-500 pointer-events-none"></div>
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+            <div>
+              {/* Header: Icon + Badge */}
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                  <ActivitySquare className="w-6 h-6" />
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60 shadow-sm">
+                  {pendingRequestsCount > 0 ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                      Needs Action
+                    </>
+                  ) : (
+                    'All Clear'
+                  )}
+                </span>
+              </div>
+
+              {/* Title & Count */}
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Customer Requests</p>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight relative z-10">
+                <AnimatedNumber value={pendingRequestsCount} />
+              </h2>
+            </div>
+
+            {/* Bottom Action / Sub-metric */}
+            <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs relative z-10">
+              <span className="font-semibold text-slate-500">
+                {waitingRequests.length} waiting • {canArrangeRequests.length} arrange
+              </span>
+              <span className="font-bold text-amber-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Respond Now <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </motion.div>
+
+          {/* CARD 4: CONFIRMED TO BILL */}
+          <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -6, transition: { duration: 0.25 } }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate('/orders')}
+            className="group relative bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 hover:border-purple-300 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer"
+          >
+            {/* Ambient Animated Blob */}
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-purple-500/15 via-indigo-500/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-all duration-500 pointer-events-none"></div>
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 via-indigo-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+            <div>
+              {/* Header: Icon + Badge */}
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200/60 shadow-sm">
+                  Ready to Dispense
+                </span>
+              </div>
+
+              {/* Title & Count */}
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Confirmed Orders</p>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight relative z-10">
+                <AnimatedNumber value={confirmedRequestsCount} />
+              </h2>
+            </div>
+
+            {/* Bottom Action / Sub-metric */}
+            <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs relative z-10">
+              <span className="font-semibold text-slate-500">
+                Patient Accepted
+              </span>
+              <span className="font-bold text-purple-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Create Bill <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </motion.div>
+        </div>
 
 
         {/* ROW 2: SALES OVERVIEW (8) & MEDICINE REQUEST STATUS (4) */}
         
-        {/* 4. SALES OVERVIEW */}
-        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-8 bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-200 flex flex-col group hover:shadow-md transition-all">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2 text-emerald-500" /> 
-                Sales Overview
-              </h3>
-              <p className="text-sm text-slate-500 mt-1">Past 7 days performance</p>
-            </div>
-            <div className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 text-xs font-semibold text-slate-600">
-              Last 7 Days
-            </div>
-          </div>
-          
-          <div className="flex-1 relative mt-4 h-48 md:h-56">
-             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6">
-                <div className="w-full h-px bg-slate-100"></div>
-                <div className="w-full h-px bg-slate-100"></div>
-                <div className="w-full h-px bg-slate-100"></div>
-                <div className="w-full h-px bg-slate-100"></div>
-             </div>
-             
-             <div className="absolute inset-0 pb-6 w-full h-full">
-               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible">
-                 <defs>
-                   <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
-                     <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-                   </linearGradient>
-                 </defs>
-                 
-                 <motion.path 
-                   initial={{ opacity: 0 }}
-                   animate={{ opacity: 1 }}
-                   transition={{ duration: 1 }}
-                   d={generateAreaPath()} 
-                   fill="url(#areaGradient)" 
-                   vectorEffect="non-scaling-stroke"
-                 />
-                 
-                 <motion.path 
-                   initial={{ pathLength: 0 }}
-                   animate={{ pathLength: 1 }}
-                   transition={{ duration: 1.5, ease: "easeOut" }}
-                   d={generateLinePath()} 
-                   fill="none" 
-                   stroke="#10b981" 
-                   strokeWidth="2" 
-                   strokeLinecap="round"
-                   strokeLinejoin="round"
-                   vectorEffect="non-scaling-stroke"
-                 />
-                 
-                 {chartData.map((d, i) => {
-                   const x = (i / (chartData.length - 1)) * 100;
-                   const y = 100 - (d.sales / maxSales) * 80;
-                   return (
-                     <motion.circle 
-                       key={i}
-                       initial={{ scale: 0, opacity: 0 }}
-                       animate={{ scale: 1, opacity: 1 }}
-                       transition={{ delay: 1 + i * 0.1 }}
-                       cx={x} cy={y} r="1.5" 
-                       fill="#fff" stroke="#10b981" strokeWidth="1" 
-                       vectorEffect="non-scaling-stroke"
-                       className="hover:r-3 cursor-pointer transition-all"
-                     />
-                   );
-                 })}
-               </svg>
-             </div>
-             
-             <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1">
-               {chartData.map((d, i) => (
-                 <span key={i} className="text-[10px] font-semibold text-slate-400">{d.day}</span>
-               ))}
-             </div>
-          </div>
-        </motion.div>
+        {/* 4. SALES OVERVIEW - HIGH END ANIMATED & CREATIVE CHART */}
+        <SalesOverviewChart bills={bills} className="col-span-1 lg:col-span-8" />
 
         {/* 3. MEDICINE REQUEST STATUS CARD */}
         <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition-shadow">

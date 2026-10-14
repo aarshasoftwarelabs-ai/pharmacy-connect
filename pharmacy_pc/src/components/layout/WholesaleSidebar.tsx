@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Briefcase,
   Store,
@@ -90,8 +91,13 @@ export default function WholesaleSidebar() {
       </div>
       
       {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+      {showLogoutModal && createPortal(
+        <div 
+          className="fixed inset-0 z-[99999] overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowLogoutModal(false);
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-200">
             <div className="p-6">
               <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
@@ -116,7 +122,8 @@ export default function WholesaleSidebar() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </aside>
   );

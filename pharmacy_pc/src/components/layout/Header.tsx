@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, UserCircle, ChevronDown, Menu, ShoppingCart, Pill, Info, CheckCircle2 } from 'lucide-react';
+import { Bell, UserCircle, ChevronDown, Menu, ShoppingCart, Pill, Info, CheckCircle2, PanelLeft } from 'lucide-react';
 import { PharmacyService } from '../../services/pharmacyService';
 import { NotificationService, Notification } from '../../services/notificationService';
 import { getPharmacyId } from '../../config/development';
@@ -98,14 +98,22 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
     return <Info className="w-4 h-4 text-amber-500" />;
   };
 
+  const handleToggleSidebar = () => {
+    window.dispatchEvent(new CustomEvent('davasetu_toggle_sidebar'));
+  };
+
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-50 relative">
       <div className="flex items-center">
-        <button className="md:hidden p-2 -ml-2 mr-2 text-slate-500 hover:bg-slate-100 rounded-md">
-          <Menu className="h-5 w-5" />
+        <button 
+          onClick={handleToggleSidebar}
+          title="Toggle Sidebar (Ctrl+B)"
+          className="p-2 -ml-2 mr-3 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none"
+        >
+          <PanelLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">{pageTitle}</h1>
+          <h1 className="text-lg font-semibold text-slate-900 leading-tight">{pageTitle}</h1>
           {subtitle && <p className="text-xs text-slate-500 hidden sm:block">{subtitle}</p>}
         </div>
       </div>

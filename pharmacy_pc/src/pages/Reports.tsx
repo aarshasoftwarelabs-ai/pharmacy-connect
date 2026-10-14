@@ -112,7 +112,7 @@ export default function Reports() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="space-y-6 pb-12 max-w-[1600px] mx-auto px-4 xl:px-8 pt-4"
+      className="space-y-6 pb-12 w-full"
     >
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <motion.div 

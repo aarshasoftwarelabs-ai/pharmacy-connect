@@ -113,7 +113,7 @@ export default function DistributorSettings() {
             <p className="text-xs text-slate-500 mt-1">Add your wholesalers to use the Auto-Order feature.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {distributors.map(d => (
               <div key={d.id} className="border border-slate-200 rounded-xl p-4 hover:border-pharmacy-300 transition-colors bg-white shadow-sm flex flex-col">
                 <div className="flex justify-between items-start mb-3">
