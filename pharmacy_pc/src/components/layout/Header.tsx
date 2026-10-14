@@ -103,18 +103,25 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-50 relative">
-      <div className="flex items-center">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3.5 sm:px-6 flex-shrink-0 z-50 relative">
+      <div className="flex items-center gap-2">
+        {/* Desktop Sidebar Toggle */}
         <button 
           onClick={handleToggleSidebar}
           title="Toggle Sidebar (Ctrl+B)"
-          className="p-2 -ml-2 mr-3 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none"
+          className="hidden md:flex p-2 -ml-2 mr-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none"
         >
           <PanelLeft className="h-5 w-5" />
         </button>
-        <div>
-          <h1 className="text-lg font-semibold text-slate-900 leading-tight">{pageTitle}</h1>
-          {subtitle && <p className="text-xs text-slate-500 hidden sm:block">{subtitle}</p>}
+
+        {/* Mobile App Mini Brand Badge */}
+        <div className="flex md:hidden items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-pharmacy-500 to-emerald-600 text-white shadow-sm flex-shrink-0">
+          <Pill className="w-4 h-4" />
+        </div>
+
+        <div className="min-w-0">
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-tight truncate">{pageTitle}</h1>
+          {subtitle && <p className="text-xs text-slate-500 hidden sm:block truncate">{subtitle}</p>}
         </div>
       </div>
       

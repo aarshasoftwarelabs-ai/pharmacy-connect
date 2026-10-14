@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import WholesaleSidebar from '../components/layout/WholesaleSidebar';
 import Header from '../components/layout/Header';
+import MobileBottomNav from '../components/layout/MobileBottomNav';
 import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
 import { Lock, Sparkles, Bell, X } from 'lucide-react';
 import { io } from 'socket.io-client';
@@ -140,7 +141,7 @@ export default function WholesaleLayout() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* We can reuse Header or create WholesaleHeader. Let's reuse Header */}
         <Header pageTitle={title} subtitle={subtitle} />
-        <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 lg:px-6 relative bg-slate-100">
+        <main className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-5 lg:px-6 pb-24 md:pb-6 relative bg-slate-100">
           <div className="w-full">
             {loading ? (
                <div className="flex justify-center items-center h-64">
@@ -152,6 +153,9 @@ export default function WholesaleLayout() {
           </div>
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (Phones & Tablets < 768px) */}
+      <MobileBottomNav />
 
       {/* Global Notification Toast */}
       {notification && (

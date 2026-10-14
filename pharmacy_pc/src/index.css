@@ -5,6 +5,8 @@
 @layer base {
   body {
     @apply antialiased;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   /* Global Custom Scrollbar */
