@@ -1,10 +1,19 @@
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, shell, ipcMain } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, fork, ChildProcess } from 'node:child_process';
 
 // Disable hardware acceleration to prevent white screen and crashes on some Windows systems
 app.disableHardwareAcceleration();
+
+// Handle IPC to open external URLs (WhatsApp, browser)
+ipcMain.handle('open-external', async (_event, url: string) => {
+  if (url && (url.startsWith('https://') || url.startsWith('http://') || url.startsWith('whatsapp://'))) {
+    await shell.openExternal(url);
+    return true;
+  }
+  return false;
+});
 
 process.on('uncaughtException', (error) => {
   dialog.showErrorBox('App Crash (Uncaught Exception)', error.message + '\n' + (error.stack || ''));
@@ -36,6 +45,15 @@ function createWindow() {
         nodeIntegration: false,
         contextIsolation: true,
       },
+    });
+
+    // Handle external links (e.g. WhatsApp, external docs) in the system default browser
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      if (url.startsWith('https:') || url.startsWith('http:') || url.startsWith('whatsapp:')) {
+        shell.openExternal(url);
+        return { action: 'deny' };
+      }
+      return { action: 'allow' };
     });
 
     if (VITE_DEV_SERVER_URL) {

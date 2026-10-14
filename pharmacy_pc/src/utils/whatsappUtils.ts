@@ -58,16 +58,31 @@ export const generateWhatsAppBillText = (
   return text;
 };
 
+export const openExternalLink = (url: string) => {
+  try {
+    const ipc = (window as any).ipcRenderer;
+    if (ipc && typeof ipc.invoke === 'function') {
+      ipc.invoke('open-external', url).catch(() => {
+        window.open(url, '_blank');
+      });
+      return;
+    }
+  } catch (e) {
+    console.warn('IPC invoke error, using window.open fallback', e);
+  }
+  window.open(url, '_blank');
+};
+
 export const sendWhatsAppBill = (
   bill: Bill,
   recipientPhone?: string,
-  pharmacyName: string = 'DavaSetu Pharmacy'
+  pharmacyName: string = 'K.Y Pharmacy'
 ): boolean => {
   let targetPhone = recipientPhone || bill.customerPhone || '';
   targetPhone = sanitizeIndianPhoneNumber(targetPhone);
 
   if (!targetPhone || targetPhone.length < 10) {
-    const inputPhone = prompt('Enter customer WhatsApp Mobile Number (10 digits):', '');
+    const inputPhone = window.prompt ? window.prompt('Enter customer WhatsApp Mobile Number (10 digits):', '') : null;
     if (!inputPhone) return false;
     targetPhone = sanitizeIndianPhoneNumber(inputPhone);
   }
@@ -80,8 +95,9 @@ export const sendWhatsAppBill = (
   const messageText = generateWhatsAppBillText(bill, pharmacyName);
   const encodedMessage = encodeURIComponent(messageText);
 
-  // Universal WhatsApp Web / Desktop link
+  // Universal WhatsApp link compatible with WhatsApp Desktop & WhatsApp Web
   const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodedMessage}`;
-  window.open(waUrl, '_blank');
+  openExternalLink(waUrl);
   return true;
 };
+

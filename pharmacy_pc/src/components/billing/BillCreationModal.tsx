@@ -156,6 +156,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
         userId: queueItem.userId,
         pharmacyId: getPharmacyId(),
         customerName: queueItem.customerName,
+        customerPhone: queueItem.customerPhone,
         subtotal,
         discount,
         total,
@@ -166,6 +167,10 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
         totalGst,
         items: calculatedItems
       });
+
+      if (!newBill.customerPhone && queueItem.customerPhone) {
+        newBill.customerPhone = queueItem.customerPhone;
+      }
 
       setCreatedBill(newBill);
     } catch (err: any) {

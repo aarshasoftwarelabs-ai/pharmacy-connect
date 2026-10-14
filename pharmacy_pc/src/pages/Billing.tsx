@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Printer, Download, Clock, CheckCircle, Plus, Smartphone, Store, MessageCircle, Receipt, User, CalendarDays, IndianRupee, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Printer, Download, Clock, CheckCircle, Plus, Smartphone, Store, MessageCircle, Receipt, User, CalendarDays, IndianRupee, RefreshCw, Loader2, AlertCircle, X } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { BillingService } from '../services/billingService';
 import { BillingQueueItem, Bill } from '../types/billing';
@@ -34,6 +34,10 @@ export default function Billing() {
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'APP_ORDERS' | 'POS'>('APP_ORDERS');
 
+  const [pharmacyName, setPharmacyName] = useState('K.Y Pharmacy');
+  const [whatsAppModalBill, setWhatsAppModalBill] = useState<Bill | null>(null);
+  const [manualPhone, setManualPhone] = useState('');
+
   const fetchBillingData = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
@@ -56,6 +60,14 @@ export default function Billing() {
   };
 
   useEffect(() => {
+    try {
+      const localData = localStorage.getItem('pharmacy_profile_data');
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        if (parsed.name) setPharmacyName(parsed.name);
+      }
+    } catch (e) {}
+
     fetchBillingData();
 
     const intervalId = setInterval(() => {
@@ -77,11 +89,29 @@ export default function Billing() {
   };
 
   const handlePrint = (bill: Bill, format: 'A4' | 'THERMAL' = 'THERMAL') => {
-    printBill(bill, format, 'DavaSetu Pharmacy', 'Admin');
+    printBill(bill, format, pharmacyName, 'Admin');
   };
 
   const handleWhatsAppBill = (bill: Bill) => {
-    sendWhatsAppBill(bill, bill.customerPhone, 'DavaSetu Pharmacy');
+    const rawDigits = (bill.customerPhone || '').replace(/\D/g, '');
+    if (rawDigits.length >= 10) {
+      sendWhatsAppBill(bill, bill.customerPhone, pharmacyName);
+    } else {
+      setManualPhone('');
+      setWhatsAppModalBill(bill);
+    }
+  };
+
+  const handleSendManualWhatsApp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!whatsAppModalBill) return;
+    const clean = manualPhone.replace(/\D/g, '');
+    if (clean.length < 10) {
+      alert('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    sendWhatsAppBill(whatsAppModalBill, clean, pharmacyName);
+    setWhatsAppModalBill(null);
   };
 
   return (
@@ -329,6 +359,90 @@ export default function Billing() {
           onClose={() => setIsBillModalOpen(false)}
           onSuccess={handleBillCreated}
         />
+      )}
+
+      {/* WhatsApp Manual Phone Input Modal */}
+      {whatsAppModalBill && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div 
+              className="fixed inset-0 transition-opacity bg-slate-900/75 backdrop-blur-sm" 
+              onClick={() => setWhatsAppModalBill(null)} 
+            />
+            
+            <div className="relative inline-block w-full max-w-md p-6 my-8 text-left align-middle transition-all transform bg-white rounded-2xl shadow-2xl border border-slate-100 z-10">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl">
+                    <MessageCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-800">Share via WhatsApp</h3>
+                    <p className="text-xs text-slate-500 font-medium">{whatsAppModalBill.billNumber}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setWhatsAppModalBill(null)} 
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSendManualWhatsApp} className="mt-4 space-y-4">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 flex justify-between items-center">
+                  <div>
+                    <span className="font-semibold text-slate-800">{whatsAppModalBill.customerName}</span>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{whatsAppModalBill.items?.length || 0} items</p>
+                  </div>
+                  <div className="text-right font-bold text-sm text-slate-800">
+                    ₹{Number(whatsAppModalBill.total).toFixed(2)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Customer WhatsApp Number
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-sm font-semibold text-slate-400">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      autoFocus
+                      required
+                      placeholder="9876543210"
+                      value={manualPhone}
+                      onChange={(e) => setManualPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      className="w-full pl-12 pr-4 py-2.5 text-sm font-semibold text-slate-800 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all tracking-wide"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Enter the 10-digit mobile number to open chat and send the itemized digital invoice.
+                  </p>
+                </div>
+
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setWhatsAppModalBill(null)}
+                    className="flex-1 py-2.5 px-4 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 px-4 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Open WhatsApp
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

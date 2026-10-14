@@ -174,7 +174,7 @@ export default function MedicineBatchesModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm transition-all" onClick={onClose}>
       <div 
-        className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]" 
+        className="bg-white rounded-[2rem] shadow-2xl max-w-5xl xl:max-w-6xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]" 
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -426,18 +426,18 @@ export default function MedicineBatchesModal({
             </div>
           ) : (
             /* BATCHES TABLE */
-            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead className="bg-slate-100 border-b border-slate-200">
+            <div className="border border-slate-200 rounded-2xl overflow-x-auto shadow-sm bg-white">
+              <table className="w-full text-left border-collapse text-sm min-w-[900px]">
+                <thead className="bg-slate-100/90 border-b border-slate-200">
                   <tr>
-                    <th className="px-5 py-3 font-bold text-slate-700">Batch Number</th>
-                    <th className="px-5 py-3 font-bold text-slate-700">Barcode</th>
-                    <th className="px-5 py-3 font-bold text-slate-700">Expiry Date</th>
-                    <th className="px-5 py-3 font-bold text-slate-700 text-right">Available Qty</th>
-                    <th className="px-5 py-3 font-bold text-slate-700 text-right">Purchase (₹)</th>
-                    <th className="px-5 py-3 font-bold text-slate-700 text-right">MRP (₹)</th>
-                    <th className="px-5 py-3 font-bold text-slate-700 text-right">Selling (₹)</th>
-                    <th className="px-5 py-3 font-bold text-slate-700 text-center">Actions</th>
+                    <th className="px-5 py-3.5 font-bold text-slate-700 whitespace-nowrap text-xs uppercase tracking-wider">Batch Number</th>
+                    <th className="px-5 py-3.5 font-bold text-slate-700 whitespace-nowrap text-xs uppercase tracking-wider">Barcode</th>
+                    <th className="px-5 py-3.5 font-bold text-slate-700 whitespace-nowrap text-xs uppercase tracking-wider">Expiry Date</th>
+                    <th className="px-5 py-3.5 font-bold text-slate-700 text-right whitespace-nowrap text-xs uppercase tracking-wider">Available Qty</th>
+                    <th className="px-5 py-3.5 font-bold text-slate-700 text-right whitespace-nowrap text-xs uppercase tracking-wider">Purchase (₹)</th>
+                    <th className="px-5 py-3.5 font-bold text-slate-700 text-right whitespace-nowrap text-xs uppercase tracking-wider">MRP (₹)</th>
+                    <th className="px-5 py-3.5 font-bold text-slate-700 text-right whitespace-nowrap text-xs uppercase tracking-wider">Selling (₹)</th>
+                    <th className="px-5 py-3.5 font-bold text-slate-700 text-center whitespace-nowrap text-xs uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -452,23 +452,23 @@ export default function MedicineBatchesModal({
                     return (
                       <tr key={batch.id} className="hover:bg-slate-50/80 transition-colors">
                         {/* Batch Number */}
-                        <td className="px-5 py-3.5">
-                          <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md text-xs border border-slate-200">
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md text-xs border border-slate-200 whitespace-nowrap inline-flex items-center">
                             {batch.batchNumber}
                           </span>
                         </td>
 
                         {/* Barcode */}
-                        <td className="px-5 py-3.5 font-mono text-xs">
+                        <td className="px-5 py-3.5 font-mono text-xs whitespace-nowrap">
                           {batchBarcode !== 'N/A' ? (
                             <button
                               type="button"
                               onClick={() => handleCopyBarcode(batchBarcode, batch.id)}
-                              className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-600 transition-colors bg-slate-50 hover:bg-indigo-50 px-2 py-0.5 rounded border border-slate-200"
+                              className="inline-flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 transition-colors bg-slate-50 hover:bg-indigo-50 px-2.5 py-1 rounded-md border border-slate-200 whitespace-nowrap"
                               title="Click to copy barcode"
                             >
                               <BarcodeIcon className="w-3.5 h-3.5 text-slate-400" />
-                              <span>{batchBarcode}</span>
+                              <span className="font-semibold">{batchBarcode}</span>
                               {copiedBatchId === batch.id ? (
                                 <Check className="w-3 h-3 text-emerald-600 ml-0.5" />
                               ) : (
@@ -481,8 +481,8 @@ export default function MedicineBatchesModal({
                         </td>
 
                         {/* Expiry Date */}
-                        <td className="px-5 py-3.5">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap ${
                             isExpired 
                               ? 'bg-red-100 text-red-700 border border-red-200' 
                               : isExpiringSoon 
@@ -497,7 +497,7 @@ export default function MedicineBatchesModal({
                         </td>
 
                         {/* Available Qty */}
-                        <td className="px-5 py-3.5 text-right font-extrabold text-slate-800">
+                        <td className="px-5 py-3.5 text-right font-extrabold text-slate-800 whitespace-nowrap">
                           <span className={batch.availableQuantity <= 10 ? 'text-amber-600' : 'text-slate-800'}>
                             {batch.availableQuantity}
                           </span>
@@ -505,23 +505,23 @@ export default function MedicineBatchesModal({
                         </td>
 
                         {/* Purchase Price */}
-                        <td className="px-5 py-3.5 text-right text-slate-600 font-mono text-xs">
+                        <td className="px-5 py-3.5 text-right text-slate-600 font-mono text-xs whitespace-nowrap font-medium">
                           ₹{Number(batch.purchasePrice || 0).toFixed(2)}
                         </td>
 
                         {/* MRP */}
-                        <td className="px-5 py-3.5 text-right text-slate-700 font-mono font-bold text-xs">
+                        <td className="px-5 py-3.5 text-right text-slate-700 font-mono font-bold text-xs whitespace-nowrap">
                           ₹{Number(batch.mrp || 0).toFixed(2)}
                         </td>
 
                         {/* Selling Price */}
-                        <td className="px-5 py-3.5 text-right text-emerald-700 font-mono font-bold text-xs">
+                        <td className="px-5 py-3.5 text-right text-emerald-700 font-mono font-extrabold text-xs whitespace-nowrap">
                           ₹{Number(batch.sellingPrice || 0).toFixed(2)}
                         </td>
 
                         {/* Actions */}
-                        <td className="px-5 py-3.5 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td className="px-5 py-3.5 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
                             {/* Print Sticker for this batch */}
                             <button
                               type="button"

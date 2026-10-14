@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText, Barcode, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText, Barcode, CheckCircle, AlertTriangle, Camera, Scan, Search, Video } from 'lucide-react';
 import { BillingService } from '../../services/billingService';
 import { getPharmacyId } from '../../config/development';
 import { Bill } from '../../types/billing';
@@ -30,6 +30,13 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Barcode / QR Scanner States
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [scannerSearchQuery, setScannerSearchQuery] = useState('');
+
   const [barcodeInput, setBarcodeInput] = useState('');
   const [barcodeStatus, setBarcodeStatus] = useState<{ type: 'success' | 'error' | 'idle'; message: string } | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -40,22 +47,29 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
   const handleBarcodeScan = (rawCode: string) => {
     const code = rawCode.trim();
-    if (!code) return;
+    if (!code) {
+      setIsScannerOpen(true);
+      return;
+    }
 
-    // Search medicine by barcode, SKU, ID, batch number, or name
+    const lowerCode = code.toLowerCase();
+    // Search medicine by barcode, SKU, ID, batch number, or name (exact or substring)
     const match = catalogue.find(m => 
-      (m.barcode && m.barcode.toLowerCase() === code.toLowerCase()) ||
-      (m.sku && m.sku.toLowerCase() === code.toLowerCase()) ||
+      (m.barcode && m.barcode.toLowerCase() === lowerCode) ||
+      (m.sku && m.sku.toLowerCase() === lowerCode) ||
       (m.id && m.id.toString() === code) ||
-      (m.batches && m.batches.some(b => b.batchNumber.toLowerCase() === code.toLowerCase())) ||
-      (m.name.toLowerCase() === code.toLowerCase())
+      (m.batches && m.batches.some(b => b.batchNumber.toLowerCase() === lowerCode)) ||
+      (m.name.toLowerCase() === lowerCode)
+    ) || catalogue.find(m => 
+      m.name.toLowerCase().includes(lowerCode) ||
+      (m.genericName && m.genericName.toLowerCase().includes(lowerCode))
     );
 
     if (match) {
       AudioAlert.playBarcodeBeep();
       setBarcodeStatus({ 
         type: 'success', 
-        message: `Scanned: ${match.name} (₹${match.sellingPrice || 0})` 
+        message: `✓ Scanned: ${match.name} (₹${match.sellingPrice || 0})` 
       });
       setTimeout(() => setBarcodeStatus(null), 3000);
 
@@ -85,10 +99,12 @@ export default function OfflineBillForm({ onSuccess }: Props) {
           }]);
         }
       }
+
+      setIsScannerOpen(false);
     } else {
       setBarcodeStatus({ 
         type: 'error', 
-        message: `Barcode "${code}" not found in catalogue.` 
+        message: `Barcode / Item "${code}" not found in catalogue.` 
       });
       setTimeout(() => setBarcodeStatus(null), 4000);
     }
@@ -98,6 +114,70 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       barcodeInputRef.current.focus();
     }
   };
+
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported on this device');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+      setCameraActive(true);
+
+      // Native Barcode Detector support in Chromium
+      if ('BarcodeDetector' in window) {
+        try {
+          const detector = new (window as any).BarcodeDetector({
+            formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e']
+          });
+          const interval = setInterval(async () => {
+            if (!streamRef.current || !videoRef.current) {
+              clearInterval(interval);
+              return;
+            }
+            if (videoRef.current.readyState === 4) {
+              try {
+                const barcodes = await detector.detect(videoRef.current);
+                if (barcodes.length > 0 && barcodes[0].rawValue) {
+                  clearInterval(interval);
+                  stopCamera();
+                  handleBarcodeScan(barcodes[0].rawValue);
+                }
+              } catch (e) {}
+            }
+          }, 400);
+        } catch (e) {}
+      }
+    } catch (err: any) {
+      console.warn('Camera access error:', err);
+      setCameraError('Camera not accessible or permission denied. You can use your USB barcode gun or select a medicine below.');
+      setCameraActive(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setCameraActive(false);
+  };
+
+  useEffect(() => {
+    if (isScannerOpen) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [isScannerOpen]);
 
   // Global listener for USB Barcode Scanners (rapid keyboard stroke sequence ending with Enter)
   useEffect(() => {
@@ -353,9 +433,14 @@ export default function OfflineBillForm({ onSuccess }: Props) {
         <div className="mb-5 p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200 rounded-2xl shadow-sm">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex-1 flex items-center gap-2">
-              <div className="p-2 bg-emerald-600 text-white rounded-xl shadow-sm flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
+                className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm flex items-center justify-center transition-colors shrink-0"
+                title="Open Camera / Barcode Scanner Modal"
+              >
                 <Barcode className="w-5 h-5 animate-pulse" />
-              </div>
+              </button>
               <div className="flex-1 relative">
                 <input
                   ref={barcodeInputRef}
@@ -369,15 +454,33 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                     }
                   }}
                   placeholder="⚡ Point Barcode Gun Scanner or type Barcode / SKU & press Enter..."
-                  className="w-full pl-3 pr-24 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
+                  className="w-full pl-3 pr-32 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
                 />
-                <button
-                  type="button"
-                  onClick={() => handleBarcodeScan(barcodeInput)}
-                  className="absolute right-1.5 top-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
-                >
-                  Scan
-                </button>
+                <div className="absolute right-1.5 top-1.5 flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsScannerOpen(true)}
+                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 border border-slate-200"
+                    title="Scan with Camera / Webcam"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="hidden sm:inline">Camera</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (barcodeInput.trim()) {
+                        handleBarcodeScan(barcodeInput);
+                      } else {
+                        setIsScannerOpen(true);
+                      }
+                    }}
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+                  >
+                    <Scan className="w-3.5 h-3.5" />
+                    Scan
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -635,13 +738,182 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                 </div>
               )}
             </div>
-            
+          </div>
+        </div>
+      )}
+
+      {/* Live Barcode & Camera Scanner Modal */}
+      {isScannerOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-4 text-white flex justify-between items-center">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white/10 rounded-xl">
+                  <Scan className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">Barcode Scanner (POS)</h3>
+                  <p className="text-xs text-emerald-100">Webcam Camera & USB Gun Scanner</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsScannerOpen(false)}
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4">
+              {/* Webcam Preview / Laser Box */}
+              <div className="relative w-full h-52 bg-slate-900 rounded-xl overflow-hidden flex flex-col items-center justify-center shadow-inner border border-slate-800">
+                {cameraActive ? (
+                  <>
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      playsInline 
+                      muted 
+                      className="w-full h-full object-cover" 
+                    />
+                    {/* Glowing Laser Scan Line */}
+                    <div 
+                      className="absolute left-0 w-full h-0.5 bg-emerald-400 shadow-[0_0_12px_2px_rgba(52,211,153,0.9)] z-20 pointer-events-none"
+                      style={{ animation: 'laserScan 1.6s ease-in-out infinite' }}
+                    />
+                    <div className="absolute inset-x-8 inset-y-6 border-2 border-emerald-400/40 rounded-xl pointer-events-none flex items-center justify-center">
+                      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-emerald-400 -mt-0.5 -ml-0.5 rounded-tl"></div>
+                      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-400 -mt-0.5 -mr-0.5 rounded-tr"></div>
+                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-emerald-400 -mb-0.5 -ml-0.5 rounded-bl"></div>
+                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-emerald-400 -mb-0.5 -mr-0.5 rounded-br"></div>
+                      <span className="text-[11px] font-bold text-white/80 bg-slate-900/60 px-2.5 py-1 rounded-full backdrop-blur-xs">
+                        Align Barcode in Box
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-4 text-center text-slate-400 flex flex-col items-center">
+                    <div className="p-3 bg-slate-800 rounded-full mb-2 text-emerald-400">
+                      <Barcode className="w-8 h-8 animate-pulse" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-300">
+                      {cameraError || 'Ready for Barcode Gun Scanner'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-1 max-w-xs">
+                      Pull your USB Barcode Gun trigger, or enter barcode / medicine name below.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={startCamera}
+                      className="mt-3 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+                    >
+                      <Camera className="w-3.5 h-3.5" /> Retry Webcam
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Fast Manual / Gun Scan Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Scan Barcode or Search Product
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="Type or scan Barcode / SKU / Name..."
+                      value={scannerSearchQuery}
+                      onChange={(e) => setScannerSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (scannerSearchQuery.trim()) {
+                            handleBarcodeScan(scannerSearchQuery);
+                            setScannerSearchQuery('');
+                          }
+                        }
+                      }}
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (scannerSearchQuery.trim()) {
+                        handleBarcodeScan(scannerSearchQuery);
+                        setScannerSearchQuery('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Instant Catalogue Picker (Quick 1-Click Scan) */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Quick Items from Catalogue
+                  </span>
+                  <span className="text-[11px] text-slate-400">Click to scan & add</span>
+                </div>
+                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+                  {catalogue
+                    .filter(m => !scannerSearchQuery.trim() || 
+                      m.name.toLowerCase().includes(scannerSearchQuery.toLowerCase()) || 
+                      (m.barcode && m.barcode.includes(scannerSearchQuery)))
+                    .slice(0, 6)
+                    .map((med) => (
+                      <div 
+                        key={med.id} 
+                        className="pt-1.5 first:pt-0 flex items-center justify-between text-xs hover:bg-white p-1.5 rounded-lg transition-colors cursor-pointer"
+                        onClick={() => {
+                          handleBarcodeScan(med.barcode || med.name);
+                        }}
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p className="font-bold text-slate-800 truncate">{med.name}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">
+                            🏷️ {med.barcode || med.sku || 'No Barcode'} • Stock: {med.currentStock}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-bold text-slate-800">₹{med.sellingPrice}</span>
+                          <button
+                            type="button"
+                            className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-[11px] rounded-md transition-colors"
+                          >
+                            + Add
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(false)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition-colors"
+              >
+                Close Scanner
+              </button>
+            </div>
+
             <style>{`
-              @keyframes scan {
-                0%, 100% { top: 0%; opacity: 0; }
-                10% { opacity: 1; }
-                50% { top: 100%; opacity: 1; }
-                90% { opacity: 0; }
+              @keyframes laserScan {
+                0%, 100% { top: 12%; }
+                50% { top: 88%; }
               }
             `}</style>
           </div>

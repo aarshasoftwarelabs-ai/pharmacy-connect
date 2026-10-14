@@ -60,12 +60,15 @@ export class BillingService {
     const billQuery = `
       SELECT b.id, b.bill_number AS "billNumber", b.medicine_request_id AS "medicineRequestId",
              b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
-             b.customer_phone AS "customerPhone", b.bill_type AS "billType",
+             COALESCE(b.customer_phone, u.phone, mr_u.phone) AS "customerPhone", b.bill_type AS "billType",
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
              b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst", 
              b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst",
              b.created_at AS "createdAt"
       FROM bills b
+      LEFT JOIN users u ON b.user_id = u.id
+      LEFT JOIN medicine_requests mr ON b.medicine_request_id = mr.id
+      LEFT JOIN users mr_u ON mr.user_id = mr_u.id
       WHERE b.id = $1
     `;
     const billResult = await pool.query(billQuery, [billId]);
@@ -100,7 +103,7 @@ export class BillingService {
     const query = `
       SELECT b.id, b.bill_number AS "billNumber", b.medicine_request_id AS "medicineRequestId",
              b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
-             b.customer_phone AS "customerPhone", b.bill_type AS "billType",
+             COALESCE(b.customer_phone, u.phone, mr_u.phone) AS "customerPhone", b.bill_type AS "billType",
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
              b.created_at AS "createdAt",
              (
@@ -124,6 +127,9 @@ export class BillingService {
              ) as items,
              b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst", b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst"
       FROM bills b
+      LEFT JOIN users u ON b.user_id = u.id
+      LEFT JOIN medicine_requests mr ON b.medicine_request_id = mr.id
+      LEFT JOIN users mr_u ON mr.user_id = mr_u.id
       WHERE b.pharmacy_id = $1
       ORDER BY b.created_at DESC
     `;
@@ -169,14 +175,25 @@ export class BillingService {
       const nextNum = parseInt(countQuery.rows[0].count, 10) + 1;
       const billNumber = `PC-${year}-${nextNum.toString().padStart(6, '0')}`;
 
-      // 2.5 Link or Create Customer Profile
+      // 2.5 Link or Create Customer Profile & Resolve Phone
+      let resolvedCustomerPhone = data.customerPhone;
+      if (!resolvedCustomerPhone) {
+        if (data.userId) {
+          const uRes = await client.query('SELECT phone FROM users WHERE id = $1', [data.userId]);
+          if (uRes.rows.length > 0) resolvedCustomerPhone = uRes.rows[0].phone;
+        } else if (data.medicineRequestId) {
+          const reqRes = await client.query('SELECT u.phone FROM medicine_requests mr JOIN users u ON mr.user_id = u.id WHERE mr.id = $1', [data.medicineRequestId]);
+          if (reqRes.rows.length > 0) resolvedCustomerPhone = reqRes.rows[0].phone;
+        }
+      }
+
       let customerProfileId: number | null = null;
-      if (data.userId || data.customerPhone) {
+      if (data.userId || resolvedCustomerPhone) {
         let profileResult;
         if (data.userId) {
           profileResult = await client.query('SELECT id FROM customer_profiles WHERE pharmacy_id = $1 AND user_id = $2', [data.pharmacyId, data.userId]);
         } else {
-          profileResult = await client.query('SELECT id FROM customer_profiles WHERE pharmacy_id = $1 AND phone = $2 AND user_id IS NULL', [data.pharmacyId, data.customerPhone]);
+          profileResult = await client.query('SELECT id FROM customer_profiles WHERE pharmacy_id = $1 AND phone = $2 AND user_id IS NULL', [data.pharmacyId, resolvedCustomerPhone]);
         }
 
         if (profileResult.rows.length > 0) {
@@ -186,7 +203,7 @@ export class BillingService {
           const insertProfileRes = await client.query(`
             INSERT INTO customer_profiles (pharmacy_id, user_id, display_name, phone)
             VALUES ($1, $2, $3, $4) RETURNING id
-          `, [data.pharmacyId, data.userId || null, data.customerName, data.customerPhone || null]);
+          `, [data.pharmacyId, data.userId || null, data.customerName, resolvedCustomerPhone || null]);
           customerProfileId = insertProfileRes.rows[0].id;
         }
       }
@@ -203,7 +220,7 @@ export class BillingService {
         data.userId || null, 
         data.pharmacyId, 
         data.customerName, 
-        data.customerPhone || null,
+        resolvedCustomerPhone || null,
         billType,
         data.subtotal, 
         data.discount, 
