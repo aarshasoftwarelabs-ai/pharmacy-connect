@@ -20,7 +20,7 @@ import {
   Sparkles,
   ChevronRight
 } from 'lucide-react';
-import { useAuth } from '../../auth/AuthContext';
+import { useAuth } from '../auth/AuthContext';
 
 export default function MobileBottomNav() {
   const location = useLocation();
