@@ -11,3 +11,4 @@ build/
 *.keystore
 *.jks
 key.properties
+user_app/
