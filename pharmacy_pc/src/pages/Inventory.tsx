@@ -844,30 +844,12 @@ export default function Inventory() {
                       </div>
                     </>
                   )}
-                  
-                  <button 
-                    className="absolute top-2 right-2 text-[10px] bg-slate-800/80 text-slate-400 px-2 py-1 rounded hover:bg-slate-700 hover:text-white transition-colors z-20"
-                    onClick={() => { setScannerError('Device not found'); setIsScanning(false); }}
-                  >
-                    Simulate Error
-                  </button>
                 </div>
               )}
             </div>
             {!scannerError && (
               <div className="bg-slate-50 p-4 border-t text-xs text-center text-slate-500">
-                <div className="flex justify-between items-center w-full">
                 <span>Scan medicine barcode to auto-fill.</span>
-                <button 
-                  onClick={() => {
-                    setBarcodeInput('8901234567890');
-                    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-                  }} 
-                  className="px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded text-[10px] font-bold text-slate-600 transition-colors"
-                >
-                  Test Scan
-                </button>
-              </div>
               </div>
             )}
           </div>

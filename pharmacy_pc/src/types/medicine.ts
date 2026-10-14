@@ -1,5 +1,6 @@
 export interface Medicine {
   id: string;
+  pharmacyId?: number;
   name: string;
   genericName: string;
   manufacturer?: string;

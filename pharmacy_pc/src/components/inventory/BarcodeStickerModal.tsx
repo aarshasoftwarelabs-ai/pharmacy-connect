@@ -16,6 +16,7 @@ import { generateBarcodeSvg, generateBarcodeDataUrl } from '../../utils/barcodeG
 
 interface BarcodeStickerModalProps {
   medicine: Medicine;
+  pharmacyId?: number;
   pharmacyName?: string;
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +24,7 @@ interface BarcodeStickerModalProps {
 
 export default function BarcodeStickerModal({
   medicine,
+  pharmacyId,
   pharmacyName = 'K.Y Pharmacy',
   isOpen,
   onClose
@@ -34,7 +36,8 @@ export default function BarcodeStickerModal({
 
   if (!isOpen) return null;
 
-  const barcodeText = medicine.barcode || `890${String(medicine.pharmacyId || 1).padStart(3, '0')}${String(medicine.id).padStart(5, '0')}0`;
+  const effectivePharmacyId = pharmacyId ?? medicine.pharmacyId ?? 1;
+  const barcodeText = medicine.barcode || `890${String(effectivePharmacyId).padStart(3, '0')}${String(medicine.id).padStart(5, '0')}0`;
   const selectedBatch = medicine.batches && medicine.batches.length > 0 
     ? medicine.batches[selectedBatchIndex] 
     : null;

@@ -451,16 +451,10 @@ export default function Settings() {
                 <Bell className={`w-4 h-4 mr-2 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} />
                 Notifications & Audio Ring Alerts
               </h3>
-              <button
-                type="button"
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('test_order_ring'));
-                }}
-                className="inline-flex items-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl border border-red-200 transition-colors"
-              >
-                <Volume2 className="w-3.5 h-3.5 mr-1 text-red-500 animate-pulse" />
-                🔔 Test Order Ring Bell
-              </button>
+              <span className="inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                Active in Production
+              </span>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <SettingRow 

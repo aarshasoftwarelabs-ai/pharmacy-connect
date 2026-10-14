@@ -380,22 +380,6 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                 </button>
               </div>
             </div>
-
-            {/* Quick Demo Scanner Pills */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">Quick Test:</span>
-              {catalogue.slice(0, 3).map((med) => (
-                <button
-                  key={med.id}
-                  type="button"
-                  onClick={() => handleBarcodeScan(med.barcode || med.sku || med.name)}
-                  className="px-2 py-1 bg-white hover:bg-emerald-100 border border-slate-200 hover:border-emerald-300 text-slate-700 rounded-lg text-xs font-medium transition-colors shadow-2xs"
-                  title={`Click to simulate scanning ${med.name}`}
-                >
-                  🏷️ {med.name.slice(0, 12)}...
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Scan Status Feedback */}

@@ -51,7 +51,7 @@ export default function DashboardLayout() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const data = await PharmacyService.getPharmacyProfile(1); // Using 1 for DEV
+        const data = await PharmacyService.getPharmacyProfile(getActualPharmacyId());
         setProfile(data);
       } catch (error) {
         console.error('Failed to fetch pharmacy profile', error);
@@ -139,20 +139,7 @@ export default function DashboardLayout() {
       window.dispatchEvent(event);
     });
 
-    // Custom window listener for testing audio ring from settings or header
-    const testRingListener = () => {
-      triggerRingAlert({
-        title: '🔔 Test Order Bell Alert',
-        message: 'Mobile Customer has sent a sample order for Paracetamol 650mg.',
-        type: 'REQUEST',
-        customerName: 'Ramesh Patel (Test)',
-        medicineName: 'Dolo 650 Tablet'
-      });
-    };
-    window.addEventListener('test_order_ring', testRingListener);
-
     return () => {
-      window.removeEventListener('test_order_ring', testRingListener);
       socket.disconnect();
     };
   }, []);
