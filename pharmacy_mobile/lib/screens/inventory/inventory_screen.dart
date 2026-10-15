@@ -225,6 +225,210 @@ class InventoryScreen extends StatelessWidget {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddMedicineSheet(context),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: const Text('Add Medicine', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  void _showAddMedicineSheet(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final genericCtrl = TextEditingController();
+    final mfgCtrl = TextEditingController();
+    final categoryCtrl = TextEditingController(text: 'General');
+    final mrpCtrl = TextEditingController();
+    final spCtrl = TextEditingController();
+    final stockCtrl = TextEditingController(text: '10');
+    final barcodeCtrl = TextEditingController();
+    final expiryCtrl = TextEditingController(text: '12/2026');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Add New Medicine',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Medicine Name *',
+                    hintText: 'e.g. Paracetamol 650mg',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: genericCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Generic Name',
+                          hintText: 'e.g. Paracetamol',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: categoryCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                          hintText: 'e.g. Analgesics',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: mfgCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Manufacturer',
+                          hintText: 'e.g. Cipla',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: stockCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Stock Units *',
+                          hintText: '10',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: mrpCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'MRP (₹) *',
+                          hintText: '50.00',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: spCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Selling Price (₹) *',
+                          hintText: '45.00',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: barcodeCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Barcode / SKU',
+                          hintText: 'e.g. 890123456789',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: expiryCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Expiry Date',
+                          hintText: 'MM/YYYY',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter medicine name')),
+                        );
+                        return;
+                      }
+                      final mrp = double.tryParse(mrpCtrl.text) ?? 50.0;
+                      final sp = double.tryParse(spCtrl.text) ?? (mrp * 0.9);
+                      final stock = int.tryParse(stockCtrl.text) ?? 10;
+
+                      Navigator.pop(ctx);
+                      final ok = await context.read<InventoryProvider>().addMedicine(
+                            name: nameCtrl.text.trim(),
+                            genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
+                            category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'General',
+                            manufacturer: mfgCtrl.text.trim().isNotEmpty ? mfgCtrl.text.trim() : null,
+                            mrp: mrp,
+                            sellingPrice: sp,
+                            stock: stock,
+                            barcode: barcodeCtrl.text.trim().isNotEmpty ? barcodeCtrl.text.trim() : null,
+                            expiryDate: expiryCtrl.text.trim().isNotEmpty ? expiryCtrl.text.trim() : null,
+                          );
+                      if (context.mounted && ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Added ${nameCtrl.text.trim()} to inventory')),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Save to Inventory', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

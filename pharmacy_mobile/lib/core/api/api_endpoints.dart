@@ -33,4 +33,14 @@ class ApiEndpoints {
 
   // Customers
   static String get customers => '$baseUrl/customers';
+  static String customerById(int id) => '$baseUrl/customers/$id';
+
+  // Suppliers & Purchases
+  static String get suppliers => '$baseUrl/suppliers';
+  static String supplierById(int id) => '$baseUrl/suppliers/$id';
+  static String get purchases => '$baseUrl/purchases';
+
+  // Reports
+  static String salesReport(int pharmacyId) => '$baseUrl/reports/sales/$pharmacyId';
+  static String customerReport(int pharmacyId) => '$baseUrl/reports/customers/$pharmacyId';
 }

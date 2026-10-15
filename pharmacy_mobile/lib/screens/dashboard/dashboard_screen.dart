@@ -5,6 +5,10 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/billing_provider.dart';
+import '../customers/customers_screen.dart';
+import '../suppliers/suppliers_screen.dart';
+import '../reports/reports_screen.dart';
+import '../settings/profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -37,6 +41,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu_rounded),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -201,6 +211,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
 
+              const SizedBox(height: 24),
+
+              // Pharmacy Services & Management
+              const Text(
+                'Services & Management',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildServiceCard(
+                      context,
+                      title: 'Customers',
+                      subtitle: 'Khata & Refills',
+                      icon: Icons.people_alt_rounded,
+                      color: Colors.blue,
+                      bg: Colors.blue.shade50,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CustomersScreen()),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildServiceCard(
+                      context,
+                      title: 'Suppliers',
+                      subtitle: 'Vendors & Stock',
+                      icon: Icons.apartment_rounded,
+                      color: Colors.purple,
+                      bg: Colors.purple.shade50,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SuppliersScreen()),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildServiceCard(
+                      context,
+                      title: 'Reports',
+                      subtitle: 'Sales & Analytics',
+                      icon: Icons.bar_chart_rounded,
+                      color: Colors.teal,
+                      bg: Colors.teal.shade50,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildServiceCard(
+                      context,
+                      title: 'Settings',
+                      subtitle: 'Profile & LAN IP',
+                      icon: Icons.settings_rounded,
+                      color: Colors.orange,
+                      bg: Colors.orange.shade50,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 28),
 
               // Low Stock Warning Section
@@ -338,6 +429,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text(
               value,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServiceCard(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required Color bg,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: bg,
+              child: Icon(icon, size: 20, color: color),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

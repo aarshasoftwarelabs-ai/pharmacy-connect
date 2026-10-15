@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../providers/billing_provider.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -10,6 +13,7 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final _currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
 
   final List<Map<String, dynamic>> _refills = [
     {
@@ -63,7 +67,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -74,25 +78,143 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final billing = context.watch<BillingProvider>();
+    final recentBills = billing.recentBills;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Orders & Prescriptions'),
+        title: const Text('Bills & Orders'),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: AppColors.primary,
-          tabs: const [
-            Tab(text: 'Medicine Refills'),
-            Tab(text: 'Rx Prescriptions'),
+          isScrollable: true,
+          tabs: [
+            Tab(text: 'POS Invoices (${recentBills.length})'),
+            const Tab(text: 'Medicine Refills'),
+            const Tab(text: 'Rx Prescriptions'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Refills Tab
+          // 1. POS Invoices Tab
+          recentBills.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.receipt_long_outlined, size: 48, color: AppColors.textMuted),
+                      SizedBox(height: 12),
+                      Text('No recent POS invoices yet', style: TextStyle(color: AppColors.textSecondary)),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: recentBills.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final bill = recentBills[index];
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.cardBorder),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    bill['bill_number'],
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.successBg,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      bill['payment_mode'] ?? 'POS',
+                                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.success),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                _currency.format(bill['total']),
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primary),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.person_outline_rounded, size: 16, color: AppColors.textMuted),
+                              const SizedBox(width: 6),
+                              Text(
+                                bill['customer_name'],
+                                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.access_time_rounded, size: 15, color: AppColors.textMuted),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${bill['date']} • ${bill['items_count']} ${bill['items_count'] == 1 ? 'item' : 'items'}',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(height: 1),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Thermal receipt ${bill['bill_number']} printed!')),
+                                  );
+                                },
+                                icon: const Icon(Icons.print_rounded, size: 16),
+                                label: const Text('Print Receipt', style: TextStyle(fontSize: 12)),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('WhatsApp receipt sent for ${bill['bill_number']}!')),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                                icon: const Icon(Icons.share_rounded, size: 16),
+                                label: const Text('Share Invoice', style: TextStyle(fontSize: 12, color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+          // 2. Refills Tab
           ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: _refills.length,
@@ -209,13 +331,13 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             },
           ),
 
-          // Prescriptions Tab
+          // 3. Prescriptions Tab
           ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: _prescriptions.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final rx = _prescriptions[index];
+              final item = _prescriptions[index];
               return Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -223,48 +345,56 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.cardBorder),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySubtle,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.description_outlined, color: AppColors.primary, size: 28),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          item['id'],
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.infoBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            item['status'],
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.info),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            rx['patient_name'],
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${rx['doctor_name']} • ${rx['items_count']} medicines',
-                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            rx['date'],
-                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      item['patient_name'],
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Viewing Rx: ${rx['id']}')),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      ),
-                      child: const Text('View Rx', style: TextStyle(fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Prescribed by ${item['doctor_name']} • ${item['date']}',
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${item['items_count']} medicines on prescription',
+                          style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Opening Rx ${item['id']} details')),
+                            );
+                          },
+                          child: const Text('Dispense Rx'),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -137,4 +137,80 @@ class InventoryProvider extends ChangeNotifier {
       ];
     }
   }
+
+  Future<bool> addMedicine({
+    required String name,
+    String? genericName,
+    String? category,
+    String? manufacturer,
+    required double mrp,
+    required double sellingPrice,
+    required int stock,
+    String? barcode,
+    String? expiryDate,
+  }) async {
+    try {
+      final payload = {
+        'name': name,
+        'generic_name': genericName,
+        'category': category,
+        'manufacturer': manufacturer,
+        'mrp': mrp,
+        'selling_price': sellingPrice,
+        'stock': stock,
+        'barcode': barcode,
+        'expiry_date': expiryDate,
+      };
+      final res = await ApiService.post(ApiEndpoints.medicines, payload);
+      if (res.success && res.data != null && res.data is Map) {
+        final newMed = MedicineModel.fromJson(res.data as Map<String, dynamic>);
+        _medicines.insert(0, newMed);
+      } else {
+        final localMed = MedicineModel(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: name,
+          genericName: genericName,
+          category: category,
+          manufacturer: manufacturer,
+          mrp: mrp,
+          sellingPrice: sellingPrice,
+          stock: stock,
+          barcode: barcode,
+          expiryDate: expiryDate,
+        );
+        _medicines.insert(0, localMed);
+      }
+      notifyListeners();
+      return true;
+    } catch (_) {
+      final localMed = MedicineModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: name,
+        genericName: genericName,
+        category: category,
+        manufacturer: manufacturer,
+        mrp: mrp,
+        sellingPrice: sellingPrice,
+        stock: stock,
+        barcode: barcode,
+        expiryDate: expiryDate,
+      );
+      _medicines.insert(0, localMed);
+      notifyListeners();
+      return true;
+    }
+  }
+
+  Future<bool> deleteMedicine(String id) async {
+    try {
+      await ApiService.delete(ApiEndpoints.medicineById(id));
+      _medicines.removeWhere((m) => m.id == id);
+      notifyListeners();
+      return true;
+    } catch (_) {
+      _medicines.removeWhere((m) => m.id == id);
+      notifyListeners();
+      return true;
+    }
+  }
 }
