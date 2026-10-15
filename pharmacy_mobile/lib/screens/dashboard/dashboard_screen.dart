@@ -63,10 +63,18 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: Builder(
-          builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu_rounded),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 14.0),
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: AppColors.primarySubtle,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+              ),
+              child: const Icon(Icons.local_pharmacy_rounded, color: AppColors.primary, size: 20),
+            ),
           ),
         ),
         title: Column(
