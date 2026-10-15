@@ -15,6 +15,9 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _user != null || StorageService.getToken() != null;
 
   String get pharmacyName => _user?.pharmacyName ?? 'DavaSetu Pharmacy';
+  String get userName => _user?.name ?? 'Pharmacist';
+  String get role => _user?.role ?? 'Pharmacist';
+  int get pharmacyId => int.tryParse(_user?.pharmacyId ?? '1') ?? 1;
 
   AuthProvider() {
     _loadSavedUser();
