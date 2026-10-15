@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
+import 'camera_barcode_scanner_screen.dart';
 
 class BarcodeScannerModal extends StatefulWidget {
   const BarcodeScannerModal({super.key});
@@ -249,11 +250,26 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal>
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Point barcode scanner gun or enter barcode below',
+                                  'Use phone camera or enter barcode below',
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.6),
                                     fontSize: 11,
                                   ),
+                                ),
+                                const SizedBox(height: 8),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    CameraBarcodeScannerScreen.open(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF10B981),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  ),
+                                  icon: const Icon(Icons.camera_alt_rounded, size: 15),
+                                  label: const Text('Open Mobile Camera', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),

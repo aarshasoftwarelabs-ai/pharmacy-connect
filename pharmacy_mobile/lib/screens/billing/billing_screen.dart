@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
 import 'barcode_scanner_modal.dart';
+import 'camera_barcode_scanner_screen.dart';
 
 class BillingScreen extends StatefulWidget {
   const BillingScreen({super.key});
@@ -61,10 +62,10 @@ class _BillingScreenState extends State<BillingScreen> {
                           prefixIcon: const Icon(Icons.search_rounded),
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
-                            tooltip: 'Scan Barcode',
+                            tooltip: 'Live Camera Barcode Scanner',
                             onPressed: () {
                               Navigator.pop(ctx);
-                              BarcodeScannerModal.show(context);
+                              CameraBarcodeScannerScreen.open(context);
                             },
                           ),
                         ),
@@ -216,8 +217,8 @@ class _BillingScreenState extends State<BillingScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
-            tooltip: 'Scan Barcode (POS)',
-            onPressed: () => BarcodeScannerModal.show(context),
+            tooltip: 'Live Camera Barcode Scanner',
+            onPressed: () => CameraBarcodeScannerScreen.open(context),
           ),
           if (billing.cartItems.isNotEmpty)
             IconButton(
@@ -262,15 +263,15 @@ class _BillingScreenState extends State<BillingScreen> {
                     alignment: WrapAlignment.center,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: () => BarcodeScannerModal.show(context),
+                        onPressed: () => CameraBarcodeScannerScreen.open(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
-                        label: const Text('Scan Barcode', style: TextStyle(fontWeight: FontWeight.bold)),
+                        icon: const Icon(Icons.camera_alt_rounded, size: 20),
+                        label: const Text('Scan with Camera', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                       OutlinedButton.icon(
                         onPressed: _showAddMedicineModal,
