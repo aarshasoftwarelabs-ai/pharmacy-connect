@@ -40,8 +40,7 @@ export default function MobileBottomNav() {
     navigate('/login');
   };
 
-  const moreMenuItems = [
-    { name: 'Medicine Requests', href: '/medicine-requests', icon: Inbox, perm: 'MEDICINE_REQUESTS_VIEW', badge: 'Live' },
+  const moreMenuItems: Array<{ name: string; href: string; icon: any; perm: string; badge?: string }> = [
     { name: 'Prescriptions', href: '/prescriptions', icon: FileText, perm: 'PRESCRIPTIONS_VIEW' },
     { name: 'Suppliers', href: '/suppliers', icon: Building2, perm: 'SUPPLIERS_VIEW' },
     { name: 'Purchases (Inward)', href: '/purchases', icon: Truck, perm: 'PURCHASES_VIEW' },

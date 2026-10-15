@@ -42,7 +42,7 @@ export default function NewOrderRingModal({ alert, onDismiss }: Props) {
     if (alert.type === 'PRESCRIPTION') {
       navigate('/prescriptions');
     } else {
-      navigate('/medicine-requests');
+      navigate('/orders');
     }
   };
 
