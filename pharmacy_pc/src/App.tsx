@@ -59,7 +59,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<PermissionRoute permissionKey="DASHBOARD_VIEW"><Dashboard /></PermissionRoute>} />
               <Route path="medicine-requests" element={<Navigate to="/dashboard" replace />} />
-              <Route path="orders" element={<PermissionRoute permissionKey="MEDICINE_REQUESTS_VIEW"><Orders /></PermissionRoute>} />
+              <Route path="orders" element={<Navigate to="/dashboard" replace />} />
               <Route path="inventory" element={<PermissionRoute permissionKey="INVENTORY_VIEW"><Inventory /></PermissionRoute>} />
               <Route path="customers" element={<PermissionRoute permissionKey="CUSTOMERS_VIEW"><Customers /></PermissionRoute>} />
               <Route path="prescriptions" element={<PermissionRoute permissionKey="PRESCRIPTIONS_VIEW"><Prescriptions /></PermissionRoute>} />

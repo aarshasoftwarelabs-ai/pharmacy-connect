@@ -34,7 +34,6 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, perm: 'DASHBOARD_VIEW' },
-  { name: 'Orders', href: '/orders', icon: ShoppingCart, perm: 'MEDICINE_REQUESTS_VIEW' },
   { name: 'Smart Inventory', href: '/inventory', icon: Package, perm: 'INVENTORY_VIEW' },
   { name: 'Suppliers', href: '/suppliers', icon: Building2, perm: 'SUPPLIERS_VIEW' },
   { name: 'Purchases', href: '/purchases', icon: Truck, perm: 'PURCHASES_VIEW' },
