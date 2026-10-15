@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
+import 'barcode_scanner_modal.dart';
 
 class BillingScreen extends StatefulWidget {
   const BillingScreen({super.key});
@@ -59,11 +60,11 @@ class _BillingScreenState extends State<BillingScreen> {
                           hintText: 'Search medicine name or scan barcode...',
                           prefixIcon: const Icon(Icons.search_rounded),
                           suffixIcon: IconButton(
-                            icon: const Icon(Icons.qr_code_scanner_rounded),
+                            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                            tooltip: 'Scan Barcode',
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Camera Barcode scanner active')),
-                              );
+                              Navigator.pop(ctx);
+                              BarcodeScannerModal.show(context);
                             },
                           ),
                         ),
@@ -213,6 +214,11 @@ class _BillingScreenState extends State<BillingScreen> {
       appBar: AppBar(
         title: const Text('Mobile POS Billing'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+            tooltip: 'Scan Barcode (POS)',
+            onPressed: () => BarcodeScannerModal.show(context),
+          ),
           if (billing.cartItems.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.error),
@@ -250,10 +256,32 @@ class _BillingScreenState extends State<BillingScreen> {
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: _showAddMedicineModal,
-                    icon: const Icon(Icons.search_rounded),
-                    label: const Text('Search / Add Medicine'),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 10,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => BarcodeScannerModal.show(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
+                        label: const Text('Scan Barcode', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _showAddMedicineModal,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.search_rounded, size: 20),
+                        label: const Text('Search Medicine'),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -10,6 +10,51 @@ class InventoryProvider extends ChangeNotifier {
   String _searchQuery = '';
   String _selectedCategory = 'All';
 
+  InventoryProvider() {
+    fetchMedicines();
+  }
+
+  List<MedicineModel> get allMedicines => _medicines;
+
+  MedicineModel? findByBarcode(String code) {
+    if (code.trim().isEmpty) return null;
+    final cleanCode = code.trim().toLowerCase();
+
+    // 1. Exact barcode match
+    for (final med in _medicines) {
+      if (med.barcode?.trim().toLowerCase() == cleanCode) {
+        return med;
+      }
+    }
+    // 2. Exact SKU / ID match
+    for (final med in _medicines) {
+      if (med.id.toLowerCase() == cleanCode) {
+        return med;
+      }
+    }
+    // 3. Exact Batch number match
+    for (final med in _medicines) {
+      if (med.batchNumber?.trim().toLowerCase() == cleanCode) {
+        return med;
+      }
+    }
+    // 4. Exact name match
+    for (final med in _medicines) {
+      if (med.name.trim().toLowerCase() == cleanCode) {
+        return med;
+      }
+    }
+    // 5. Partial barcode or name substring
+    for (final med in _medicines) {
+      if ((med.barcode != null && med.barcode!.toLowerCase().contains(cleanCode)) ||
+          med.name.toLowerCase().contains(cleanCode) ||
+          (med.genericName?.toLowerCase().contains(cleanCode) ?? false)) {
+        return med;
+      }
+    }
+    return null;
+  }
+
   List<MedicineModel> get medicines {
     return _medicines.where((med) {
       final matchesSearch = _searchQuery.isEmpty ||
