@@ -454,18 +454,9 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                     }
                   }}
                   placeholder="⚡ Point Barcode Gun Scanner or type Barcode / SKU & press Enter..."
-                  className="w-full pl-3 pr-32 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
+                  className="w-full pl-3 pr-20 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
                 />
-                <div className="absolute right-1.5 top-1.5 flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsScannerOpen(true)}
-                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 border border-slate-200"
-                    title="Scan with Camera / Webcam"
-                  >
-                    <Camera className="w-3.5 h-3.5 text-emerald-600" />
-                    <span className="hidden sm:inline">Camera</span>
-                  </button>
+                <div className="absolute right-1.5 top-1.5 flex items-center">
                   <button
                     type="button"
                     onClick={() => {
@@ -476,6 +467,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                       }
                     }}
                     className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+                    title="Scan Barcode or Open Camera"
                   >
                     <Scan className="w-3.5 h-3.5" />
                     Scan
