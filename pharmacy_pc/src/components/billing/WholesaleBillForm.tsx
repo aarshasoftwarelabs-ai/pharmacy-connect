@@ -384,7 +384,7 @@ export default function WholesaleBillForm({ onSuccess }: Props) {
             {aiRecommendations.length > 0 && (
               <div className="mt-5 animate-in fade-in slide-in-from-top-1">
                 <div className="flex items-center mb-2">
-                  <div className="text-lg mr-1.5">⚡</div>
+                  <Sparkles className="w-4 h-4 text-indigo-600 mr-1.5" />
                   <h4 className="text-sm font-bold text-slate-800">AI Smart Sales Predictor</h4>
                   <span className="ml-2 bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-indigo-200">Suggested Items</span>
                 </div>

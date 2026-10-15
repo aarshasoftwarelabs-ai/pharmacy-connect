@@ -453,7 +453,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                       handleBarcodeScan(barcodeInput);
                     }
                   }}
-                  placeholder="⚡ Point Barcode Gun Scanner or type Barcode / SKU & press Enter..."
+                  placeholder="Point Barcode Gun Scanner or type Barcode / SKU & press Enter..."
                   className="w-full pl-3 pr-20 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
                 />
                 <div className="absolute right-1.5 top-1.5 flex items-center">

@@ -222,7 +222,7 @@ export default function DeadStockModule({ pharmacy, onOpenReturnModule }: DeadSt
       `We have a limited-time stock clearance discount on:\n` +
       `💊 *${med.name} ${med.strength || ''}*\n` +
       `🏷️ Regular MRP: ~₹${med.sellingPrice}~\n` +
-      `⚡ *Special Price: ₹${discountedPrice} (${discount}% OFF!)*\n` +
+      `✨ *Special Price: ₹${discountedPrice} (${discount}% OFF!)*\n` +
       `📦 Only ${med.currentStock} units available on first-come basis.\n\n` +
       `Reply *YES* to reserve your pack or visit our pharmacy today!\n${storePhone}`;
   };

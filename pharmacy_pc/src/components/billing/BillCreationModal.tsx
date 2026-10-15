@@ -235,7 +235,7 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
                       handleBarcodeScan(barcodeInput);
                     }
                   }}
-                  placeholder="⚡ Scan medicine barcode or SKU with gun (Press Enter)..."
+                  placeholder="Scan medicine barcode or SKU with gun (Press Enter)..."
                   className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 />
                 <button

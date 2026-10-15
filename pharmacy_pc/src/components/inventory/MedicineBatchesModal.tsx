@@ -411,7 +411,7 @@ export default function MedicineBatchesModal({
                   ) : (
                     <Sparkles className="w-4 h-4 text-amber-300" />
                   )}
-                  ⚡ Auto-Initialize Batch from Stock ({medicine.currentStock || 50} Units)
+                  Auto-Initialize Batch from Stock ({medicine.currentStock || 50} Units)
                 </button>
 
                 <button
