@@ -1,0 +1,36 @@
+import '../services/storage_service.dart';
+
+class ApiEndpoints {
+  // Default URL for Android Emulator is 10.0.2.2, for Physical Device use machine's Wi-Fi IP or Render URL
+  static const String _defaultUrl = 'http://10.0.2.2:3000/api';
+
+  static String get baseUrl {
+    final customUrl = StorageService.getBaseUrl();
+    if (customUrl != null && customUrl.trim().isNotEmpty) {
+      return customUrl.trim();
+    }
+    return _defaultUrl;
+  }
+
+  // Auth
+  static String get login => '$baseUrl/auth/login';
+  static String get me => '$baseUrl/auth/me';
+
+  // Medicines / Inventory
+  static String get medicines => '$baseUrl/medicines';
+  static String medicineById(String id) => '$baseUrl/medicines/$id';
+
+  // Billing / POS
+  static String get bills => '$baseUrl/billing';
+  static String get createBill => '$baseUrl/billing';
+
+  // Dashboard / Reports
+  static String get dashboardSummary => '$baseUrl/reports/dashboard';
+
+  // Refills & Prescriptions
+  static String get refills => '$baseUrl/refills';
+  static String get prescriptions => '$baseUrl/prescriptions';
+
+  // Customers
+  static String get customers => '$baseUrl/customers';
+}

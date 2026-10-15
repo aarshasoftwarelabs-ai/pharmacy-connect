@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">DavaSetu Pharmacy POS</string>
-    <string name="title_activity_main">DavaSetu Pharmacy POS</string>
-    <string name="package_name">com.davasetu.pharmacy</string>
-    <string name="custom_url_scheme">com.davasetu.pharmacy</string>
-</resources>

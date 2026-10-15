@@ -9,16 +9,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "mobile:sync": "npm run build && cap sync android",
-    "mobile:open": "cap open android",
     "electron:build": "npm run build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/android": "^8.5.3",
-    "@capacitor/cli": "^8.5.3",
-    "@capacitor/core": "^8.5.3",
     "firebase": "^12.19.0",
     "framer-motion": "^13.4.4",
     "lucide-react": "^0.400.0",
