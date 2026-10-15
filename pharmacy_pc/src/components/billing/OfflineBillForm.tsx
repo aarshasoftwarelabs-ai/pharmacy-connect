@@ -509,15 +509,6 @@ export default function OfflineBillForm({ onSuccess }: Props) {
             <div className="flex items-center gap-3">
               <button 
                 type="button" 
-                onClick={() => setShowAiModal(true)}
-                className="relative overflow-hidden group text-xs flex items-center text-white bg-gradient-to-r from-violet-600 to-indigo-600 font-semibold px-4 py-2 rounded-lg transition-all duration-300 shadow-md shadow-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/40 hover:-translate-y-0.5"
-              >
-                <div className="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 transform origin-left transition-transform duration-500 rounded-lg pointer-events-none"></div>
-                <Sparkles className="w-4 h-4 mr-1.5 text-violet-200 animate-pulse relative z-10" /> 
-                <span className="relative z-10">AI Scanner (OCR)</span>
-              </button>
-              <button 
-                type="button" 
                 onClick={handleAddItem}
                 className="text-xs flex items-center text-white bg-emerald-600 hover:bg-emerald-700 font-medium px-3 py-1.5 rounded-md transition-colors"
               >
