@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../models/medicine_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/inventory_provider.dart';
 import '../../providers/billing_provider.dart';
+import '../../providers/inventory_provider.dart';
+import '../billing/camera_barcode_scanner_screen.dart';
 import '../customers/customers_screen.dart';
-import '../suppliers/suppliers_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/profile_screen.dart';
+import '../suppliers/suppliers_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -19,15 +21,34 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProviderStateMixin {
   final _currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+  late final AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InventoryProvider>().fetchMedicines();
     });
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning ☀️';
+    if (hour < 17) return 'Good Afternoon 🌤️';
+    return 'Good Evening 🌙';
   }
 
   @override
@@ -37,6 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final billing = context.watch<BillingProvider>();
 
     final lowStockList = inventory.lowStockMedicines;
+    final totalInventoryCount = inventory.allMedicines.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -51,97 +73,153 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              auth.pharmacyName,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              _getGreeting(),
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
             ),
-            const Text(
-              'Live POS & Inventory',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            Text(
+              auth.pharmacyName,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => inventory.fetchMedicines(),
+          // Live POS Status Pill
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF86EFAC)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.circle, size: 8, color: Color(0xFF16A34A)),
+                SizedBox(width: 4),
+                Text(
+                  'POS Live',
+                  style: TextStyle(color: Color(0xFF15803D), fontSize: 10, fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
-            onPressed: () => auth.logout(),
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+            tooltip: 'Live Camera Scanner',
+            onPressed: () => CameraBarcodeScannerScreen.open(context),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () => inventory.fetchMedicines(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Hero Quick POS Banner
+              // 1. Futuristic Hero Card: POS Quick Launch & Live Camera Scanner
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.primaryDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                  gradient: AppColors.heroGradient,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: AppColors.glowShadow,
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Quick Billing (POS)',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.bolt_rounded, size: 14, color: Colors.amberAccent),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'INSTANT CHECKOUT',
+                                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Counter POS Billing',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Scan medicine box barcode with camera or search to bill instantly.',
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Scan barcode or search medicine to create instant bill',
-                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                        // Scanner Action Icon
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
                           ),
-                          const SizedBox(height: 14),
-                          ElevatedButton.icon(
-                            onPressed: () => widget.onNavigateTab?.call(1),
+                          child: const Icon(Icons.qr_code_scanner_rounded, size: 36, color: Colors.white),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Quick Action Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => CameraBarcodeScannerScreen.open(context),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: AppColors.primaryDark,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              elevation: 2,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             ),
-                            icon: const Icon(Icons.point_of_sale_rounded, size: 18),
-                            label: const Text('Start Billing'),
+                            icon: const Icon(Icons.camera_alt_rounded, size: 18, color: AppColors.primary),
+                            label: const Text('Scan with Camera', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.receipt_long_rounded,
-                        size: 40,
-                        color: Colors.white,
-                      ),
+                        ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          onPressed: () => widget.onNavigateTab?.call(1),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white, width: 1.5),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                          label: const Text('Open Cart', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -149,23 +227,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 24),
 
-              // KPI Stats Grid
-              const Text(
-                'Today\'s Overview',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+              // 2. Smart Realtime KPI Metrics
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Realtime Overview',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+                  ),
+                  Text(
+                    'Updated just now',
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
 
               Row(
                 children: [
                   Expanded(
-                    child: _buildKpiCard(
+                    child: _buildModernKpiCard(
                       title: 'Sales Today',
                       value: _currency.format(14850),
+                      trend: '+14.2% vs yesterday',
+                      isPositiveTrend: true,
                       icon: Icons.currency_rupee_rounded,
                       color: AppColors.success,
                       bgColor: AppColors.successBg,
@@ -173,12 +258,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildKpiCard(
-                      title: 'Total Medicines',
-                      value: '${inventory.medicines.length}',
+                    child: _buildModernKpiCard(
+                      title: 'Total Stock',
+                      value: '$totalInventoryCount items',
+                      trend: '98% catalog active',
+                      isPositiveTrend: true,
                       icon: Icons.medication_rounded,
                       color: AppColors.info,
                       bgColor: AppColors.infoBg,
+                      onTap: () => widget.onNavigateTab?.call(2),
                     ),
                   ),
                 ],
@@ -188,9 +276,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildKpiCard(
+                    child: _buildModernKpiCard(
                       title: 'Low Stock Alert',
-                      value: '${inventory.lowStockCount}',
+                      value: '${inventory.lowStockCount} medicines',
+                      trend: inventory.lowStockCount > 0 ? 'Needs restock' : 'All good',
+                      isPositiveTrend: inventory.lowStockCount == 0,
                       icon: Icons.warning_amber_rounded,
                       color: AppColors.warning,
                       bgColor: AppColors.warningBg,
@@ -199,10 +289,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildKpiCard(
-                      title: 'Cart Items',
-                      value: '${billing.itemCount}',
-                      icon: Icons.shopping_cart_outlined,
+                    child: _buildModernKpiCard(
+                      title: 'Current Cart',
+                      value: '${billing.itemCount} items',
+                      trend: billing.itemCount > 0 ? _currency.format(billing.grandTotal) : 'Empty',
+                      isPositiveTrend: billing.itemCount > 0,
+                      icon: Icons.shopping_cart_rounded,
                       color: AppColors.primary,
                       bgColor: AppColors.primarySubtle,
                       onTap: () => widget.onNavigateTab?.call(1),
@@ -213,102 +305,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 24),
 
-              // Pharmacy Services & Management
+              // 3. Quick Operations Hub
               const Text(
-                'Services & Management',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+                'Pharmacy Services',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 12),
 
               Row(
                 children: [
-                  Expanded(
-                    child: _buildServiceCard(
-                      context,
-                      title: 'Customers',
-                      subtitle: 'Khata & Refills',
-                      icon: Icons.people_alt_rounded,
-                      color: Colors.blue,
-                      bg: Colors.blue.shade50,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CustomersScreen()),
-                      ),
-                    ),
+                  _buildServicePill(
+                    context,
+                    title: 'Khata / Customers',
+                    icon: Icons.people_alt_rounded,
+                    color: Colors.blue,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomersScreen())),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildServiceCard(
-                      context,
-                      title: 'Suppliers',
-                      subtitle: 'Vendors & Stock',
-                      icon: Icons.apartment_rounded,
-                      color: Colors.purple,
-                      bg: Colors.purple.shade50,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SuppliersScreen()),
-                      ),
-                    ),
+                  const SizedBox(width: 10),
+                  _buildServicePill(
+                    context,
+                    title: 'Vendors / Orders',
+                    icon: Icons.apartment_rounded,
+                    color: Colors.purple,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SuppliersScreen())),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildServiceCard(
-                      context,
-                      title: 'Reports',
-                      subtitle: 'Sales & Analytics',
-                      icon: Icons.bar_chart_rounded,
-                      color: Colors.teal,
-                      bg: Colors.teal.shade50,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ReportsScreen()),
-                      ),
-                    ),
+                  const SizedBox(width: 10),
+                  _buildServicePill(
+                    context,
+                    title: 'CA Tax Reports',
+                    icon: Icons.bar_chart_rounded,
+                    color: Colors.teal,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildServiceCard(
-                      context,
-                      title: 'Settings',
-                      subtitle: 'Profile & LAN IP',
-                      icon: Icons.settings_rounded,
-                      color: Colors.orange,
-                      bg: Colors.orange.shade50,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                      ),
-                    ),
+                  const SizedBox(width: 10),
+                  _buildServicePill(
+                    context,
+                    title: 'LAN Hub',
+                    icon: Icons.wifi_tethering_rounded,
+                    color: Colors.orange,
+                    onTap: () => widget.onNavigateTab?.call(4),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 26),
 
-              // Low Stock Warning Section
+              // 4. Smart Low Stock Alert Cards with Visual Progress
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Low Stock Medicines',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                  const Row(
+                    children: [
+                      Icon(Icons.inventory_2_rounded, size: 18, color: AppColors.warning),
+                      SizedBox(width: 6),
+                      Text(
+                        'Attention Needed (Low Stock)',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+                      ),
+                    ],
                   ),
                   TextButton(
                     onPressed: () => widget.onNavigateTab?.call(2),
-                    child: const Text('View All'),
+                    child: const Text('View All', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
                 ],
               ),
@@ -319,70 +377,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
               else if (lowStockList.isEmpty)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: AppColors.cardBorder),
+                    boxShadow: AppColors.softShadow,
                   ),
-                  child: const Center(
-                    child: Text(
-                      'All medicines are sufficiently in stock! 👍',
-                      style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500),
-                    ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'All medicines are sufficiently in stock! 👍',
+                        style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                    ],
                   ),
                 )
               else
-                ...lowStockList.take(3).map(
-                      (med) => Card(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                          leading: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.warningBg,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.warning_amber_rounded, color: AppColors.warning),
-                          ),
-                          title: Text(
-                            med.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                          ),
-                          subtitle: Text(
-                            'Batch: ${med.batchNumber ?? "-"} • Exp: ${med.expiryDate ?? "-"}',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                          ),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.errorBg,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'Stock: ${med.stock}',
-                                  style: const TextStyle(
-                                    color: AppColors.error,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _currency.format(med.sellingPrice),
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                ...lowStockList.take(3).map((med) => _buildLowStockCard(context, med, billing)),
+
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -390,9 +407,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildKpiCard({
+  Widget _buildModernKpiCard({
     required String title,
     required String value,
+    required String trend,
+    required bool isPositiveTrend,
     required IconData icon,
     required Color color,
     required Color bgColor,
@@ -400,13 +419,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.cardBorder),
+          boxShadow: AppColors.cardShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,21 +434,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
-                ),
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
-                  child: Icon(icon, color: color, size: 18),
+                  decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isPositiveTrend ? AppColors.successBg : AppColors.warningBg,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    isPositiveTrend ? '▲' : '▼',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isPositiveTrend ? AppColors.success : AppColors.warning,
+                    ),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
               value,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: -0.3),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              trend,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: isPositiveTrend ? AppColors.success : AppColors.warning,
+              ),
             ),
           ],
         ),
@@ -436,52 +481,116 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildServiceCard(
+  Widget _buildServicePill(
     BuildContext context, {
     required String title,
-    required String subtitle,
     required IconData icon,
     required Color color,
-    required Color bg,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.cardBorder),
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.cardBorder),
+            boxShadow: AppColors.softShadow,
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              ),
+            ],
+          ),
         ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: bg,
-              child: Icon(icon, size: 20, color: color),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+      ),
+    );
+  }
+
+  Widget _buildLowStockCard(BuildContext context, MedicineModel med, BillingProvider billing) {
+    final alertThreshold = med.minStockAlert ?? 15;
+    final ratio = (med.stock / alertThreshold).clamp(0.0, 1.0);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: AppColors.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.errorBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(med.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text(
+                      'Batch: ${med.batchNumber ?? "-"} • Exp: ${med.expiryDate ?? "-"}',
+                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.errorBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${med.stock} left',
+                  style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w900, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Stock Progress Indicator
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 5,
+              backgroundColor: Colors.grey.shade100,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                ratio < 0.4 ? AppColors.error : AppColors.warning,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../billing/camera_barcode_scanner_screen.dart';
 
 class InventoryScreen extends StatelessWidget {
   const InventoryScreen({super.key});
@@ -22,6 +23,11 @@ class InventoryScreen extends StatelessWidget {
         title: const Text('Inventory & Stock'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+            tooltip: 'Live Camera Scanner',
+            onPressed: () => CameraBarcodeScannerScreen.open(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => inventory.fetchMedicines(),
           ),
@@ -37,9 +43,14 @@ class InventoryScreen extends StatelessWidget {
               children: [
                 TextField(
                   onChanged: inventory.setSearchQuery,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Search by medicine, generic, or barcode...',
-                    prefixIcon: Icon(Icons.search_rounded, color: AppColors.textMuted),
+                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textMuted),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                      tooltip: 'Scan Barcode',
+                      onPressed: () => CameraBarcodeScannerScreen.open(context),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
