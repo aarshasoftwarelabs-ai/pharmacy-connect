@@ -20,6 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   int? _pingLatencyMs;
   bool? _isServerReachable;
   String? _pingMessage;
+  String _appMode = StorageService.getAppMode();
 
   late final AnimationController _pulseController;
 
@@ -96,6 +97,39 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               Icon(Icons.check_circle_rounded, color: Colors.white),
               SizedBox(width: 10),
               Text('Server URL updated! Reconnecting...'),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _setAppMode(String mode) async {
+    await StorageService.setAppMode(mode);
+    setState(() {
+      _appMode = mode;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: mode == 'STANDALONE' ? const Color(0xFF10B981) : AppColors.primaryDark,
+          content: Row(
+            children: [
+              Icon(
+                mode == 'STANDALONE' ? Icons.phone_android_rounded : Icons.laptop_chromebook_rounded,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  mode == 'STANDALONE'
+                      ? 'Switched to Standalone Mobile Mode (No PC needed)!'
+                      : 'Switched to PC LAN Live Sync Mode!',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
         ),
@@ -288,7 +322,244 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
             const SizedBox(height: 20),
 
-            // 2. Realtime LAN Server Connectivity Hub
+            // 2. Terminal Operation Mode (Mobile Standalone vs PC LAN Live Sync)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.cardBorder),
+                boxShadow: AppColors.cardShadow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.hub_rounded, color: AppColors.primary, size: 22),
+                          SizedBox(width: 8),
+                          Text(
+                            'Terminal Operation Mode',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _appMode == 'STANDALONE' ? AppColors.successBg : const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _appMode == 'STANDALONE'
+                                ? AppColors.success.withValues(alpha: 0.3)
+                                : AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          _appMode == 'STANDALONE' ? '📱 Mobile Standalone' : '💻 PC Wi-Fi Sync',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: _appMode == 'STANDALONE' ? AppColors.success : AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Choose how you want to run this pharmacy terminal:',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Option A: Standalone Mobile Mode (Without Computer/Laptop)
+                  InkWell(
+                    onTap: () => _setAppMode('STANDALONE'),
+                    borderRadius: BorderRadius.circular(16),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _appMode == 'STANDALONE'
+                            ? const Color(0xFFECFDF5)
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _appMode == 'STANDALONE'
+                              ? const Color(0xFF10B981)
+                              : Colors.grey.shade200,
+                          width: _appMode == 'STANDALONE' ? 2 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: _appMode == 'STANDALONE'
+                                  ? const Color(0xFF10B981)
+                                  : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.phone_android_rounded,
+                              color: _appMode == 'STANDALONE' ? Colors.white : Colors.grey.shade700,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'Standalone Mobile Pharmacy',
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    if (_appMode == 'STANDALONE')
+                                      const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                const Text(
+                                  'NO COMPUTER NEEDED • Camera barcode scanning, complete stock management, fast billing & instant WhatsApp digital receipts.',
+                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.3),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Option B: Store PC Live Sync Mode (With Computer/Laptop)
+                  InkWell(
+                    onTap: () => _setAppMode('PC_SYNC'),
+                    borderRadius: BorderRadius.circular(16),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _appMode == 'PC_SYNC'
+                            ? const Color(0xFFEFF6FF)
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _appMode == 'PC_SYNC'
+                              ? AppColors.primary
+                              : Colors.grey.shade200,
+                          width: _appMode == 'PC_SYNC' ? 2 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: _appMode == 'PC_SYNC'
+                                  ? AppColors.primary
+                                  : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.laptop_chromebook_rounded,
+                              color: _appMode == 'PC_SYNC' ? Colors.white : Colors.grey.shade700,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'Store PC Live Sync (Wi-Fi LAN)',
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    if (_appMode == 'PC_SYNC')
+                                      const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 16),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                const Text(
+                                  'HAVE A COMPUTER / LAPTOP • Link mobile as wireless 2nd POS counter, wireless camera barcode gun & live owner remote monitor.',
+                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.3),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            if (_appMode == 'STANDALONE') ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFECFDF5), Color(0xFFF0FDF4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Standalone Mobile Mode Active',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF065F46)),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'You do not need a laptop or computer! Use your phone camera to scan medicine barcodes, add products to stock, create bills, and send instant WhatsApp digital receipts to customers.',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF047857), height: 1.35),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 20),
+
+            // 3. Realtime LAN Server Connectivity Hub
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(

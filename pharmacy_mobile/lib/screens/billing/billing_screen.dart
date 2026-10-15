@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
@@ -185,21 +186,96 @@ class _BillingScreenState extends State<BillingScreen> {
   }
 
   void _showSuccessDialog() {
+    final billing = context.read<BillingProvider>();
+    final bill = billing.lastBill;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 54),
         title: const Text('Invoice Generated!', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text(
-          'Bill created successfully. Inventory stock has been updated.',
-          textAlign: TextAlign.center,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Bill ${bill?['bill_number'] ?? ''} created successfully.\nTotal: ${_currency.format(bill?['total'] ?? 0)}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF86EFAC)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.mark_chat_read_rounded, color: Color(0xFF15803D), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'No printer? Send digital invoice directly to customer via WhatsApp!',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
-          Center(
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Done'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    final billText = '''
+🧾 *DavaSetu Pharmacy Invoice*
+Bill No: ${bill?['bill_number']}
+Date: ${bill?['date']}
+Customer: ${bill?['customer_name']}
+--------------------------------
+${bill?['items_summary']}
+--------------------------------
+*Total Amount: ${_currency.format(bill?['total'] ?? 0)}*
+Payment: ${bill?['payment_mode']}
+--------------------------------
+_Thank you for choosing DavaSetu Pharmacy!_
+''';
+                    Clipboard.setData(ClipboardData(text: billText));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: const Color(0xFF15803D),
+                        content: const Row(
+                          children: [
+                            Icon(Icons.check_circle_rounded, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text('WhatsApp Invoice copied! Paste in customer chat.'),
+                          ],
+                        ),
+                      ),
+                    );
+                    Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF15803D),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.share_rounded, size: 16),
+                  label: const Text('Share WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Done'),
+              ),
+            ],
           ),
         ],
       ),

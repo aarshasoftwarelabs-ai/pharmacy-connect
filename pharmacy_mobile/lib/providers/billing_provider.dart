@@ -22,9 +22,11 @@ class BillingProvider extends ChangeNotifier {
   double _generalDiscountPercent = 0.0;
   bool _isProcessing = false;
   String? _errorMessage;
+  Map<String, dynamic>? _lastBill;
 
   List<CartItemModel> get cartItems => _cartItems;
   List<Map<String, dynamic>> get recentBills => _recentBills;
+  Map<String, dynamic>? get lastBill => _lastBill;
   String get customerName => _customerName;
   String get customerPhone => _customerPhone;
   String get paymentMode => _paymentMode;
@@ -130,14 +132,22 @@ class BillingProvider extends ChangeNotifier {
       final response = await ApiService.post(ApiEndpoints.createBill, billPayload);
       _isProcessing = false;
 
-      _recentBills.insert(0, {
-        'bill_number': 'PC-2026-${(100000 + _recentBills.length + 1).toString().substring(1)}',
+      final billNum = 'PC-2026-${(100000 + _recentBills.length + 1).toString().substring(1)}';
+      final billRecord = {
+        'bill_number': billNum,
         'customer_name': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
+        'customer_phone': _customerPhone,
         'items_count': itemCount,
+        'subtotal': subtotal,
+        'discount': totalDiscount,
+        'tax': taxAmount,
         'total': grandTotal,
         'date': 'Today, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
         'payment_mode': _paymentMode,
-      });
+        'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
+      };
+      _lastBill = billRecord;
+      _recentBills.insert(0, billRecord);
 
       if (response.success) {
         clearCart();

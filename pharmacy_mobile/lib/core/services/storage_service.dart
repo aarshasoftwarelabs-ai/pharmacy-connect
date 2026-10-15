@@ -65,6 +65,17 @@ class StorageService {
     return _prefs?.getString(_baseUrlKey);
   }
 
+  static const String _appModeKey = 'app_operation_mode';
+
+  // App Mode: 'STANDALONE' (No PC needed) or 'PC_SYNC' (Live Wi-Fi PC mirror)
+  static Future<void> setAppMode(String mode) async {
+    await _prefs?.setString(_appModeKey, mode);
+  }
+
+  static String getAppMode() {
+    return _prefs?.getString(_appModeKey) ?? 'STANDALONE';
+  }
+
   static Future<void> clearAll() async {
     await _prefs?.remove(_tokenKey);
     await _prefs?.remove(_userKey);

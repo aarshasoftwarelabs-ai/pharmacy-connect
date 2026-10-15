@@ -8,12 +8,24 @@ import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
 
 class CameraBarcodeScannerScreen extends StatefulWidget {
-  const CameraBarcodeScannerScreen({super.key});
+  final bool returnCodeOnly;
+
+  const CameraBarcodeScannerScreen({
+    super.key,
+    this.returnCodeOnly = false,
+  });
 
   static Future<void> open(BuildContext context) {
     return Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CameraBarcodeScannerScreen()),
+    );
+  }
+
+  static Future<String?> scanCode(BuildContext context) {
+    return Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const CameraBarcodeScannerScreen(returnCodeOnly: true)),
     );
   }
 
@@ -80,6 +92,11 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
       _lastScannedCode = rawCode;
       _lastScanTimestamp = now;
 
+      if (widget.returnCodeOnly) {
+        Navigator.pop(context, rawCode);
+        return;
+      }
+
       _processScannedCode(rawCode);
       break;
     }
@@ -142,9 +159,14 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
                 prefixIcon: Icon(Icons.qr_code_rounded),
               ),
               onSubmitted: (val) {
+                final code = val.trim();
                 Navigator.pop(ctx);
-                if (val.trim().isNotEmpty) {
-                  _processScannedCode(val.trim());
+                if (code.isNotEmpty) {
+                  if (widget.returnCodeOnly) {
+                    Navigator.pop(context, code);
+                  } else {
+                    _processScannedCode(code);
+                  }
                 }
               },
             ),
@@ -154,12 +176,17 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
+              final code = textCtrl.text.trim();
               Navigator.pop(ctx);
-              if (textCtrl.text.trim().isNotEmpty) {
-                _processScannedCode(textCtrl.text.trim());
+              if (code.isNotEmpty) {
+                if (widget.returnCodeOnly) {
+                  Navigator.pop(context, code);
+                } else {
+                  _processScannedCode(code);
+                }
               }
             },
-            child: const Text('Add to Bill'),
+            child: Text(widget.returnCodeOnly ? 'Use Barcode' : 'Add to Bill'),
           ),
         ],
       ),
@@ -305,14 +332,14 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.camera_alt_rounded, color: Color(0xFF10B981), size: 16),
-                        SizedBox(width: 6),
+                        const Icon(Icons.camera_alt_rounded, color: Color(0xFF10B981), size: 16),
+                        const SizedBox(width: 6),
                         Text(
-                          'Live Camera Barcode Scanner',
-                          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          widget.returnCodeOnly ? 'Scan Medicine Barcode' : 'Live Camera Barcode Scanner',
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -352,10 +379,12 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                 ),
-                child: const Text(
-                  'Point camera at medicine barcode or QR code',
+                child: Text(
+                  widget.returnCodeOnly
+                      ? 'Point camera at medicine box or strip barcode'
+                      : 'Point camera at medicine barcode or QR code',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -480,54 +509,88 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
                       const SizedBox(height: 12),
                     ],
 
-                    // B. Realtime Cart Total & Actions Bar
-                    Row(
-                      children: [
-                        // Cart info
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'POS Cart (${billing.itemCount} items)',
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+                    // B. Action Bar (Mode-aware)
+                    if (widget.returnCodeOnly)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white70,
+                                side: const BorderSide(color: Colors.white24),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _currency.format(billing.grandTotal),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              label: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _showManualBarcodeDialog,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF10B981),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: const Icon(Icons.keyboard_alt_outlined, size: 18),
+                              label: const Text('Type Barcode', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      // Realtime Cart Total & Actions Bar
+                      Row(
+                        children: [
+                          // Cart info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'POS Cart (${billing.itemCount} items)',
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 2),
+                                Text(
+                                  _currency.format(billing.grandTotal),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
 
-                        // Manual entry button
-                        IconButton(
-                          tooltip: 'Type Barcode Manually',
-                          icon: const Icon(Icons.keyboard_alt_outlined, color: Colors.white70),
-                          onPressed: _showManualBarcodeDialog,
-                        ),
-                        const SizedBox(width: 8),
-
-                        // Done / Return to Bill button
-                        ElevatedButton.icon(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          // Manual entry button
+                          IconButton(
+                            tooltip: 'Type Barcode Manually',
+                            icon: const Icon(Icons.keyboard_alt_outlined, color: Colors.white70),
+                            onPressed: _showManualBarcodeDialog,
                           ),
-                          icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
-                          label: const Text('View Bill', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 8),
+
+                          // Done / Return to Bill button
+                          ElevatedButton.icon(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
+                            label: const Text('View Bill', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),

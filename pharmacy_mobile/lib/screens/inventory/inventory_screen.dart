@@ -377,9 +377,19 @@ class InventoryScreen extends StatelessWidget {
                     Expanded(
                       child: TextField(
                         controller: barcodeCtrl,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Barcode / SKU',
                           hintText: 'e.g. 890123456789',
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                            tooltip: 'Scan Barcode with Camera',
+                            onPressed: () async {
+                              final code = await CameraBarcodeScannerScreen.scanCode(context);
+                              if (code != null && code.isNotEmpty) {
+                                barcodeCtrl.text = code;
+                              }
+                            },
+                          ),
                         ),
                       ),
                     ),
