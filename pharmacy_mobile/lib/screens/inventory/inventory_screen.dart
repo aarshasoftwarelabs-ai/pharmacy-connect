@@ -83,23 +83,49 @@ class InventoryScreen extends StatelessWidget {
           Expanded(
             child: inventory.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : inventory.medicines.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textMuted),
-                            const SizedBox(height: 12),
-                            Text(
-                              inventory.searchQuery.isEmpty
-                                  ? 'No medicines in inventory'
-                                  : 'No medicines matching "${inventory.searchQuery}"',
-                              style: const TextStyle(color: AppColors.textSecondary),
+                : RefreshIndicator(
+                    onRefresh: () => inventory.fetchMedicines(),
+                    child: inventory.medicines.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    inventory.errorMessage != null
+                                        ? Icons.cloud_off_rounded
+                                        : Icons.inventory_2_outlined,
+                                    size: 52,
+                                    color: inventory.errorMessage != null ? AppColors.error : AppColors.textMuted,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    inventory.errorMessage ??
+                                        (inventory.searchQuery.isEmpty
+                                            ? 'No medicines in inventory'
+                                            : 'No medicines matching "${inventory.searchQuery}"'),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: inventory.errorMessage != null ? AppColors.error : AppColors.textSecondary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton.icon(
+                                    onPressed: () => inventory.fetchMedicines(),
+                                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                                    label: const Text('Reload Real Inventory'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
+                          )
+                        : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: inventory.medicines.length,
                         separatorBuilder: (context, index) => const SizedBox(height: 12),

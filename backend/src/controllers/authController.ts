@@ -174,15 +174,16 @@ export class AuthController {
   // 2. Login
   static async login(req: Request, res: Response) {
     try {
-      const { phone, password } = req.body;
+      const identifier = (req.body.phone || req.body.identifier || req.body.email || '').trim();
+      const password = req.body.password;
       
-      if (!phone || !password) {
-        return res.status(400).json({ success: false, message: 'Phone and password are required' });
+      if (!identifier || !password) {
+        return res.status(400).json({ success: false, message: 'Phone or email and password are required' });
       }
 
-      // Check users (OWNER)
-      const userQuery = `SELECT id, name, phone, password_hash FROM users WHERE phone = $1`;
-      const userResult = await pool.query(userQuery, [phone]);
+      // Check users (OWNER) by phone OR email
+      const userQuery = `SELECT id, name, phone, password_hash FROM users WHERE phone = $1 OR email = $1`;
+      const userResult = await pool.query(userQuery, [identifier]);
 
       if (userResult.rows.length > 0) {
         const user = userResult.rows[0];

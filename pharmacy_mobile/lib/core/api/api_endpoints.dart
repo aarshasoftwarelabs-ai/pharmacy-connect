@@ -1,8 +1,8 @@
 import '../services/storage_service.dart';
 
 class ApiEndpoints {
-  // Default URL for Android Emulator is 10.0.2.2, for Physical Device use machine's Wi-Fi IP or Render URL
-  static const String _defaultUrl = 'http://10.0.2.2:3000/api';
+  // Default URL: local computer Wi-Fi IP for physical mobile phone connection
+  static const String _defaultUrl = 'http://10.66.48.99:3000/api';
 
   static String get baseUrl {
     final customUrl = StorageService.getBaseUrl();

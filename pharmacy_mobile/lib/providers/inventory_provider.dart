@@ -20,31 +20,69 @@ class InventoryProvider extends ChangeNotifier {
     if (code.trim().isEmpty) return null;
     final cleanCode = code.trim().toLowerCase();
 
-    // 1. Exact barcode match
+    // 1. Exact primary barcode match
     for (final med in _medicines) {
       if (med.barcode?.trim().toLowerCase() == cleanCode) {
         return med;
       }
     }
-    // 2. Exact SKU / ID match
+
+    // 2. Calculated Store Barcode match (from BarcodeStickerModal / PC sticker)
+    // E.g. Sticker code: 890008004715 vs Store Barcode: 89000800471
+    for (final med in _medicines) {
+      if (med.storeBarcode != null) {
+        final sb = med.storeBarcode!.toLowerCase();
+        if (cleanCode == sb || cleanCode.startsWith(sb) || sb.startsWith(cleanCode)) {
+          return med;
+        }
+      }
+    }
+
+    // 3. Match any Batch Barcode or Batch Number
+    for (final med in _medicines) {
+      for (final batch in med.batches) {
+        if (batch.barcode != null && batch.barcode!.trim().toLowerCase() == cleanCode) {
+          return med;
+        }
+        if (batch.batchNumber.trim().toLowerCase() == cleanCode) {
+          return med;
+        }
+      }
+    }
+
+    // 4. Exact SKU match
+    for (final med in _medicines) {
+      if (med.sku != null && med.sku!.trim().toLowerCase() == cleanCode) {
+        return med;
+      }
+    }
+
+    // 5. Exact ID match (or if code ends with padded ID)
     for (final med in _medicines) {
       if (med.id.toLowerCase() == cleanCode) {
         return med;
       }
+      final paddedId = med.id.padLeft(5, '0');
+      if (cleanCode.contains(paddedId)) {
+        return med;
+      }
     }
-    // 3. Exact Batch number match
+
+    // 6. Exact Batch number match
     for (final med in _medicines) {
       if (med.batchNumber?.trim().toLowerCase() == cleanCode) {
         return med;
       }
     }
-    // 4. Exact name match
+
+    // 7. Exact name match
     for (final med in _medicines) {
       if (med.name.trim().toLowerCase() == cleanCode) {
         return med;
       }
     }
-    // 5. Partial barcode or name substring
+
+    // 8. Partial barcode or name substring
     for (final med in _medicines) {
       if ((med.barcode != null && med.barcode!.toLowerCase().contains(cleanCode)) ||
           med.name.toLowerCase().contains(cleanCode) ||
@@ -60,7 +98,8 @@ class InventoryProvider extends ChangeNotifier {
       final matchesSearch = _searchQuery.isEmpty ||
           med.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           (med.genericName?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-          (med.barcode?.contains(_searchQuery) ?? false);
+          (med.barcode?.contains(_searchQuery) ?? false) ||
+          (med.sku?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
 
       final matchesCategory = _selectedCategory == 'All' ||
           med.category?.toLowerCase() == _selectedCategory.toLowerCase();
@@ -107,79 +146,16 @@ class InventoryProvider extends ChangeNotifier {
         _medicines = list
             .map((item) => MedicineModel.fromJson(item as Map<String, dynamic>))
             .toList();
+        _errorMessage = null;
         notifyListeners();
       } else {
-        _errorMessage = response.message ?? 'Failed to load medicines';
-        // Provide mock data if backend not reachable for demo
-        _loadFallbackMedicines();
+        _errorMessage = response.message ?? 'Failed to load medicines from server';
         notifyListeners();
       }
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Network error: $e';
-      _loadFallbackMedicines();
+      _errorMessage = 'Network connection error. Check Wi-Fi & PC IP: $e';
       notifyListeners();
-    }
-  }
-
-  void _loadFallbackMedicines() {
-    if (_medicines.isEmpty) {
-      _medicines = [
-        MedicineModel(
-          id: '1',
-          name: 'Paracetamol 500mg',
-          genericName: 'Acetaminophen',
-          manufacturer: 'Cipla Ltd',
-          category: 'Analgesics',
-          batchNumber: 'PCM-890',
-          expiryDate: '12/2026',
-          mrp: 35.0,
-          sellingPrice: 30.0,
-          stock: 145,
-          barcode: '8901234567890',
-        ),
-        MedicineModel(
-          id: '2',
-          name: 'Amoxicillin 250mg',
-          genericName: 'Amoxicillin Trihydrate',
-          manufacturer: 'Sun Pharma',
-          category: 'Antibiotics',
-          batchNumber: 'AMX-442',
-          expiryDate: '09/2026',
-          mrp: 85.0,
-          sellingPrice: 75.0,
-          stock: 8, // Low stock
-          minStockAlert: 15,
-          barcode: '8901234567891',
-        ),
-        MedicineModel(
-          id: '3',
-          name: 'Cetirizine 10mg',
-          genericName: 'Cetirizine HCl',
-          manufacturer: 'Dr. Reddy',
-          category: 'Antihistamines',
-          batchNumber: 'CTZ-119',
-          expiryDate: '04/2027',
-          mrp: 45.0,
-          sellingPrice: 40.0,
-          stock: 62,
-          barcode: '8901234567892',
-        ),
-        MedicineModel(
-          id: '4',
-          name: 'Pantoprazole 40mg',
-          genericName: 'Pantoprazole Sodium',
-          manufacturer: 'Alkem Labs',
-          category: 'Antacids',
-          batchNumber: 'PAN-772',
-          expiryDate: '01/2027',
-          mrp: 120.0,
-          sellingPrice: 105.0,
-          stock: 5, // Low stock
-          minStockAlert: 10,
-          barcode: '8901234567893',
-        ),
-      ];
     }
   }
 
@@ -197,65 +173,59 @@ class InventoryProvider extends ChangeNotifier {
     try {
       final payload = {
         'name': name,
-        'generic_name': genericName,
-        'category': category,
+        'genericName': genericName,
+        'category': category ?? 'General',
         'manufacturer': manufacturer,
         'mrp': mrp,
-        'selling_price': sellingPrice,
-        'stock': stock,
+        'sellingPrice': sellingPrice,
+        'currentStock': stock,
         'barcode': barcode,
-        'expiry_date': expiryDate,
+        'expiryDate': expiryDate,
       };
-      final res = await ApiService.post(ApiEndpoints.medicines, payload);
-      if (res.success && res.data != null && res.data is Map) {
-        final newMed = MedicineModel.fromJson(res.data as Map<String, dynamic>);
+
+      final response = await ApiService.post(ApiEndpoints.medicines, payload);
+
+      if (response.success && response.data != null) {
+        final newMed = MedicineModel.fromJson(response.data as Map<String, dynamic>);
         _medicines.insert(0, newMed);
+        notifyListeners();
+        return true;
       } else {
-        final localMed = MedicineModel(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          name: name,
-          genericName: genericName,
-          category: category,
-          manufacturer: manufacturer,
-          mrp: mrp,
-          sellingPrice: sellingPrice,
-          stock: stock,
-          barcode: barcode,
-          expiryDate: expiryDate,
-        );
-        _medicines.insert(0, localMed);
+        // If API fails, also refresh to keep real database in sync
+        await fetchMedicines();
+        return false;
       }
+    } catch (e) {
+      _errorMessage = 'Error adding medicine: $e';
       notifyListeners();
-      return true;
-    } catch (_) {
-      final localMed = MedicineModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: name,
-        genericName: genericName,
-        category: category,
-        manufacturer: manufacturer,
-        mrp: mrp,
-        sellingPrice: sellingPrice,
-        stock: stock,
-        barcode: barcode,
-        expiryDate: expiryDate,
-      );
-      _medicines.insert(0, localMed);
-      notifyListeners();
-      return true;
+      return false;
     }
   }
 
-  Future<bool> deleteMedicine(String id) async {
-    try {
-      await ApiService.delete(ApiEndpoints.medicineById(id));
-      _medicines.removeWhere((m) => m.id == id);
+  void updateStockLocal(String id, int quantityDeducted) {
+    final index = _medicines.indexWhere((m) => m.id == id);
+    if (index != -1) {
+      final old = _medicines[index];
+      final newStock = (old.stock - quantityDeducted).clamp(0, 999999);
+      _medicines[index] = MedicineModel(
+        id: old.id,
+        pharmacyId: old.pharmacyId,
+        name: old.name,
+        genericName: old.genericName,
+        manufacturer: old.manufacturer,
+        category: old.category,
+        sku: old.sku,
+        batchNumber: old.batchNumber,
+        expiryDate: old.expiryDate,
+        mrp: old.mrp,
+        sellingPrice: old.sellingPrice,
+        stock: newStock,
+        minStockAlert: old.minStockAlert,
+        barcode: old.barcode,
+        storeBarcode: old.storeBarcode,
+        batches: old.batches,
+      );
       notifyListeners();
-      return true;
-    } catch (_) {
-      _medicines.removeWhere((m) => m.id == id);
-      notifyListeners();
-      return true;
     }
   }
 }

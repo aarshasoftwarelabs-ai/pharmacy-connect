@@ -37,8 +37,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final cleanId = identifier.trim();
       final response = await ApiService.post(ApiEndpoints.login, {
-        'identifier': identifier.trim(),
+        'phone': cleanId,
+        'email': cleanId,
+        'identifier': cleanId,
         'password': password.trim(),
       });
 
@@ -47,10 +50,20 @@ class AuthProvider extends ChangeNotifier {
       if (response.success && response.data != null) {
         final data = response.data as Map<String, dynamic>;
         final token = data['token']?.toString() ?? data['accessToken']?.toString() ?? '';
-        final userMap = (data['user'] as Map<String, dynamic>?) ?? {};
+        final userMap = Map<String, dynamic>.from((data['user'] as Map<String, dynamic>?) ?? {});
+        final pharmacyMap = data['pharmacy'] as Map<String, dynamic>?;
 
         if (token.isNotEmpty) {
           await StorageService.setToken(token);
+        }
+        if (pharmacyMap != null) {
+          await StorageService.setPharmacy(pharmacyMap);
+          if (pharmacyMap['name'] != null) {
+            userMap['pharmacyName'] = pharmacyMap['name'];
+          }
+          if (pharmacyMap['id'] != null) {
+            userMap['pharmacyId'] = pharmacyMap['id'].toString();
+          }
         }
         _user = UserModel.fromJson(userMap);
         await StorageService.setUser(_user!.toJson());
