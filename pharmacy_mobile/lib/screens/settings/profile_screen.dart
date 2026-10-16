@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/storage_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/billing_provider.dart';
+import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -355,9 +357,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.pop(ctx);
-                          auth.logout();
+                          final billing = context.read<BillingProvider>();
+                          billing.clearCart();
+                          await auth.logout();
+                          if (context.mounted) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              (route) => false,
+                            );
+                          }
                         },
                         child: const Text('Log Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),

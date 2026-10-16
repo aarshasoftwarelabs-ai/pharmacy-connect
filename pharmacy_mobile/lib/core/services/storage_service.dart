@@ -77,8 +77,10 @@ class StorageService {
   }
 
   static Future<void> clearAll() async {
+    await init();
     await _prefs?.remove(_tokenKey);
     await _prefs?.remove(_userKey);
     await _prefs?.remove(_pharmacyKey);
+    await _prefs?.reload();
   }
 }

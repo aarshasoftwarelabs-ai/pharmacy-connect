@@ -6,6 +6,7 @@ import '../../models/medicine_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../auth/login_screen.dart';
 import '../billing/camera_barcode_scanner_screen.dart';
 import '../customers/customers_screen.dart';
 import '../reports/reports_screen.dart';
@@ -131,6 +132,39 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            tooltip: 'Sign Out (લોગ આઉટ)',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Logout Session'),
+                  content: const Text('Are you sure you want to log out of DavaSetu Mobile?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        final billing = context.read<BillingProvider>();
+                        billing.clearCart();
+                        await context.read<AuthProvider>().logout();
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            (route) => false,
+                          );
+                        }
+                      },
+                      child: const Text('Log Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
               );
             },
           ),
