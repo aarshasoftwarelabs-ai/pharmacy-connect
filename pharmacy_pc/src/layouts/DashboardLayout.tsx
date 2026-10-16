@@ -63,7 +63,7 @@ export default function DashboardLayout() {
     fetchProfile();
 
     // Global Socket for Notifications
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://api.davasetu.com';
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://pharmacy-backend-e210.onrender.com';
     const socket = io(socketUrl);
     socket.on('connect', () => {
       socket.emit('join_pharmacy', getActualPharmacyId().toString());

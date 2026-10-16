@@ -77,7 +77,7 @@ export default function MedicineRequests() {
   useEffect(() => {
     fetchRequests();
 
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://api.davasetu.com';
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://pharmacy-backend-e210.onrender.com';
     const socket = io(socketUrl);
     
     socket.on('connect', () => {

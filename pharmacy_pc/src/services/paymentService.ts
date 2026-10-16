@@ -1,13 +1,10 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.davasetu.com/api';
+import { API_BASE_URL as API_URL, apiFetch } from '../config/api';
 
 export const PaymentService = {
   createOrder: async (amount: number, currency: string = 'INR', planName: string = '') => {
     try {
-      const response = await fetch(`${API_URL}/payments/create-order`, {
+      const response = await apiFetch(`${API_URL}/payments/create-order`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ amount, currency, notes: { planName } }),
       });
 
@@ -24,11 +21,8 @@ export const PaymentService = {
 
   verifyPayment: async (paymentData: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string; }) => {
     try {
-      const response = await fetch(`${API_URL}/payments/verify`, {
+      const response = await apiFetch(`${API_URL}/payments/verify`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(paymentData),
       });
 
