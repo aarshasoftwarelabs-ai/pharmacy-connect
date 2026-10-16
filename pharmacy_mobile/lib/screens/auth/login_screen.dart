@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/api/api_endpoints.dart';
-import '../../core/services/storage_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../navigation/main_nav_screen.dart';
@@ -35,83 +33,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _staffPhoneController.dispose();
     _staffPinController.dispose();
     super.dispose();
-  }
-
-  void _showServerConfigDialog() {
-    final urlController = TextEditingController(text: ApiEndpoints.baseUrl);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Backend Server URL', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter your computer\'s Wi-Fi IP address or production URL:',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                hintText: 'https://pharmacy-backend-e210.onrender.com/api',
-                labelText: 'Server Base URL',
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Quick Presets:',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textMuted),
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                ActionChip(
-                  avatar: const Icon(Icons.cloud_done_rounded, size: 14, color: Color(0xFF059669)),
-                  backgroundColor: const Color(0xFFECFDF5),
-                  label: const Text('Live Cloud (Render)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF065F46))),
-                  onPressed: () {
-                    urlController.text = 'https://pharmacy-backend-e210.onrender.com/api';
-                  },
-                ),
-                ActionChip(
-                  avatar: const Icon(Icons.computer_rounded, size: 14, color: AppColors.primary),
-                  backgroundColor: const Color(0xFFF1F5F9),
-                  label: const Text('Store Local PC', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-                  onPressed: () {
-                    urlController.text = 'http://10.66.48.99:3000/api';
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final newUrl = urlController.text.trim();
-              await StorageService.setBaseUrl(newUrl);
-              if (ctx.mounted) {
-                Navigator.pop(ctx);
-              }
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Server URL updated to: $newUrl')),
-                );
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _handleOwnerLogin() async {
@@ -183,17 +104,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppColors.textSecondary),
-            tooltip: 'Configure Backend URL',
-            onPressed: _showServerConfigDialog,
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
