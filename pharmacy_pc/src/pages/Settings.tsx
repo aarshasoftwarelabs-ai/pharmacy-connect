@@ -298,6 +298,7 @@ export default function Settings() {
                     <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> {isWholesale ? 'B2B Khata & Ledgers' : 'Unlimited Billing'}</li>
                     <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> {isWholesale ? 'Trade Schemes' : 'Thermal Printer Support'}</li>
                     <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> {isWholesale ? 'Basic AI PO Scanner' : 'Basic Reports'}</li>
+                    <li className="flex items-start text-emerald-700 font-medium"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> Mobile App Access (1 Phone Terminal)</li>
                   </ul>
                   <button onClick={() => handlePaymentClick('Monthly')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Select Monthly</button>
                 </div>
@@ -327,6 +328,8 @@ export default function Settings() {
                     <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> Everything in Monthly</li>
                     <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> {isWholesale ? 'AI GSTIN Automation' : 'Smart Inventory (AI)'}</li>
                     <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> {isWholesale ? 'Smart Inventory & Trends' : '7-Day Advanced Trends'}</li>
+                    <li className="flex items-start font-semibold text-emerald-800"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> Mobile App + Multi-Device Cloud Sync</li>
+                    <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> Staff Phone Barcode Scanners</li>
                     <li className="flex items-start"><Check className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${isWholesale ? 'text-blue-600' : 'text-pharmacy-600'}`} /> Priority Support</li>
                   </ul>
                   <button onClick={() => handlePaymentClick('Yearly')} className={`mt-auto w-full py-2.5 rounded-xl text-sm font-bold text-white transition-colors shadow-sm ${isWholesale ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' : 'bg-pharmacy-600 hover:bg-pharmacy-700 shadow-pharmacy-500/30'}`}>Upgrade to Yearly</button>
@@ -355,6 +358,8 @@ export default function Settings() {
                   <ul className="space-y-3 mb-6 flex-1 text-sm text-slate-300 relative z-10">
                     <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> Lifetime Access</li>
                     <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> No Recurring Fees</li>
+                    <li className="flex items-start text-amber-300 font-semibold"><Check className="w-4 h-4 text-amber-400 mr-2 shrink-0 mt-0.5" /> Lifetime Mobile App & Real-Time Sync</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-amber-400 mr-2 shrink-0 mt-0.5" /> Unlimited Staff Mobile Scanner Seats</li>
                     <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> All Future Updates</li>
                     <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> VIP {isWholesale ? 'Wholesale ' : ''}Support</li>
                   </ul>

@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../navigation/main_nav_screen.dart';
 import '../staff/staff_scanner_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -324,6 +325,29 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                   ),
+
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Icon(Icons.shield_outlined, size: 18, color: Color(0xFF64748B)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'સ્ટાફ મોડમાં ફક્ત બારકોડ સ્કેનિંગ અને કાઉન્ટર POS ઉપલબ્ધ રહેશે. ફાર્મસીના બધા નાણાકીય રિપોર્ટ્સ અને સેટિંગ્સ માલિક માટે 100% સુરક્ષિત રહે છે.',
+                            style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B), height: 1.35),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ] else ...[
                   // Owner Email/Phone
                   const Text(
@@ -385,6 +409,50 @@ class _LoginScreenState extends State<LoginScreen> {
                             'Sign In to Dashboard',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
+                  ),
+
+                  const SizedBox(height: 20),
+                  Row(
+                    children: const [
+                      Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          'નવી ફાર્મસી? / NEW STORE',
+                          style: TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Register New Pharmacy Button
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.primary, width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      backgroundColor: AppColors.primarySubtle.withValues(alpha: 0.4),
+                    ),
+                    icon: const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 20),
+                    label: const Text(
+                      'Create New Pharmacy (નવી ફાર્મસી બનાવો)',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Center(
+                    child: Text(
+                      'કોઈ લેપટોપ કે કમ્પ્યુટર વગર • 100% મોબાઈલથી ચલાવો',
+                      style: TextStyle(fontSize: 11.5, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+                    ),
                   ),
                 ],
 

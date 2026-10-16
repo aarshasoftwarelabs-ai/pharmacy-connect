@@ -84,6 +84,68 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> register({
+    required String ownerName,
+    required String pharmacyName,
+    required String phone,
+    required String email,
+    required String password,
+    required String address,
+    String businessType = 'RETAIL',
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.post(ApiEndpoints.register, {
+        'ownerName': ownerName.trim(),
+        'pharmacyName': pharmacyName.trim(),
+        'phone': phone.trim(),
+        'email': email.trim().isEmpty ? '${phone.trim()}@davasetu.com' : email.trim(),
+        'password': password.trim(),
+        'address': address.trim().isEmpty ? 'India' : address.trim(),
+        'businessType': businessType,
+      });
+
+      _isLoading = false;
+
+      if (response.success && response.data != null) {
+        final data = response.data as Map<String, dynamic>;
+        final token = data['token']?.toString() ?? data['accessToken']?.toString() ?? '';
+        final userMap = Map<String, dynamic>.from((data['user'] as Map<String, dynamic>?) ?? {});
+        final pharmacyMap = data['pharmacy'] as Map<String, dynamic>?;
+
+        if (token.isNotEmpty) {
+          await StorageService.setToken(token);
+        }
+        if (pharmacyMap != null) {
+          await StorageService.setPharmacy(pharmacyMap);
+          if (pharmacyMap['name'] != null) {
+            userMap['pharmacyName'] = pharmacyMap['name'];
+          }
+          if (pharmacyMap['id'] != null) {
+            userMap['pharmacyId'] = pharmacyMap['id'].toString();
+          }
+        }
+        _user = UserModel.fromJson(userMap);
+        await StorageService.setUser(_user!.toJson());
+
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = response.message ?? 'Registration failed. Please try again.';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'An error occurred during registration: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> staffLogin({required String pharmacyPhone, required String pin}) async {
     _isLoading = true;
     _errorMessage = null;
