@@ -3,6 +3,7 @@ import '../core/api/api_endpoints.dart';
 import '../core/api/api_service.dart';
 import '../models/cart_item_model.dart';
 import '../models/medicine_model.dart';
+import '../core/services/storage_service.dart';
 
 class BillingProvider extends ChangeNotifier {
   final List<CartItemModel> _cartItems = [];
@@ -120,7 +121,16 @@ class BillingProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final pharmacyData = StorageService.getPharmacy();
+      final userData = StorageService.getUser();
+      final int effectivePharmacyId = int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
+          int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
+          int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
+          1;
+
       final billPayload = {
+        'pharmacy_id': effectivePharmacyId,
+        'pharmacyId': effectivePharmacyId,
         'customer_name': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
         'customerName': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
         'customer_phone': _customerPhone,

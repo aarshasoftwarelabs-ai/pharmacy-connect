@@ -377,6 +377,7 @@ class _BillingScreenState extends State<BillingScreen> {
                       final success = await billing.processCheckout();
                       if (mounted) {
                         if (success) {
+                          context.read<InventoryProvider>().fetchMedicines();
                           _showSuccessDialog();
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(

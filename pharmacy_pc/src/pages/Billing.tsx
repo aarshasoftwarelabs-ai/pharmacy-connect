@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Printer, Clock, Store, MessageCircle, Receipt, User, CalendarDays, IndianRupee, RefreshCw, Loader2, AlertCircle, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FileText, Printer, Clock, Store, MessageCircle, Receipt, User, CalendarDays, IndianRupee, RefreshCw, Loader2, AlertCircle, X, Smartphone, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { BillingService } from '../services/billingService';
 import { Bill } from '../types/billing';
 import { getPharmacyId } from '../config/development';
 import OfflineBillForm from '../components/billing/OfflineBillForm';
-
 import { printBill } from '../utils/printUtils';
 import { sendWhatsAppBill } from '../utils/whatsappUtils';
+import { AudioAlert } from '../utils/audioAlertService';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -27,10 +27,12 @@ export default function Billing() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newBillAlert, setNewBillAlert] = useState<string | null>(null);
 
   const [pharmacyName, setPharmacyName] = useState('K.Y Pharmacy');
   const [whatsAppModalBill, setWhatsAppModalBill] = useState<Bill | null>(null);
   const [manualPhone, setManualPhone] = useState('');
+  const previousBillIdsRef = useRef<Set<number>>(new Set());
 
   const fetchBillingData = async (isBackground = false) => {
     try {
@@ -38,7 +40,20 @@ export default function Billing() {
       else setRefreshing(true);
 
       const billsData = await BillingService.getPharmacyBills(getPharmacyId());
-      setBills(billsData);
+      
+      if (Array.isArray(billsData)) {
+        // Detect newly arrived bills (e.g. from Mobile app)
+        if (previousBillIdsRef.current.size > 0) {
+          const newlyAdded = billsData.filter(b => !previousBillIdsRef.current.has(b.id));
+          if (newlyAdded.length > 0) {
+            AudioAlert.playBarcodeBeep();
+            setNewBillAlert(`✓ New Bill (${newlyAdded[0].billNumber} - ₹${newlyAdded[0].total}) received from Mobile POS!`);
+            setTimeout(() => setNewBillAlert(null), 5000);
+          }
+        }
+        previousBillIdsRef.current = new Set(billsData.map(b => b.id));
+        setBills(billsData);
+      }
       setError(null);
     } catch (err: any) {
       if (!isBackground) setError(err.message || 'Failed to load billing data');
@@ -59,11 +74,18 @@ export default function Billing() {
 
     fetchBillingData();
 
+    // Live 3.5s auto-refresh so mobile bills show up one by one in real-time
     const intervalId = setInterval(() => {
       fetchBillingData(true);
-    }, 15000);
+    }, 3500);
 
-    return () => clearInterval(intervalId);
+    const handleFocus = () => fetchBillingData(true);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const handleBillCreated = () => {
@@ -162,15 +184,37 @@ export default function Billing() {
           {/* Right Column: Recent Finalized Bills */}
           <motion.div variants={itemVariants} className="xl:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col h-full min-h-[500px] relative overflow-hidden group hover:shadow-md transition-shadow">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110 pointer-events-none"></div>
-            <div className="flex justify-between items-center mb-6 relative z-10">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center">
-                <Receipt className="w-6 h-6 mr-3 text-emerald-500" />
-                Recent Bills
-              </h2>
+            <div className="flex justify-between items-center mb-4 relative z-10">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 flex items-center">
+                  <Receipt className="w-6 h-6 mr-3 text-emerald-500" />
+                  Recent Bills
+                </h2>
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-emerald-600 font-bold">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span>Live Mobile Sync Active</span>
+                </div>
+              </div>
               <span className="bg-emerald-100 text-emerald-700 py-1.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider">
                 {bills.length} Bills
               </span>
             </div>
+
+            {newBillAlert && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="mb-4 p-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-2xl font-bold text-xs flex items-center shadow-lg border border-emerald-400"
+              >
+                <Smartphone className="w-4 h-4 mr-2 shrink-0 animate-bounce" />
+                <span className="flex-1">{newBillAlert}</span>
+                <CheckCircle2 className="w-4 h-4 ml-1 text-emerald-200" />
+              </motion.div>
+            )}
             
             <div className="flex-1 overflow-auto pr-2 custom-scrollbar relative z-10">
               {bills.length === 0 ? (
@@ -182,16 +226,24 @@ export default function Billing() {
                 </div>
               ) : (
                 <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
-                  {bills.map(bill => (
-                    <motion.div variants={itemVariants} whileHover={{ y: -2 }} key={bill.id} className="bg-slate-50/50 border border-slate-100 rounded-2xl p-5 hover:border-emerald-200 hover:bg-emerald-50/30 hover:shadow-md transition-all flex flex-col gap-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <h3 className="font-extrabold text-slate-800 text-base">{bill.billNumber}</h3>
-                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700">
-                              POS
-                            </span>
-                          </div>
+                  {bills.map(bill => {
+                    const isRecent = (Date.now() - new Date(bill.createdAt).getTime()) < 180000;
+                    return (
+                      <motion.div variants={itemVariants} whileHover={{ y: -2 }} key={bill.id} className={`bg-slate-50/50 border ${isRecent ? 'border-emerald-400 bg-emerald-50/40 shadow-sm' : 'border-slate-100'} rounded-2xl p-5 hover:border-emerald-200 hover:bg-emerald-50/30 hover:shadow-md transition-all flex flex-col gap-4`}>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <h3 className="font-extrabold text-slate-800 text-base">{bill.billNumber}</h3>
+                              {isRecent ? (
+                                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-emerald-600 text-white flex items-center gap-1 shadow-sm">
+                                  <Sparkles className="w-3 h-3" /> Just Synced
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700">
+                                  POS
+                                </span>
+                              )}
+                            </div>
                           <div className="flex items-center text-sm font-semibold text-slate-600 mb-1">
                             <User className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
                             {bill.customerName}

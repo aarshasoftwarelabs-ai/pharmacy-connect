@@ -41,7 +41,7 @@ export class BillingController {
 
   static async getPharmacyBills(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user!.pharmacyId;
+      const pharmacyId = Number(req.params.pharmacyId) || (req as any).user?.pharmacyId || Number(req.query.pharmacyId) || 1;
 
       const result = await BillingService.getPharmacyBills(pharmacyId);
       
@@ -56,7 +56,7 @@ export class BillingController {
 
   static async createBill(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const pharmacyId = (req as any).user?.pharmacyId || Number(req.body.pharmacyId) || Number(req.body.pharmacy_id) || 1;
       const { 
         medicineRequestId, 
         userId, 

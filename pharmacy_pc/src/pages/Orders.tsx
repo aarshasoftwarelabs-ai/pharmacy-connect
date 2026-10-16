@@ -44,6 +44,29 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders();
+
+    // Fast 4s auto-sync for live mobile billing updates
+    const intervalId = setInterval(() => {
+      BillingService.getPharmacyBills(getPharmacyId())
+        .then(data => {
+          if (Array.isArray(data)) setOrders(data);
+        })
+        .catch(() => {});
+    }, 4000);
+
+    const handleFocus = () => {
+      BillingService.getPharmacyBills(getPharmacyId())
+        .then(data => {
+          if (Array.isArray(data)) setOrders(data);
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // Stats

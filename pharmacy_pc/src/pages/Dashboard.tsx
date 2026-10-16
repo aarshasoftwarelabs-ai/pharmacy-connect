@@ -84,8 +84,15 @@ export default function Dashboard() {
     fetchDashboardData();
     const intervalId = setInterval(() => {
       fetchDashboardData(true);
-    }, 30000);
-    return () => clearInterval(intervalId);
+    }, 6000);
+
+    const handleFocus = () => fetchDashboardData(true);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // Compute stats

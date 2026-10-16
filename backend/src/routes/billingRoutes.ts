@@ -12,6 +12,7 @@ router.get('/pharmacy/:pharmacyId/queue', requirePermission('BILLING_VIEW'), Bil
 
 // Get all bills for a pharmacy
 router.get('/pharmacy/:pharmacyId', requirePermission('BILLING_VIEW'), BillingController.getPharmacyBills);
+router.get('/', requirePermission('BILLING_VIEW'), BillingController.getPharmacyBills);
 
 // Get a single bill by ID
 router.get('/:billId', requirePermission('BILLING_VIEW'), BillingController.getBillById);
