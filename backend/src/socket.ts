@@ -20,6 +20,14 @@ export const initializeSocket = (server: HttpServer) => {
       console.log(`Pharmacy ${pharmacyId} joined their socket room.`);
     });
 
+    // Relay mobile scans directly to the PC POS counter
+    socket.on('mobile_scan_item', (data: any) => {
+      if (data && data.pharmacyId) {
+        io.to(`pharmacy_${data.pharmacyId}`).emit('mobile_item_scanned', data);
+        console.log(`📡 Relayed mobile scan (${data.medicineName}) to pharmacy_${data.pharmacyId}`);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`🔌 Client disconnected from Socket: ${socket.id}`);
     });

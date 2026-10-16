@@ -299,7 +299,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           SnackBar(
                             backgroundColor: AppColors.success,
                             duration: const Duration(milliseconds: 900),
-                            content: Text('Added $quantity x ${medicine.name} to Bill'),
+                            content: Text('✓ Added $quantity x ${medicine.name} & Synced to PC POS 💻'),
                           ),
                         );
                       },

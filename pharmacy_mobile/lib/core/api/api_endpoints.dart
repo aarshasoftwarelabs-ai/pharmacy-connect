@@ -37,6 +37,8 @@ class ApiEndpoints {
   // Billing / POS
   static String get bills => '$baseUrl/billing';
   static String get createBill => '$baseUrl/billing';
+  static String get liveScanItem => '$baseUrl/billing/live-scan';
+  static String pendingScans(int pharmacyId) => '$baseUrl/billing/pending-scans/$pharmacyId';
 
   // Dashboard / Reports
   static String get dashboardSummary => '$baseUrl/reports/dashboard';

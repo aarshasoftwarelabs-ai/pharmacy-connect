@@ -80,6 +80,39 @@ class BillingProvider extends ChangeNotifier {
       _cartItems.add(CartItemModel(medicine: medicine, quantity: quantity));
     }
     notifyListeners();
+
+    // Auto-sync item to PC POS Counter in real-time
+    syncScannedItemToPc(medicine, quantity: quantity);
+  }
+
+  Future<void> syncScannedItemToPc(MedicineModel medicine, {int quantity = 1}) async {
+    try {
+      final pharmacyData = StorageService.getPharmacy();
+      final userData = StorageService.getUser();
+      final int effectivePharmacyId = int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
+          int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
+          int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
+          1;
+
+      final String userName = userData?['name']?.toString() ?? 'Mobile App';
+
+      final payload = {
+        'pharmacy_id': effectivePharmacyId,
+        'pharmacyId': effectivePharmacyId,
+        'medicineName': medicine.name,
+        'quantity': quantity,
+        'unitPrice': medicine.sellingPrice,
+        'barcode': medicine.barcode ?? '',
+        'hsnCode': '30049099',
+        'gstRate': 5.0,
+        'mrp': medicine.mrp,
+        'scannedBy': userName,
+      };
+
+      await ApiService.post(ApiEndpoints.liveScanItem, payload);
+    } catch (e) {
+      debugPrint('Live scan sync to PC error: $e');
+    }
   }
 
   void updateQuantity(String medicineId, int newQuantity) {

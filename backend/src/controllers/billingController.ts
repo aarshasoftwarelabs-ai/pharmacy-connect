@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { BillingService } from '../services/billingService';
 import { ApiError } from '../middleware/errorHandler';
+import { liveScanService } from '../services/liveScanService';
 
 export class BillingController {
   
@@ -248,6 +249,84 @@ If any field cannot be found, use null or 0.`;
         message: 'Delivery assignment updated successfully',
         data: updatedBill
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mobile to PC Real-Time Wireless Scanner Methods
+  // ---------------------------------------------------------------------------
+  static async pushLiveScan(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = Number(req.body.pharmacyId || req.body.pharmacy_id || (req as any).user?.pharmacyId || 1);
+      const { medicineName, quantity, unitPrice, barcode, hsnCode, gstRate, mrp, scannedBy } = req.body;
+
+      if (!medicineName) {
+        return res.status(400).json({ success: false, message: 'medicineName is required' });
+      }
+
+      const scanItem = liveScanService.addScan({
+        pharmacyId,
+        medicineName,
+        quantity: Math.max(1, Number(quantity || 1)),
+        unitPrice: Math.max(0, Number(unitPrice || 0)),
+        barcode: barcode ? String(barcode).trim() : undefined,
+        hsnCode: hsnCode || '30049099',
+        gstRate: Number(gstRate ?? 5),
+        mrp: Number(mrp ?? 0),
+        scannedBy: scannedBy || 'Mobile Staff/Owner'
+      });
+
+      // Instantly broadcast via Socket.io to PC POS
+      try {
+        const { getIo } = require('../socket');
+        const io = getIo();
+        io.to(`pharmacy_${pharmacyId}`).emit('mobile_item_scanned', scanItem);
+      } catch (err) {
+        // Socket may not be initialized in non-server tests
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Item pushed to PC POS Cart successfully',
+        data: scanItem
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getPendingScans(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = Number(req.params.pharmacyId || req.query.pharmacyId || (req as any).user?.pharmacyId || 1);
+      const since = req.query.since ? Number(req.query.since) : undefined;
+      const scans = liveScanService.getPendingScans(pharmacyId, since);
+      res.json({
+        success: true,
+        data: scans
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async acknowledgeScan(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = Number(req.params.pharmacyId);
+      const scanId = req.params.scanId;
+      liveScanService.acknowledgeScan(pharmacyId, scanId);
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async clearPendingScans(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = Number(req.params.pharmacyId);
+      liveScanService.clearPharmacyCart(pharmacyId);
+      res.json({ success: true });
     } catch (error) {
       next(error);
     }

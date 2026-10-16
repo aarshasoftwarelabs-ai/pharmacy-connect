@@ -500,7 +500,7 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
                               ),
                               const SizedBox(width: 7),
                               Text(
-                                widget.returnCodeOnly ? 'Barcode Scanner' : 'AI Barcode Scanner',
+                                widget.returnCodeOnly ? 'Barcode Scanner' : 'PC POS Live Scanner 💻',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 13,
@@ -704,7 +704,7 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: const Text(
-                                        '+1 in Bill',
+                                        '+1 in Bill & PC Counter 💻',
                                         style: TextStyle(color: Color(0xFF38BDF8), fontSize: 10.5, fontWeight: FontWeight.bold),
                                       ),
                                     ),

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText, Barcode, CheckCircle, AlertTriangle, Camera, Scan, Search, Video } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText, Barcode, CheckCircle, AlertTriangle, Camera, Scan, Search, Video, Smartphone } from 'lucide-react';
 import { BillingService } from '../../services/billingService';
 import { getPharmacyId } from '../../config/development';
 import { Bill } from '../../types/billing';
@@ -8,6 +8,7 @@ import { Medicine } from '../../types/medicine';
 import { fetchMedicines, lookupMedicineByBarcode } from '../../services/medicineService';
 import MedicineSearchDropdown from '../ui/MedicineSearchDropdown';
 import { AudioAlert } from '../../utils/audioAlertService';
+import { io } from 'socket.io-client';
 
 interface Props {
   onSuccess: () => void;
@@ -44,9 +45,108 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const [barcodeStatus, setBarcodeStatus] = useState<{ type: 'success' | 'error' | 'idle'; message: string } | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
+  // Real-Time Mobile Barcode Scanner Alert
+  const [mobileScanAlert, setMobileScanAlert] = useState<{
+    medicineName: string;
+    quantity: number;
+    unitPrice: number;
+    scannedBy: string;
+  } | null>(null);
+  const processedScanIdsRef = useRef<Set<string>>(new Set());
+
+  const handleIncomingMobileScan = useCallback((scanItem: any) => {
+    if (!scanItem || !scanItem.medicineName) return;
+
+    AudioAlert.playBarcodeBeep();
+    setMobileScanAlert({
+      medicineName: scanItem.medicineName,
+      quantity: scanItem.quantity || 1,
+      unitPrice: Number(scanItem.unitPrice || 0),
+      scannedBy: scanItem.scannedBy || 'Mobile Staff/Owner'
+    });
+    setTimeout(() => setMobileScanAlert(null), 4500);
+
+    setItems(prevItems => {
+      const scannedName = scanItem.medicineName.trim().toLowerCase();
+      const scannedBarcode = scanItem.barcode ? String(scanItem.barcode).trim().toLowerCase() : '';
+
+      // Check if this item already exists in the cart
+      const existingIdx = prevItems.findIndex(it => {
+        const itemLower = it.medicineName.trim().toLowerCase();
+        return itemLower === scannedName || (scannedBarcode && it.hsnCode === scannedBarcode);
+      });
+
+      if (existingIdx !== -1) {
+        const updated = [...prevItems];
+        updated[existingIdx].quantity += (scanItem.quantity || 1);
+        return updated;
+      }
+
+      const newItem = {
+        medicineName: scanItem.medicineName,
+        quantity: scanItem.quantity || 1,
+        unitPrice: Number(scanItem.unitPrice || 0),
+        hsnCode: scanItem.hsnCode || '30049099',
+        gstRate: Number(scanItem.gstRate ?? 5)
+      };
+
+      // If the only item in the cart is the empty placeholder row, replace it
+      if (prevItems.length === 1 && !prevItems[0].medicineName.trim()) {
+        return [newItem];
+      }
+
+      return [...prevItems, newItem];
+    });
+  }, []);
+
   useEffect(() => {
     fetchMedicines().then(setCatalogue).catch(console.error);
-  }, []);
+
+    // Setup live socket connection to listen for mobile scans
+    const pharmacyId = getPharmacyId();
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://pharmacy-backend-e210.onrender.com';
+    const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
+
+    socket.on('connect', () => {
+      socket.emit('join_pharmacy', pharmacyId.toString());
+    });
+
+    socket.on('mobile_item_scanned', (scanItem: any) => {
+      if (scanItem && Number(scanItem.pharmacyId) === Number(pharmacyId)) {
+        if (scanItem.id) {
+          if (processedScanIdsRef.current.has(scanItem.id)) return;
+          processedScanIdsRef.current.add(scanItem.id);
+        }
+        handleIncomingMobileScan(scanItem);
+      }
+    });
+
+    // Secondary resilient polling fallback: checks pending mobile scans every 2 seconds
+    const pollPendingScans = async () => {
+      try {
+        const pending = await BillingService.getPendingLiveScans(pharmacyId);
+        if (Array.isArray(pending) && pending.length > 0) {
+          for (const scan of pending) {
+            if (scan && scan.id && !processedScanIdsRef.current.has(scan.id)) {
+              processedScanIdsRef.current.add(scan.id);
+              handleIncomingMobileScan(scan);
+              BillingService.acknowledgeLiveScan(pharmacyId, scan.id);
+            }
+          }
+        }
+      } catch (e) {
+        // Silent background sync
+      }
+    };
+
+    const intervalId = setInterval(pollPendingScans, 2000);
+    pollPendingScans();
+
+    return () => {
+      socket.disconnect();
+      clearInterval(intervalId);
+    };
+  }, [handleIncomingMobileScan]);
 
   const handleBarcodeScan = (rawCode: string) => {
     const code = rawCode.trim();
@@ -525,6 +625,21 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
         {/* Barcode & QR Scanner Bar */}
         <div className="mb-5 p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200 rounded-2xl shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Barcode className="w-3.5 h-3.5 text-emerald-600" />
+              Scan Barcode / SKU
+            </span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100/90 border border-emerald-300 text-emerald-800 text-[11px] font-bold shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <Smartphone className="w-3 h-3 text-emerald-700" />
+              <span>Mobile Scanner Live Linked</span>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex-1 flex items-center gap-2">
               <button
@@ -589,8 +704,35 @@ export default function OfflineBillForm({ onSuccess }: Props) {
         </div>
 
         <div className="flex-1 min-h-[250px]">
+          {/* Live Mobile Scan Banner Alert */}
+          {mobileScanAlert && (
+            <div className="mb-3.5 p-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white rounded-2xl shadow-lg border border-emerald-400 flex items-center justify-between animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Smartphone className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-emerald-200 font-extrabold flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" /> Scanned from Mobile by {mobileScanAlert.scannedBy}
+                  </div>
+                  <div className="text-sm font-bold">
+                    {mobileScanAlert.medicineName} <span className="text-emerald-200 font-semibold">× {mobileScanAlert.quantity} (₹{mobileScanAlert.unitPrice.toFixed(2)})</span>
+                  </div>
+                </div>
+              </div>
+              <span className="text-xs font-bold px-3 py-1.5 bg-white text-emerald-700 rounded-xl shadow-sm shrink-0">
+                Added to Bill ✓
+              </span>
+            </div>
+          )}
+
           <div className="flex justify-between items-center mb-3">
-            <h4 className="text-sm font-bold text-slate-800">Cart Items</h4>
+            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              Cart Items
+              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                {items.filter(it => it.medicineName.trim()).length} Items
+              </span>
+            </h4>
             
             <div className="flex items-center gap-3">
               <button 

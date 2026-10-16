@@ -109,4 +109,40 @@ export class BillingService {
 
     return resData.data;
   }
+
+  /**
+   * Fetch any pending barcode items scanned from mobile phones
+   */
+  static async getPendingLiveScans(pharmacyId: number): Promise<any[]> {
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/billing/pending-scans/${pharmacyId}`);
+      if (!response.ok) return [];
+      const res = await response.json();
+      return Array.isArray(res.data) ? res.data : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Acknowledge that a scanned item has been added into PC POS cart
+   */
+  static async acknowledgeLiveScan(pharmacyId: number, scanId: string): Promise<void> {
+    try {
+      await apiFetch(`${API_BASE_URL}/billing/pending-scans/${pharmacyId}/${scanId}`, {
+        method: 'DELETE'
+      });
+    } catch {}
+  }
+
+  /**
+   * Clear all pending scans for a pharmacy
+   */
+  static async clearPendingLiveScans(pharmacyId: number): Promise<void> {
+    try {
+      await apiFetch(`${API_BASE_URL}/billing/pending-scans/${pharmacyId}`, {
+        method: 'DELETE'
+      });
+    } catch {}
+  }
 }
