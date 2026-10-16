@@ -1286,7 +1286,8 @@ class InventoryScreen extends StatelessWidget {
                           final stock = int.tryParse(stockCtrl.text) ?? 10;
 
                           Navigator.pop(ctx);
-                          final ok = await context.read<InventoryProvider>().addMedicine(
+                          final inv = context.read<InventoryProvider>();
+                          final ok = await inv.addMedicine(
                                 name: nameCtrl.text.trim(),
                                 genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
                                 category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'General',
@@ -1302,7 +1303,7 @@ class InventoryScreen extends StatelessWidget {
                               SnackBar(
                                 content: Text(ok 
                                   ? '✓ Added ${nameCtrl.text.trim()} to inventory!' 
-                                  : 'Failed to add medicine. Please try again.'),
+                                  : (inv.errorMessage ?? 'Failed to add medicine. Please try again.')),
                                 backgroundColor: ok ? const Color(0xFF059669) : Colors.red,
                               ),
                             );

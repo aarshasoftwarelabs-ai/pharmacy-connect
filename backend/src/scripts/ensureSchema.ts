@@ -4,13 +4,57 @@ export const ensureSchema = async () => {
   try {
     console.log('🔄 Ensuring required database schema (barcode, delivery, returns)...');
 
-    // 1. Barcode columns
+    // 1. Medicines & Medicine Batches Schema Integrity
     await pool.query(`
+      -- Ensure medicines table columns
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS mrp NUMERIC(10,2) DEFAULT 0;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS hsn_code VARCHAR(50) DEFAULT '30049099';
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS gst_rate NUMERIC(5,2) DEFAULT 12;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS manufacturer VARCHAR(255);
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS expiry_date DATE;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS image_url TEXT;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS dosage_form VARCHAR(100);
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS pack_size VARCHAR(100);
+      
+      -- Drop obsolete global unique constraint on SKU so pharmacies can add items freely
+      ALTER TABLE medicines DROP CONSTRAINT IF EXISTS medicines_sku_key;
+      ALTER TABLE medicines ALTER COLUMN sku DROP NOT NULL;
+
       CREATE INDEX IF NOT EXISTS idx_medicines_barcode ON medicines(barcode);
+      CREATE INDEX IF NOT EXISTS idx_medicines_pharmacy ON medicines(pharmacy_id);
+
+      -- Ensure medicine_batches table exists and has all required columns
+      CREATE TABLE IF NOT EXISTS medicine_batches (
+          id SERIAL PRIMARY KEY,
+          medicine_id INTEGER NOT NULL REFERENCES medicines(id) ON DELETE CASCADE,
+          pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+          batch_number VARCHAR(100) NOT NULL,
+          expiry_date DATE NOT NULL,
+          mrp NUMERIC(10,2) NOT NULL DEFAULT 0,
+          purchase_price NUMERIC(10,2) NOT NULL DEFAULT 0,
+          stock INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(medicine_id, pharmacy_id, batch_number)
+      );
 
       ALTER TABLE medicine_batches ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
+      ALTER TABLE medicine_batches ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 0;
+      ALTER TABLE medicine_batches ADD COLUMN IF NOT EXISTS available_quantity INTEGER DEFAULT 0;
+      ALTER TABLE medicine_batches ADD COLUMN IF NOT EXISTS selling_price NUMERIC(10,2) DEFAULT 0;
+      ALTER TABLE medicine_batches ADD COLUMN IF NOT EXISTS mrp NUMERIC(10,2) DEFAULT 0;
+      ALTER TABLE medicine_batches ADD COLUMN IF NOT EXISTS purchase_price NUMERIC(10,2) DEFAULT 0;
+      ALTER TABLE medicine_batches ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0;
+
       CREATE INDEX IF NOT EXISTS idx_medicine_batches_barcode ON medicine_batches(barcode);
+      CREATE INDEX IF NOT EXISTS idx_medicine_batches_med ON medicine_batches(medicine_id);
+      CREATE INDEX IF NOT EXISTS idx_medicine_batches_pharmacy ON medicine_batches(pharmacy_id);
+
+      -- Sync quantity & stock columns
+      UPDATE medicine_batches SET available_quantity = stock WHERE (available_quantity = 0 OR available_quantity IS NULL) AND stock > 0;
+      UPDATE medicine_batches SET quantity = stock WHERE (quantity = 0 OR quantity IS NULL) AND stock > 0;
+      UPDATE medicine_batches SET stock = available_quantity WHERE stock = 0 AND available_quantity > 0;
     `);
 
     // 2. Delivery assignment columns on bills

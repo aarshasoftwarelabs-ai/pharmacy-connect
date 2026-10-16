@@ -37,14 +37,14 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
 
     // Enforce Pharmacy Isolation for STAFF/OWNER
     if (decoded.role !== 'USER' && decoded.pharmacyId) {
-      if (req.params.pharmacyId && parseInt(req.params.pharmacyId) !== decoded.pharmacyId) {
-        return res.status(403).json({ success: false, message: 'Forbidden: Cannot access data for a different pharmacy' });
+      if (req.body && typeof req.body === 'object') {
+        req.body.pharmacyId = decoded.pharmacyId;
       }
-      if (req.body.pharmacyId && parseInt(req.body.pharmacyId) !== decoded.pharmacyId) {
-        return res.status(403).json({ success: false, message: 'Forbidden: Cannot modify data for a different pharmacy' });
+      if (req.params.pharmacyId && parseInt(req.params.pharmacyId) !== decoded.pharmacyId) {
+        req.params.pharmacyId = String(decoded.pharmacyId);
       }
       if (req.query.pharmacyId && parseInt(req.query.pharmacyId as string) !== decoded.pharmacyId) {
-        return res.status(403).json({ success: false, message: 'Forbidden: Cannot query data for a different pharmacy' });
+        req.query.pharmacyId = String(decoded.pharmacyId);
       }
     }
 

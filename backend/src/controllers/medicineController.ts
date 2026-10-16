@@ -27,9 +27,9 @@ export class MedicineController {
 
   static async createMedicine(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const pharmacyId = (req as any).user?.pharmacyId || req.body?.pharmacyId || 1;
       const medicine = await MedicineService.createMedicine(pharmacyId, req.body);
-      res.json(medicine);
+      res.status(201).json({ success: true, ...medicine });
     } catch (error) {
       next(error);
     }
@@ -37,14 +37,14 @@ export class MedicineController {
 
   static async updateMedicine(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const pharmacyId = (req as any).user?.pharmacyId || req.body?.pharmacyId || 1;
       const medicineId = parseInt(req.params.id);
       const medicine = await MedicineService.updateMedicine(medicineId, pharmacyId, req.body);
       if (!medicine) {
         res.status(404).json({ success: false, message: 'Medicine not found' });
         return;
       }
-      res.json(medicine);
+      res.json({ success: true, ...medicine });
     } catch (error) {
       next(error);
     }

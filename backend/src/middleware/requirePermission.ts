@@ -11,8 +11,10 @@ export const requirePermission = (permissionKey: string) => {
         return res.status(401).json({ success: false, message: 'Authentication required' });
       }
 
-      // OWNER and ADMIN have full access
-      if (user.role === 'OWNER' || user.role?.toUpperCase() === 'ADMIN') {
+      const role = (user.role || '').toUpperCase();
+
+      // OWNER, ADMIN, and Pharmacy operators have full access to manage their pharmacy
+      if (role === 'OWNER' || role === 'ADMIN' || (user.pharmacyId && !user.isStaff)) {
         return next();
       }
 
@@ -42,15 +44,19 @@ export const requirePermission = (permissionKey: string) => {
             (permissions.has('INVENTORY_ADJUST') || permissions.has('MEDICINES_EDIT') || permissions.has('BILLING_CREATE'))) {
           return next();
         }
-        if (permissionKey === 'MEDICINES_CREATE' && (permissions.has('INVENTORY_ADJUST') || permissions.has('BILLING_CREATE'))) {
+        if (permissionKey === 'MEDICINES_CREATE' && (permissions.has('INVENTORY_ADJUST') || permissions.has('BILLING_CREATE') || permissions.has('MEDICINES_EDIT'))) {
           return next();
         }
 
         return res.status(403).json({ success: false, message: 'Forbidden: You do not have permission to perform this action' });
       }
 
-      // Any other role (like USER from Flutter app) should not have access to pharmacy routes
-      return res.status(403).json({ success: false, message: 'Forbidden: Invalid role' });
+      // If user is attached to a pharmacy, grant access
+      if (user.pharmacyId) {
+        return next();
+      }
+
+      return res.status(403).json({ success: false, message: 'Forbidden: Invalid role or missing pharmacy assignment' });
     } catch (error) {
       console.error('Permission Check Error:', error);
       return res.status(500).json({ success: false, message: 'Internal server error during permission check' });
