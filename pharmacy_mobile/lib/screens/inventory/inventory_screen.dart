@@ -16,8 +16,6 @@ class InventoryScreen extends StatelessWidget {
     final billing = context.watch<BillingProvider>();
     final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
 
-    final categories = ['All', 'Analgesics', 'Antibiotics', 'Antacids', 'Antihistamines', 'General'];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -73,109 +71,42 @@ class InventoryScreen extends StatelessWidget {
           // KPI Metric Glance Bar
           _buildKpiBar(context, inventory),
 
-          // Search & Filter Box Container
+          // Search Box Container
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: Column(
-              children: [
-                // Modern Search Field with Camera Scanner
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: TextField(
-                    onChanged: inventory.setSearchQuery,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                    decoration: InputDecoration(
-                      hintText: 'Search medicine, generic, or barcode...',
-                      hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.normal),
-                      prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (inventory.searchQuery.isNotEmpty)
-                            IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
-                              onPressed: () => inventory.setSearchQuery(''),
-                            ),
-                          IconButton(
-                            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
-                            tooltip: 'Scan Barcode with Camera',
-                            onPressed: () => CameraBarcodeScannerScreen.open(context),
-                          ),
-                        ],
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Modern Category Filter Capsules
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: categories.map((cat) {
-                      final isSelected = inventory.selectedCategory == cat;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: InkWell(
-                          onTap: () => inventory.setSelectedCategory(cat),
-                          borderRadius: BorderRadius.circular(20),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                            decoration: BoxDecoration(
-                              gradient: isSelected
-                                  ? const LinearGradient(
-                                      colors: [Color(0xFF0D9488), Color(0xFF059669)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    )
-                                  : null,
-                              color: isSelected ? null : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0),
-                              ),
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: AppColors.primary.withValues(alpha: 0.28),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isSelected) ...[
-                                  const Icon(Icons.check_rounded, color: Colors.white, size: 13),
-                                  const SizedBox(width: 4),
-                                ],
-                                Text(
-                                  cat,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                    color: isSelected ? Colors.white : AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: TextField(
+                onChanged: inventory.setSearchQuery,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  hintText: 'Search medicine, generic, or barcode...',
+                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.normal),
+                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (inventory.searchQuery.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+                          onPressed: () => inventory.setSearchQuery(''),
                         ),
-                      );
-                    }).toList(),
+                      IconButton(
+                        icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                        tooltip: 'Scan Barcode with Camera',
+                        onPressed: () => CameraBarcodeScannerScreen.open(context),
+                      ),
+                    ],
                   ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
-              ],
+              ),
             ),
           ),
 
