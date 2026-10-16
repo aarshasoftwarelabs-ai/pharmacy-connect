@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
@@ -59,10 +61,10 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
 
     _laserAnimCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1600),
     )..repeat(reverse: true);
 
-    _laserAnimation = Tween<double>(begin: 0.05, end: 0.95).animate(
+    _laserAnimation = Tween<double>(begin: 0.08, end: 0.92).animate(
       CurvedAnimation(parent: _laserAnimCtrl, curve: Curves.easeInOut),
     );
   }
@@ -91,6 +93,10 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
 
       _lastScannedCode = rawCode;
       _lastScanTimestamp = now;
+
+      // Haptic feedback & click sound on barcode read
+      HapticFeedback.mediumImpact();
+      SystemSound.play(SystemSoundType.click);
 
       if (widget.returnCodeOnly) {
         Navigator.pop(context, rawCode);
@@ -134,6 +140,8 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
             Icon(Icons.keyboard_alt_outlined, color: AppColors.primary),
@@ -146,17 +154,23 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'If camera cannot read damaged barcode, enter barcode number or item name manually:',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              'Enter the medicine barcode number or name to search & add:',
+              style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             TextField(
               controller: textCtrl,
               autofocus: true,
               keyboardType: TextInputType.text,
-              decoration: const InputDecoration(
-                hintText: 'e.g. 8901234567890 or Paracetamol',
-                prefixIcon: Icon(Icons.qr_code_rounded),
+              decoration: InputDecoration(
+                hintText: 'e.g. 890123456789 or Paracetamol',
+                prefixIcon: const Icon(Icons.qr_code_rounded, color: AppColors.primary),
+                filled: true,
+                fillColor: const Color(0xFFF1F5F9),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
               onSubmitted: (val) {
                 final code = val.trim();
@@ -186,7 +200,12 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
                 }
               }
             },
-            child: Text(widget.returnCodeOnly ? 'Use Barcode' : 'Add to Bill'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(widget.returnCodeOnly ? 'Use Code' : 'Add to Bill'),
           ),
         ],
       ),
@@ -196,13 +215,13 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
   @override
   Widget build(BuildContext context) {
     final billing = context.watch<BillingProvider>();
-    final inventory = context.watch<InventoryProvider>();
     final screenWidth = MediaQuery.of(context).size.width;
-    final scanBoxSize = screenWidth * 0.72;
+    final scanBoxSize = screenWidth * 0.74;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
+        fit: StackFit.expand,
         children: [
           // 1. Live Camera Feed
           MobileScanner(
@@ -240,7 +259,36 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
             },
           ),
 
-          // 2. Viewfinder Reticle & Glowing Laser Line Overlay
+          // 2. High-Tech Dark Frosted Vignette with Viewfinder Cutout
+          ColorFiltered(
+            colorFilter: ColorFilter.mode(
+              Colors.black.withValues(alpha: 0.48),
+              BlendMode.srcOut,
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    backgroundBlendMode: BlendMode.dstOut,
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    width: scanBoxSize,
+                    height: scanBoxSize,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 3. Futuristic Laser Scanner Frame Overlay
           Center(
             child: SizedBox(
               width: scanBoxSize,
@@ -248,57 +296,96 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Corner markers
+                  // Subtle guide border
                   Container(
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1.5),
-                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        width: 1.2,
+                      ),
+                      borderRadius: BorderRadius.circular(22),
                     ),
                   ),
 
-                  // 4 Corner Brackets
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    child: _buildCorner(isTop: true, isLeft: true),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: _buildCorner(isTop: true, isLeft: false),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    child: _buildCorner(isTop: false, isLeft: true),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: _buildCorner(isTop: false, isLeft: false),
+                  // Center target crosshair
+                  Icon(
+                    Icons.add_rounded,
+                    size: 26,
+                    color: Colors.white.withValues(alpha: 0.25),
                   ),
 
-                  // Animated Scanning Laser Line
+                  // 4 Glowing Neon Corner Brackets
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    child: _buildCornerBracket(isTop: true, isLeft: true),
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: _buildCornerBracket(isTop: true, isLeft: false),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    child: _buildCornerBracket(isTop: false, isLeft: true),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: _buildCornerBracket(isTop: false, isLeft: false),
+                  ),
+
+                  // Animated Neon Laser Line with Gradient Aura
                   AnimatedBuilder(
                     animation: _laserAnimation,
                     builder: (context, child) {
                       return Positioned(
                         top: scanBoxSize * _laserAnimation.value,
-                        left: 12,
-                        right: 12,
-                        child: Container(
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981), // Emerald bright laser
-                            borderRadius: BorderRadius.circular(2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.95),
-                                blurRadius: 12,
-                                spreadRadius: 3,
+                        left: 8,
+                        right: 8,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Glowing aura
+                            Container(
+                              height: 12,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    const Color(0xFF10B981).withValues(alpha: 0.35),
+                                    const Color(0xFF34D399).withValues(alpha: 0.6),
+                                    const Color(0xFF10B981).withValues(alpha: 0.35),
+                                    Colors.transparent,
+                                  ],
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                            // Bright center laser line
+                            Container(
+                              height: 3,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    Color(0xFF10B981),
+                                    Color(0xFF6EE7B7),
+                                    Color(0xFF10B981),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF10B981).withValues(alpha: 0.9),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -308,290 +395,435 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
             ),
           ),
 
-          // 3. Header Controls (Flashlight, Camera switch, Back)
+          // 4. Floating Frosted Glass HUD Top Bar
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Back / Close Button
-                  CircleAvatar(
-                    backgroundColor: Colors.black.withValues(alpha: 0.5),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Back / Close Glass Circle
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
 
-                  // Center title pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    // Center Live AI Badge
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFF10B981),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0xFF10B981),
+                                      blurRadius: 6,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 7),
+                              Text(
+                                widget.returnCodeOnly ? 'Barcode Scanner' : 'AI Barcode Scanner',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Flash / Torch Glass Button
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: _isTorchOn
+                                ? const Color(0xFFD97706).withValues(alpha: 0.7)
+                                : Colors.black.withValues(alpha: 0.45),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _isTorchOn ? const Color(0xFFFDE68A) : Colors.white.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: IconButton(
+                            icon: Icon(
+                              _isTorchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                              color: _isTorchOn ? Colors.white : Colors.white70,
+                              size: 22,
+                            ),
+                            tooltip: 'Flashlight',
+                            onPressed: () async {
+                              await _scannerController.toggleTorch();
+                              setState(() {
+                                _isTorchOn = !_isTorchOn;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 5. Instruction Pill floating above reticle
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.17,
+            left: 20,
+            right: 20,
+            child: Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.55),
+                      color: Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.camera_alt_rounded, color: Color(0xFF10B981), size: 16),
+                        const Icon(Icons.center_focus_strong_rounded, size: 14, color: Color(0xFF34D399)),
                         const SizedBox(width: 6),
                         Text(
-                          widget.returnCodeOnly ? 'Scan Medicine Barcode' : 'Live Camera Barcode Scanner',
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          widget.returnCodeOnly
+                              ? 'Align barcode inside the laser reticle'
+                              : 'Point camera at medicine barcode or QR',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
                   ),
-
-                  // Flashlight / Torch Button
-                  CircleAvatar(
-                    backgroundColor: Colors.black.withValues(alpha: 0.5),
-                    child: IconButton(
-                      icon: Icon(
-                        _isTorchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
-                        color: _isTorchOn ? Colors.amber : Colors.white,
-                      ),
-                      onPressed: () async {
-                        await _scannerController.toggleTorch();
-                        setState(() {
-                          _isTorchOn = !_isTorchOn;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // 4. Instructions Pill above reticle
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.22,
-            left: 20,
-            right: 20,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                ),
-                child: Text(
-                  widget.returnCodeOnly
-                      ? 'Point camera at medicine box or strip barcode'
-                      : 'Point camera at medicine barcode or QR code',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
           ),
 
-          // 5. Bottom Floating Card: Scanned Item Feedback & Live Cart Overview
+          // 6. Bottom Glassmorphic POS Overview & Scanned Feedback Drawer
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A), // Slate 900
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border.all(color: const Color(0xFF334155)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    blurRadius: 20,
-                    offset: const Offset(0, -6),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // A. Instant Scanned Item Card (if scanned)
-                    if (_lastScannedMedicine != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFF10B981)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 24),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _lastScannedMedicine!.name,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Barcode: ${_lastScannedCode ?? _lastScannedMedicine!.barcode} • Stock: ${_lastScannedMedicine!.stock}',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.65),
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  _currency.format(_lastScannedMedicine!.sellingPrice),
-                                  style: const TextStyle(
-                                    color: Color(0xFF10B981),
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                const Text(
-                                  '+1 in Cart',
-                                  style: TextStyle(color: Color(0xFF38BDF8), fontSize: 11, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.92), // Sleek Slate 900 Glass
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+                    border: Border.all(color: const Color(0xFF334155)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        blurRadius: 24,
+                        offset: const Offset(0, -8),
                       ),
-                      const SizedBox(height: 12),
-                    ] else if (_errorMessage != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF450A0A),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFEF4444)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 22),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: _showManualBarcodeDialog,
-                              child: const Text('Type Code', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
                     ],
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Grab handle bar
+                        Center(
+                          child: Container(
+                            width: 36,
+                            height: 3.5,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
 
-                    // B. Action Bar (Mode-aware)
-                    if (widget.returnCodeOnly)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => Navigator.pop(context),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white70,
-                                side: const BorderSide(color: Colors.white24),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              icon: const Icon(Icons.close_rounded, size: 18),
-                              label: const Text('Cancel'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _showManualBarcodeDialog,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF10B981),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              icon: const Icon(Icons.keyboard_alt_outlined, size: 18),
-                              label: const Text('Type Barcode', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ],
-                      )
-                    else
-                      // Realtime Cart Total & Actions Bar
-                      Row(
-                        children: [
-                          // Cart info
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'POS Cart (${billing.itemCount} items)',
-                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+                        // Instant Scanned Item Card (with item details & live count)
+                        if (_lastScannedMedicine != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFF10B981), width: 1.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _currency.format(billing.grandTotal),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981).withValues(alpha: 0.18),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
+                                  child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _lastScannedMedicine!.name,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14.5,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Stock: ${_lastScannedMedicine!.stock}  •  ${_lastScannedMedicine!.category ?? "Medicine"}',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(alpha: 0.65),
+                                          fontSize: 11.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      _currency.format(_lastScannedMedicine!.sellingPrice),
+                                      style: const TextStyle(
+                                        color: Color(0xFF34D399),
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0284C7).withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        '+1 in Bill',
+                                        style: TextStyle(color: Color(0xFF38BDF8), fontSize: 10.5, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
-
-                          // Manual entry button
-                          IconButton(
-                            tooltip: 'Type Barcode Manually',
-                            icon: const Icon(Icons.keyboard_alt_outlined, color: Colors.white70),
-                            onPressed: _showManualBarcodeDialog,
-                          ),
-                          const SizedBox(width: 8),
-
-                          // Done / Return to Bill button
-                          ElevatedButton.icon(
-                            onPressed: () => Navigator.pop(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          const SizedBox(height: 12),
+                        ] else if (_errorMessage != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF450A0A),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFEF4444)),
                             ),
-                            icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
-                            label: const Text('View Bill', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 22),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _errorMessage!,
+                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: _showManualBarcodeDialog,
+                                  child: const Text('Type Code', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(height: 12),
                         ],
-                      ),
-                  ],
+
+                        // Action Controls Bar
+                        if (widget.returnCodeOnly)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => Navigator.pop(context),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white70,
+                                    side: const BorderSide(color: Colors.white24),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  icon: const Icon(Icons.close_rounded, size: 18),
+                                  label: const Text('Cancel'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _showManualBarcodeDialog,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF10B981),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  icon: const Icon(Icons.keyboard_alt_outlined, size: 18),
+                                  label: const Text('Type Code', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          // Realtime Cart Overview & View Bill Bar
+                          Row(
+                            children: [
+                              // Cart Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.shopping_bag_outlined, color: Colors.white70, size: 14),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'POS Cart (${billing.itemCount} items)',
+                                          style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12, fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _currency.format(billing.grandTotal),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Type Barcode Manually Icon
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: IconButton(
+                                  tooltip: 'Type Barcode Manually',
+                                  icon: const Icon(Icons.keyboard_alt_outlined, color: Colors.white, size: 20),
+                                  onPressed: _showManualBarcodeDialog,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+
+                              // View Bill Button
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF0D9488), Color(0xFF059669)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () => Navigator.pop(context),
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.shopping_cart_checkout_rounded, color: Colors.white, size: 18),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            'View Bill',
+                                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -601,10 +833,11 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
     );
   }
 
-  Widget _buildCorner({required bool isTop, required bool isLeft}) {
-    const double length = 22;
-    const double thickness = 3.5;
-    const color = Color(0xFF10B981);
+  // Modern Rounded Corner Brackets with Glow
+  Widget _buildCornerBracket({required bool isTop, required bool isLeft}) {
+    const double length = 26;
+    const double thickness = 4.0;
+    const color = Color(0xFF10B981); // Bright Neon Emerald
 
     return Container(
       width: length,
