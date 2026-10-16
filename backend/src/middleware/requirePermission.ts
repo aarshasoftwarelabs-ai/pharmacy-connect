@@ -18,13 +18,33 @@ export const requirePermission = (permissionKey: string) => {
         return next();
       }
 
-      // Staff must have the explicit permission granted
+      // Staff are counter operators who scan barcodes, add/inward stock, and create POS bills
       if (user.isStaff) {
         const staffId = user.userId;
         const pharmacyId = user.pharmacyId;
 
-        // Viewing medicines is a baseline requirement for any pharmacy staff / POS
-        if (permissionKey === 'MEDICINES_VIEW') {
+        const defaultStaffAllowed = [
+          'MEDICINES_VIEW',
+          'MEDICINES_CREATE',
+          'MEDICINES_EDIT',
+          'INVENTORY_ADJUST',
+          'BILLING_VIEW',
+          'BILLING_CREATE',
+          'CUSTOMERS_VIEW',
+          'CUSTOMERS_CREATE'
+        ];
+
+        // Check if explicitly revoked by pharmacy owner
+        const checkRevoked = await pool.query(
+          `SELECT 1 FROM staff_permissions 
+           WHERE staff_id = $1 AND pharmacy_id = $2 AND permission_key = $3 AND granted = false`,
+          [staffId, pharmacyId, permissionKey]
+        );
+        if (checkRevoked.rows.length > 0) {
+          return res.status(403).json({ success: false, message: 'Forbidden: You do not have permission to perform this action' });
+        }
+
+        if (defaultStaffAllowed.includes(permissionKey)) {
           return next();
         }
 
@@ -36,15 +56,6 @@ export const requirePermission = (permissionKey: string) => {
         const permissions = new Set(result.rows.map(r => r.permission_key));
 
         if (permissions.has(permissionKey)) {
-          return next();
-        }
-
-        // Convenient mappings for staff scanning & inventory:
-        if ((permissionKey === 'MEDICINES_EDIT' || permissionKey === 'INVENTORY_ADJUST') && 
-            (permissions.has('INVENTORY_ADJUST') || permissions.has('MEDICINES_EDIT') || permissions.has('BILLING_CREATE'))) {
-          return next();
-        }
-        if (permissionKey === 'MEDICINES_CREATE' && (permissions.has('INVENTORY_ADJUST') || permissions.has('BILLING_CREATE') || permissions.has('MEDICINES_EDIT'))) {
           return next();
         }
 

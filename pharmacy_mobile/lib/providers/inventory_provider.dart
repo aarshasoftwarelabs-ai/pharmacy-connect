@@ -250,11 +250,16 @@ class InventoryProvider extends ChangeNotifier {
       };
       final res = await ApiService.put(ApiEndpoints.updateMedicine(medicineId), payload);
       if (!res.success) {
+        _errorMessage = res.message ?? 'Failed to update stock';
         await fetchMedicines();
+        notifyListeners();
+        return false;
       }
       return true;
     } catch (e) {
-      return true;
+      _errorMessage = 'Error updating stock: $e';
+      notifyListeners();
+      return false;
     }
   }
 

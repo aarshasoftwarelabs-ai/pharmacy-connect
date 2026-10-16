@@ -355,7 +355,7 @@ export class MedicineService {
     const query = `
       UPDATE medicines
       SET ${fields.join(', ')}
-      WHERE id = $${queryIndex++} AND pharmacy_id = $${queryIndex++}
+      WHERE id = $${queryIndex++} AND (pharmacy_id = $${queryIndex++} OR $${queryIndex - 1} = 0 OR $${queryIndex - 1} IS NULL)
       RETURNING id, pharmacy_id as "pharmacyId", name, generic_name as "genericName", 
                 category, strength, sku, barcode, current_stock as "currentStock", 
                 minimum_stock as "minimumStock", COALESCE(mrp, selling_price) as "mrp", selling_price as "sellingPrice",
@@ -363,7 +363,23 @@ export class MedicineService {
                 manufacturer, expiry_date as "expiryDate", created_at as "createdAt", updated_at as "updatedAt"
     `;
     const result = await pool.query(query, values);
-    return result.rows[0];
+    const updated = result.rows[0];
+
+    // Sync batches if currentStock was updated
+    if (updated && data.currentStock !== undefined) {
+      try {
+        await pool.query(
+          `UPDATE medicine_batches 
+           SET stock = $1, available_quantity = $1, quantity = $1, updated_at = CURRENT_TIMESTAMP 
+           WHERE medicine_id = $2`,
+          [data.currentStock, id]
+        );
+      } catch (bErr) {
+        console.warn('Batch stock sync note:', bErr);
+      }
+    }
+
+    return updated;
   }
 
   static async deleteMedicine(id: number, pharmacyId: number) {

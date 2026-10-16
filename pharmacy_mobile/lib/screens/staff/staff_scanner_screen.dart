@@ -436,19 +436,29 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           : () async {
                               final sp = double.tryParse(priceCtrl.text);
                               Navigator.pop(ctx);
-                              final ok = await context.read<InventoryProvider>().updateMedicineStock(
+                              final inv = context.read<InventoryProvider>();
+                              final ok = await inv.updateMedicineStock(
                                     medicineId: medicine.id,
                                     addedUnits: addCount,
                                     newSellingPrice: sp,
                                   );
-                              if (mounted && ok) {
-                                HapticFeedback.mediumImpact();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    backgroundColor: AppColors.success,
-                                    content: Text('Updated Stock: Added $addCount units to ${medicine.name} (Total: $expectedTotal)'),
-                                  ),
-                                );
+                              if (mounted) {
+                                if (ok) {
+                                  HapticFeedback.mediumImpact();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      backgroundColor: AppColors.success,
+                                      content: Text('✓ Updated Stock: Added $addCount units to ${medicine.name} (Total: $expectedTotal)'),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      backgroundColor: AppColors.error,
+                                      content: Text(inv.errorMessage ?? 'Failed to update stock'),
+                                    ),
+                                  );
+                                }
                               }
                             },
                       style: ElevatedButton.styleFrom(
@@ -608,7 +618,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       final stock = int.tryParse(stockCtrl.text) ?? 10;
 
                       Navigator.pop(ctx);
-                      final ok = await context.read<InventoryProvider>().addMedicine(
+                      final inv = context.read<InventoryProvider>();
+                      final ok = await inv.addMedicine(
                             name: nameCtrl.text.trim(),
                             genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
                             category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'General',
@@ -618,14 +629,23 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             barcode: scannedBarcode,
                           );
 
-                      if (mounted && ok) {
-                        HapticFeedback.mediumImpact();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: AppColors.success,
-                            content: Text('Successfully added ${nameCtrl.text.trim()} to store!'),
-                          ),
-                        );
+                      if (mounted) {
+                        if (ok) {
+                          HapticFeedback.mediumImpact();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppColors.success,
+                              content: Text('✓ Successfully registered ${nameCtrl.text.trim()} & saved stock!'),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppColors.error,
+                              content: Text(inv.errorMessage ?? 'Failed to register medicine'),
+                            ),
+                          );
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(
