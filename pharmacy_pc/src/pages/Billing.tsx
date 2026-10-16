@@ -291,7 +291,8 @@ export default function Billing() {
                         </div>
                       </div>
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </motion.div>
               )}
             </div>
