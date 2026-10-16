@@ -623,10 +623,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             name: nameCtrl.text.trim(),
                             genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
                             category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'General',
+                            manufacturer: auto.manufacturer,
                             mrp: mrp,
                             sellingPrice: sp,
                             stock: stock,
                             barcode: scannedBarcode,
+                            expiryDate: auto.expiryDate,
                           );
 
                       if (mounted) {

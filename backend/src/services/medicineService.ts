@@ -194,9 +194,24 @@ export class MedicineService {
     try {
       await client.query('BEGIN');
 
+      // 1. Resolve valid pharmacyId: ensure targetPharmacyId exists in pharmacies table
+      let targetPharmacyId = Number(pharmacyId) || 1;
+      const pharmCheck = await client.query(`SELECT id FROM pharmacies WHERE id = $1`, [targetPharmacyId]);
+      if (pharmCheck.rows.length === 0) {
+        const anyPharm = await client.query(`SELECT id FROM pharmacies ORDER BY id ASC LIMIT 1`);
+        if (anyPharm.rows.length > 0) {
+          targetPharmacyId = anyPharm.rows[0].id;
+        } else {
+          const newPharm = await client.query(
+            `INSERT INTO pharmacies (name, address, phone, business_type) VALUES ('Main Pharmacy', 'Store Address', '9876543210', 'RETAIL') RETURNING id`
+          );
+          targetPharmacyId = newPharm.rows[0].id;
+        }
+      }
+
       const cleanBarcode = data.barcode && String(data.barcode).trim() !== '' 
         ? String(data.barcode).trim() 
-        : `890${String(pharmacyId).padStart(3, '0').slice(-3)}${String(Math.floor(Math.random() * 900000) + 100000)}`;
+        : `890${String(targetPharmacyId).padStart(3, '0').slice(-3)}${String(Math.floor(Math.random() * 900000) + 100000)}`;
 
       const sellingPrice = Number(data.sellingPrice) || 0;
       const mrp = Number(data.mrp) || (sellingPrice > 0 ? Math.round(sellingPrice * 1.15) : 50);
@@ -208,7 +223,47 @@ export class MedicineService {
       // Safe unique SKU so constraint never fails
       const cleanSku = data.sku && String(data.sku).trim() !== '' 
         ? String(data.sku).trim() 
-        : `SKU-${pharmacyId}-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+        : `SKU-${targetPharmacyId}-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+
+      // 2. Check if a medicine with this barcode already exists in this pharmacy
+      const existingMed = await client.query(
+        `SELECT id, current_stock, selling_price, mrp FROM medicines WHERE pharmacy_id = $1 AND barcode = $2 LIMIT 1`,
+        [targetPharmacyId, cleanBarcode]
+      );
+      if (existingMed.rows.length > 0) {
+        const exMed = existingMed.rows[0];
+        const newStock = exMed.current_stock + currentStock;
+        const updateRes = await client.query(
+          `UPDATE medicines 
+           SET current_stock = $1, 
+               selling_price = COALESCE(NULLIF($2, 0), selling_price), 
+               mrp = COALESCE(NULLIF($3, 0), mrp), 
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $4
+           RETURNING id, pharmacy_id as "pharmacyId", name, generic_name as "genericName", 
+                     category, strength, sku, barcode, current_stock as "currentStock", 
+                     minimum_stock as "minimumStock", COALESCE(mrp, selling_price) as "mrp", selling_price as "sellingPrice",
+                     image_url as "imageUrl", hsn_code as "hsnCode", gst_rate as "gstRate",
+                     manufacturer, expiry_date as "expiryDate", created_at as "createdAt", updated_at as "updatedAt"`,
+          [newStock, sellingPrice, mrp, exMed.id]
+        );
+
+        if (currentStock > 0) {
+          try {
+            await client.query(
+              `UPDATE medicine_batches 
+               SET stock = stock + $1, available_quantity = available_quantity + $1, quantity = quantity + $1, updated_at = CURRENT_TIMESTAMP 
+               WHERE medicine_id = $2`,
+              [currentStock, exMed.id]
+            );
+          } catch (bErr) {
+            console.warn('Batch stock update note:', bErr);
+          }
+        }
+
+        await client.query('COMMIT');
+        return updateRes.rows[0];
+      }
 
       const query = `
         INSERT INTO medicines (
@@ -223,7 +278,7 @@ export class MedicineService {
       `;
 
       const values = [
-        pharmacyId, 
+        targetPharmacyId, 
         data.name ? String(data.name).trim() : 'Unnamed Medicine', 
         data.genericName ? String(data.genericName).trim() : null, 
         data.category || 'General', 
@@ -258,7 +313,7 @@ export class MedicineService {
             ON CONFLICT (medicine_id, pharmacy_id, batch_number) DO UPDATE
             SET quantity = EXCLUDED.quantity, available_quantity = EXCLUDED.available_quantity, stock = EXCLUDED.stock`,
             [
-              pharmacyId, createdMed.id, batchNumber, parsedExpiry,
+              targetPharmacyId, createdMed.id, batchNumber, parsedExpiry,
               currentStock, currentStock, currentStock, purchasePrice, mrp, sellingPrice, cleanBarcode
             ]
           );
