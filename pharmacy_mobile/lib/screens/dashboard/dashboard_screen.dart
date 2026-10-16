@@ -10,6 +10,7 @@ import '../billing/camera_barcode_scanner_screen.dart';
 import '../customers/customers_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/profile_screen.dart';
+import '../staff/staff_scanner_screen.dart';
 import '../suppliers/suppliers_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -115,8 +116,13 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
-            tooltip: 'Live Camera Scanner',
-            onPressed: () => CameraBarcodeScannerScreen.open(context),
+            tooltip: 'Staff Barcode Scanner Mode (બારકોડ સ્કેનર)',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StaffScannerScreen()),
+              );
+            },
           ),
           const SizedBox(width: 4),
         ],

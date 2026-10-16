@@ -259,6 +259,7 @@ class InventoryScreen extends StatelessWidget {
                           );
                         },
                       ),
+                  ),
           ),
         ],
       ),

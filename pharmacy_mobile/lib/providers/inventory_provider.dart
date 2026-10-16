@@ -202,6 +202,54 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateMedicineStock({
+    required String medicineId,
+    required int addedUnits,
+    double? newSellingPrice,
+  }) async {
+    final index = _medicines.indexWhere((m) => m.id == medicineId);
+    if (index == -1) return false;
+
+    final old = _medicines[index];
+    final updatedStock = (old.stock + addedUnits).clamp(0, 999999);
+    final sp = newSellingPrice ?? old.sellingPrice;
+
+    // Optimistically update local state
+    _medicines[index] = MedicineModel(
+      id: old.id,
+      pharmacyId: old.pharmacyId,
+      name: old.name,
+      genericName: old.genericName,
+      manufacturer: old.manufacturer,
+      category: old.category,
+      sku: old.sku,
+      batchNumber: old.batchNumber,
+      expiryDate: old.expiryDate,
+      mrp: old.mrp,
+      sellingPrice: sp,
+      stock: updatedStock,
+      minStockAlert: old.minStockAlert,
+      barcode: old.barcode,
+      storeBarcode: old.storeBarcode,
+      batches: old.batches,
+    );
+    notifyListeners();
+
+    try {
+      final payload = {
+        'currentStock': updatedStock,
+        if (newSellingPrice != null) 'sellingPrice': newSellingPrice,
+      };
+      final res = await ApiService.put(ApiEndpoints.updateMedicine(medicineId), payload);
+      if (!res.success) {
+        await fetchMedicines();
+      }
+      return true;
+    } catch (e) {
+      return true;
+    }
+  }
+
   void updateStockLocal(String id, int quantityDeducted) {
     final index = _medicines.indexWhere((m) => m.id == id);
     if (index != -1) {

@@ -14,11 +14,13 @@ class ApiEndpoints {
 
   // Auth
   static String get login => '$baseUrl/auth/login';
+  static String get staffLogin => '$baseUrl/auth/staff-login';
   static String get me => '$baseUrl/auth/me';
 
   // Medicines / Inventory
   static String get medicines => '$baseUrl/medicines';
   static String medicineById(String id) => '$baseUrl/medicines/$id';
+  static String updateMedicine(String id) => '$baseUrl/medicines/$id';
 
   // Billing / POS
   static String get bills => '$baseUrl/billing';

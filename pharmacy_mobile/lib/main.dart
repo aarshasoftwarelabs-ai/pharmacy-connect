@@ -7,6 +7,7 @@ import 'providers/billing_provider.dart';
 import 'providers/inventory_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/navigation/main_nav_screen.dart';
+import 'screens/staff/staff_scanner_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +33,9 @@ class DavaSetuApp extends StatelessWidget {
             title: 'DavaSetu Pharmacy',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
-            home: auth.isAuthenticated ? const MainNavScreen() : const LoginScreen(),
+            home: auth.isAuthenticated
+                ? (auth.isStaff ? const StaffScannerScreen() : const MainNavScreen())
+                : const LoginScreen(),
           );
         },
       ),

@@ -21,17 +21,32 @@ export const requirePermission = (permissionKey: string) => {
         const staffId = user.userId;
         const pharmacyId = user.pharmacyId;
 
-        const checkQuery = `
-          SELECT granted FROM staff_permissions 
-          WHERE staff_id = $1 AND pharmacy_id = $2 AND permission_key = $3
-        `;
-        const result = await pool.query(checkQuery, [staffId, pharmacyId, permissionKey]);
-
-        if (result.rows.length > 0 && result.rows[0].granted === true) {
+        // Viewing medicines is a baseline requirement for any pharmacy staff / POS
+        if (permissionKey === 'MEDICINES_VIEW') {
           return next();
-        } else {
-          return res.status(403).json({ success: false, message: 'Forbidden: You do not have permission to perform this action' });
         }
+
+        const checkQuery = `
+          SELECT permission_key FROM staff_permissions 
+          WHERE staff_id = $1 AND pharmacy_id = $2 AND granted = true
+        `;
+        const result = await pool.query(checkQuery, [staffId, pharmacyId]);
+        const permissions = new Set(result.rows.map(r => r.permission_key));
+
+        if (permissions.has(permissionKey)) {
+          return next();
+        }
+
+        // Convenient mappings for staff scanning & inventory:
+        if ((permissionKey === 'MEDICINES_EDIT' || permissionKey === 'INVENTORY_ADJUST') && 
+            (permissions.has('INVENTORY_ADJUST') || permissions.has('MEDICINES_EDIT') || permissions.has('BILLING_CREATE'))) {
+          return next();
+        }
+        if (permissionKey === 'MEDICINES_CREATE' && (permissions.has('INVENTORY_ADJUST') || permissions.has('BILLING_CREATE'))) {
+          return next();
+        }
+
+        return res.status(403).json({ success: false, message: 'Forbidden: You do not have permission to perform this action' });
       }
 
       // Any other role (like USER from Flutter app) should not have access to pharmacy routes

@@ -17,6 +17,7 @@ class AuthProvider extends ChangeNotifier {
   String get pharmacyName => _user?.pharmacyName ?? 'DavaSetu Pharmacy';
   String get userName => _user?.name ?? 'Pharmacist';
   String get role => _user?.role ?? 'Pharmacist';
+  bool get isStaff => _user?.isStaff ?? false;
   int get pharmacyId => int.tryParse(_user?.pharmacyId ?? '1') ?? 1;
 
   AuthProvider() {
@@ -78,6 +79,57 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _isLoading = false;
       _errorMessage = 'An unexpected error occurred: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> staffLogin({required String pharmacyPhone, required String pin}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.post(ApiEndpoints.staffLogin, {
+        'phone': pharmacyPhone.trim(),
+        'pin': pin.trim(),
+        'businessType': 'RETAIL',
+      });
+
+      _isLoading = false;
+
+      if (response.success && response.data != null) {
+        final data = response.data as Map<String, dynamic>;
+        final token = data['token']?.toString() ?? '';
+        final userMap = Map<String, dynamic>.from((data['user'] as Map<String, dynamic>?) ?? {});
+        final pharmacyMap = data['pharmacy'] as Map<String, dynamic>?;
+
+        if (token.isNotEmpty) {
+          await StorageService.setToken(token);
+        }
+        if (pharmacyMap != null) {
+          await StorageService.setPharmacy(pharmacyMap);
+          if (pharmacyMap['name'] != null) {
+            userMap['pharmacyName'] = pharmacyMap['name'];
+          }
+          if (pharmacyMap['id'] != null) {
+            userMap['pharmacyId'] = pharmacyMap['id'].toString();
+          }
+        }
+        userMap['isStaff'] = true;
+        _user = UserModel.fromJson(userMap);
+        await StorageService.setUser(_user!.toJson());
+
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = response.message ?? 'Staff PIN verification failed.';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Staff login error: $e';
       notifyListeners();
       return false;
     }
