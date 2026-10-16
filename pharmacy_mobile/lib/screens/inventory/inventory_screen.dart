@@ -23,12 +23,8 @@ class InventoryScreen extends StatelessWidget {
         title: const Text('Inventory & Stock'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
-            tooltip: 'Live Camera Scanner',
-            onPressed: () => CameraBarcodeScannerScreen.open(context),
-          ),
-          IconButton(
             icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Reload Inventory',
             onPressed: () => inventory.fetchMedicines(),
           ),
         ],

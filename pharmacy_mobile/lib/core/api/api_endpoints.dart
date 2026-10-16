@@ -2,12 +2,23 @@ import '../services/storage_service.dart';
 
 class ApiEndpoints {
   // Live Cloud Server URL (Production Cloud Backend on Render + Supabase AWS)
-  static const String _defaultUrl = 'https://pharmacy-backend-e210.onrender.com/api';
+  static const String liveCloudUrl = 'https://pharmacy-backend-e210.onrender.com/api';
+  static const String _defaultUrl = liveCloudUrl;
 
   static String get baseUrl {
     final customUrl = StorageService.getBaseUrl();
     if (customUrl != null && customUrl.trim().isNotEmpty) {
-      return customUrl.trim();
+      final trimmed = customUrl.trim();
+      // If it's a private LAN IP (10.x, 192.168.x, localhost, 127.x) that cannot be reached outside LAN,
+      // reset to live cloud so mobile users on 5G/LTE never get stuck with TimeoutException
+      if (trimmed.contains('10.66.') ||
+          trimmed.contains('192.168.') ||
+          trimmed.contains('localhost') ||
+          trimmed.contains('127.0.0.1')) {
+        StorageService.setBaseUrl(liveCloudUrl);
+        return liveCloudUrl;
+      }
+      return trimmed;
     }
     return _defaultUrl;
   }

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/storage_service.dart';
 
+import 'api_endpoints.dart';
+
 class ApiResponse {
   final bool success;
   final dynamic data;
@@ -17,6 +19,8 @@ class ApiResponse {
 }
 
 class ApiService {
+  static const Duration _timeout = Duration(seconds: 35);
+
   static Map<String, String> _headers() {
     final headers = {
       'Content-Type': 'application/json',
@@ -29,16 +33,50 @@ class ApiService {
     return headers;
   }
 
+  static String _cleanErrorMessage(dynamic e) {
+    final str = e.toString().toLowerCase();
+    if (str.contains('timeoutexception') ||
+        str.contains('future not completed') ||
+        str.contains('timed out')) {
+      return 'Cloud server is waking up or connection is slow. Please tap Reload to try again.';
+    }
+    if (str.contains('socketexception') ||
+        str.contains('connection refused') ||
+        str.contains('failed host lookup') ||
+        str.contains('network is unreachable')) {
+      return 'Unable to connect to server. Please check your internet connection.';
+    }
+    return 'Connection issue: $e';
+  }
+
   static Future<ApiResponse> get(String url) async {
     try {
       final response = await http
           .get(Uri.parse(url), headers: _headers())
-          .timeout(const Duration(seconds: 15));
+          .timeout(_timeout);
       return _processResponse(response);
     } catch (e) {
+      // Auto-fallback: if request was on an unreachable LAN IP, try live cloud URL
+      if (!url.startsWith(ApiEndpoints.liveCloudUrl) && url.contains('/api/')) {
+        try {
+          final cloudUrl = url.replaceRange(
+            0,
+            url.indexOf('/api/') + 5,
+            '${ApiEndpoints.liveCloudUrl}/',
+          );
+          final response = await http
+              .get(Uri.parse(cloudUrl), headers: _headers())
+              .timeout(_timeout);
+          if (response.statusCode >= 200 && response.statusCode < 400) {
+            await StorageService.setBaseUrl(ApiEndpoints.liveCloudUrl);
+            return _processResponse(response);
+          }
+        } catch (_) {}
+      }
+
       return ApiResponse(
         success: false,
-        message: 'Network error: $e',
+        message: _cleanErrorMessage(e),
         statusCode: 0,
       );
     }
@@ -52,12 +90,33 @@ class ApiService {
             headers: _headers(),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(_timeout);
       return _processResponse(response);
     } catch (e) {
+      if (!url.startsWith(ApiEndpoints.liveCloudUrl) && url.contains('/api/')) {
+        try {
+          final cloudUrl = url.replaceRange(
+            0,
+            url.indexOf('/api/') + 5,
+            '${ApiEndpoints.liveCloudUrl}/',
+          );
+          final response = await http
+              .post(
+                Uri.parse(cloudUrl),
+                headers: _headers(),
+                body: jsonEncode(body),
+              )
+              .timeout(_timeout);
+          if (response.statusCode >= 200 && response.statusCode < 400) {
+            await StorageService.setBaseUrl(ApiEndpoints.liveCloudUrl);
+            return _processResponse(response);
+          }
+        } catch (_) {}
+      }
+
       return ApiResponse(
         success: false,
-        message: 'Network error: $e',
+        message: _cleanErrorMessage(e),
         statusCode: 0,
       );
     }
@@ -71,12 +130,12 @@ class ApiService {
             headers: _headers(),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(_timeout);
       return _processResponse(response);
     } catch (e) {
       return ApiResponse(
         success: false,
-        message: 'Network error: $e',
+        message: _cleanErrorMessage(e),
         statusCode: 0,
       );
     }
@@ -86,12 +145,12 @@ class ApiService {
     try {
       final response = await http
           .delete(Uri.parse(url), headers: _headers())
-          .timeout(const Duration(seconds: 15));
+          .timeout(_timeout);
       return _processResponse(response);
     } catch (e) {
       return ApiResponse(
         success: false,
-        message: 'Network error: $e',
+        message: _cleanErrorMessage(e),
         statusCode: 0,
       );
     }

@@ -402,28 +402,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildPresetChip(String label, String url) {
-    final isSelected = _serverUrlCtrl.text.trim() == url;
-    return Padding(
-      padding: const EdgeInsets.only(right: 6.0),
-      child: ActionChip(
-        label: Text(label),
-        backgroundColor: isSelected ? AppColors.primarySubtle : Colors.grey.shade100,
-        side: BorderSide(color: isSelected ? AppColors.primary : Colors.grey.shade300),
-        labelStyle: TextStyle(
-          fontSize: 11,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
-        ),
-        onPressed: () {
-          setState(() {
-            _serverUrlCtrl.text = url;
-          });
-          _saveServerUrl();
-        },
-      ),
-    );
-  }
 
   Widget _buildSmartRow({
     required IconData icon,

@@ -154,7 +154,7 @@ class InventoryProvider extends ChangeNotifier {
       }
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Network connection error. Check Wi-Fi & PC IP: $e';
+      _errorMessage = 'Server connection error. Tap Reload to refresh inventory.';
       notifyListeners();
     }
   }
