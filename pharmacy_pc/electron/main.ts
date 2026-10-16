@@ -6,6 +6,9 @@ import { spawn, fork, ChildProcess } from 'node:child_process';
 // Disable hardware acceleration to prevent white screen and crashes on some Windows systems
 app.disableHardwareAcceleration();
 
+// Enable Chromium BarcodeDetector and camera platform features
+app.commandLine.appendSwitch('enable-experimental-web-platform-features');
+
 // Handle IPC to open external URLs (WhatsApp, browser)
 ipcMain.handle('open-external', async (_event, url: string) => {
   if (url && (url.startsWith('https://') || url.startsWith('http://') || url.startsWith('whatsapp://'))) {
@@ -45,6 +48,22 @@ function createWindow() {
         nodeIntegration: false,
         contextIsolation: true,
       },
+    });
+
+    // Automatically grant media permissions (webcam) for barcode scanner in Electron
+    win.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
+      if (permission === 'media') {
+        callback(true);
+        return;
+      }
+      callback(true);
+    });
+
+    win.webContents.session.setPermissionCheckHandler((_webContents, permission) => {
+      if (permission === 'media') {
+        return true;
+      }
+      return true;
     });
 
     // Handle external links (e.g. WhatsApp, external docs) in the system default browser

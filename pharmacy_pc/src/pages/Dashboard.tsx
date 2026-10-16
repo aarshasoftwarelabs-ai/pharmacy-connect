@@ -5,7 +5,7 @@ import {
   PlusCircle, Users, Activity, FileBox, 
   ActivitySquare, Pill, 
   ArrowRight, Package, Loader2, AlertCircle, RefreshCw, 
-  UserCircle, CheckCircle2, Receipt, AlertTriangle
+  UserCircle, CheckCircle2, Receipt, AlertTriangle, Boxes
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -98,6 +98,10 @@ export default function Dashboard() {
   const outOfStockMedicines = medicines.filter(m => Number(m.currentStock || 0) <= 0);
   const healthyStockMedicines = medicines.filter(m => Number(m.currentStock || 0) > (m.minimumStock || 10));
   const totalStockUnits = medicines.reduce((sum, m) => sum + Number(m.currentStock || 0), 0);
+  const totalInventoryValue = medicines.reduce((sum, m) => sum + (Number(m.sellingPrice || 0) * Number(m.currentStock || 0)), 0);
+  const inStockPercent = medicines.length > 0 ? Math.round((healthyStockMedicines.length / medicines.length) * 100) : 100;
+  const lowStockPercent = medicines.length > 0 ? Math.round((lowStockMedicines.length / medicines.length) * 100) : 0;
+  const outOfStockPercent = medicines.length > 0 ? Math.round((outOfStockMedicines.length / medicines.length) * 100) : 0;
 
   const newCustomersCount = customers.filter(c => new Date(c.created_at).toDateString() === todayStr).length;
   const activeCustomersCount = customers.filter(c => c.is_active !== false).length;
@@ -325,60 +329,187 @@ export default function Dashboard() {
         {/* SALES OVERVIEW CHART */}
         <SalesOverviewChart bills={bills} className="col-span-1 lg:col-span-8" />
 
-        {/* INVENTORY HEALTH WIDGET (Replaced Request Status Card) */}
-        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center">
-              <Package className="w-5 h-5 mr-2 text-indigo-500" /> 
-              Inventory Health
-            </h3>
-            <Link to="/inventory" className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
-              <ArrowRight className="w-4 h-4 -rotate-45" />
-            </Link>
+        {/* INVENTORY HEALTH WIDGET (Executive Stock & Health Insight) */}
+        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            {/* Header with Status Pill and Quick Link */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                    Inventory Health
+                  </h3>
+                  <p className="text-xs text-slate-400">Stock availability & valuation</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                  outOfStockMedicines.length === 0 && lowStockMedicines.length === 0
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : outOfStockMedicines.length > 0
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    outOfStockMedicines.length === 0 && lowStockMedicines.length === 0
+                      ? 'bg-emerald-500 animate-pulse'
+                      : outOfStockMedicines.length > 0
+                      ? 'bg-rose-500'
+                      : 'bg-amber-500'
+                  }`} />
+                  {inStockPercent}% Optimal
+                </span>
+                <Link to="/inventory" className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors" title="View Full Inventory">
+                  <ArrowRight className="w-4 h-4 -rotate-45" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Segmented Visual Health Meter */}
+            <div className="mb-4 bg-slate-50/80 p-3 rounded-2xl border border-slate-100">
+              <div className="flex justify-between items-center text-xs font-semibold text-slate-500 mb-2">
+                <span>Health Distribution</span>
+                <span className="font-bold text-slate-800">{medicines.length} Products</span>
+              </div>
+              <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex shadow-inner">
+                <div 
+                  style={{ width: `${inStockPercent}%` }} 
+                  className="bg-emerald-500 transition-all duration-500" 
+                  title={`In Stock: ${healthyStockMedicines.length} (${inStockPercent}%)`}
+                />
+                <div 
+                  style={{ width: `${lowStockPercent}%` }} 
+                  className="bg-amber-400 transition-all duration-500" 
+                  title={`Low Stock: ${lowStockMedicines.length} (${lowStockPercent}%)`}
+                />
+                <div 
+                  style={{ width: `${outOfStockPercent}%` }} 
+                  className="bg-rose-500 transition-all duration-500" 
+                  title={`Out of Stock: ${outOfStockMedicines.length} (${outOfStockPercent}%)`}
+                />
+              </div>
+              <div className="flex justify-between items-center text-[10px] font-medium mt-1.5 px-0.5">
+                <span className="flex items-center gap-1 text-emerald-700 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> In Stock ({inStockPercent}%)
+                </span>
+                <span className="flex items-center gap-1 text-amber-700 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Low ({lowStockPercent}%)
+                </span>
+                <span className="flex items-center gap-1 text-rose-700 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Out ({outOfStockPercent}%)
+                </span>
+              </div>
+            </div>
+
+            {/* Status Breakdown Items (Clickable) */}
+            <div className="space-y-2 mb-4">
+              {/* Healthy Stock */}
+              <div 
+                className="group flex items-center justify-between p-2.5 bg-slate-50/70 hover:bg-emerald-50/80 rounded-2xl border border-slate-100/80 hover:border-emerald-200 transition-all cursor-pointer" 
+                onClick={() => navigate('/inventory')}
+              >
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mr-2.5 group-hover:scale-105 transition-transform">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-emerald-900">In Stock</h4>
+                    <p className="text-[10px] text-slate-400">Sufficient quantity</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-emerald-100/70 text-emerald-800 rounded-lg text-[10px] font-bold">
+                    {inStockPercent}%
+                  </span>
+                  <span className="text-sm font-extrabold text-emerald-600 min-w-[20px] text-right">
+                    {healthyStockMedicines.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Low Stock */}
+              <div 
+                className="group flex items-center justify-between p-2.5 bg-slate-50/70 hover:bg-amber-50/80 rounded-2xl border border-slate-100/80 hover:border-amber-200 transition-all cursor-pointer" 
+                onClick={() => navigate('/inventory')}
+              >
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mr-2.5 group-hover:scale-105 transition-transform">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-amber-900">Low Stock</h4>
+                    <p className="text-[10px] text-slate-400">Needs purchase order</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {lowStockMedicines.length > 0 && (
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold">
+                      Reorder
+                    </span>
+                  )}
+                  <span className="text-sm font-extrabold text-amber-600 min-w-[20px] text-right">
+                    {lowStockMedicines.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Out of Stock */}
+              <div 
+                className="group flex items-center justify-between p-2.5 bg-slate-50/70 hover:bg-rose-50/80 rounded-2xl border border-slate-100/80 hover:border-rose-200 transition-all cursor-pointer" 
+                onClick={() => navigate('/inventory')}
+              >
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mr-2.5 group-hover:scale-105 transition-transform">
+                    <AlertCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-rose-900">Out of Stock</h4>
+                    <p className="text-[10px] text-slate-400">Zero inventory</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {outOfStockMedicines.length > 0 && (
+                    <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-lg text-[10px] font-bold">
+                      Critical
+                    </span>
+                  )}
+                  <span className="text-sm font-extrabold text-rose-600 min-w-[20px] text-right">
+                    {outOfStockMedicines.length}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <div className="flex-1 space-y-4 flex flex-col justify-center">
-            {/* Healthy Stock */}
-            <div className="group flex items-center justify-between p-4 bg-slate-50 hover:bg-emerald-50 rounded-2xl border border-slate-100 hover:border-emerald-200 transition-colors cursor-pointer" onClick={() => navigate('/inventory')}>
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mr-3">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800 group-hover:text-emerald-900">In Stock</h4>
-                  <p className="text-xs text-slate-500">Sufficient quantity</p>
-                </div>
+
+          {/* Bottom Stock Insights: Units & Valuation & Quick Link */}
+          <div className="pt-3 border-t border-slate-100 space-y-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100/80">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Stock</span>
+                <span className="text-sm font-extrabold text-slate-800 flex items-center gap-1 mt-0.5">
+                  <Boxes className="w-3.5 h-3.5 text-indigo-500" />
+                  {totalStockUnits.toLocaleString('en-IN')} <span className="text-[10px] font-medium text-slate-400">Units</span>
+                </span>
               </div>
-              <span className="text-lg font-extrabold text-emerald-600">{healthyStockMedicines.length}</span>
+              <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100/80">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Estimated Value</span>
+                <span className="text-sm font-extrabold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                  <IndianRupee className="w-3.5 h-3.5" />
+                  {totalInventoryValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
             </div>
 
-            {/* Low Stock */}
-            <div className="group flex items-center justify-between p-4 bg-slate-50 hover:bg-amber-50 rounded-2xl border border-slate-100 hover:border-amber-200 transition-colors cursor-pointer" onClick={() => navigate('/inventory')}>
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mr-3">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800 group-hover:text-amber-900">Low Stock</h4>
-                  <p className="text-xs text-slate-500">Needs purchase order</p>
-                </div>
-              </div>
-              <span className="text-lg font-extrabold text-amber-600">{lowStockMedicines.length}</span>
-            </div>
-
-            {/* Out of Stock */}
-            <div className="group flex items-center justify-between p-4 bg-slate-50 hover:bg-red-50 rounded-2xl border border-slate-100 hover:border-red-200 transition-colors cursor-pointer" onClick={() => navigate('/inventory')}>
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mr-3">
-                  <AlertCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800 group-hover:text-red-900">Out of Stock</h4>
-                  <p className="text-xs text-slate-500">Zero inventory</p>
-                </div>
-              </div>
-              <span className="text-lg font-extrabold text-red-600">{outOfStockMedicines.length}</span>
-            </div>
+            <Link
+              to="/inventory"
+              className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 group"
+            >
+              <span>Manage Stock & Reorders</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
         </motion.div>
 

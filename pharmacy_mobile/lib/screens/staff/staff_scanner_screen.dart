@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../auth/login_screen.dart';
+import '../navigation/main_nav_screen.dart';
 
 enum StaffScannerMode { billing, stockInward }
 
@@ -983,6 +984,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     icon: const Icon(Icons.search_rounded, color: Colors.white),
                     tooltip: 'Manual Search',
                     onPressed: _showManualSearchDialog,
+                  ),
+                  // Direct Store Dashboard button
+                  IconButton(
+                    icon: const Icon(Icons.dashboard_rounded, color: Colors.white),
+                    tooltip: 'Store Dashboard (ડેશબોર્ડ)',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MainNavScreen()),
+                      );
+                    },
                   ),
                   // Logout
                   IconButton(

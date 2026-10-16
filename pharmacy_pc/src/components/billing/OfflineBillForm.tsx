@@ -33,8 +33,11 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const scanIntervalRef = useRef<any>(null);
   const [scannerSearchQuery, setScannerSearchQuery] = useState('');
 
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -115,44 +118,94 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     }
   };
 
-  const startCamera = async () => {
+  const setVideoRef = (node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node && streamRef.current) {
+      if (node.srcObject !== streamRef.current) {
+        node.srcObject = streamRef.current;
+      }
+      node.play().catch(err => console.warn('Video play error:', err));
+    }
+  };
+
+  const startCamera = async (deviceId?: string) => {
     try {
       setCameraError(null);
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera not supported on this device');
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(() => {});
+
+      // Stop existing tracks if any
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
+
+      const targetDeviceId = deviceId || selectedCameraId;
+      const constraints: MediaStreamConstraints = {
+        video: targetDeviceId
+          ? { deviceId: { exact: targetDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          : { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      };
+
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        console.warn('Target camera constraints failed, attempting fallback to any video source:', err);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
+      streamRef.current = stream;
       setCameraActive(true);
 
-      // Native Barcode Detector support in Chromium
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(e => console.warn('Video play error:', e));
+      }
+
+      // Enumerate cameras for device switcher
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        setAvailableCameras(videoDevices);
+        if (!selectedCameraId && videoDevices.length > 0) {
+          const currentTrack = stream.getVideoTracks()[0];
+          const settings = currentTrack ? currentTrack.getSettings() : null;
+          if (settings?.deviceId) {
+            setSelectedCameraId(settings.deviceId);
+          }
+        }
+      } catch (e) {}
+
+      // Clear previous scan interval
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+        scanIntervalRef.current = null;
+      }
+
+      // Native Barcode Detector support in Chromium / Electron
       if ('BarcodeDetector' in window) {
         try {
           const detector = new (window as any).BarcodeDetector({
             formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e']
           });
-          const interval = setInterval(async () => {
+          scanIntervalRef.current = setInterval(async () => {
             if (!streamRef.current || !videoRef.current) {
-              clearInterval(interval);
+              if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
               return;
             }
-            if (videoRef.current.readyState === 4) {
+            if (videoRef.current.readyState >= 2) {
               try {
                 const barcodes = await detector.detect(videoRef.current);
                 if (barcodes.length > 0 && barcodes[0].rawValue) {
-                  clearInterval(interval);
+                  if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
                   stopCamera();
                   handleBarcodeScan(barcodes[0].rawValue);
                 }
               } catch (e) {}
             }
-          }, 400);
+          }, 350);
         } catch (e) {}
       }
     } catch (err: any) {
@@ -163,9 +216,16 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   };
 
   const stopCamera = () => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setCameraActive(false);
   };
@@ -178,6 +238,15 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     }
     return () => stopCamera();
   }, [isScannerOpen]);
+
+  useEffect(() => {
+    if (cameraActive && videoRef.current && streamRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch(e => console.warn('Video play error:', e));
+      }
+    }
+  }, [cameraActive]);
 
   // Global listener for USB Barcode Scanners (rapid keyboard stroke sequence ending with Enter)
   useEffect(() => {
@@ -751,16 +820,16 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
             <div className="p-5 overflow-y-auto space-y-4">
               {/* Webcam Preview / Laser Box */}
-              <div className="relative w-full h-52 bg-slate-900 rounded-xl overflow-hidden flex flex-col items-center justify-center shadow-inner border border-slate-800">
+              <div className="relative w-full h-56 bg-slate-950 rounded-xl overflow-hidden flex flex-col items-center justify-center shadow-inner border border-slate-800">
+                <video 
+                  ref={setVideoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  className={`w-full h-full object-cover transition-opacity duration-300 ${cameraActive ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'}`} 
+                />
                 {cameraActive ? (
                   <>
-                    <video 
-                      ref={videoRef} 
-                      autoPlay 
-                      playsInline 
-                      muted 
-                      className="w-full h-full object-cover" 
-                    />
                     {/* Glowing Laser Scan Line */}
                     <div 
                       className="absolute left-0 w-full h-0.5 bg-emerald-400 shadow-[0_0_12px_2px_rgba(52,211,153,0.9)] z-20 pointer-events-none"
@@ -771,10 +840,30 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                       <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-400 -mt-0.5 -mr-0.5 rounded-tr"></div>
                       <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-emerald-400 -mb-0.5 -ml-0.5 rounded-bl"></div>
                       <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-emerald-400 -mb-0.5 -mr-0.5 rounded-br"></div>
-                      <span className="text-[11px] font-bold text-white/80 bg-slate-900/60 px-2.5 py-1 rounded-full backdrop-blur-xs">
+                      <span className="text-[11px] font-bold text-white/90 bg-slate-900/70 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10 shadow-sm">
                         Align Barcode in Box
                       </span>
                     </div>
+
+                    {/* Camera Switcher if multiple webcams */}
+                    {availableCameras.length > 1 && (
+                      <div className="absolute bottom-2 right-2 z-30">
+                        <select
+                          value={selectedCameraId}
+                          onChange={(e) => {
+                            setSelectedCameraId(e.target.value);
+                            startCamera(e.target.value);
+                          }}
+                          className="text-[10px] bg-slate-900/80 hover:bg-slate-900 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 outline-none font-medium backdrop-blur-sm transition-colors cursor-pointer"
+                        >
+                          {availableCameras.map((cam, idx) => (
+                            <option key={cam.deviceId || idx} value={cam.deviceId}>
+                              📷 {cam.label || `Camera ${idx + 1}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="p-4 text-center text-slate-400 flex flex-col items-center">
@@ -789,7 +878,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                     </p>
                     <button
                       type="button"
-                      onClick={startCamera}
+                      onClick={() => startCamera()}
                       className="mt-3 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
                     >
                       <Camera className="w-3.5 h-3.5" /> Retry Webcam

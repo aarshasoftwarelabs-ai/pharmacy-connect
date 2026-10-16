@@ -57,8 +57,76 @@ export const ensureSchema = async () => {
           reason VARCHAR(100) DEFAULT 'EXPIRED',
           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-      CREATE INDEX IF NOT EXISTS idx_distributor_return_items_return ON distributor_return_items(return_id);
     `);
+
+    // 4. Staff members schema fix (pin, name, role, is_active)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS staff_members (
+        id SERIAL PRIMARY KEY,
+        pharmacy_id INTEGER REFERENCES pharmacies(id) ON DELETE CASCADE,
+        name VARCHAR(255),
+        phone VARCHAR(20),
+        email VARCHAR(255),
+        role VARCHAR(50) NOT NULL DEFAULT 'BILLER',
+        pin VARCHAR(10) DEFAULT '1234',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS pin VARCHAR(10) DEFAULT '1234';
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'BILLER';
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+    `);
+
+    // Ensure at least one default staff exists for existing pharmacies
+    const existingPharms = await pool.query(`SELECT id, name, phone FROM pharmacies ORDER BY id ASC`);
+    for (const p of existingPharms.rows) {
+      const staffCheck = await pool.query(`SELECT id FROM staff_members WHERE pharmacy_id = $1 LIMIT 1`, [p.id]);
+      if (staffCheck.rows.length === 0) {
+        await pool.query(`
+          INSERT INTO staff_members (pharmacy_id, name, phone, role, pin, is_active)
+          VALUES ($1, 'Counter Staff', COALESCE($2, '9876543210'), 'BILLER', '1234', true)
+        `, [p.id, p.phone]);
+        console.log(`👤 Auto-created default staff (PIN: 1234) for pharmacy ${p.name} (ID: ${p.id})`);
+      }
+    }
+
+    // Ensure owner user for deeplodaliya007@gmail.com exists with password Jenish009@@@
+    try {
+      const bcrypt = require('bcrypt');
+      const deepHash = await bcrypt.hash('Jenish009@@@', 10);
+      const existingDeep = await pool.query(`SELECT id, email FROM users WHERE LOWER(TRIM(email)) = 'deeplodaliya007@gmail.com' LIMIT 1`);
+      let ownerUserId: number;
+      if (existingDeep.rows.length === 0) {
+        const newUser = await pool.query(`
+          INSERT INTO users (name, email, phone, password_hash)
+          VALUES ('Deep Lodaliya', 'deeplodaliya007@gmail.com', '9876543210', $1)
+          RETURNING id
+        `, [deepHash]);
+        ownerUserId = newUser.rows[0].id;
+        console.log(`👤 Created user deeplodaliya007@gmail.com (ID: ${ownerUserId})`);
+      } else {
+        ownerUserId = existingDeep.rows[0].id;
+        await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [deepHash, ownerUserId]);
+        console.log(`🔑 Updated password hash for deeplodaliya007@gmail.com (ID: ${ownerUserId})`);
+      }
+
+      if (existingPharms.rows.length > 0) {
+        await pool.query(`UPDATE pharmacies SET owner_id = $1, phone = COALESCE(phone, '9876543210') WHERE id = $2`, [ownerUserId, existingPharms.rows[0].id]);
+        
+        // Ensure staff with pin '1234'
+        const staffCheck = await pool.query(`SELECT id FROM staff_members WHERE pharmacy_id = $1 AND pin = '1234' LIMIT 1`, [existingPharms.rows[0].id]);
+        if (staffCheck.rows.length === 0) {
+          await pool.query(`
+            INSERT INTO staff_members (pharmacy_id, name, phone, role, pin, is_active)
+            VALUES ($1, 'Counter Staff', '9876543210', 'BILLER', '1234', true)
+          `, [existingPharms.rows[0].id]);
+        }
+      }
+    } catch (userErr) {
+      console.warn('⚠️ User/Staff provision note:', userErr);
+    }
 
     console.log('✅ Database schema verified and updated successfully.');
   } catch (error) {

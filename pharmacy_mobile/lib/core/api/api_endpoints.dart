@@ -1,8 +1,8 @@
 import '../services/storage_service.dart';
 
 class ApiEndpoints {
-  // Default URL: local computer Wi-Fi IP for physical mobile phone connection
-  static const String _defaultUrl = 'http://10.66.48.99:3000/api';
+  // Live Cloud Server URL (Production Cloud Backend on Render + Supabase AWS)
+  static const String _defaultUrl = 'https://pharmacy-backend-e210.onrender.com/api';
 
   static String get baseUrl {
     final customUrl = StorageService.getBaseUrl();

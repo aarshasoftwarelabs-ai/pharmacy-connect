@@ -686,10 +686,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildPresetChip('Store PC', 'http://10.66.48.99:3000/api'),
+                        _buildPresetChip('Live Cloud Server', 'https://pharmacy-backend-e210.onrender.com/api'),
+                        _buildPresetChip('Store PC (Local LAN)', 'http://10.66.48.99:3000/api'),
                         _buildPresetChip('Emulator', 'http://10.0.2.2:3000/api'),
                         _buildPresetChip('Home Wi-Fi', 'http://192.168.1.100:3000/api'),
-                        _buildPresetChip('Render Cloud', 'https://pharmacyconnect-api.onrender.com/api'),
                       ],
                     ),
                   ),
