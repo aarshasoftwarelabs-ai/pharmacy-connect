@@ -1,6 +1,7 @@
 // Centralized API Configuration
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.davasetu.com/api';
+export const CLOUD_API_URL = 'https://pharmacy-backend-e210.onrender.com/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || CLOUD_API_URL;
 
 export const apiFetch = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('token');
@@ -14,10 +15,30 @@ export const apiFetch = async (url: string, options: RequestInit = {}) => {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (primaryErr: any) {
+    // If local dev server (localhost:3000) or placeholder URL is unreachable, fallback to production cloud backend
+    if (url.includes('localhost:3000') || url.includes('api.davasetu.com')) {
+      const fallbackUrl = url
+        .replace('http://localhost:3000/api', CLOUD_API_URL)
+        .replace('https://api.davasetu.com/api', CLOUD_API_URL);
+      try {
+        response = await fetch(fallbackUrl, {
+          ...options,
+          headers,
+        });
+      } catch (fallbackErr) {
+        throw primaryErr;
+      }
+    } else {
+      throw primaryErr;
+    }
+  }
 
   if (response.status === 401) {
     // Clear invalid auth state and redirect to login

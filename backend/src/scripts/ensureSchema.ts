@@ -27,10 +27,22 @@ export const ensureSchema = async () => {
 
     // 3. Distributor Returns (Expiry & Return to Distributor Module)
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS distributors (
+          id SERIAL PRIMARY KEY,
+          pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+          name VARCHAR(255) NOT NULL,
+          email VARCHAR(255),
+          whatsapp_number VARCHAR(50),
+          address TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_distributors_pharmacy ON distributors(pharmacy_id);
+
       CREATE TABLE IF NOT EXISTS distributor_returns (
           id SERIAL PRIMARY KEY,
           pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
-          distributor_id INTEGER,
+          distributor_id INTEGER REFERENCES distributors(id) ON DELETE SET NULL,
           supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL,
           challan_number VARCHAR(100) NOT NULL,
           return_date DATE NOT NULL DEFAULT CURRENT_DATE,
