@@ -67,6 +67,21 @@ export const generateMissingBarcodes = async (): Promise<{ success: boolean; upd
   return response.json();
 };
 
+export const lookupMedicineByBarcode = async (barcode: string): Promise<any> => {
+  try {
+    const clean = (barcode || '').trim();
+    if (!clean) return null;
+    const response = await apiFetch(`${API_BASE_URL}/medicines/lookup-barcode/${encodeURIComponent(clean)}`);
+    if (response.ok) {
+      return await response.json();
+    }
+    return null;
+  } catch (err) {
+    console.warn('Barcode lookup error:', err);
+    return null;
+  }
+};
+
 export interface DeadStockItem {
   id: number;
   name: string;

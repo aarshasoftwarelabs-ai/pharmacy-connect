@@ -6,6 +6,7 @@ import { requirePermission } from '../middleware/requirePermission';
 const router = Router();
 
 router.get('/', authenticate, requirePermission('MEDICINES_VIEW'), MedicineController.getMedicines);
+router.get('/lookup-barcode/:barcode', authenticate, MedicineController.lookupBarcode);
 router.get('/dead-stock', authenticate, requirePermission('MEDICINES_VIEW'), MedicineController.getDeadStock);
 router.post('/', authenticate, requirePermission('MEDICINES_CREATE'), MedicineController.createMedicine);
 router.post('/bulk-import', authenticate, MedicineController.bulkImport);

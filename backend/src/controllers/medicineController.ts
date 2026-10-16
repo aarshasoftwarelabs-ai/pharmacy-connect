@@ -14,6 +14,17 @@ export class MedicineController {
     }
   }
 
+  static async lookupBarcode(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const barcode = req.params.barcode;
+      const result = await MedicineService.lookupBarcode(pharmacyId, barcode);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async createMedicine(req: Request, res: Response, next: NextFunction) {
     try {
       const pharmacyId = (req as any).user?.pharmacyId || 1;

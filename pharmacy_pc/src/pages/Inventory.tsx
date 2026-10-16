@@ -20,7 +20,7 @@ import {
   Camera,
   Barcode
 } from 'lucide-react';
-import { fetchMedicines, createMedicine, updateMedicine, deleteMedicine, generateMissingBarcodes } from '../services/medicineService';
+import { fetchMedicines, createMedicine, updateMedicine, deleteMedicine, generateMissingBarcodes, lookupMedicineByBarcode } from '../services/medicineService';
 import { fetchDistributors, Distributor } from '../services/distributorService';
 import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
 import { Medicine } from '../types/medicine';
@@ -203,7 +203,7 @@ export default function Inventory() {
     }
   }, [cameraActive]);
 
-  const handleBarcodeScan = (rawCode: string) => {
+  const handleBarcodeScan = async (rawCode: string) => {
     const code = rawCode.trim();
     if (!code) return;
 
@@ -236,30 +236,48 @@ export default function Inventory() {
     } else {
       AudioAlert.playBarcodeBeep();
       setBarcodeStatus({ 
-        type: 'error', 
-        message: `New Barcode "${code}"! Opening Add Medicine...` 
+        type: 'idle', 
+        message: `🔍 Looking up Barcode "${code}"...` 
       });
+
+      let autoFill: any = null;
+      try {
+        const res = await lookupMedicineByBarcode(code);
+        if (res && res.found && res.medicine) {
+          autoFill = res.medicine;
+        }
+      } catch (e) {
+        console.warn('Barcode lookup error:', e);
+      }
+
+      setBarcodeStatus({ 
+        type: 'success', 
+        message: autoFill?.name ? `✓ Auto-filled "${autoFill.name}" from Barcode!` : `New Barcode "${code}"! Opening Add Medicine...` 
+      });
+
       setTimeout(() => {
         setIsScannerOpen(false);
         setBarcodeStatus(null);
         setSelectedMedicine({
-          name: '',
-          genericName: '',
-          category: 'General',
-          strength: '',
-          dosageForm: 'Tablet',
-          mrp: 0,
-          sellingPrice: 0,
-          purchasePrice: 0,
-          currentStock: 0,
+          name: autoFill?.name || '',
+          genericName: autoFill?.genericName || '',
+          category: autoFill?.category || 'General',
+          strength: autoFill?.strength || '',
+          dosageForm: autoFill?.dosageForm || 'Tablet',
+          packSize: autoFill?.packSize || '',
+          mrp: autoFill?.mrp || 50,
+          sellingPrice: autoFill?.sellingPrice || 45,
+          purchasePrice: autoFill?.purchasePrice || 35,
+          currentStock: autoFill?.currentStock || 10,
           minimumStock: 10,
           barcode: code,
-          manufacturer: '',
-          hsnCode: '',
-          gstRate: 12
+          manufacturer: autoFill?.manufacturer || '',
+          hsnCode: autoFill?.hsnCode || '30049099',
+          gstRate: autoFill?.gstRate || 12,
+          expiryDate: autoFill?.expiryDate || '2028-12-31'
         } as any);
         setIsAddModalOpen(true);
-      }, 850);
+      }, 700);
     }
     setScannerSearchQuery('');
   };

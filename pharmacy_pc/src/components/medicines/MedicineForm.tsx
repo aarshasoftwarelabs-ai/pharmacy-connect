@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Medicine } from '../../types/medicine';
 import { MEDICINE_CATEGORIES } from '../../constants/medicine';
-import { X, Save, Sparkles, Wand2, Loader2, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import { X, Save, Sparkles, Wand2, Loader2, Image as ImageIcon, ChevronDown, Barcode, Scan } from 'lucide-react';
 import ModernDatePicker from '../ui/ModernDatePicker';
+import { lookupMedicineByBarcode } from '../../services/medicineService';
 
 interface MedicineFormProps {
   medicine?: Medicine | null;
@@ -37,6 +38,9 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
   useEffect(() => {
     if (medicine) {
       setFormData(medicine);
+      if (medicine.barcode && !medicine.name) {
+        handleBarcodeLookup(medicine.barcode);
+      }
     }
   }, [medicine]);
 
@@ -48,6 +52,42 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
       setFormData(prev => ({ ...prev, [name]: checked }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleBarcodeLookup = async (codeToLookup?: string) => {
+    const code = (codeToLookup || formData.barcode || '').trim();
+    if (!code) {
+      alert("Please enter or scan a barcode first.");
+      return;
+    }
+    setIsSmartLoading(true);
+    try {
+      const res = await lookupMedicineByBarcode(code);
+      if (res && res.medicine) {
+        const med = res.medicine;
+        setFormData(prev => ({
+          ...prev,
+          name: prev.name || med.name,
+          genericName: prev.genericName || med.genericName,
+          category: med.category || prev.category,
+          strength: prev.strength || med.strength,
+          dosageForm: prev.dosageForm || med.dosageForm,
+          packSize: prev.packSize || med.packSize,
+          manufacturer: prev.manufacturer || med.manufacturer,
+          mrp: Number(prev.mrp) || Number(med.mrp) || 50,
+          sellingPrice: Number(prev.sellingPrice) || Number(med.sellingPrice) || 45,
+          purchasePrice: Number(prev.purchasePrice) || Number(med.purchasePrice) || 35,
+          hsnCode: prev.hsnCode || med.hsnCode,
+          gstRate: med.gstRate !== undefined ? med.gstRate : prev.gstRate,
+          barcode: code,
+          expiryDate: prev.expiryDate || med.expiryDate || '2028-12-31'
+        }));
+      }
+    } catch (err) {
+      console.warn('Barcode auto-fill failed:', err);
+    } finally {
+      setIsSmartLoading(false);
     }
   };
 
@@ -68,14 +108,17 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
   };
 
   const handleSmartAutofill = async () => {
+    if (!formData.name && formData.barcode) {
+      return handleBarcodeLookup(formData.barcode);
+    }
     if (!formData.name) {
-      alert("Please enter a medicine name first to auto-fill details.");
+      alert("Please enter a medicine name or barcode to auto-fill details.");
       return;
     }
     
     setIsSmartLoading(true);
     // Simulate API call to a medicines database
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 600));
     
     const nameLower = formData.name.toLowerCase();
     let smartData: Partial<Medicine> | null = null;
@@ -422,27 +465,53 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
                 <div className="sm:col-span-2">
                   <div className="flex justify-between items-center mb-1">
                     <label htmlFor="barcode" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Barcode</label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const randomBarcode = `890${String(Math.floor(Math.random() * 900000000) + 100000000)}`;
-                        setFormData(prev => ({ ...prev, barcode: randomBarcode }));
-                      }}
-                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
-                      title="Generate unique store barcode"
-                    >
-                      🪄 Auto-Generate
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleBarcodeLookup(formData.barcode)}
+                        className="text-[10px] font-bold text-emerald-600 hover:text-emerald-800 transition-colors"
+                        title="Auto-fill medicine details from scanned barcode"
+                      >
+                        ⚡ Auto-Fill
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const randomBarcode = `890${String(Math.floor(Math.random() * 900000000) + 100000000)}`;
+                          setFormData(prev => ({ ...prev, barcode: randomBarcode }));
+                        }}
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                        title="Generate unique store barcode"
+                      >
+                        🪄 Generate
+                      </button>
+                    </div>
                   </div>
-                  <input 
-                    type="text" 
-                    name="barcode" 
-                    id="barcode" 
-                    placeholder="Scan gun or auto-generate" 
-                    value={formData.barcode || ''} 
-                    onChange={handleChange} 
-                    className={`${inputClass} font-mono`} 
-                  />
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      name="barcode" 
+                      id="barcode" 
+                      placeholder="Scan gun or enter code" 
+                      value={formData.barcode || ''} 
+                      onChange={(e) => {
+                        handleChange(e);
+                        // If barcode is 12 or 13 digits (EAN/UPC scanned via gun), auto-trigger lookup
+                        const val = e.target.value.trim();
+                        if ((val.length === 12 || val.length === 13) && !formData.name) {
+                          handleBarcodeLookup(val);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleBarcodeLookup(formData.barcode);
+                        }
+                      }}
+                      className={`${inputClass} font-mono`} 
+                    />
+                  </div>
                 </div>
 
 

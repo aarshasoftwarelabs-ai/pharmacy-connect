@@ -8,6 +8,7 @@ import '../../models/medicine_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../../core/services/barcode_medicine_service.dart';
 import '../auth/login_screen.dart';
 import '../navigation/main_nav_screen.dart';
 
@@ -475,14 +476,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
   // -------------------------------------------------------------
   // 3. STOCK INWARD MODE: Register New Medicine Barcode Sheet
   // -------------------------------------------------------------
-  void _showNewMedicineSheet(String scannedBarcode) {
+  void _showNewMedicineSheet(String scannedBarcode) async {
     _isBottomSheetOpen = true;
-    final nameCtrl = TextEditingController();
-    final genericCtrl = TextEditingController();
-    final categoryCtrl = TextEditingController(text: 'General');
-    final mrpCtrl = TextEditingController();
-    final spCtrl = TextEditingController();
-    final stockCtrl = TextEditingController(text: '10');
+    final auto = await BarcodeMedicineService.lookup(scannedBarcode);
+    final nameCtrl = TextEditingController(text: auto.name);
+    final genericCtrl = TextEditingController(text: auto.genericName ?? '');
+    final categoryCtrl = TextEditingController(text: auto.category);
+    final mrpCtrl = TextEditingController(text: auto.mrp.toStringAsFixed(2));
+    final spCtrl = TextEditingController(text: auto.sellingPrice.toStringAsFixed(2));
+    final stockCtrl = TextEditingController(text: auto.stock.toString());
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,

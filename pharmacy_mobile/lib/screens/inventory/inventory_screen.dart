@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../../core/services/barcode_medicine_service.dart';
 import '../billing/camera_barcode_scanner_screen.dart';
 
 class InventoryScreen extends StatelessWidget {
@@ -99,7 +100,30 @@ class InventoryScreen extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
                         tooltip: 'Scan Barcode with Camera',
-                        onPressed: () => CameraBarcodeScannerScreen.open(context),
+                        onPressed: () async {
+                          final code = await CameraBarcodeScannerScreen.scanCode(context);
+                          if (code != null && code.trim().isNotEmpty) {
+                            final cleanCode = code.trim();
+                            final match = inventory.findByBarcode(cleanCode);
+                            if (match != null) {
+                              inventory.setSearchQuery(match.name);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('✓ Found: ${match.name} (Stock: ${match.stock} Units)'),
+                                    backgroundColor: const Color(0xFF0D9488),
+                                  ),
+                                );
+                              }
+                            } else {
+                              // Barcode not in inventory! Look up and open Add Medicine Sheet with auto-filled details!
+                              final autoData = await BarcodeMedicineService.lookup(cleanCode);
+                              if (context.mounted) {
+                                _showAddMedicineSheet(context, initialData: autoData);
+                              }
+                            }
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -1004,16 +1028,16 @@ class InventoryScreen extends StatelessWidget {
     return AppColors.primary;
   }
 
-  void _showAddMedicineSheet(BuildContext context) {
-    final nameCtrl = TextEditingController();
-    final genericCtrl = TextEditingController();
-    final mfgCtrl = TextEditingController();
-    final categoryCtrl = TextEditingController(text: 'General');
-    final mrpCtrl = TextEditingController();
-    final spCtrl = TextEditingController();
-    final stockCtrl = TextEditingController(text: '10');
-    final barcodeCtrl = TextEditingController();
-    final expiryCtrl = TextEditingController(text: '12/2026');
+  void _showAddMedicineSheet(BuildContext context, {ScannedMedicineData? initialData}) {
+    final nameCtrl = TextEditingController(text: initialData?.name ?? '');
+    final genericCtrl = TextEditingController(text: initialData?.genericName ?? '');
+    final mfgCtrl = TextEditingController(text: initialData?.manufacturer ?? '');
+    final categoryCtrl = TextEditingController(text: initialData?.category ?? 'General');
+    final mrpCtrl = TextEditingController(text: initialData != null ? initialData.mrp.toStringAsFixed(2) : '');
+    final spCtrl = TextEditingController(text: initialData != null ? initialData.sellingPrice.toStringAsFixed(2) : '');
+    final stockCtrl = TextEditingController(text: initialData != null ? initialData.stock.toString() : '10');
+    final barcodeCtrl = TextEditingController(text: initialData?.barcode ?? '');
+    final expiryCtrl = TextEditingController(text: initialData?.expiryDate ?? '12/2028');
 
     showModalBottomSheet(
       context: context,
@@ -1023,193 +1047,281 @@ class InventoryScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            void applyAutoFill(ScannedMedicineData data) {
+              setSheetState(() {
+                nameCtrl.text = data.name;
+                if (data.genericName != null && data.genericName!.isNotEmpty) {
+                  genericCtrl.text = data.genericName!;
+                }
+                categoryCtrl.text = data.category;
+                if (data.manufacturer != null && data.manufacturer!.isNotEmpty) {
+                  mfgCtrl.text = data.manufacturer!;
+                }
+                mrpCtrl.text = data.mrp.toStringAsFixed(2);
+                spCtrl.text = data.sellingPrice.toStringAsFixed(2);
+                stockCtrl.text = data.stock.toString();
+                barcodeCtrl.text = data.barcode;
+                expiryCtrl.text = data.expiryDate;
+              });
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                top: 20,
+                left: 20,
+                right: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Add New Medicine',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Add New Medicine',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Medicine Name *',
-                    hintText: 'e.g. Paracetamol 650mg',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: genericCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Generic Name',
-                          hintText: 'e.g. Paracetamol',
+                    if (initialData != null || barcodeCtrl.text.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFECFDF5),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Barcode: ${barcodeCtrl.text} (Auto-filled)',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: categoryCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                          hintText: 'e.g. Analgesics',
-                        ),
+                    ],
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Medicine Name *',
+                        hintText: 'e.g. Paracetamol 650mg',
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: mfgCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Manufacturer',
-                          hintText: 'e.g. Cipla',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: stockCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Stock Units *',
-                          hintText: '10',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: mrpCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'MRP (₹) *',
-                          hintText: '50.00',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: spCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Selling Price (₹) *',
-                          hintText: '45.00',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: barcodeCtrl,
-                        decoration: InputDecoration(
-                          labelText: 'Barcode / SKU',
-                          hintText: 'e.g. 890123456789',
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
-                            tooltip: 'Scan Barcode with Camera',
-                            onPressed: () async {
-                              final code = await CameraBarcodeScannerScreen.scanCode(context);
-                              if (code != null && code.isNotEmpty) {
-                                barcodeCtrl.text = code;
-                              }
-                            },
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: genericCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Generic Name',
+                              hintText: 'e.g. Paracetamol',
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: expiryCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Expiry Date',
-                          hintText: 'MM/YYYY',
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: categoryCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Category',
+                              hintText: 'e.g. Analgesics',
+                            ),
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: mfgCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Manufacturer',
+                              hintText: 'e.g. Cipla',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: stockCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Stock Units *',
+                              hintText: '10',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: mrpCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: 'MRP (₹) *',
+                              hintText: '50.00',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: spCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: 'Selling Price (₹) *',
+                              hintText: '45.00',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: barcodeCtrl,
+                            decoration: InputDecoration(
+                              labelText: 'Barcode / SKU',
+                              hintText: 'e.g. 890123456789',
+                              suffixIcon: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (barcodeCtrl.text.isNotEmpty)
+                                    IconButton(
+                                      icon: const Icon(Icons.flash_on_rounded, color: Colors.orange, size: 20),
+                                      tooltip: 'Auto-fill details from barcode',
+                                      onPressed: () async {
+                                        final auto = await BarcodeMedicineService.lookup(barcodeCtrl.text.trim());
+                                        applyAutoFill(auto);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('✓ Auto-filled: ${auto.name}'),
+                                              backgroundColor: const Color(0xFF059669),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  IconButton(
+                                    icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                                    tooltip: 'Scan Barcode with Camera',
+                                    onPressed: () async {
+                                      final code = await CameraBarcodeScannerScreen.scanCode(context);
+                                      if (code != null && code.trim().isNotEmpty) {
+                                        final clean = code.trim();
+                                        final auto = await BarcodeMedicineService.lookup(clean);
+                                        applyAutoFill(auto);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('✓ Auto-filled: ${auto.name} from Barcode!'),
+                                              backgroundColor: const Color(0xFF059669),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: expiryCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Expiry Date',
+                              hintText: 'MM/YYYY',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (nameCtrl.text.trim().isEmpty && barcodeCtrl.text.trim().isNotEmpty) {
+                            final auto = await BarcodeMedicineService.lookup(barcodeCtrl.text.trim());
+                            applyAutoFill(auto);
+                          }
+
+                          if (nameCtrl.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please enter medicine name or scan barcode')),
+                            );
+                            return;
+                          }
+
+                          final mrp = double.tryParse(mrpCtrl.text) ?? 50.0;
+                          final sp = double.tryParse(spCtrl.text) ?? (mrp * 0.9);
+                          final stock = int.tryParse(stockCtrl.text) ?? 10;
+
+                          Navigator.pop(ctx);
+                          final ok = await context.read<InventoryProvider>().addMedicine(
+                                name: nameCtrl.text.trim(),
+                                genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
+                                category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'General',
+                                manufacturer: mfgCtrl.text.trim().isNotEmpty ? mfgCtrl.text.trim() : null,
+                                mrp: mrp,
+                                sellingPrice: sp,
+                                stock: stock,
+                                barcode: barcodeCtrl.text.trim().isNotEmpty ? barcodeCtrl.text.trim() : null,
+                                expiryDate: expiryCtrl.text.trim().isNotEmpty ? expiryCtrl.text.trim() : '12/2028',
+                              );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(ok 
+                                  ? '✓ Added ${nameCtrl.text.trim()} to inventory!' 
+                                  : 'Failed to add medicine. Please try again.'),
+                                backgroundColor: ok ? const Color(0xFF059669) : Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Save to Inventory', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameCtrl.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter medicine name')),
-                        );
-                        return;
-                      }
-                      final mrp = double.tryParse(mrpCtrl.text) ?? 50.0;
-                      final sp = double.tryParse(spCtrl.text) ?? (mrp * 0.9);
-                      final stock = int.tryParse(stockCtrl.text) ?? 10;
-
-                      Navigator.pop(ctx);
-                      final ok = await context.read<InventoryProvider>().addMedicine(
-                            name: nameCtrl.text.trim(),
-                            genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
-                            category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'General',
-                            manufacturer: mfgCtrl.text.trim().isNotEmpty ? mfgCtrl.text.trim() : null,
-                            mrp: mrp,
-                            sellingPrice: sp,
-                            stock: stock,
-                            barcode: barcodeCtrl.text.trim().isNotEmpty ? barcodeCtrl.text.trim() : null,
-                            expiryDate: expiryCtrl.text.trim().isNotEmpty ? expiryCtrl.text.trim() : null,
-                          );
-                      if (context.mounted && ok) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Added ${nameCtrl.text.trim()} to inventory')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Save to Inventory', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

@@ -171,28 +171,36 @@ class InventoryProvider extends ChangeNotifier {
     String? expiryDate,
   }) async {
     try {
+      String? cleanExpiry = expiryDate?.trim();
+      if (cleanExpiry != null && cleanExpiry.isNotEmpty) {
+        final parts = cleanExpiry.split('/');
+        if (parts.length == 2) {
+          final m = parts[0].padLeft(2, '0');
+          final y = parts[1].length == 2 ? '20${parts[1]}' : parts[1];
+          cleanExpiry = '$y-$m-01';
+        }
+      }
+
       final payload = {
-        'name': name,
-        'genericName': genericName,
-        'category': category ?? 'General',
-        'manufacturer': manufacturer,
+        'name': name.trim(),
+        'genericName': genericName?.trim(),
+        'category': category?.trim() ?? 'General',
+        'manufacturer': manufacturer?.trim(),
         'mrp': mrp,
         'sellingPrice': sellingPrice,
         'currentStock': stock,
-        'barcode': barcode,
-        'expiryDate': expiryDate,
+        'barcode': barcode?.trim(),
+        'expiryDate': cleanExpiry ?? '2028-12-31',
       };
 
       final response = await ApiService.post(ApiEndpoints.medicines, payload);
 
-      if (response.success && response.data != null) {
-        final newMed = MedicineModel.fromJson(response.data as Map<String, dynamic>);
-        _medicines.insert(0, newMed);
-        notifyListeners();
+      if (response.success) {
+        await fetchMedicines();
         return true;
       } else {
-        // If API fails, also refresh to keep real database in sync
-        await fetchMedicines();
+        _errorMessage = response.message ?? 'Failed to add medicine';
+        notifyListeners();
         return false;
       }
     } catch (e) {
