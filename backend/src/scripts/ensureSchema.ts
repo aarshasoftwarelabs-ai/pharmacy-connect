@@ -148,34 +148,36 @@ export const ensureSchema = async () => {
       }
     }
 
-    // Ensure owner user for deeplodaliya007@gmail.com exists with password Jenish009@@@
+    // Ensure owner user for deeplodaliya007@gmail.com exists with password Jenish009@@@ and is linked to Pharmacy 8
     try {
       const bcrypt = require('bcrypt');
       const deepHash = await bcrypt.hash('Jenish009@@@', 10);
-      const existingDeep = await pool.query(`SELECT id, email FROM users WHERE LOWER(TRIM(email)) = 'deeplodaliya007@gmail.com' LIMIT 1`);
+      const existingDeep = await pool.query(`
+        SELECT id, email FROM users 
+        WHERE LOWER(TRIM(COALESCE(email, ''))) = 'deeplodaliya007@gmail.com' 
+           OR id = 9 
+        ORDER BY id ASC LIMIT 1
+      `);
       let ownerUserId: number;
       if (existingDeep.rows.length === 0) {
         const newUser = await pool.query(`
           INSERT INTO users (name, email, phone, password_hash)
-          VALUES ('Deep Lodaliya', 'deeplodaliya007@gmail.com', '9876543210', $1)
+          VALUES ('Deep Lodaliya', 'deeplodaliya007@gmail.com', '9484535043', $1)
           RETURNING id
         `, [deepHash]);
         ownerUserId = newUser.rows[0].id;
         console.log(`👤 Created user deeplodaliya007@gmail.com (ID: ${ownerUserId})`);
       } else {
         ownerUserId = existingDeep.rows[0].id;
-        await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [deepHash, ownerUserId]);
-        console.log(`🔑 Updated password hash for deeplodaliya007@gmail.com (ID: ${ownerUserId})`);
+        await pool.query(`UPDATE users SET email = 'deeplodaliya007@gmail.com', name = 'Deep Lodaliya', password_hash = $1 WHERE id = $2`, [deepHash, ownerUserId]);
+        console.log(`🔑 Verified/Updated password hash for deeplodaliya007@gmail.com (ID: ${ownerUserId})`);
       }
 
-      // Ensure deep's user has a pharmacy if none exists
-      const deepPharm = await pool.query(`SELECT id FROM pharmacies WHERE owner_id = $1 LIMIT 1`, [ownerUserId]);
-      if (deepPharm.rows.length === 0) {
-        await pool.query(`
-          INSERT INTO pharmacies (owner_id, name, address, phone, business_type)
-          VALUES ($1, 'Deep Pharmacy', 'Store Address', '9876543210', 'RETAIL')
-        `, [ownerUserId]);
-      }
+      // Ensure Pharmacy 8 is linked to owner
+      await pool.query(
+        `UPDATE pharmacies SET owner_id = $1, email = 'deeplodaliya007@gmail.com' WHERE id = 8`,
+        [ownerUserId]
+      );
     } catch (userErr) {
       console.warn('⚠️ User/Staff provision note:', userErr);
     }
