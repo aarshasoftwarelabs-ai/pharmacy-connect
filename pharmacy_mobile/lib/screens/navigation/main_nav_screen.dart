@@ -6,7 +6,6 @@ import '../billing/billing_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../inventory/inventory_screen.dart';
 import '../orders/orders_screen.dart';
-import '../settings/profile_screen.dart';
 
 class MainNavScreen extends StatefulWidget {
   const MainNavScreen({super.key});
@@ -34,7 +33,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
       const BillingScreen(),
       const InventoryScreen(),
       const OrdersScreen(),
-      const ProfileScreen(),
     ];
 
     return Scaffold(
@@ -49,24 +47,24 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
   Widget _buildModernBottomNav(int cartCount) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.10),
-            blurRadius: 24,
+            color: const Color(0xFF0F172A).withValues(alpha: 0.12),
+            blurRadius: 28,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
-            blurRadius: 10,
+            color: AppColors.primary.withValues(alpha: 0.08),
+            blurRadius: 14,
             offset: const Offset(0, 2),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -97,12 +95,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
             activeIcon: Icons.receipt_long_rounded,
             label: 'Invoices',
           ),
-          _buildNavItem(
-            index: 4,
-            icon: Icons.tune_rounded,
-            activeIcon: Icons.settings_rounded,
-            label: 'Profile',
-          ),
         ],
       ),
     );
@@ -125,14 +117,14 @@ class _MainNavScreenState extends State<MainNavScreen> {
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 14 : 10,
-          vertical: 6,
+          horizontal: isSelected ? 16 : 12,
+          vertical: 10,
         ),
         decoration: BoxDecoration(
           color: isSelected
               ? (isPrimaryHighlight ? AppColors.primary : AppColors.primarySubtle)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -142,27 +134,27 @@ class _MainNavScreenState extends State<MainNavScreen> {
               children: [
                 Icon(
                   isSelected ? activeIcon : icon,
-                  size: 22,
+                  size: 24,
                   color: isSelected
                       ? (isPrimaryHighlight ? Colors.white : AppColors.primaryDark)
                       : AppColors.textMuted,
                 ),
                 if (badgeCount != null && badgeCount > 0)
                   Positioned(
-                    top: -4,
-                    right: -6,
+                    top: -5,
+                    right: -7,
                     child: Container(
-                      padding: const EdgeInsets.all(3),
+                      padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
                         color: AppColors.error,
                         shape: BoxShape.circle,
                       ),
-                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                       child: Text(
                         '$badgeCount',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 9,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
@@ -172,13 +164,14 @@ class _MainNavScreenState extends State<MainNavScreen> {
               ],
             ),
             if (isSelected) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
                   color: isPrimaryHighlight ? Colors.white : AppColors.primaryDark,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
                 ),
               ),
             ],

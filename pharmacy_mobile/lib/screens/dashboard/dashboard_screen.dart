@@ -124,6 +124,16 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
+            tooltip: 'Store Settings & Profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+          ),
           const SizedBox(width: 4),
         ],
       ),
@@ -357,7 +367,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                     title: 'Store Settings',
                     icon: Icons.storefront_rounded,
                     color: Colors.indigo,
-                    onTap: () => widget.onNavigateTab?.call(4),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
                   ),
                 ],
               ),
