@@ -16,11 +16,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool _isStaffLogin = true; // Default to Staff mode for mobile staff phones!
+  bool _isStaffLogin = false; // Default to Store Owner (Pocket Pharmacy ERP) mode!
 
   // Owner controllers
-  final _identifierController = TextEditingController(text: 'admin@davasetu.com');
-  final _passwordController = TextEditingController(text: 'admin123');
+  final _identifierController = TextEditingController(text: 'deeplodaliya007@gmail.com');
+  final _passwordController = TextEditingController(text: 'Jenish009@@@');
   bool _obscurePassword = true;
 
   // Staff controllers
@@ -240,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Mobile POS & Barcode Scanner System',
+                  'Mobile POS & Complete Pharmacy ERP',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -249,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Role Toggle Selector
+                // Role Toggle Selector (Owner first, Staff second)
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
@@ -258,46 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _isStaffLogin = true),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: _isStaffLogin ? Colors.white : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: _isStaffLogin
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.06),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.qr_code_scanner_rounded,
-                                  size: 16,
-                                  color: _isStaffLogin ? AppColors.primary : AppColors.textMuted,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Staff Scanner (સ્ટાફ)',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: _isStaffLogin ? FontWeight.bold : FontWeight.normal,
-                                    color: _isStaffLogin ? AppColors.primary : AppColors.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                      // 1. Store Owner (Default)
                       Expanded(
                         child: GestureDetector(
                           onTap: () => setState(() => _isStaffLogin = false),
@@ -331,6 +292,47 @@ class _LoginScreenState extends State<LoginScreen> {
                                     fontSize: 13,
                                     fontWeight: !_isStaffLogin ? FontWeight.bold : FontWeight.normal,
                                     color: !_isStaffLogin ? AppColors.primary : AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 2. Staff Scanner
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _isStaffLogin = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: _isStaffLogin ? Colors.white : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: _isStaffLogin
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.06),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.qr_code_scanner_rounded,
+                                  size: 16,
+                                  color: _isStaffLogin ? AppColors.primary : AppColors.textMuted,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Staff Scanner (સ્ટાફ)',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: _isStaffLogin ? FontWeight.bold : FontWeight.normal,
+                                    color: _isStaffLogin ? AppColors.primary : AppColors.textMuted,
                                   ),
                                 ),
                               ],
