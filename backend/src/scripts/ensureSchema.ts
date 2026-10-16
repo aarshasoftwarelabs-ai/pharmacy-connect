@@ -124,17 +124,13 @@ export const ensureSchema = async () => {
         console.log(`🔑 Updated password hash for deeplodaliya007@gmail.com (ID: ${ownerUserId})`);
       }
 
-      if (existingPharms.rows.length > 0) {
-        await pool.query(`UPDATE pharmacies SET owner_id = $1, phone = COALESCE(phone, '9876543210') WHERE id = $2`, [ownerUserId, existingPharms.rows[0].id]);
-        
-        // Ensure staff with pin '1234'
-        const staffCheck = await pool.query(`SELECT id FROM staff_members WHERE pharmacy_id = $1 AND pin = '1234' LIMIT 1`, [existingPharms.rows[0].id]);
-        if (staffCheck.rows.length === 0) {
-          await pool.query(`
-            INSERT INTO staff_members (pharmacy_id, name, phone, role, pin, is_active)
-            VALUES ($1, 'Counter Staff', '9876543210', 'BILLER', '1234', true)
-          `, [existingPharms.rows[0].id]);
-        }
+      // Ensure deep's user has a pharmacy if none exists
+      const deepPharm = await pool.query(`SELECT id FROM pharmacies WHERE owner_id = $1 LIMIT 1`, [ownerUserId]);
+      if (deepPharm.rows.length === 0) {
+        await pool.query(`
+          INSERT INTO pharmacies (owner_id, name, address, phone, business_type)
+          VALUES ($1, 'Deep Pharmacy', 'Store Address', '9876543210', 'RETAIL')
+        `, [ownerUserId]);
       }
     } catch (userErr) {
       console.warn('⚠️ User/Staff provision note:', userErr);

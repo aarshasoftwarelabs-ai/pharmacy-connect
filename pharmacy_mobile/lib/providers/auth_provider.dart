@@ -57,6 +57,9 @@ class AuthProvider extends ChangeNotifier {
         if (token.isNotEmpty) {
           await StorageService.setToken(token);
         }
+        if (cleanId.contains('@') && (userMap['email'] == null || userMap['email'].toString().isEmpty)) {
+          userMap['email'] = cleanId;
+        }
         if (pharmacyMap != null) {
           await StorageService.setPharmacy(pharmacyMap);
           if (pharmacyMap['name'] != null) {
@@ -118,6 +121,9 @@ class AuthProvider extends ChangeNotifier {
 
         if (token.isNotEmpty) {
           await StorageService.setToken(token);
+        }
+        if (email.trim().isNotEmpty) {
+          userMap['email'] = email.trim();
         }
         if (pharmacyMap != null) {
           await StorageService.setPharmacy(pharmacyMap);

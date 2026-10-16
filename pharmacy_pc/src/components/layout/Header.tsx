@@ -10,7 +10,9 @@ interface HeaderProps {
 }
 
 export default function Header({ pageTitle, subtitle }: HeaderProps) {
-  const [pharmacyName, setPharmacyName] = useState('Loading...');
+  const [pharmacyName, setPharmacyName] = useState('My Pharmacy');
+  const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -18,20 +20,32 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    // Pharmacy Name
-    PharmacyService.getPharmacyProfile(getPharmacyId())
-      .then(profile => {
-        let name = profile?.name || 'DavaSetu Pharmacy';
-        const localData = localStorage.getItem('pharmacy_profile_data');
-        if (localData) {
-          try {
-            const parsed = JSON.parse(localData);
-            if (parsed.name) name = parsed.name;
-          } catch(e) {}
-        }
-        setPharmacyName(name);
-      })
-      .catch(() => setPharmacyName('DavaSetu Admin'));
+    // Read logged-in user details from local storage immediately
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (u.email) setUserEmail(u.email);
+        if (u.name) setUserName(u.name);
+        if (u.pharmacyName) setPharmacyName(u.pharmacyName);
+      }
+      const localData = localStorage.getItem('pharmacy_profile_data');
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        if (parsed.name) setPharmacyName(parsed.name);
+      }
+    } catch (e) {}
+
+    // Pharmacy Profile sync from server if available
+    const pharmId = getPharmacyId();
+    if (pharmId) {
+      PharmacyService.getPharmacyProfile(pharmId)
+        .then(profile => {
+          if (profile?.name) setPharmacyName(profile.name);
+          if (profile?.email && !userEmail) setUserEmail(profile.email);
+        })
+        .catch(() => {});
+    }
 
     // Fetch initial notifications
     fetchNotifications();
@@ -205,16 +219,15 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
         
         <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
         
-        <button className="flex items-center space-x-3 text-left hover:bg-slate-50 p-1.5 rounded-lg transition-colors">
-          <div className="h-8 w-8 rounded-full bg-pharmacy-100 flex items-center justify-center text-pharmacy-700">
-            <UserCircle className="h-5 w-5" />
+        <div className="flex items-center space-x-3 text-left p-1.5 rounded-xl border border-slate-200/60 bg-white/50">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-pharmacy-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs shadow-sm uppercase">
+            {userName ? userName.slice(0, 2) : <UserCircle className="h-5 w-5" />}
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-medium text-slate-700">{pharmacyName}</p>
-            <p className="text-xs text-slate-500">Admin</p>
+            <p className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[150px]">{pharmacyName}</p>
+            <p className="text-[11px] text-slate-500 truncate max-w-[150px]">{userEmail || userName || 'Owner'}</p>
           </div>
-          <ChevronDown className="h-4 w-4 text-slate-400 hidden sm:block" />
-        </button>
+        </div>
       </div>
     </header>
   );

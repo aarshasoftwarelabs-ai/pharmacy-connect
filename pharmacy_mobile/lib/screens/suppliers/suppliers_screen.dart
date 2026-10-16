@@ -36,34 +36,15 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
         });
         return;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Error fetching suppliers: $e');
+    }
 
-    setState(() {
-      _suppliers = [
-        SupplierModel(
-          id: 1,
-          supplierName: 'Gujarat Pharma Distributors',
-          mobile: '9825012345',
-          city: 'Ahmedabad',
-          address: 'GIDC Naroda',
-        ),
-        SupplierModel(
-          id: 2,
-          supplierName: 'Mediswift Healthcare Agency',
-          mobile: '9879054321',
-          city: 'Surat',
-          address: 'Ring Road Market',
-        ),
-        SupplierModel(
-          id: 3,
-          supplierName: 'Apotheke Lifesciences Pharma Distributor',
-          mobile: '9712398765',
-          city: 'Vadodara',
-          address: 'Alkapuri',
-        ),
-      ];
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _showAddSupplierDialog() {

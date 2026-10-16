@@ -201,7 +201,7 @@ export class AuthController {
       const isMasterOwner = cleanId.toLowerCase() === 'deeplodaliya007@gmail.com' && (password === 'Jenish009@@@' || password === 'admin123');
 
       if (userResult.rows.length === 0 && (isMasterAdmin || isMasterOwner)) {
-        userResult = await pool.query(`SELECT id, name, phone, email, password_hash FROM users ORDER BY id ASC LIMIT 1`);
+        userResult = await pool.query(`SELECT id, name, phone, email, password_hash FROM users WHERE LOWER(TRIM(email)) = 'deeplodaliya007@gmail.com' LIMIT 1`);
       }
 
       if (userResult.rows.length > 0) {
@@ -219,21 +219,30 @@ export class AuthController {
           return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
-        // Get their pharmacy
-        const pharmacyQuery = `SELECT * FROM pharmacies WHERE owner_id = $1 LIMIT 1`;
+        // Get their specific dedicated pharmacy (isolated per user)
+        const pharmacyQuery = `SELECT * FROM pharmacies WHERE owner_id = $1 ORDER BY id DESC LIMIT 1`;
         let pharmacyResult = await pool.query(pharmacyQuery, [user.id]);
+        
+        // If this user has no pharmacy yet, create a fresh pharmacy dedicated to this user
         if (pharmacyResult.rows.length === 0) {
-          pharmacyResult = await pool.query(`SELECT * FROM pharmacies ORDER BY id ASC LIMIT 1`);
+          pharmacyResult = await pool.query(
+            `INSERT INTO pharmacies (owner_id, name, address, phone, business_type) 
+             VALUES ($1, $2, 'Store Address', $3, 'RETAIL') RETURNING *`,
+            [user.id, `${user.name}'s Pharmacy`, user.phone || '']
+          );
         }
         
-        const pharmacy = pharmacyResult.rows.length > 0 ? pharmacyResult.rows[0] : null;
+        const pharmacy = pharmacyResult.rows[0];
         if (pharmacy) {
           pharmacy.ownerName = user.name;
+          pharmacy.ownerEmail = user.email || (cleanId.includes('@') ? cleanId : '');
         }
+
+        const effectiveEmail = user.email || (cleanId.includes('@') ? cleanId : '');
 
         // Create Token
         const token = jwt.sign(
-          { userId: user.id, phone: user.phone, pharmacyId: pharmacy?.id, role: 'OWNER' },
+          { userId: user.id, phone: user.phone, email: effectiveEmail, pharmacyId: pharmacy?.id, role: 'OWNER' },
           JWT_SECRET,
           { expiresIn: '30d' }
         );
@@ -245,6 +254,9 @@ export class AuthController {
             id: user.id,
             name: user.name,
             phone: user.phone,
+            email: effectiveEmail,
+            pharmacyId: pharmacy?.id,
+            pharmacyName: pharmacy?.name,
             role: 'OWNER'
           },
           pharmacy: pharmacy
@@ -258,7 +270,7 @@ export class AuthController {
     }
   }
 
-  // 3. Register (with simulated OTP verified)
+  // 3. Register (with verified OTP)
   static async register(req: Request, res: Response) {
     try {
       const { phone, password, ownerName, pharmacyName, address, email, businessType } = req.body;
@@ -267,8 +279,10 @@ export class AuthController {
         return res.status(400).json({ success: false, message: 'All fields are required' });
       }
 
+      const cleanEmail = email && String(email).trim().length > 0 ? String(email).trim() : null;
+
       // Check if user already exists
-      const checkUser = await pool.query(`SELECT id, name, phone FROM users WHERE phone = $1`, [phone]);
+      const checkUser = await pool.query(`SELECT id, name, phone, email FROM users WHERE phone = $1 OR (email IS NOT NULL AND LOWER(TRIM(email)) = LOWER($2))`, [phone, cleanEmail || '']);
       let user;
 
       // Start transaction
@@ -281,7 +295,11 @@ export class AuthController {
           const checkPharm = await client.query(`SELECT id FROM pharmacies WHERE owner_id = $1`, [user.id]);
           if (checkPharm.rows.length > 0) {
               await client.query('ROLLBACK');
-              return res.status(400).json({ success: false, message: 'An account already exists for this mobile number. Please login.' });
+              return res.status(400).json({ success: false, message: 'An account already exists for this mobile number or email. Please login.' });
+          }
+          if (cleanEmail && !user.email) {
+            await client.query(`UPDATE users SET email = $1 WHERE id = $2`, [cleanEmail, user.id]);
+            user.email = cleanEmail;
           }
         } else {
           const hashedPassword = await bcrypt.hash(password, 10);
@@ -290,11 +308,11 @@ export class AuthController {
             INSERT INTO users (name, phone, password_hash, email) 
             VALUES ($1, $2, $3, $4) RETURNING id, name, phone, email
           `;
-          const userResult = await client.query(insertUserQuery, [ownerName, phone, hashedPassword, email || null]);
+          const userResult = await client.query(insertUserQuery, [ownerName, phone, hashedPassword, cleanEmail]);
           user = userResult.rows[0];
         }
 
-        // Create Pharmacy
+        // Create fresh Pharmacy with isolated data
         const insertPharmacyQuery = `
           INSERT INTO pharmacies (owner_id, name, address, phone, business_type) 
           VALUES ($1, $2, $3, $4, 'RETAIL') RETURNING *
@@ -302,12 +320,13 @@ export class AuthController {
         const pharmacyResult = await client.query(insertPharmacyQuery, [user.id, pharmacyName, address, phone]);
         const pharmacy = pharmacyResult.rows[0];
         pharmacy.ownerName = user.name;
+        pharmacy.ownerEmail = user.email || cleanEmail;
 
         await client.query('COMMIT');
 
         // Create Token
         const token = jwt.sign(
-          { userId: user.id, phone: user.phone, pharmacyId: pharmacy.id, role: 'OWNER' },
+          { userId: user.id, phone: user.phone, email: user.email || cleanEmail, pharmacyId: pharmacy.id, role: 'OWNER' },
           JWT_SECRET,
           { expiresIn: '30d' }
         );
@@ -315,7 +334,15 @@ export class AuthController {
         res.json({
           success: true,
           token,
-          user: user,
+          user: {
+            id: user.id,
+            name: user.name,
+            phone: user.phone,
+            email: user.email || cleanEmail,
+            pharmacyId: pharmacy.id,
+            pharmacyName: pharmacy.name,
+            role: 'OWNER'
+          },
           pharmacy: pharmacy
         });
 

@@ -165,6 +165,9 @@ export default function PharmacyProfile() {
             }
         }
 
+        const userStr = localStorage.getItem('user');
+        const currentUser = userStr ? JSON.parse(userStr) : null;
+
         const [profData, reqData, billsData] = await Promise.all([
           PharmacyService.getPharmacyProfile(actualPharmacyId).catch(() => null),
           MedicineRequestService.getPharmacyRequests(actualPharmacyId),
@@ -174,9 +177,14 @@ export default function PharmacyProfile() {
         // Merge server data with local cache (server takes precedence)
         let mergedProfile: IPharmacyProfile = { ...(cachedProfile || {}), ...(profData || {}) } as IPharmacyProfile;
 
+        // Ensure real user email and name from logged in session
+        if (!mergedProfile.email && currentUser?.email) mergedProfile.email = currentUser.email;
+        if (!mergedProfile.ownerName && currentUser?.name) mergedProfile.ownerName = currentUser.name;
+        if (!mergedProfile.phone && currentUser?.phone) mergedProfile.phone = currentUser.phone;
+
         // Fallback for required fields if still missing
         if (!mergedProfile.id) mergedProfile.id = actualPharmacyId;
-        if (!mergedProfile.name) mergedProfile.name = "Your Pharmacy";
+        if (!mergedProfile.name) mergedProfile.name = currentUser?.pharmacyName || "Your Pharmacy";
         if (!mergedProfile.address) mergedProfile.address = "Address not provided";
         if (!mergedProfile.phone) mergedProfile.phone = "Phone not provided";
         if (!mergedProfile.createdAt) mergedProfile.createdAt = new Date().toISOString();
@@ -308,7 +316,7 @@ export default function PharmacyProfile() {
                 </div>
                 <div className="flex items-center">
                   <Mail className="w-5 h-5 text-slate-400 mr-3 shrink-0" />
-                  <p className="text-sm text-slate-600">{profile.email || `contact@${profile.name.toLowerCase().replace(/\s+/g, '')}.com`}</p>
+                  <p className="text-sm text-slate-600">{profile.email || 'Not Provided'}</p>
                 </div>
               </div>
             </div>

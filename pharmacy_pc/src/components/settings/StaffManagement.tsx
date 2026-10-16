@@ -32,7 +32,7 @@ export default function StaffManagement() {
           id: 0,
           pharmacy_id: pharmacyId,
           name: user?.name || 'Owner',
-          phone: user?.phone || '',
+          phone: user?.phone || user?.email || '',
           role: 'OWNER' as const,
           is_active: true,
           created_at: new Date().toISOString()

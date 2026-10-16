@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound } from 'lucide-react';
+import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import OtpVerificationAnimation from '../components/auth/OtpVerificationAnimation';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.davasetu.com/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://pharmacy-backend-e210.onrender.com/api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -70,7 +70,7 @@ export default function Login() {
       const response = await fetch(`${API_BASE}/auth/check-mobile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, email: email || 'davasetu.otp@gmail.com', businessType })
+        body: JSON.stringify({ phone, email: email || `${phone}@davasetu.com`, businessType })
       });
       const data = await response.json();
       
@@ -112,7 +112,7 @@ export default function Login() {
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password, businessType })
+        body: JSON.stringify({ phone, email, identifier: email || phone, password, businessType })
       });
       const data = await response.json();
 
@@ -231,7 +231,7 @@ export default function Login() {
       const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password, ownerName, pharmacyName, address, businessType })
+        body: JSON.stringify({ phone, email, password, ownerName, pharmacyName, address, businessType })
       });
       const data = await response.json();
 
@@ -575,6 +575,12 @@ export default function Login() {
                         <User className="h-5 w-5 text-slate-400" />
                       </div>
                       <input type="text" required value={ownerName} onChange={e => setOwnerName(e.target.value)} placeholder="Owner Name" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <Mail className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="Official Email Address" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
                     </div>
                     <div className="relative">
                       <div className="absolute top-2.5 left-0 pl-3.5 flex pointer-events-none">

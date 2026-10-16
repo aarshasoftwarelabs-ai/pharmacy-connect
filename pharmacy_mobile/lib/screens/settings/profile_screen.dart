@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/storage_service.dart';
 import '../../providers/auth_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -27,6 +28,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final pharmacy = StorageService.getPharmacy();
+    final phoneStr = auth.user?.phone?.isNotEmpty == true ? auth.user!.phone! : (pharmacy?['phone']?.toString() ?? 'Not provided');
+    final emailStr = auth.user?.email.isNotEmpty == true ? auth.user!.email : (pharmacy?['email']?.toString() ?? 'Not provided');
+    final gstStr = pharmacy?['gstin']?.toString() ?? 'Not registered';
+    final dlStr = pharmacy?['drug_license_number']?.toString() ?? pharmacy?['reg_no']?.toString() ?? 'Not provided';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -165,19 +171,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _buildHeroAction(
                               icon: Icons.phone_in_talk_rounded,
                               label: 'Call Store',
-                              onTap: () => _copyToClipboard('+91 98765 43210', 'Phone number'),
+                              onTap: () => _copyToClipboard(phoneStr, 'Phone number'),
                             ),
                             const SizedBox(width: 8),
                             _buildHeroAction(
                               icon: Icons.alternate_email_rounded,
                               label: 'Email',
-                              onTap: () => _copyToClipboard('pharmacy@davasetu.com', 'Email address'),
+                              onTap: () => _copyToClipboard(emailStr, 'Email address'),
                             ),
                             const SizedBox(width: 8),
                             _buildHeroAction(
                               icon: Icons.badge_outlined,
                               label: 'Copy GST',
-                              onTap: () => _copyToClipboard('24AAACP1234A1Z5', 'GSTIN'),
+                              onTap: () => _copyToClipboard(gstStr, 'GSTIN'),
                             ),
                           ],
                         ),
@@ -259,41 +265,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildSmartRow(
                     icon: Icons.badge_outlined,
                     label: 'Drug License',
-                    value: 'DL-20B-19482 / 21B-19483',
-                    badge: 'ACTIVE',
-                    badgeColor: AppColors.success,
-                    badgeBg: AppColors.successBg,
-                    onCopy: () => _copyToClipboard('DL-20B-19482 / 21B-19483', 'Drug License'),
+                    value: dlStr,
+                    badge: dlStr != 'Not provided' ? 'ACTIVE' : 'NOT SET',
+                    badgeColor: dlStr != 'Not provided' ? AppColors.success : AppColors.textMuted,
+                    badgeBg: dlStr != 'Not provided' ? AppColors.successBg : const Color(0xFFF1F5F9),
+                    onCopy: () => _copyToClipboard(dlStr, 'Drug License'),
                   ),
                   const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
                   _buildSmartRow(
                     icon: Icons.receipt_long_outlined,
                     label: 'GSTIN Registration',
-                    value: '24AAACP1234A1Z5',
-                    badge: 'VERIFIED',
-                    badgeColor: AppColors.primary,
-                    badgeBg: AppColors.primarySubtle,
-                    onCopy: () => _copyToClipboard('24AAACP1234A1Z5', 'GSTIN'),
+                    value: gstStr,
+                    badge: gstStr != 'Not registered' ? 'VERIFIED' : 'UNREGISTERED',
+                    badgeColor: gstStr != 'Not registered' ? AppColors.primary : AppColors.textMuted,
+                    badgeBg: gstStr != 'Not registered' ? AppColors.primarySubtle : const Color(0xFFF1F5F9),
+                    onCopy: () => _copyToClipboard(gstStr, 'GSTIN'),
                   ),
                   const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
                   _buildSmartRow(
                     icon: Icons.phone_android_rounded,
                     label: 'Pharmacy Helpline',
-                    value: auth.user?.phone ?? '+91 98765 43210',
+                    value: phoneStr,
                     badge: 'CALL',
                     badgeColor: Colors.blue,
                     badgeBg: AppColors.infoBg,
-                    onCopy: () => _copyToClipboard(auth.user?.phone ?? '+91 98765 43210', 'Phone'),
+                    onCopy: () => _copyToClipboard(phoneStr, 'Phone'),
                   ),
                   const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
                   _buildSmartRow(
                     icon: Icons.mail_outline_rounded,
                     label: 'Official Email',
-                    value: (auth.user?.email.isNotEmpty == true) ? auth.user!.email : 'pharmacy@davasetu.com',
+                    value: emailStr,
                     badge: 'OFFICIAL',
                     badgeColor: Colors.indigo,
                     badgeBg: Colors.indigo.shade50,
-                    onCopy: () => _copyToClipboard(auth.user?.email ?? 'pharmacy@davasetu.com', 'Email'),
+                    onCopy: () => _copyToClipboard(emailStr, 'Email'),
                   ),
                 ],
               ),
