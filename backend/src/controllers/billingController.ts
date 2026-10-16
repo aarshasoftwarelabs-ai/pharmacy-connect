@@ -56,33 +56,61 @@ export class BillingController {
 
   static async createBill(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user!.pharmacyId;
-      const { medicineRequestId, userId, customerName, customerPhone, billType, subtotal, discount, total, items } = req.body;
+      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const { 
+        medicineRequestId, 
+        userId, 
+        customerName, 
+        customer_name,
+        customerPhone, 
+        customer_phone,
+        billType, 
+        bill_type,
+        subtotal, 
+        discount, 
+        total, 
+        items 
+      } = req.body;
 
-      // medicineRequestId and userId are optional for OFFLINE bills
-      if (!customerName || !items || !Array.isArray(items) || items.length === 0) {
-        const error = new Error('Missing required fields for bill creation') as ApiError;
+      const rawItems = items || req.body.cartItems || [];
+      if (!Array.isArray(rawItems) || rawItems.length === 0) {
+        const error = new Error('Bill must contain at least 1 medicine item') as ApiError;
         error.statusCode = 400;
         throw error;
       }
 
-      if (subtotal < 0 || discount < 0 || total < 0) {
-        const error = new Error('Amounts cannot be negative') as ApiError;
-        error.statusCode = 400;
-        throw error;
-      }
+      const resolvedCustomerName = (customerName || customer_name || 'Walk-in Customer').trim();
+      const resolvedCustomerPhone = (customerPhone || customer_phone || '').trim();
+      const resolvedBillType = billType || bill_type || (medicineRequestId ? 'ONLINE' : 'OFFLINE');
+      const resolvedSubtotal = Math.max(0, Number(subtotal ?? 0));
+      const resolvedDiscount = Math.max(0, Number(discount ?? 0));
+      const resolvedTotal = Math.max(0, Number(total ?? 0));
+
+      const normalizedItems = rawItems.map((item: any) => ({
+        medicineName: item.medicineName || item.medicine_name || item.name || 'Medicine',
+        quantity: Math.max(1, Number(item.quantity ?? item.qty ?? 1)),
+        unitPrice: Math.max(0, Number(item.unitPrice ?? item.unit_price ?? item.price ?? 0)),
+        medicineId: item.medicineId ?? item.medicine_id ?? item.id,
+        barcode: item.barcode ? String(item.barcode).trim() : undefined,
+        hsnCode: item.hsnCode || item.hsn_code || '30049099',
+        gstRate: Number(item.gstRate ?? item.gst_rate ?? 5),
+        taxableAmount: Number(item.taxableAmount ?? item.taxable_amount ?? 0),
+        cgst: Number(item.cgst ?? 0),
+        sgst: Number(item.sgst ?? 0),
+        igst: Number(item.igst ?? 0)
+      }));
 
       const result = await BillingService.createBill({
         medicineRequestId: medicineRequestId ? Number(medicineRequestId) : undefined,
         userId: userId ? Number(userId) : undefined,
         pharmacyId: Number(pharmacyId),
-        customerName,
-        customerPhone,
-        billType,
-        subtotal: Number(subtotal),
-        discount: Number(discount),
-        total: Number(total),
-        items
+        customerName: resolvedCustomerName,
+        customerPhone: resolvedCustomerPhone,
+        billType: resolvedBillType,
+        subtotal: resolvedSubtotal,
+        discount: resolvedDiscount,
+        total: resolvedTotal,
+        items: normalizedItems
       });
 
       // Notify Customer if applicable

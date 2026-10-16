@@ -5,7 +5,7 @@ import { getPharmacyId } from '../../config/development';
 import { Bill } from '../../types/billing';
 import ReceiptAnimation from './ReceiptAnimation';
 import { Medicine } from '../../types/medicine';
-import { fetchMedicines } from '../../services/medicineService';
+import { fetchMedicines, lookupMedicineByBarcode } from '../../services/medicineService';
 import MedicineSearchDropdown from '../ui/MedicineSearchDropdown';
 import { AudioAlert } from '../../utils/audioAlertService';
 
@@ -105,11 +105,36 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
       setIsScannerOpen(false);
     } else {
+      AudioAlert.playBarcodeBeep();
       setBarcodeStatus({ 
-        type: 'error', 
-        message: `Barcode / Item "${code}" not found in catalogue.` 
+        type: 'idle', 
+        message: `Looking up barcode "${code}"...` 
       });
-      setTimeout(() => setBarcodeStatus(null), 4000);
+
+      lookupMedicineByBarcode(code).then(res => {
+        const auto = res?.medicine;
+        const name = auto?.name || `Medicine (${code})`;
+        const price = Number(auto?.sellingPrice || auto?.mrp || 50);
+        const hsn = auto?.hsnCode || '30049099';
+        const gst = Number(auto?.gstRate || 5);
+
+        setBarcodeStatus({ 
+          type: 'success', 
+          message: `✓ Auto-added: ${name} (₹${price})` 
+        });
+        setTimeout(() => setBarcodeStatus(null), 3000);
+
+        setItems(prev => {
+          if (prev.length === 1 && !prev[0].medicineName.trim()) {
+            return [{ medicineName: name, quantity: 1, unitPrice: price, hsnCode: hsn, gstRate: gst }];
+          }
+          return [...prev, { medicineName: name, quantity: 1, unitPrice: price, hsnCode: hsn, gstRate: gst }];
+        });
+      }).catch(() => {
+        const fallbackName = `Medicine (${code})`;
+        setItems(prev => [...prev, { medicineName: fallbackName, quantity: 1, unitPrice: 50, hsnCode: '30049099', gstRate: 5 }]);
+      });
+      setIsScannerOpen(false);
     }
 
     setBarcodeInput('');

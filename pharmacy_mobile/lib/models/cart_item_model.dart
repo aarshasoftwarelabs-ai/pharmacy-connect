@@ -19,12 +19,16 @@ class CartItemModel {
   Map<String, dynamic> toJson() {
     return {
       'medicine_id': medicine.id,
+      'medicineId': medicine.id,
       'medicine_name': medicine.name,
+      'medicineName': medicine.name,
       'quantity': quantity,
       'unit_price': unitPrice,
+      'unitPrice': unitPrice,
       'discount_percent': discountPercent,
       'discount_amount': discountAmount,
       'total': netTotal,
+      'barcode': medicine.barcode,
     };
   }
 }

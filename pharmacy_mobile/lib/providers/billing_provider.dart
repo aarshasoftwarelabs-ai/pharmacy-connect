@@ -67,14 +67,16 @@ class BillingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addToCart(MedicineModel medicine) {
-    final index = _cartItems.indexWhere((item) => item.medicine.id == medicine.id);
+  void addToCart(MedicineModel medicine, {int quantity = 1}) {
+    final index = _cartItems.indexWhere((item) => 
+      item.medicine.id == medicine.id || 
+      (medicine.barcode != null && medicine.barcode!.isNotEmpty && item.medicine.barcode == medicine.barcode) ||
+      item.medicine.name.trim().toLowerCase() == medicine.name.trim().toLowerCase()
+    );
     if (index >= 0) {
-      if (_cartItems[index].quantity < medicine.stock) {
-        _cartItems[index].quantity++;
-      }
+      _cartItems[index].quantity += quantity;
     } else {
-      _cartItems.add(CartItemModel(medicine: medicine, quantity: 1));
+      _cartItems.add(CartItemModel(medicine: medicine, quantity: quantity));
     }
     notifyListeners();
   }
@@ -120,8 +122,13 @@ class BillingProvider extends ChangeNotifier {
     try {
       final billPayload = {
         'customer_name': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
+        'customerName': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
         'customer_phone': _customerPhone,
+        'customerPhone': _customerPhone,
         'payment_method': _paymentMode,
+        'paymentMethod': _paymentMode,
+        'bill_type': 'OFFLINE',
+        'billType': 'OFFLINE',
         'subtotal': subtotal,
         'discount': totalDiscount,
         'tax': taxAmount,

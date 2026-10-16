@@ -244,29 +244,27 @@ class _BillingScreenState extends State<BillingScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           InkWell(
-                                            onTap: isOut
-                                                ? null
-                                                : () {
-                                                    context.read<BillingProvider>().addToCart(med);
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text('Added ${med.name} to POS cart'),
-                                                        backgroundColor: AppColors.primaryDark,
-                                                        duration: const Duration(milliseconds: 700),
-                                                      ),
-                                                    );
-                                                  },
+                                            onTap: () {
+                                              context.read<BillingProvider>().addToCart(med);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Added ${med.name} to POS cart' + (isOut ? ' (Zero Stock)' : '')),
+                                                  backgroundColor: AppColors.primaryDark,
+                                                  duration: const Duration(milliseconds: 700),
+                                                ),
+                                              );
+                                            },
                                             borderRadius: BorderRadius.circular(8),
                                             child: Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                               decoration: BoxDecoration(
-                                                color: isOut ? const Color(0xFFF1F5F9) : AppColors.primary,
+                                                color: isOut ? const Color(0xFFF59E0B) : AppColors.primary,
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
                                               child: Text(
-                                                isOut ? 'Out of Stock' : '+ Add',
-                                                style: TextStyle(
-                                                  color: isOut ? AppColors.textMuted : Colors.white,
+                                                isOut ? '+ Add (0 Stk)' : '+ Add',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 11,
                                                 ),

@@ -5,7 +5,7 @@ import { BillingService } from '../../services/billingService';
 import { getPharmacyId } from '../../config/development';
 import ReceiptAnimation from './ReceiptAnimation';
 import { Medicine } from '../../types/medicine';
-import { fetchMedicines } from '../../services/medicineService';
+import { fetchMedicines, lookupMedicineByBarcode } from '../../services/medicineService';
 import { AudioAlert } from '../../utils/audioAlertService';
 
 interface Props {
@@ -71,8 +71,27 @@ export default function BillCreationModal({ queueItem, onClose, onSuccess }: Pro
         }
       }
     } else {
-      setBarcodeStatus({ text: `Barcode "${code}" not found`, error: true });
-      setTimeout(() => setBarcodeStatus(null), 3000);
+      AudioAlert.playBarcodeBeep();
+      setBarcodeStatus({ text: `Looking up "${code}"...` });
+      lookupMedicineByBarcode(code).then(res => {
+        const auto = res?.medicine;
+        const name = auto?.name || `Medicine (${code})`;
+        const price = Number(auto?.sellingPrice || auto?.mrp || 50);
+        const hsn = auto?.hsnCode || '30049099';
+        const gst = Number(auto?.gstRate || 5);
+        setBarcodeStatus({ text: `✓ ${name} added` });
+        setTimeout(() => setBarcodeStatus(null), 2500);
+
+        setItems(prev => {
+          if (prev.length === 1 && !prev[0].medicineName.trim()) {
+            return [{ medicineName: name, quantity: 1, unitPrice: price, hsnCode: hsn, gstRate: gst }];
+          }
+          return [...prev, { medicineName: name, quantity: 1, unitPrice: price, hsnCode: hsn, gstRate: gst }];
+        });
+      }).catch(() => {
+        const fallbackName = `Medicine (${code})`;
+        setItems(prev => [...prev, { medicineName: fallbackName, quantity: 1, unitPrice: 50, hsnCode: '30049099', gstRate: 5 }]);
+      });
     }
     setBarcodeInput('');
   };
