@@ -354,9 +354,9 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                   const SizedBox(width: 10),
                   _buildServicePill(
                     context,
-                    title: 'LAN Hub',
-                    icon: Icons.wifi_tethering_rounded,
-                    color: Colors.orange,
+                    title: 'Store Settings',
+                    icon: Icons.storefront_rounded,
+                    color: Colors.indigo,
                     onTap: () => widget.onNavigateTab?.call(4),
                   ),
                 ],
