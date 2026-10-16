@@ -15,14 +15,9 @@ import HelpSupport from './pages/HelpSupport';
 import Inventory from './pages/Inventory';
 import Suppliers from './pages/Suppliers';
 import Purchases from './pages/Purchases';
-import Wholesale from './pages/Wholesale';
-import WholesaleBilling from './pages/WholesaleBilling';
-import WholesaleInventory from './pages/WholesaleInventory';
 import Staff from './pages/Staff';
 import Marketing from './pages/Marketing';
-import WholesaleDelivery from './pages/WholesaleDelivery';
 
-import WholesaleLayout from './layouts/WholesaleLayout';
 import { AuthProvider, useAuth } from './components/auth/AuthContext';
 
 const ProtectedRoute = () => {
@@ -70,19 +65,6 @@ function App() {
               <Route path="pharmacy-profile" element={<PermissionRoute permissionKey="PHARMACY_PROFILE_VIEW"><PharmacyProfile /></PermissionRoute>} />
               <Route path="settings" element={<PermissionRoute permissionKey="SETTINGS_VIEW"><Settings /></PermissionRoute>} />
               <Route path="help-support" element={<PermissionRoute permissionKey="DASHBOARD_VIEW"><HelpSupport /></PermissionRoute>} />
-            </Route>
-            
-
-            {/* WHOLESALE ROUTES */}
-            <Route path="/" element={<WholesaleLayout />}>
-              <Route path="wholesale-dashboard" element={<PermissionRoute permissionKey="WHOLESALE_VIEW"><Wholesale /></PermissionRoute>} />
-              <Route path="wholesale-inventory" element={<PermissionRoute permissionKey="WHOLESALE_VIEW"><WholesaleInventory /></PermissionRoute>} />
-              <Route path="wholesale-billing" element={<PermissionRoute permissionKey="WHOLESALE_VIEW"><WholesaleBilling /></PermissionRoute>} />
-              <Route path="wholesale-marketing" element={<PermissionRoute permissionKey="WHOLESALE_VIEW"><Marketing /></PermissionRoute>} />
-              <Route path="wholesale-delivery" element={<PermissionRoute permissionKey="WHOLESALE_VIEW"><WholesaleDelivery /></PermissionRoute>} />
-              <Route path="wholesale-staff" element={<PermissionRoute permissionKey="STAFF_VIEW"><Staff /></PermissionRoute>} />
-              <Route path="wholesale-profile" element={<PermissionRoute permissionKey="PHARMACY_PROFILE_VIEW"><PharmacyProfile /></PermissionRoute>} />
-              <Route path="wholesale-settings" element={<PermissionRoute permissionKey="SETTINGS_VIEW"><Settings /></PermissionRoute>} />
             </Route>
           </Route>
         </Routes>

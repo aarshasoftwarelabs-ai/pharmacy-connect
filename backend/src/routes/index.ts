@@ -48,15 +48,7 @@ router.use('/purchases', purchaseRoutes);
 router.use('/inventory/batches', batchRoutes);
 router.use('/batches', batchRoutes);
 
-import wholesaleRoutes from './wholesaleRoutes';
 import staffRoutes from './staffRoutes';
-import marketingRoutes from './marketingRoutes';
-import customerRoutes from './customerRoutes';
-import refillRoutes from './refillRoutes';
-import prescriptionRoutes from './prescriptionRoutes';
-import reviewRoutes from './reviewRoutes';
-
-router.use('/wholesale', wholesaleRoutes);
 router.use('/staff', staffRoutes);
 router.use('/marketing', marketingRoutes);
 router.use('/customers', customerRoutes);

@@ -128,6 +128,28 @@ export const ensureSchema = async () => {
       console.warn('⚠️ User/Staff provision note:', userErr);
     }
 
+    // 5. Wholesale & B2B Data Cleanup (Purge wholesale tables and set all pharmacies to Retail)
+    try {
+      await pool.query(`
+        -- Delete any test wholesale bills
+        DELETE FROM bills WHERE bill_type = 'WHOLESALE';
+        UPDATE bills SET bill_type = 'RETAIL' WHERE bill_type IS NULL;
+
+        -- Drop Wholesale specific tables if they exist
+        DROP TABLE IF EXISTS b2b_ledgers CASCADE;
+        DROP TABLE IF EXISTS b2b_clients CASCADE;
+        DROP TABLE IF EXISTS delivery_stops CASCADE;
+        DROP TABLE IF EXISTS delivery_routes CASCADE;
+        DROP TABLE IF EXISTS trade_schemes CASCADE;
+
+        -- Normalize all pharmacies to RETAIL
+        UPDATE pharmacies SET business_type = 'RETAIL', is_wholesale_enabled = false WHERE business_type = 'WHOLESALE' OR is_wholesale_enabled = true;
+      `);
+      console.log('🧹 Successfully purged Wholesale/B2B database records & tables.');
+    } catch (cleanErr) {
+      console.warn('⚠️ Wholesale purge notice:', cleanErr);
+    }
+
     console.log('✅ Database schema verified and updated successfully.');
   } catch (error) {
     console.error('⚠️ Note during schema check:', error);

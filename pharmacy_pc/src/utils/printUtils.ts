@@ -391,7 +391,7 @@ export const generateB2BPrintHTML = (bill: Bill, pharmacyName: string = 'Pharmac
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Wholesale Tax Invoice - ${bill.billNumber}</title>
+      <title>Tax Invoice - ${bill.billNumber}</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: white; color: #1e293b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -414,12 +414,12 @@ export const generateB2BPrintHTML = (bill: Bill, pharmacyName: string = 'Pharmac
     </head>
     <body>
       <div class="a4-container">
-        <h1 class="invoice-title">Tax Invoice (Wholesale B2B)</h1>
+        <h1 class="invoice-title">Tax Invoice</h1>
         
         <div class="flex" style="margin-bottom: 10px;">
           <div style="width: 50%;">
             <div class="border-box">
-              <h3 style="margin: 0 0 5px 0; font-size: 14px;">Supplier (Wholesaler)</h3>
+              <h3 style="margin: 0 0 5px 0; font-size: 14px;">Seller / Pharmacy</h3>
               <p style="margin: 2px 0; font-size: 16px;" class="font-bold">${pharmacyName}</p>
               <p style="margin: 2px 0; font-size: 11px;">Proprietor: ${ownerName}</p>
               <p style="margin: 2px 0; font-size: 11px;">GSTIN: <strong>24XXXXX0000X1Z5</strong></p>
@@ -516,7 +516,7 @@ export const generateB2BPrintHTML = (bill: Bill, pharmacyName: string = 'Pharmac
         </div>
 
         <div class="footer">
-          System Generated Wholesale Invoice • Powered by DavaSetu
+          System Generated Tax Invoice • Powered by DavaSetu
         </div>
       </div>
       <script>window.onload = () => { setTimeout(() => window.print(), 500); }</script>

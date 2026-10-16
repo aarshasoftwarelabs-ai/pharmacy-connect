@@ -14,7 +14,6 @@ const AVAILABLE_PERMISSIONS: { module: string, perms: { key: string, label: stri
   { module: 'Customers', perms: [{ key: 'CUSTOMERS_VIEW', label: 'View Customers' }, { key: 'CUSTOMERS_EDIT', label: 'Edit Customers' }] },
   { module: 'Medicine Requests', perms: [{ key: 'MEDICINE_REQUESTS_VIEW', label: 'View Requests' }, { key: 'MEDICINE_REQUESTS_RESPOND', label: 'Respond to Requests' }] },
   { module: 'Reports', perms: [{ key: 'REPORTS_VIEW', label: 'View Reports' }, { key: 'REPORTS_EXPORT', label: 'Export Reports' }] },
-  { module: 'Wholesale', perms: [{ key: 'WHOLESALE_VIEW', label: 'View Wholesale' }, { key: 'WHOLESALE_CREATE', label: 'Create Wholesale' }, { key: 'WHOLESALE_EDIT', label: 'Edit Wholesale' }] },
   { module: 'Staff', perms: [{ key: 'STAFF_VIEW', label: 'View Staff' }, { key: 'STAFF_CREATE', label: 'Create Staff' }, { key: 'STAFF_EDIT', label: 'Edit Staff' }, { key: 'STAFF_DEACTIVATE', label: 'Deactivate Staff' }, { key: 'STAFF_PERMISSIONS', label: 'Manage Permissions' }] },
   { module: 'Settings', perms: [{ key: 'PHARMACY_PROFILE_VIEW', label: 'View Profile' }, { key: 'PHARMACY_PROFILE_EDIT', label: 'Edit Profile' }, { key: 'SETTINGS_VIEW', label: 'View Settings' }, { key: 'SETTINGS_EDIT', label: 'Edit Settings' }] }
 ];

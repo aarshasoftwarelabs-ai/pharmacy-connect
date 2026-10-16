@@ -6,10 +6,8 @@ import { MarketingService, Offer, Campaign } from '../services/marketingService'
 import { ModernSelect } from '../components/ui/ModernSelect';
 
 export default function Marketing() {
-  const location = useLocation();
-  const isWholesale = location.pathname.includes('wholesale');
-  
-  const [activeTab, setActiveTab] = useState<'offers' | 'campaigns' | 'ai_campaigns'>(isWholesale ? 'campaigns' : 'offers');
+  const isWholesale = false;
+  const [activeTab, setActiveTab] = useState<'offers' | 'campaigns'>('offers');
   
   const [offers, setOffers] = useState<Offer[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);

@@ -33,7 +33,7 @@ export default function Login() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
   const [otpVerificationStatus, setOtpVerificationStatus] = useState<'idle' | 'verifying' | 'success'>('idle');
-  const [businessType, setBusinessType] = useState<'RETAIL' | 'WHOLESALE'>('RETAIL');
+  const businessType = 'RETAIL';
   const [isExistingUser, setIsExistingUser] = useState(false);
   const [hasExistingProfileData, setHasExistingProfileData] = useState(false);
   const [staffPin, setStaffPin] = useState('');
@@ -126,7 +126,7 @@ export default function Login() {
         
         setIsRedirecting(true);
         setTimeout(() => {
-          navigate(businessType === 'WHOLESALE' ? '/wholesale-dashboard' : '/dashboard');
+          navigate('/dashboard');
         }, 1500);
       } else {
         setError(data.message || 'Invalid credentials');
@@ -161,7 +161,7 @@ export default function Login() {
         
         setIsRedirecting(true);
         setTimeout(() => {
-          navigate(businessType === 'WHOLESALE' ? '/wholesale-dashboard' : '/dashboard');
+          navigate('/dashboard');
         }, 1500);
       } else {
         setError(data.message || 'Invalid PIN');
@@ -243,7 +243,7 @@ export default function Login() {
         
         setIsRedirecting(true);
         setTimeout(() => {
-          navigate(businessType === 'WHOLESALE' ? '/wholesale-dashboard' : '/dashboard');
+          navigate('/dashboard');
         }, 1500);
       } else {
         setError(data.message || 'Registration failed');
@@ -276,16 +276,10 @@ export default function Login() {
 
         <div className="relative z-10">
           <h1 className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-            {businessType === 'RETAIL' ? (
-              <>Empower Your <br /><span className="text-emerald-300">Pharmacy Business</span></>
-            ) : (
-              <>Scale Your <br /><span className="text-indigo-300">B2B Wholesale</span></>
-            )}
+            Empower Your <br /><span className="text-emerald-300">Pharmacy Business</span>
           </h1>
           <p className="mt-5 text-lg text-white/90 max-w-md leading-relaxed">
-            {businessType === 'RETAIL' 
-              ? 'Join the fastest growing network of digital pharmacies. Streamline orders, manage billing, and grow your customer base seamlessly.'
-              : 'The ultimate distribution platform. Manage bulk orders, B2B clients, smart trade schemes, and wholesale ledgers effortlessly.'}
+            Join the fastest growing network of digital pharmacies. Streamline orders, manage billing, and grow your customer base seamlessly.
           </p>
         </div>
 
@@ -338,10 +332,10 @@ export default function Login() {
             {step === 1 && (
               <>
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                  {businessType === 'RETAIL' ? 'Sign in or Join' : 'B2B Wholesale Portal'}
+                  Sign in or Join
                 </h2>
                 <p className="mt-2 text-slate-500 font-medium text-sm">
-                  {businessType === 'RETAIL' ? 'Enter your mobile number to get started' : 'Login or Create Wholesale Account'}
+                  Enter your mobile number to get started
                 </p>
               </>
             )}
@@ -352,7 +346,7 @@ export default function Login() {
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{pharmacyName}</h2>
                 <p className="mt-1 text-slate-500 font-medium text-sm">
-                  {businessType === 'WHOLESALE' ? 'Wholesale Account • ' : 'Retail Account • '}{phone}
+                  Retail Account • {phone}
                 </p>
               </>
             )}
@@ -366,7 +360,7 @@ export default function Login() {
               <>
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Complete Profile</h2>
                 <p className="mt-2 text-slate-500 font-medium text-sm">
-                  Just a few more details to create your {businessType === 'WHOLESALE' ? 'wholesale business' : 'pharmacy'}
+                  Just a few more details to create your pharmacy
                 </p>
               </>
             )}
@@ -393,31 +387,6 @@ export default function Login() {
             {/* STEP 1: MOBILE */}
             {step === 1 && (
               <form className="space-y-4" onSubmit={handleCheckMobile}>
-                
-                <div className="flex bg-slate-100 p-1 rounded-xl mb-6 shadow-inner">
-                  <button
-                    type="button"
-                    onClick={() => setBusinessType('RETAIL')}
-                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                      businessType === 'RETAIL' 
-                        ? 'bg-white text-pharmacy-700 shadow-sm border border-slate-200' 
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    Retail Pharmacy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBusinessType('WHOLESALE')}
-                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                      businessType === 'WHOLESALE' 
-                        ? 'bg-white text-pharmacy-700 shadow-sm border border-slate-200' 
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    Wholesale (B2B)
-                  </button>
-                </div>
 
                 <div className="flex rounded-xl shadow-sm border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-pharmacy-500 focus-within:border-transparent transition-all relative">
                   
@@ -597,7 +566,7 @@ export default function Login() {
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Store className="h-5 w-5 text-slate-400" />
                   </div>
-                  <input type="text" required value={pharmacyName} onChange={e => setPharmacyName(e.target.value)} placeholder={businessType === 'WHOLESALE' ? "Wholesale Business Name" : "Pharmacy Name"} className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
+                  <input type="text" required value={pharmacyName} onChange={e => setPharmacyName(e.target.value)} placeholder="Pharmacy Name" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
                 </div>
                 {!hasExistingProfileData ? (
                   <>
@@ -640,30 +609,6 @@ export default function Login() {
             {/* STEP 5: STAFF LOGIN */}
             {step === 5 && (
               <form className="space-y-4" onSubmit={handleStaffLogin}>
-                <div className="flex bg-slate-100 p-1 rounded-xl mb-6 shadow-inner">
-                  <button
-                    type="button"
-                    onClick={() => setBusinessType('RETAIL')}
-                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                      businessType === 'RETAIL' 
-                        ? 'bg-white text-pharmacy-700 shadow-sm border border-slate-200' 
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    Retail Staff
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBusinessType('WHOLESALE')}
-                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                      businessType === 'WHOLESALE' 
-                        ? 'bg-white text-pharmacy-700 shadow-sm border border-slate-200' 
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    Wholesale Staff
-                  </button>
-                </div>
 
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

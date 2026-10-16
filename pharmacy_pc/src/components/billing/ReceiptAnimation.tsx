@@ -14,7 +14,7 @@ interface Props {
 
 export default function ReceiptAnimation({ bill, onClose }: Props) {
   const [stage, setStage] = useState<'printing' | 'ready'>('printing');
-  const [printFormat, setPrintFormat] = useState<'A4' | 'THERMAL_80MM' | 'THERMAL_58MM' | 'B2B_A4'>(() => {
+  const [printFormat, setPrintFormat] = useState<'A4' | 'THERMAL_80MM' | 'THERMAL_58MM'>(() => {
     const defaultFormat = localStorage.getItem('default_printer_format');
     if (defaultFormat === 'THERMAL_58MM') return 'THERMAL_58MM';
     if (defaultFormat === 'A4') return 'A4';
@@ -25,10 +25,6 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
 
   useEffect(() => {
     AudioAlert.playSuccessChime();
-
-    if (bill.billType === 'WHOLESALE') {
-      setPrintFormat('B2B_A4');
-    }
     // Load Pharmacy details
     PharmacyService.getPharmacyProfile(getPharmacyId())
       .then(profile => {
@@ -208,21 +204,12 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
                    
                    {/* Format Switcher */}
                    <div className="flex bg-slate-100 p-1 rounded-xl mb-4 w-full max-w-md">
-                     {bill.billType === 'WHOLESALE' ? (
-                       <button
-                         onClick={() => setPrintFormat('B2B_A4')}
-                         className={`flex-1 flex items-center justify-center py-1.5 text-xs font-bold rounded-lg transition-all ${printFormat === 'B2B_A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
-                       >
-                         <FileText className="w-3.5 h-3.5 mr-1" /> B2B Tax Invoice
-                       </button>
-                     ) : (
-                       <button
-                         onClick={() => setPrintFormat('A4')}
-                         className={`flex-1 flex items-center justify-center py-1.5 text-xs font-bold rounded-lg transition-all ${printFormat === 'A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
-                       >
-                         <FileText className="w-3.5 h-3.5 mr-1" /> A4 Invoice
-                       </button>
-                     )}
+                     <button
+                       onClick={() => setPrintFormat('A4')}
+                       className={`flex-1 flex items-center justify-center py-1.5 text-xs font-bold rounded-lg transition-all ${printFormat === 'A4' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                     >
+                       <FileText className="w-3.5 h-3.5 mr-1" /> A4 Invoice
+                     </button>
                      <button
                        onClick={() => setPrintFormat('THERMAL_80MM')}
                        className={`flex-1 flex items-center justify-center py-1.5 text-xs font-bold rounded-lg transition-all ${printFormat === 'THERMAL_80MM' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500 hover:text-slate-700'}`}

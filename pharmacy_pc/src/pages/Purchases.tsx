@@ -190,7 +190,7 @@ export default function Purchases() {
               <Package className="w-12 h-12 text-pharmacy-400" />
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">No purchases yet</h3>
-            <p className="text-slate-500 max-w-sm mb-8">Get started by creating your first wholesale purchase invoice or simply scan it using our AI OCR tool.</p>
+            <p className="text-slate-500 max-w-sm mb-8">Get started by creating your first purchase invoice or simply scan it using our AI OCR tool.</p>
             <div className="flex gap-4">
               <button onClick={() => setShowModal(true)} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
                 Enter Manually

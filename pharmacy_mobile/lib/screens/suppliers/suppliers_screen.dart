@@ -56,7 +56,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
         ),
         SupplierModel(
           id: 3,
-          supplierName: 'Apotheke Lifesciences Wholesale',
+          supplierName: 'Apotheke Lifesciences Pharma Distributor',
           mobile: '9712398765',
           city: 'Vadodara',
           address: 'Alkapuri',

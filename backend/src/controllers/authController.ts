@@ -228,10 +228,6 @@ export class AuthController {
         
         const pharmacy = pharmacyResult.rows.length > 0 ? pharmacyResult.rows[0] : null;
         if (pharmacy) {
-          const requestedBusinessType = req.body.businessType;
-          if (requestedBusinessType && pharmacy.business_type && pharmacy.business_type !== requestedBusinessType) {
-             return res.status(403).json({ success: false, message: `Access Denied: This account is registered as ${pharmacy.business_type === 'WHOLESALE' ? 'a Wholesale Distributor' : 'a Retail Pharmacy'}. Please select the correct login option.` });
-          }
           pharmacy.ownerName = user.name;
         }
 
@@ -282,13 +278,11 @@ export class AuthController {
 
         if (checkUser.rows.length > 0) {
           user = checkUser.rows[0];
-          // Check if they already have this businessType
-          const checkPharm = await client.query(`SELECT id FROM pharmacies WHERE owner_id = $1 AND business_type = $2`, [user.id, businessType || 'RETAIL']);
+          const checkPharm = await client.query(`SELECT id FROM pharmacies WHERE owner_id = $1`, [user.id]);
           if (checkPharm.rows.length > 0) {
               await client.query('ROLLBACK');
-              return res.status(400).json({ success: false, message: `You already have a ${businessType || 'RETAIL'} account.` });
+              return res.status(400).json({ success: false, message: 'An account already exists for this mobile number. Please login.' });
           }
-          // Optionally, update user's password if they provided a new one during this registration, but usually we just keep it
         } else {
           const hashedPassword = await bcrypt.hash(password, 10);
           // Create User
@@ -303,9 +297,9 @@ export class AuthController {
         // Create Pharmacy
         const insertPharmacyQuery = `
           INSERT INTO pharmacies (owner_id, name, address, phone, business_type) 
-          VALUES ($1, $2, $3, $4, $5) RETURNING *
+          VALUES ($1, $2, $3, $4, 'RETAIL') RETURNING *
         `;
-        const pharmacyResult = await client.query(insertPharmacyQuery, [user.id, pharmacyName, address, phone, businessType || 'RETAIL']);
+        const pharmacyResult = await client.query(insertPharmacyQuery, [user.id, pharmacyName, address, phone]);
         const pharmacy = pharmacyResult.rows[0];
         pharmacy.ownerName = user.name;
 
