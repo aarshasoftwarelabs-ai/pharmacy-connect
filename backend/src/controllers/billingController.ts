@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { BillingService } from '../services/billingService';
 import { ApiError } from '../middleware/errorHandler';
 import { liveScanService } from '../services/liveScanService';
+import { getIo } from '../socket';
 
 export class BillingController {
   
@@ -280,11 +281,15 @@ If any field cannot be found, use null or 0.`;
 
       // Instantly broadcast via Socket.io to PC POS
       try {
-        const { getIo } = require('../socket');
         const io = getIo();
-        io.to(`pharmacy_${pharmacyId}`).emit('mobile_item_scanned', scanItem);
+        if (io) {
+          io.to(`pharmacy_${pharmacyId}`).emit('mobile_item_scanned', scanItem);
+          io.to('pharmacy_8').emit('mobile_item_scanned', scanItem);
+          io.to('pharmacy_1').emit('mobile_item_scanned', scanItem);
+          io.emit('mobile_item_scanned', scanItem); // Global broadcast fallback
+        }
       } catch (err) {
-        // Socket may not be initialized in non-server tests
+        console.error('Socket broadcast error:', err);
       }
 
       res.status(200).json({

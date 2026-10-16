@@ -12,3 +12,5 @@ build/
 *.jks
 key.properties
 user_app/
+scratch/
+backend/scratch/

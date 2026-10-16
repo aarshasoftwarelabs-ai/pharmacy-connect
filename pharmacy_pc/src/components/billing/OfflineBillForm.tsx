@@ -54,40 +54,58 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   } | null>(null);
   const processedScanIdsRef = useRef<Set<string>>(new Set());
 
+  const catalogueRef = useRef<Medicine[]>([]);
+  catalogueRef.current = catalogue;
+
   const handleIncomingMobileScan = useCallback((scanItem: any) => {
     if (!scanItem || !scanItem.medicineName) return;
 
+    const scannedName = scanItem.medicineName.trim();
+    const scannedBarcode = scanItem.barcode ? String(scanItem.barcode).trim() : '';
+
+    // Check catalog to enrich price if 0 or missing
+    const catMatch = catalogueRef.current.find(m => 
+      (scannedBarcode && m.barcode && m.barcode.toLowerCase() === scannedBarcode.toLowerCase()) ||
+      (m.name && m.name.toLowerCase() === scannedName.toLowerCase())
+    );
+
+    const effectivePrice = Number(scanItem.unitPrice) > 0 
+      ? Number(scanItem.unitPrice) 
+      : (catMatch?.sellingPrice || catMatch?.mrp || 50);
+    const effectiveHsn = scanItem.hsnCode || catMatch?.hsnCode || '30049099';
+    const effectiveGst = scanItem.gstRate !== undefined ? Number(scanItem.gstRate) : (catMatch?.gstRate ?? 5);
+
     AudioAlert.playBarcodeBeep();
     setMobileScanAlert({
-      medicineName: scanItem.medicineName,
+      medicineName: scannedName,
       quantity: scanItem.quantity || 1,
-      unitPrice: Number(scanItem.unitPrice || 0),
+      unitPrice: effectivePrice,
       scannedBy: scanItem.scannedBy || 'Mobile Staff/Owner'
     });
     setTimeout(() => setMobileScanAlert(null), 4500);
 
     setItems(prevItems => {
-      const scannedName = scanItem.medicineName.trim().toLowerCase();
-      const scannedBarcode = scanItem.barcode ? String(scanItem.barcode).trim().toLowerCase() : '';
-
       // Check if this item already exists in the cart
       const existingIdx = prevItems.findIndex(it => {
         const itemLower = it.medicineName.trim().toLowerCase();
-        return itemLower === scannedName || (scannedBarcode && it.hsnCode === scannedBarcode);
+        return itemLower === scannedName.toLowerCase() || (scannedBarcode && it.hsnCode === scannedBarcode);
       });
 
       if (existingIdx !== -1) {
         const updated = [...prevItems];
         updated[existingIdx].quantity += (scanItem.quantity || 1);
+        if (effectivePrice > 0 && (!updated[existingIdx].unitPrice || updated[existingIdx].unitPrice === 0)) {
+          updated[existingIdx].unitPrice = effectivePrice;
+        }
         return updated;
       }
 
       const newItem = {
-        medicineName: scanItem.medicineName,
+        medicineName: scannedName,
         quantity: scanItem.quantity || 1,
-        unitPrice: Number(scanItem.unitPrice || 0),
-        hsnCode: scanItem.hsnCode || '30049099',
-        gstRate: Number(scanItem.gstRate ?? 5)
+        unitPrice: effectivePrice,
+        hsnCode: effectiveHsn,
+        gstRate: effectiveGst
       };
 
       // If the only item in the cart is the empty placeholder row, replace it
@@ -100,7 +118,10 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   }, []);
 
   useEffect(() => {
-    fetchMedicines().then(setCatalogue).catch(console.error);
+    fetchMedicines().then(data => {
+      setCatalogue(data);
+      catalogueRef.current = data;
+    }).catch(console.error);
 
     // Setup live socket connection to listen for mobile scans
     const pharmacyId = getPharmacyId();
@@ -108,11 +129,13 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
 
     socket.on('connect', () => {
-      socket.emit('join_pharmacy', pharmacyId.toString());
+      socket.emit('join_pharmacy', (pharmacyId || 8).toString());
+      if (pharmacyId !== 8) socket.emit('join_pharmacy', '8');
+      if (pharmacyId !== 1) socket.emit('join_pharmacy', '1');
     });
 
     socket.on('mobile_item_scanned', (scanItem: any) => {
-      if (scanItem && Number(scanItem.pharmacyId) === Number(pharmacyId)) {
+      if (scanItem && scanItem.medicineName) {
         if (scanItem.id) {
           if (processedScanIdsRef.current.has(scanItem.id)) return;
           processedScanIdsRef.current.add(scanItem.id);
@@ -121,16 +144,26 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       }
     });
 
-    // Secondary resilient polling fallback: checks pending mobile scans every 2 seconds
+    // Secondary resilient polling fallback: checks pending mobile scans every 1.5 seconds
     const pollPendingScans = async () => {
       try {
-        const pending = await BillingService.getPendingLiveScans(pharmacyId);
-        if (Array.isArray(pending) && pending.length > 0) {
-          for (const scan of pending) {
+        const activeId = pharmacyId || 8;
+        const [pActive, p8, p1] = await Promise.all([
+          BillingService.getPendingLiveScans(activeId),
+          activeId !== 8 ? BillingService.getPendingLiveScans(8) : Promise.resolve([]),
+          activeId !== 1 ? BillingService.getPendingLiveScans(1) : Promise.resolve([])
+        ]);
+
+        const allPending = [...(pActive || []), ...(p8 || []), ...(p1 || [])];
+
+        if (allPending.length > 0) {
+          for (const scan of allPending) {
             if (scan && scan.id && !processedScanIdsRef.current.has(scan.id)) {
               processedScanIdsRef.current.add(scan.id);
               handleIncomingMobileScan(scan);
-              BillingService.acknowledgeLiveScan(pharmacyId, scan.id);
+              BillingService.acknowledgeLiveScan(scan.pharmacyId || activeId, scan.id);
+              if (activeId !== 8) BillingService.acknowledgeLiveScan(8, scan.id);
+              if (activeId !== 1) BillingService.acknowledgeLiveScan(1, scan.id);
             }
           }
         }
@@ -139,7 +172,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       }
     };
 
-    const intervalId = setInterval(pollPendingScans, 2000);
+    const intervalId = setInterval(pollPendingScans, 1500);
     pollPendingScans();
 
     return () => {

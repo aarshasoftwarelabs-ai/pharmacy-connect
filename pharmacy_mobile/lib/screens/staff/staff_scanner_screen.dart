@@ -98,9 +98,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     MedicineModel? medicine = inventory.findByBarcode(code);
 
     if (_currentMode == StaffScannerMode.billing) {
-      if (medicine != null) {
-        _showAddToCartSheet(medicine);
-      } else {
+      if (medicine == null) {
         try {
           final autoData = await BarcodeMedicineService.lookup(code);
           await inventory.addMedicine(
@@ -139,9 +137,39 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
             barcode: code,
           );
         }
-        if (mounted && medicine != null) {
-          _showAddToCartSheet(medicine);
-        }
+      }
+
+      if (mounted && medicine != null) {
+        // Instant handheld barcode gun mode: add to cart & sync to PC POS immediately
+        final billing = context.read<BillingProvider>();
+        billing.addToCart(medicine, quantity: 1);
+
+        HapticFeedback.heavyImpact();
+        SystemSound.play(SystemSoundType.click);
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF16A34A),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(milliseconds: 1400),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '✓ ${medicine.name} (₹${medicine.sellingPrice.toStringAsFixed(2)}) ➔ Added & Synced to PC 💻',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
     } else {
       // Stock Inward Mode

@@ -92,9 +92,9 @@ class BillingProvider extends ChangeNotifier {
       final int effectivePharmacyId = int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
           int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
           int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
-          1;
+          8;
 
-      final String userName = userData?['name']?.toString() ?? 'Mobile App';
+      final String userName = userData?['name']?.toString() ?? 'Mobile Staff';
 
       final payload = {
         'pharmacy_id': effectivePharmacyId,
@@ -109,7 +109,8 @@ class BillingProvider extends ChangeNotifier {
         'scannedBy': userName,
       };
 
-      await ApiService.post(ApiEndpoints.liveScanItem, payload);
+      final response = await ApiService.post(ApiEndpoints.liveScanItem, payload);
+      debugPrint('Live scan sync to PC [${medicine.name}] result: ${response.statusCode}');
     } catch (e) {
       debugPrint('Live scan sync to PC error: $e');
     }
@@ -159,7 +160,7 @@ class BillingProvider extends ChangeNotifier {
       final int effectivePharmacyId = int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
           int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
           int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
-          1;
+          8;
 
       final billPayload = {
         'pharmacy_id': effectivePharmacyId,
