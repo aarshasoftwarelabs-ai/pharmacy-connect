@@ -204,6 +204,87 @@ export const ensureSchema = async () => {
       console.warn('⚠️ Wholesale purge notice:', cleanErr);
     }
 
+    // 6. Pharma Sponsored Deals & Schemes Banners Engine
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS sponsored_banners (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            company_name VARCHAR(255) NOT NULL,
+            badge_text VARCHAR(100) DEFAULT 'SPONSORED SCHEME',
+            description TEXT,
+            scheme_offer VARCHAR(255),
+            banner_image_url TEXT,
+            bg_gradient_start VARCHAR(50) DEFAULT '#059669',
+            bg_gradient_end VARCHAR(50) DEFAULT '#0f766e',
+            action_type VARCHAR(50) DEFAULT 'WHATSAPP',
+            action_value VARCHAR(255),
+            contact_person VARCHAR(100),
+            priority INTEGER DEFAULT 1,
+            is_active BOOLEAN DEFAULT true,
+            click_count INTEGER DEFAULT 0,
+            impression_count INTEGER DEFAULT 0,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // Seed initial sample banners if table is empty
+      const existingBanners = await pool.query('SELECT COUNT(*) FROM sponsored_banners');
+      if (parseInt(existingBanners.rows[0].count) === 0) {
+        await pool.query(`
+          INSERT INTO sponsored_banners 
+            (title, company_name, badge_text, description, scheme_offer, bg_gradient_start, bg_gradient_end, action_type, action_value, contact_person, priority, is_active)
+          VALUES 
+            (
+              'Mankind Monsoon Antibiotics & OTC Mega Scheme',
+              'Mankind Pharma Ltd.',
+              '10+2 FREE + 6% CASH',
+              'Direct distributor dispatch on Dolo-650, Moxikind-CV 625 & Pre-Monsoon stock.',
+              'Buy 10 Boxes Get 2 Free + 6% Direct Cash Discount',
+              '#059669',
+              '#047857',
+              'WHATSAPP',
+              '919876543210',
+              'Mankind Distributor Desk',
+              10,
+              true
+            ),
+            (
+              'Sun Pharma Pantocid & Volini Direct Wholesale Rate',
+              'Sun Pharmaceutical Industries',
+              'EXTRA 8% MARGIN',
+              'Direct wholesale stockist booking for registered retail pharmacies across Gujarat.',
+              'Pantocid DSR & Volini Gel - Flat 8% Extra Retail Margin',
+              '#0284c7',
+              '#0369a1',
+              'CALL',
+              '919825012345',
+              'Sun Pharma Stockists',
+              8,
+              true
+            ),
+            (
+              'Cipla Asthalin & Foracort Inhalers Wholesaler Deal',
+              'Cipla Therapeutics',
+              'SAME DAY DISPATCH',
+              'Instant booking on respiratory care & inhalers with flexible 21-day credit terms.',
+              'Asthalin / Budecort Inhalers - Same Day Express Dispatch',
+              '#7c3aed',
+              '#6d28d9',
+              'WHATSAPP',
+              '919879911223',
+              'Cipla Authorized Depot',
+              6,
+              true
+            );
+        `);
+        console.log('📢 Seeded initial Pharma Sponsored Deals & Schemes banners.');
+      }
+    } catch (bannerErr) {
+      console.warn('⚠️ Sponsored banners schema note:', bannerErr);
+    }
+
     console.log('✅ Database schema verified and updated successfully.');
   } catch (error) {
     console.error('⚠️ Note during schema check:', error);

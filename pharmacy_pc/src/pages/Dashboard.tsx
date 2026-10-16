@@ -5,13 +5,16 @@ import {
   PlusCircle, Users, Activity, FileBox, 
   ActivitySquare, Pill, 
   ArrowRight, Package, Loader2, AlertCircle, RefreshCw, 
-  UserCircle, CheckCircle2, Receipt, AlertTriangle, Boxes
+  UserCircle, CheckCircle2, Receipt, AlertTriangle, Boxes,
+  Sparkles, ShieldCheck, MessageCircle, Phone
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { fetchMedicines } from '../services/medicineService';
 import { BillingService } from '../services/billingService';
 import { CustomerService, CustomerProfile } from '../services/customerService';
+import { PromotionService } from '../services/promotionService';
+import { SponsoredBanner } from '../types/promotion';
 import { getPharmacyId } from '../config/development';
 import { Medicine } from '../types/medicine';
 import { Bill } from '../types/billing';
@@ -45,6 +48,8 @@ export default function Dashboard() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
+  const [sponsoredBanners, setSponsoredBanners] = useState<SponsoredBanner[]>([]);
+  const [activeBannerIdx, setActiveBannerIdx] = useState(0);
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,15 +61,17 @@ export default function Dashboard() {
       else setRefreshing(true);
 
       const pharmacyId = getPharmacyId();
-      const [medsData, billsData, custData] = await Promise.all([
+      const [medsData, billsData, custData, bannersData] = await Promise.all([
         fetchMedicines().catch(() => []),
         BillingService.getPharmacyBills(pharmacyId).catch(() => []),
-        CustomerService.getCustomers().catch(() => [])
+        CustomerService.getCustomers().catch(() => []),
+        PromotionService.getActiveBanners().catch(() => [])
       ]);
       
       setMedicines(medsData);
       setBills(billsData);
       setCustomers(custData);
+      if (Array.isArray(bannersData) && bannersData.length > 0) setSponsoredBanners(bannersData);
       if (!isBackgroundRefresh) setError(null);
     } catch (err: any) {
       if (!isBackgroundRefresh) {
@@ -171,6 +178,89 @@ export default function Dashboard() {
         animate="show"
         className="grid grid-cols-1 md:grid-cols-12 gap-6"
       >
+        {/* PHARMA SPONSORED DEALS & SCHEMES BANNER (B2B WHOLESALE) */}
+        {sponsoredBanners.length > 0 && (
+          <div className="col-span-12">
+            {(() => {
+              const currentBanner = sponsoredBanners[activeBannerIdx % sponsoredBanners.length];
+              const start = currentBanner.bgGradientStart || '#059669';
+              const end = currentBanner.bgGradientEnd || '#047857';
+
+              return (
+                <div 
+                  className="rounded-3xl p-5 md:p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all duration-500"
+                  style={{ background: `linear-gradient(135deg, ${start}, ${end})` }}
+                >
+                  <div className="absolute right-0 top-0 bottom-0 w-80 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-20"></div>
+
+                  <div className="relative z-10 flex-1">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-white/25">
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                        <span>{currentBanner.companyName}</span>
+                      </div>
+                      <span className="bg-amber-400 text-slate-900 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm">
+                        {currentBanner.badgeText}
+                      </span>
+                      <span className="text-white/70 text-xs font-medium">
+                        Scheme #{activeBannerIdx + 1} of {sponsoredBanners.length}
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg md:text-xl font-black tracking-tight text-white mb-1">
+                      {currentBanner.title}
+                    </h3>
+
+                    <p className="text-sm text-white/90 max-w-2xl font-medium">
+                      {currentBanner.schemeOffer || currentBanner.description}
+                    </p>
+                  </div>
+
+                  <div className="relative z-10 flex items-center gap-3 shrink-0">
+                    <button
+                      onClick={() => {
+                        const phone = currentBanner.actionValue || '919876543210';
+                        alert(`Direct Booking for "${currentBanner.companyName}":\nContact / WhatsApp: ${phone}\nContact Person: ${currentBanner.contactPerson || 'Depot Desk'}`);
+                      }}
+                      className="px-5 py-2.5 bg-white text-slate-900 rounded-xl font-bold shadow-md hover:bg-slate-100 transition-colors flex items-center gap-2 text-xs"
+                    >
+                      {currentBanner.actionType === 'WHATSAPP' ? (
+                        <>
+                          <MessageCircle className="w-4 h-4 text-emerald-600" />
+                          <span>WhatsApp Deal</span>
+                        </>
+                      ) : (
+                        <>
+                          <Phone className="w-4 h-4 text-sky-600" />
+                          <span>Call Stockist</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => navigate('/marketing')}
+                      className="px-4 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-xl font-bold border border-white/25 transition-colors text-xs flex items-center gap-1"
+                    >
+                      <span>All Schemes</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    {sponsoredBanners.length > 1 && (
+                      <button
+                        onClick={() => setActiveBannerIdx(prev => (prev + 1) % sponsoredBanners.length)}
+                        className="p-2 bg-white/15 hover:bg-white/25 rounded-xl text-white transition-colors border border-white/20"
+                        title="Next Scheme"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         {/* 2. PRIMARY BENTO METRICS */}
         <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* CARD 1: TODAY'S SALES */}

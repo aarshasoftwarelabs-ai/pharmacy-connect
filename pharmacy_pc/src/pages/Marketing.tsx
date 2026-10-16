@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Tag, Send, Users, TrendingUp, Plus, Edit2, Trash2, Calendar, Percent, ArrowRight, Gift, MessageSquare, Bot, AlertCircle } from 'lucide-react';
+import { Tag, Send, Users, TrendingUp, Plus, Edit2, Trash2, Calendar, Percent, ArrowRight, Gift, MessageSquare, Bot, AlertCircle, Sparkles, Eye, MousePointerClick, Phone, MessageCircle, ShieldCheck } from 'lucide-react';
 import { getPharmacyId } from '../config/development';
 import { MarketingService, Offer, Campaign } from '../services/marketingService';
+import { PromotionService } from '../services/promotionService';
+import { SponsoredBanner } from '../types/promotion';
 import { ModernSelect } from '../components/ui/ModernSelect';
 
 export default function Marketing() {
   const isWholesale = false;
-  const [activeTab, setActiveTab] = useState<'offers' | 'campaigns'>('offers');
+  const [activeTab, setActiveTab] = useState<'offers' | 'campaigns' | 'banners'>('offers');
   
   const [offers, setOffers] = useState<Offer[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [banners, setBanners] = useState<SponsoredBanner[]>([]);
   const [loading, setLoading] = useState(true);
   
   // AI Simulation state for Wholesale
@@ -23,6 +26,25 @@ export default function Marketing() {
   
   // Campaign Modal State
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+
+  // Sponsored Banner Modal State
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<SponsoredBanner | null>(null);
+
+  const [bannerForm, setBannerForm] = useState({
+    title: '',
+    companyName: '',
+    badgeText: 'EXCLUSIVE SCHEME',
+    description: '',
+    schemeOffer: '',
+    bgGradientStart: '#059669',
+    bgGradientEnd: '#047857',
+    actionType: 'WHATSAPP' as 'WHATSAPP' | 'CALL' | 'URL',
+    actionValue: '',
+    contactPerson: '',
+    priority: 5,
+    isActive: true
+  });
 
   const [offerForm, setOfferForm] = useState({
     title: '',
@@ -57,12 +79,14 @@ export default function Marketing() {
     setLoading(true);
     try {
       const pId = getActualPharmacyId();
-      const [offersData, campaignsData] = await Promise.all([
+      const [offersData, campaignsData, bannersData] = await Promise.all([
         MarketingService.getOffers(pId),
-        MarketingService.getCampaigns(pId)
+        MarketingService.getCampaigns(pId),
+        PromotionService.getAllBanners()
       ]);
       setOffers(offersData);
       setCampaigns(campaignsData);
+      setBanners(bannersData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -146,20 +170,59 @@ export default function Marketing() {
     setIsOfferModalOpen(true);
   };
 
-  const openEditOfferModal = (offer: Offer) => {
-    setOfferForm({
-      title: offer.title,
-      description: offer.description || '',
-      coupon_code: offer.coupon_code,
-      discount_percentage: offer.discount_percentage?.toString() || '',
-      max_discount_amount: offer.max_discount_amount?.toString() || '',
-      min_order_value: offer.min_order_value?.toString() || '',
-      valid_from: offer.valid_from.split('T')[0],
-      valid_until: offer.valid_until.split('T')[0],
-      is_active: offer.is_active
+  const openAddBannerModal = () => {
+    setBannerForm({
+      title: '',
+      companyName: '',
+      badgeText: 'EXCLUSIVE SCHEME',
+      description: '',
+      schemeOffer: '',
+      bgGradientStart: '#059669',
+      bgGradientEnd: '#047857',
+      actionType: 'WHATSAPP',
+      actionValue: '',
+      contactPerson: '',
+      priority: 5,
+      isActive: true
     });
-    setEditingOffer(offer);
-    setIsOfferModalOpen(true);
+    setEditingBanner(null);
+    setIsBannerModalOpen(true);
+  };
+
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingBanner) {
+        await PromotionService.updateBanner(editingBanner.id, bannerForm);
+      } else {
+        await PromotionService.createBanner(bannerForm);
+      }
+      setIsBannerModalOpen(false);
+      setEditingBanner(null);
+      fetchData();
+    } catch (err: any) {
+      alert('Failed to save banner: ' + err.message);
+    }
+  };
+
+  const handleToggleBanner = async (banner: SponsoredBanner) => {
+    try {
+      await PromotionService.updateBanner(banner.id, { isActive: !banner.isActive });
+      fetchData();
+    } catch (err: any) {
+      alert('Failed to toggle banner: ' + err.message);
+    }
+  };
+
+  const handleDeleteBanner = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this sponsored banner?')) {
+      try {
+        await PromotionService.deleteBanner(id);
+        fetchData();
+      } catch (err: any) {
+        alert('Failed to delete banner: ' + err.message);
+      }
+    }
   };
 
   return (
@@ -189,6 +252,12 @@ export default function Marketing() {
             >
               <Send className="w-4 h-4 mr-2" /> {isWholesale ? 'New Broadcast' : 'Send Campaign'}
             </button>
+            <button 
+              onClick={openAddBannerModal}
+              className="px-5 py-2.5 bg-emerald-500 bg-opacity-90 hover:bg-emerald-600 text-white rounded-xl font-bold transition-colors flex items-center shadow-md shadow-emerald-700/20"
+            >
+              <Sparkles className="w-4 h-4 mr-2" /> + Add Pharma Banner
+            </button>
             {!isWholesale && (
               <button 
                 onClick={openAddOfferModal}
@@ -216,6 +285,16 @@ export default function Marketing() {
           className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'campaigns' ? (isWholesale ? 'border-blue-600 text-blue-600' : 'border-indigo-600 text-indigo-600') : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
           {isWholesale ? 'WhatsApp Broadcasts' : 'Promotional Campaigns'}
+        </button>
+        <button
+          onClick={() => setActiveTab('banners')}
+          className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'banners' ? 'border-emerald-600 text-emerald-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+        >
+          <Sparkles className="w-4 h-4 text-emerald-500" />
+          Pharma Sponsored Schemes & B2B Banners
+          <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-extrabold">
+            {banners.filter(b => b.isActive).length} Active
+          </span>
         </button>
         {isWholesale && (
           <button
@@ -403,6 +482,111 @@ export default function Marketing() {
             </div>
           )}
         </div>
+      ) : activeTab === 'banners' ? (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-sm">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-emerald-950 text-sm">Pharma Brand Promotions & Wholesaler Schemes Engine</h4>
+                <p className="text-xs text-emerald-700 mt-0.5">
+                  B2B schemes from Mankind, Sun Pharma, Cipla & local stockists broadcast directly to pharmacy mobile & PC screens.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={openAddBannerModal}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" /> Add New Scheme Banner
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {banners.length === 0 ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                <Sparkles className="w-12 h-12 mb-4 text-emerald-400" />
+                <h3 className="text-lg font-bold text-slate-700">No Sponsored Banners Yet</h3>
+                <p className="mt-1 text-sm text-slate-500">Add pharma company schemes or stockist deals to show on mobile & PC.</p>
+                <button onClick={openAddBannerModal} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold">
+                  Add First Banner
+                </button>
+              </div>
+            ) : (
+              banners.map(banner => {
+                const start = banner.bgGradientStart || '#059669';
+                const end = banner.bgGradientEnd || '#047857';
+
+                return (
+                  <div key={banner.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
+                    {/* Live Preview Card */}
+                    <div 
+                      className="p-5 text-white relative min-h-[140px] flex flex-col justify-between"
+                      style={{ background: `linear-gradient(135deg, ${start}, ${end})` }}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-xs px-2.5 py-1 rounded-lg text-[10px] font-bold text-white border border-white/20">
+                          <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                          <span>{banner.companyName}</span>
+                        </div>
+                        <span className="bg-white/25 px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider uppercase">
+                          {banner.badgeText}
+                        </span>
+                      </div>
+
+                      <div className="my-2">
+                        <h4 className="font-extrabold text-sm line-clamp-1">{banner.title}</h4>
+                        <p className="text-xs text-white/90 line-clamp-2 mt-0.5 font-medium">
+                          {banner.schemeOffer || banner.description}
+                        </p>
+                      </div>
+
+                      <div className="flex justify-between items-center text-[11px] pt-1 border-t border-white/20">
+                        <span className="font-semibold flex items-center gap-1">
+                          {banner.actionType === 'WHATSAPP' ? <MessageCircle className="w-3 h-3" /> : <Phone className="w-3 h-3" />}
+                          {banner.actionValue || 'Direct Booking'}
+                        </span>
+                        <span className="text-white/80 text-[10px]">Priority #{banner.priority}</span>
+                      </div>
+                    </div>
+
+                    {/* Card Management Controls & Stats */}
+                    <div className="p-4 bg-slate-50 flex-1 flex flex-col justify-between border-t border-slate-100">
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-3 pb-3 border-b border-slate-200">
+                        <span className="flex items-center gap-1 font-semibold text-slate-600">
+                          <Eye className="w-3.5 h-3.5 text-slate-400" /> {banner.impressionCount || 0} Views
+                        </span>
+                        <span className="flex items-center gap-1 font-semibold text-slate-600">
+                          <MousePointerClick className="w-3.5 h-3.5 text-emerald-600" /> {banner.clickCount || 0} Inquiries
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => handleToggleBanner(banner)}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${banner.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${banner.isActive ? 'bg-emerald-600' : 'bg-slate-400'}`}></span>
+                          {banner.isActive ? 'Active on Apps' : 'Paused'}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteBanner(banner.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Delete Banner"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       ) : null}
 
       {/* Offer Modal */}
@@ -525,6 +709,105 @@ export default function Marketing() {
                 <button type="button" onClick={() => setIsCampaignModalOpen(false)} className="flex-1 px-4 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors border border-slate-200">Cancel</button>
                 <button type="submit" className={`flex-1 px-4 py-3 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center ${isWholesale ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}>
                   <Send className="w-4 h-4 mr-2" /> {isWholesale ? 'Broadcast Now' : 'Send Now'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pharma Sponsored Banner Creation Modal */}
+      {isBannerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-emerald-600 to-teal-700 text-white">
+              <h3 className="text-lg font-bold flex items-center">
+                <Sparkles className="w-5 h-5 mr-2" />
+                Add Pharma Sponsored Scheme / Banner
+              </h3>
+              <button onClick={() => setIsBannerModalOpen(false)} className="text-white hover:text-emerald-100 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveBanner} className="p-6 overflow-y-auto space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Company / Wholesaler Name *</label>
+                  <input required type="text" value={bannerForm.companyName} onChange={e => setBannerForm({...bannerForm, companyName: e.target.value})} placeholder="e.g. Mankind Pharma Ltd." className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Badge Text *</label>
+                  <input required type="text" value={bannerForm.badgeText} onChange={e => setBannerForm({...bannerForm, badgeText: e.target.value})} placeholder="e.g. 10+2 FREE + 6% CASH" className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Scheme Title / Headline *</label>
+                <input required type="text" value={bannerForm.title} onChange={e => setBannerForm({...bannerForm, title: e.target.value})} placeholder="e.g. Mankind Pre-Monsoon Antibiotics Mega Scheme" className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Offer Summary (Key Highlight) *</label>
+                <input required type="text" value={bannerForm.schemeOffer} onChange={e => setBannerForm({...bannerForm, schemeOffer: e.target.value})} placeholder="e.g. Buy 10 Boxes Get 2 Free + 6% Direct Cash Discount" className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Description & Terms</label>
+                <textarea rows={2} value={bannerForm.description} onChange={e => setBannerForm({...bannerForm, description: e.target.value})} placeholder="Order Dolo-650 & Moxikind in bulk. Direct delivery across Gujarat with same day dispatch." className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Action Type</label>
+                  <select value={bannerForm.actionType} onChange={e => setBannerForm({...bannerForm, actionType: e.target.value as any})} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+                    <option value="WHATSAPP">WhatsApp Inquiry 💬</option>
+                    <option value="CALL">Phone Call 📞</option>
+                    <option value="URL">External Link 🔗</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Phone / WhatsApp Number *</label>
+                  <input required type="text" value={bannerForm.actionValue} onChange={e => setBannerForm({...bannerForm, actionValue: e.target.value})} placeholder="e.g. 919876543210" className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Contact Person / Distributor Desk</label>
+                  <input type="text" value={bannerForm.contactPerson} onChange={e => setBannerForm({...bannerForm, contactPerson: e.target.value})} placeholder="e.g. Suresh Patel (MR Desk)" className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Display Priority (1 - 10)</label>
+                  <input type="number" min="1" max="10" value={bannerForm.priority} onChange={e => setBannerForm({...bannerForm, priority: parseInt(e.target.value) || 1})} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                </div>
+              </div>
+
+              {/* Theme Colors */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">Theme Color</label>
+                <div className="flex gap-3">
+                  {[
+                    { start: '#059669', end: '#047857', label: 'Emerald' },
+                    { start: '#0284c7', end: '#0369a1', label: 'Sky Blue' },
+                    { start: '#7c3aed', end: '#6d28d9', label: 'Violet' },
+                    { start: '#d97706', end: '#b45309', label: 'Amber' },
+                    { start: '#dc2626', end: '#b91c1c', label: 'Crimson' }
+                  ].map(theme => (
+                    <button
+                      type="button"
+                      key={theme.label}
+                      onClick={() => setBannerForm({...bannerForm, bgGradientStart: theme.start, bgGradientEnd: theme.end})}
+                      className={`h-8 w-14 rounded-lg shadow-sm border-2 transition-transform ${bannerForm.bgGradientStart === theme.start ? 'border-slate-800 scale-105' : 'border-transparent'}`}
+                      style={{ background: `linear-gradient(to right, ${theme.start}, ${theme.end})` }}
+                      title={theme.label}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-slate-100">
+                <button type="button" onClick={() => setIsBannerModalOpen(false)} className="flex-1 px-4 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors border border-slate-200 text-sm">Cancel</button>
+                <button type="submit" className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-colors text-sm flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 mr-2" /> Save & Launch Banner
                 </button>
               </div>
             </form>

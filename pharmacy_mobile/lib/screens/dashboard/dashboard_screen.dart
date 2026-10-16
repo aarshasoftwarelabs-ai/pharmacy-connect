@@ -13,6 +13,7 @@ import '../reports/reports_screen.dart';
 import '../settings/profile_screen.dart';
 import '../staff/staff_scanner_screen.dart';
 import '../suppliers/suppliers_screen.dart';
+import '../../widgets/pharma_sponsored_banner_widget.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -282,6 +283,11 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                   ],
                 ),
               ),
+
+              const SizedBox(height: 20),
+
+              // Pharma Sponsored Deals & Schemes Banner Carousel
+              const PharmaSponsoredBannerWidget(),
 
               const SizedBox(height: 24),
 
