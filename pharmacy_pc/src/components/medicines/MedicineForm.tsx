@@ -99,6 +99,7 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
       ...formData,
       mrp: Number(formData.mrp || 0),
       sellingPrice: Number(formData.sellingPrice || 0),
+      purchasePrice: formData.purchasePrice !== undefined ? Number(formData.purchasePrice) : undefined,
       minimumStock: Number(formData.minimumStock || 0),
       currentStock: Number(formData.currentStock || 0),
       gstRate: Number(formData.gstRate || 0)

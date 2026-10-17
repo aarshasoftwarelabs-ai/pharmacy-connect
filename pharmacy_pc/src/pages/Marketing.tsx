@@ -7,7 +7,7 @@ import { ModernSelect } from '../components/ui/ModernSelect';
 
 export default function Marketing() {
   const isWholesale = false;
-  const [activeTab, setActiveTab] = useState<'offers' | 'campaigns'>('offers');
+  const [activeTab, setActiveTab] = useState<'offers' | 'campaigns' | 'ai_campaigns'>('offers');
   
   const [offers, setOffers] = useState<Offer[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
