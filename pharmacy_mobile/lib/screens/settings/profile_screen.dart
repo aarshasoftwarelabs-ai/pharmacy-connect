@@ -5,6 +5,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/storage_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
+import '../../providers/subscription_provider.dart';
+import '../../widgets/subscription_renewal_modal.dart';
 import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -15,6 +17,15 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      context.read<SubscriptionProvider>().fetchSubscription(auth.pharmacyId);
+    });
+  }
+
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
@@ -30,6 +41,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final subProvider = context.watch<SubscriptionProvider>();
+    final sub = subProvider.subscription;
     final pharmacy = StorageService.getPharmacy();
     final phoneStr = auth.user?.phone?.isNotEmpty == true ? auth.user!.phone! : (pharmacy?['phone']?.toString() ?? 'Not provided');
     final emailStr = auth.user?.email.isNotEmpty == true ? auth.user!.email : (pharmacy?['email']?.toString() ?? 'Not provided');
@@ -196,7 +209,151 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // 1.5 Mobile Pro Subscription & License Card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF8FAFC), Colors.white],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: (sub?.isExpired ?? false)
+                      ? const Color(0xFFFCA5A5)
+                      : (sub?.isExpiringSoon ?? false)
+                          ? const Color(0xFFFDE68A)
+                          : const Color(0xFFA7F3D0),
+                  width: 1.5,
+                ),
+                boxShadow: AppColors.softShadow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0F766E), Color(0xFF059669)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  sub?.planName ?? 'Mobile Pro (1-Year Pass)',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: (sub?.isExpired ?? false)
+                                        ? const Color(0xFFFEE2E2)
+                                        : (sub?.isExpiringSoon ?? false)
+                                            ? const Color(0xFFFEF3C7)
+                                            : const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    (sub?.isExpired ?? false)
+                                        ? 'EXPIRED'
+                                        : (sub?.isExpiringSoon ?? false)
+                                            ? 'EXPIRING SOON'
+                                            : (sub?.isLifetime ?? false)
+                                                ? 'LIFETIME'
+                                                : '${sub?.daysRemaining ?? 365}d LEFT',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: (sub?.isExpired ?? false)
+                                          ? const Color(0xFFDC2626)
+                                          : (sub?.isExpiringSoon ?? false)
+                                              ? const Color(0xFFD97706)
+                                              : const Color(0xFF16A34A),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              sub?.subscriptionEndDate != null
+                                  ? 'Valid till: ${sub!.subscriptionEndDate!.split('T')[0]} (Annual Plan)'
+                                  : '1-Year Chemist Pass • All Mobile Features Included',
+                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.flash_on_rounded, size: 14, color: Color(0xFFD97706)),
+                              SizedBox(width: 4),
+                              Text(
+                                '₹1,499 / Year (₹4.10/day)',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          SubscriptionRenewalModal.show(
+                            context,
+                            pharmacyId: auth.pharmacyId,
+                            pharmacyName: auth.pharmacyName,
+                          );
+                        },
+                        icon: const Icon(Icons.autorenew_rounded, size: 14),
+                        label: Text(
+                          (sub?.isExpired ?? false) ? 'Renew Now' : 'Renew / Extend',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF059669),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
 
             // 2. Cloud Database Connection Status (Clean, Non-Technical)
             Container(

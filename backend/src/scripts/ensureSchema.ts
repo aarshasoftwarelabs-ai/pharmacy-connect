@@ -285,6 +285,23 @@ export const ensureSchema = async () => {
       console.warn('⚠️ Sponsored banners schema note:', bannerErr);
     }
 
+    // 7. Pharmacy Plan & Subscription Schema Integrity
+    try {
+      await pool.query(`
+        ALTER TABLE pharmacies ADD COLUMN IF NOT EXISTS plan_type VARCHAR(50) DEFAULT 'FREE_TRIAL';
+        ALTER TABLE pharmacies ADD COLUMN IF NOT EXISTS trial_start_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+        ALTER TABLE pharmacies ADD COLUMN IF NOT EXISTS subscription_end_date TIMESTAMP WITH TIME ZONE;
+        
+        -- Auto-set 14-day trial end date if missing
+        UPDATE pharmacies 
+        SET subscription_end_date = CURRENT_TIMESTAMP + INTERVAL '14 days' 
+        WHERE subscription_end_date IS NULL AND (plan_type = 'FREE_TRIAL' OR plan_type IS NULL);
+      `);
+      console.log('💳 Verified Pharmacy Subscription & Licensing Schema.');
+    } catch (subErr) {
+      console.warn('⚠️ Subscription schema note:', subErr);
+    }
+
     console.log('✅ Database schema verified and updated successfully.');
   } catch (error) {
     console.error('⚠️ Note during schema check:', error);

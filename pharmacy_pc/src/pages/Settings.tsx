@@ -91,11 +91,14 @@ export default function Settings() {
     setTimeout(() => setIsSaved(false), 2000);
   };
 
-  const handlePaymentClick = (plan: 'Monthly' | 'Yearly' | 'Lifetime') => {
+  const handlePaymentClick = (plan: 'Mobile' | 'Monthly' | 'Yearly' | 'Lifetime') => {
     let finalAmount = 0;
     let planName = '';
     
-    if (plan === 'Monthly') {
+    if (plan === 'Mobile') {
+      planName = 'Mobile Pro';
+      finalAmount = 1499;
+    } else if (plan === 'Monthly') {
       planName = 'Monthly Pro';
       finalAmount = isEarlyAdopter ? 759 : 799;
     } else if (plan === 'Yearly') {
@@ -137,8 +140,8 @@ export default function Settings() {
             });
 
             if (verification.success) {
-              const duration = planName.includes('Monthly') ? 1 : planName.includes('Yearly') ? 12 : undefined;
-              const planType = planName.includes('Lifetime') ? 'LIFETIME' : planName.includes('Yearly') ? 'YEARLY' : 'MONTHLY';
+              const duration = planName.includes('Monthly') ? 1 : (planName.includes('Yearly') || planName.includes('Mobile')) ? 12 : undefined;
+              const planType = planName.includes('Lifetime') ? 'LIFETIME' : planName.includes('Mobile') ? 'MOBILE_YEARLY' : planName.includes('Yearly') ? 'YEARLY' : 'MONTHLY';
               
               // Using hardcoded pharmacy ID 1 for now
               await PharmacyService.updateSubscription(1, planType, duration); 
@@ -257,7 +260,40 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-4 xl:gap-6 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 pt-2">
+                
+                {/* Mobile Pro (1-Year Pass) */}
+                <div className="border-2 border-emerald-500 bg-emerald-50/40 rounded-2xl p-5 transition-all flex flex-col relative h-full hover:border-emerald-600 shadow-sm">
+                  <div className="absolute top-0 right-4 -translate-y-1/2 bg-emerald-600 text-white px-3 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase shadow-sm">
+                    40% OFF
+                  </div>
+                  <h4 className="text-emerald-800 font-bold text-sm uppercase tracking-wider mb-2">Mobile Pro (1-Yr)</h4>
+                  <div className="mb-4">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-slate-400 line-through font-medium">₹2,499</span>
+                      <div>
+                        <span className="text-3xl font-extrabold text-slate-900">₹1,499</span>
+                        <span className="text-slate-500 text-sm font-semibold"> /yr</span>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-md border text-emerald-800 bg-emerald-100 border-emerald-200">
+                        Just ₹4.10 / day
+                      </span>
+                    </div>
+                  </div>
+                  <ul className="space-y-2.5 mb-6 flex-1 text-xs text-slate-700">
+                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0 mt-0.5" /> No PC or Laptop Needed</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0 mt-0.5" /> Camera Barcode & QR Scanner</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0 mt-0.5" /> Unlimited Retail Billing</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0 mt-0.5" /> Customer Khata & WhatsApp Bills</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0 mt-0.5" /> Expiry Tracker & Stock Alerts</li>
+                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0 mt-0.5" /> 365 Days Cloud Auto Backup</li>
+                  </ul>
+                  <button onClick={() => handlePaymentClick('Mobile')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all">
+                    Get Mobile 1-Yr Pass
+                  </button>
+                </div>
                 
                 {/* Monthly Plan */}
                 <div className="border border-slate-200 rounded-2xl p-5 transition-all flex flex-col relative bg-white h-full hover:border-pharmacy-300">

@@ -64,4 +64,10 @@ class ApiEndpoints {
   static String get sponsoredBanners => '$baseUrl/promotions/banners';
   static String trackBannerClick(int id) => '$baseUrl/promotions/banners/$id/click';
   static String trackBannerImpression(int id) => '$baseUrl/promotions/banners/$id/impression';
+
+  // Subscriptions & License
+  static String subscriptionStatus(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription-status';
+  static String updateSubscription(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription';
+  static String get createPaymentOrder => '$baseUrl/payments/create-order';
+  static String get verifyPayment => '$baseUrl/payments/verify';
 }

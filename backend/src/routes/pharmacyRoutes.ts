@@ -14,6 +14,8 @@ router.get('/:id', PharmacyController.getPharmacyProfile);
 // Secure all other routes
 router.use(authenticate);
 
+// Get subscription status & validity
+router.get('/:id/subscription-status', PharmacyController.getSubscriptionStatus);
 // Get subscription stats
 router.get('/stats/subscription', requirePermission('SETTINGS_VIEW'), PharmacyController.getSubscriptionStats);
 // Update pharmacy profile by ID

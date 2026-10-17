@@ -56,6 +56,86 @@ export class PharmacyController {
     }
   }
 
+  static async getSubscriptionStatus(req: Request, res: Response) {
+    try {
+      const pharmacyId = parseInt(req.params.id, 10);
+      if (isNaN(pharmacyId)) {
+        return res.status(400).json({ success: false, message: 'Invalid pharmacy ID' });
+      }
+
+      const pharmacy = await PharmacyService.getPharmacyById(pharmacyId);
+      if (!pharmacy) {
+        return res.status(404).json({ success: false, message: 'Pharmacy not found' });
+      }
+
+      const planType = pharmacy.planType || 'FREE_TRIAL';
+      const now = new Date();
+      let endDate = pharmacy.subscriptionEndDate ? new Date(pharmacy.subscriptionEndDate) : null;
+      
+      // If trial without end date, default to 14 days from trial start or now
+      if (!endDate && planType === 'FREE_TRIAL') {
+        const start = pharmacy.trialStartDate ? new Date(pharmacy.trialStartDate) : now;
+        endDate = new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
+      }
+
+      let daysRemaining = 0;
+      let status: 'ACTIVE' | 'TRIAL' | 'EXPIRING_SOON' | 'GRACE_PERIOD' | 'EXPIRED' = 'ACTIVE';
+
+      if (planType === 'LIFETIME') {
+        status = 'ACTIVE';
+        daysRemaining = 9999;
+      } else if (endDate) {
+        const diffMs = endDate.getTime() - now.getTime();
+        daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        if (daysRemaining > 15) {
+          status = planType === 'FREE_TRIAL' ? 'TRIAL' : 'ACTIVE';
+        } else if (daysRemaining >= 0 && daysRemaining <= 15) {
+          status = 'EXPIRING_SOON';
+        } else if (daysRemaining >= -7 && daysRemaining < 0) {
+          status = 'GRACE_PERIOD';
+        } else {
+          status = 'EXPIRED';
+        }
+      } else {
+        status = 'TRIAL';
+        daysRemaining = 14;
+      }
+
+      const canBill = status !== 'EXPIRED';
+
+      res.status(200).json({
+        success: true,
+        data: {
+          pharmacyId: pharmacy.id,
+          pharmacyName: pharmacy.name,
+          planType,
+          planName: planType === 'MOBILE_YEARLY' ? 'Mobile Pro (1-Year Pass)'
+                  : planType === 'YEARLY' ? 'Yearly Pro'
+                  : planType === 'MONTHLY' ? 'Monthly Pro'
+                  : planType === 'LIFETIME' ? 'Founder Lifetime'
+                  : '14-Day Free Trial',
+          trialStartDate: pharmacy.trialStartDate,
+          subscriptionEndDate: endDate ? endDate.toISOString() : null,
+          daysRemaining: Math.max(0, daysRemaining),
+          rawDaysRemaining: daysRemaining,
+          status,
+          canBill,
+          pricing: {
+            mobileYearly: 1499,
+            originalPrice: 2499,
+            dailyPrice: '4.10',
+            discountPercent: 40,
+            currency: 'INR'
+          }
+        }
+      });
+    } catch (error: any) {
+      console.error('Error getting subscription status:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch subscription status' });
+    }
+  }
+
   static async updateSubscription(req: Request, res: Response) {
     try {
       const pharmacyId = parseInt(req.params.id, 10);
@@ -65,20 +145,31 @@ export class PharmacyController {
         return res.status(400).json({ error: 'Invalid parameters' });
       }
 
+      const current = await PharmacyService.getPharmacyById(pharmacyId);
+      if (!current) {
+        return res.status(404).json({ error: 'Pharmacy not found' });
+      }
+
       let endDate: string | null = null;
       
-      if (planType !== 'LIFETIME' && durationMonths) {
-        const date = new Date();
-        date.setMonth(date.getMonth() + durationMonths);
-        endDate = date.toISOString();
+      if (planType !== 'LIFETIME') {
+        const monthsToAdd = durationMonths ? parseInt(durationMonths, 10) : (planType === 'MOBILE_YEARLY' || planType === 'YEARLY' ? 12 : 1);
+        let baseDate = new Date();
+
+        if (current.subscriptionEndDate) {
+          const existingEnd = new Date(current.subscriptionEndDate);
+          if (existingEnd > baseDate) {
+            // User is renewing early: extend from their current expiry date without losing remaining days!
+            baseDate = existingEnd;
+          }
+        }
+
+        baseDate.setMonth(baseDate.getMonth() + monthsToAdd);
+        endDate = baseDate.toISOString();
       }
 
       const pharmacy = await PharmacyService.updateSubscriptionPlan(pharmacyId, planType, endDate);
       
-      if (!pharmacy) {
-        return res.status(404).json({ error: 'Pharmacy not found' });
-      }
-
       res.status(200).json(pharmacy);
     } catch (error: any) {
       console.error('Error updating subscription:', error);

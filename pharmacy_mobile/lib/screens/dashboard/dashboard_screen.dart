@@ -14,6 +14,8 @@ import '../settings/profile_screen.dart';
 import '../staff/staff_scanner_screen.dart';
 import '../suppliers/suppliers_screen.dart';
 import '../../widgets/pharma_sponsored_banner_widget.dart';
+import '../../providers/subscription_provider.dart';
+import '../../widgets/subscription_renewal_modal.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -38,6 +40,8 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InventoryProvider>().fetchMedicines();
+      final auth = context.read<AuthProvider>();
+      context.read<SubscriptionProvider>().fetchSubscription(auth.pharmacyId);
     });
   }
 
@@ -59,6 +63,8 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     final auth = context.watch<AuthProvider>();
     final inventory = context.watch<InventoryProvider>();
     final billing = context.watch<BillingProvider>();
+    final subProvider = context.watch<SubscriptionProvider>();
+    final sub = subProvider.subscription;
 
     final lowStockList = inventory.lowStockMedicines;
     final totalInventoryCount = inventory.allMedicines.length;
@@ -180,6 +186,84 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Subscription Expiring Soon / Expired Alert Banner
+              if (sub != null && (sub.isExpiringSoon || sub.isExpired))
+                Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: sub.isExpired ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: sub.isExpired ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: sub.isExpired ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          sub.isExpired ? Icons.lock_clock_rounded : Icons.access_time_filled_rounded,
+                          color: sub.isExpired ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              sub.isExpired
+                                  ? '⛔ Mobile License Expired'
+                                  : '⚠️ License Expiring in ${sub.daysRemaining} Days',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: sub.isExpired ? const Color(0xFF991B1B) : const Color(0xFF92400E),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              sub.isExpired
+                                  ? 'Renew your 1-Year Pass to keep billing active.'
+                                  : 'Renew 1-Year Pass now at ₹1,499 (Save 40%).',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: sub.isExpired ? const Color(0xFFB91C1C) : const Color(0xFFB45309),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          SubscriptionRenewalModal.show(
+                            context,
+                            pharmacyId: auth.pharmacyId,
+                            pharmacyName: auth.pharmacyName,
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: sub.isExpired ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
+                        ),
+                        child: const Text('Renew', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                      ),
+                    ],
+                  ),
+                ),
+
               // 1. Futuristic Hero Card: POS Quick Launch & Live Camera Scanner
               Container(
                 padding: const EdgeInsets.all(22),
