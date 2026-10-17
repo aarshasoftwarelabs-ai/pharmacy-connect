@@ -296,8 +296,29 @@ export const ensureSchema = async () => {
         UPDATE pharmacies 
         SET subscription_end_date = CURRENT_TIMESTAMP + INTERVAL '14 days' 
         WHERE subscription_end_date IS NULL AND (plan_type = 'FREE_TRIAL' OR plan_type IS NULL);
+
+        -- Ensure subscription_payments table exists for recording genuine payments (UPI/Cash)
+        CREATE TABLE IF NOT EXISTS subscription_payments (
+            id SERIAL PRIMARY KEY,
+            pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+            amount NUMERIC(10,2) NOT NULL DEFAULT 1499.00,
+            currency VARCHAR(10) DEFAULT 'INR',
+            payment_method VARCHAR(50) NOT NULL DEFAULT 'UPI',
+            payment_status VARCHAR(50) NOT NULL DEFAULT 'SUCCESS',
+            transaction_id VARCHAR(100),
+            receipt_number VARCHAR(100),
+            upi_id VARCHAR(100) DEFAULT 'lodaliya@ptyes',
+            agent_note TEXT,
+            plan_type VARCHAR(50) NOT NULL DEFAULT 'MOBILE_YEARLY',
+            duration_months INTEGER NOT NULL DEFAULT 12,
+            billing_start_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            billing_end_date TIMESTAMP WITH TIME ZONE,
+            paid_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_subscription_payments_pharmacy ON subscription_payments(pharmacy_id);
       `);
-      console.log('💳 Verified Pharmacy Subscription & Licensing Schema.');
+      console.log('💳 Verified Pharmacy Subscription & Licensing Schema with Payment Tracking.');
     } catch (subErr) {
       console.warn('⚠️ Subscription schema note:', subErr);
     }

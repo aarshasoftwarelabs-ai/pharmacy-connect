@@ -139,21 +139,21 @@ export class PharmacyController {
   static async updateSubscription(req: Request, res: Response) {
     try {
       const pharmacyId = parseInt(req.params.id, 10);
-      const { planType, durationMonths } = req.body;
+      const { planType, durationMonths, amount, paymentMethod, transactionId, upiId, agentNote } = req.body;
 
       if (isNaN(pharmacyId) || !planType) {
-        return res.status(400).json({ error: 'Invalid parameters' });
+        return res.status(400).json({ success: false, message: 'Invalid parameters' });
       }
 
       const current = await PharmacyService.getPharmacyById(pharmacyId);
       if (!current) {
-        return res.status(404).json({ error: 'Pharmacy not found' });
+        return res.status(404).json({ success: false, message: 'Pharmacy not found' });
       }
 
       let endDate: string | null = null;
+      const monthsToAdd = durationMonths ? parseInt(durationMonths, 10) : (planType === 'MOBILE_YEARLY' || planType === 'YEARLY' ? 12 : 1);
       
       if (planType !== 'LIFETIME') {
-        const monthsToAdd = durationMonths ? parseInt(durationMonths, 10) : (planType === 'MOBILE_YEARLY' || planType === 'YEARLY' ? 12 : 1);
         let baseDate = new Date();
 
         if (current.subscriptionEndDate) {
@@ -168,12 +168,47 @@ export class PharmacyController {
         endDate = baseDate.toISOString();
       }
 
-      const pharmacy = await PharmacyService.updateSubscriptionPlan(pharmacyId, planType, endDate);
+      const result = await PharmacyService.updateSubscriptionPlan(
+        pharmacyId, 
+        planType, 
+        endDate,
+        {
+          amount: typeof amount === 'number' ? amount : parseFloat(amount) || 1499.00,
+          paymentMethod: paymentMethod || 'UPI',
+          transactionId,
+          upiId: upiId || 'lodaliya@ptyes',
+          agentNote,
+          durationMonths: monthsToAdd,
+        }
+      );
+
+      if (!result) {
+        return res.status(500).json({ success: false, message: 'Failed to update subscription in database' });
+      }
       
-      res.status(200).json(pharmacy);
+      res.status(200).json({
+        success: true,
+        message: 'Subscription successfully activated!',
+        data: result.pharmacy,
+        payment: result.payment,
+      });
     } catch (error: any) {
       console.error('Error updating subscription:', error);
-      res.status(500).json({ error: 'Failed to update subscription' });
+      res.status(500).json({ success: false, message: 'Failed to update subscription', error: error.message });
+    }
+  }
+
+  static async getSubscriptionPayments(req: Request, res: Response) {
+    try {
+      const pharmacyId = parseInt(req.params.id, 10);
+      if (isNaN(pharmacyId)) {
+        return res.status(400).json({ success: false, message: 'Invalid pharmacy ID' });
+      }
+      const payments = await PharmacyService.getSubscriptionPayments(pharmacyId);
+      res.status(200).json({ success: true, data: payments });
+    } catch (error: any) {
+      console.error('Error fetching subscription payments:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch payments' });
     }
   }
 

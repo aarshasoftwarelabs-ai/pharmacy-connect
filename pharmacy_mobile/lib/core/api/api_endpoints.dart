@@ -36,6 +36,7 @@ class ApiEndpoints {
 
   // Billing / POS
   static String get bills => '$baseUrl/billing';
+  static String pharmacyBills(int pharmacyId) => '$baseUrl/billing/pharmacy/$pharmacyId';
   static String get createBill => '$baseUrl/billing';
   static String get liveScanItem => '$baseUrl/billing/live-scan';
   static String pendingScans(int pharmacyId) => '$baseUrl/billing/pending-scans/$pharmacyId';
@@ -68,6 +69,7 @@ class ApiEndpoints {
   // Subscriptions & License
   static String subscriptionStatus(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription-status';
   static String updateSubscription(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription';
+  static String subscriptionPayments(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription-payments';
   static String get createPaymentOrder => '$baseUrl/payments/create-order';
   static String get verifyPayment => '$baseUrl/payments/verify';
 }

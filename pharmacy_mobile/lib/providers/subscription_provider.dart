@@ -44,23 +44,70 @@ class SubscriptionProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> renewMobilePlan(int pharmacyId, {int durationMonths = 12}) async {
+  Map<String, dynamic>? _lastPaymentReceipt;
+  List<Map<String, dynamic>> _paymentHistory = [];
+
+  Map<String, dynamic>? get lastPaymentReceipt => _lastPaymentReceipt;
+  List<Map<String, dynamic>> get paymentHistory => _paymentHistory;
+
+  Future<void> fetchPaymentHistory(int pharmacyId) async {
+    try {
+      final response = await ApiService.get(ApiEndpoints.subscriptionPayments(pharmacyId));
+      if (response.success && response.data is List) {
+        _paymentHistory = List<Map<String, dynamic>>.from(
+          (response.data as List).map((e) => Map<String, dynamic>.from(e as Map)),
+        );
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Failed to load payment history: $e');
+    }
+  }
+
+  Future<bool> renewMobilePlan(
+    int pharmacyId, {
+    int durationMonths = 12,
+    double amount = 1499.00,
+    String paymentMethod = 'UPI',
+    String? transactionId,
+    String? upiId = 'lodaliya@ptyes',
+    String? agentNote,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
+      final payload = {
+        'planType': 'MOBILE_YEARLY',
+        'durationMonths': durationMonths,
+        'amount': amount,
+        'paymentMethod': paymentMethod,
+        'transactionId': transactionId ?? (paymentMethod == 'UPI' ? 'UPI-${DateTime.now().millisecondsSinceEpoch}' : 'CASH-${DateTime.now().millisecondsSinceEpoch}'),
+        'upiId': upiId ?? 'lodaliya@ptyes',
+        'agentNote': agentNote,
+      };
+
       final response = await ApiService.post(
         ApiEndpoints.updateSubscription(pharmacyId),
-        {
-          'planType': 'MOBILE_YEARLY',
-          'durationMonths': durationMonths,
-        },
+        payload,
       );
 
       if (response.success) {
-        // Refetch fresh status with updated expiration date
+        if (response.data is Map && (response.data as Map)['payment'] != null) {
+          _lastPaymentReceipt = Map<String, dynamic>.from((response.data as Map)['payment'] as Map);
+        } else {
+          _lastPaymentReceipt = {
+            'receipt_number': 'DS-SUB-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+            'amount': amount,
+            'payment_method': paymentMethod,
+            'transaction_id': payload['transactionId'],
+            'paid_at': DateTime.now().toIso8601String(),
+          };
+        }
+        // Refetch fresh status with updated expiration date & payment history
         await fetchSubscription(pharmacyId);
+        await fetchPaymentHistory(pharmacyId);
         _isLoading = false;
         notifyListeners();
         return true;

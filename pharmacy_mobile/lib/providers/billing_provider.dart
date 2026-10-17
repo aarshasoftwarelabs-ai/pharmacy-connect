@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../core/api/api_endpoints.dart';
 import '../core/api/api_service.dart';
 import '../models/cart_item_model.dart';
@@ -7,16 +8,12 @@ import '../core/services/storage_service.dart';
 
 class BillingProvider extends ChangeNotifier {
   final List<CartItemModel> _cartItems = [];
-  final List<Map<String, dynamic>> _recentBills = [
-    {
-      'bill_number': 'PC-2026-000001',
-      'customer_name': 'Walk-in Customer',
-      'items_count': 1,
-      'total': 31.36,
-      'date': '10/13/2026 at 09:49 AM',
-      'payment_mode': 'POS',
-    },
-  ];
+  final List<Map<String, dynamic>> _recentBills = [];
+  double _todaySales = 0.0;
+  int _todayBillsCount = 0;
+  double _yesterdaySales = 0.0;
+  bool _isLoadingBills = false;
+
   String _customerName = '';
   String _customerPhone = '';
   String _paymentMode = 'CASH'; // CASH, UPI, CARD, CREDIT
@@ -28,6 +25,10 @@ class BillingProvider extends ChangeNotifier {
   List<CartItemModel> get cartItems => _cartItems;
   List<Map<String, dynamic>> get recentBills => _recentBills;
   Map<String, dynamic>? get lastBill => _lastBill;
+  double get todaySales => _todaySales;
+  int get todayBillsCount => _todayBillsCount;
+  double get yesterdaySales => _yesterdaySales;
+  bool get isLoadingBills => _isLoadingBills;
   String get customerName => _customerName;
   String get customerPhone => _customerPhone;
   String get paymentMode => _paymentMode;
@@ -199,6 +200,8 @@ class BillingProvider extends ChangeNotifier {
       };
       _lastBill = billRecord;
       _recentBills.insert(0, billRecord);
+      _todaySales += grandTotal;
+      _todayBillsCount += 1;
 
       if (response.success) {
         clearCart();
@@ -213,6 +216,124 @@ class BillingProvider extends ChangeNotifier {
       _errorMessage = 'Checkout failed: $e';
       notifyListeners();
       return false;
+    }
+  }
+
+  Future<void> fetchBills([int? pharmacyId]) async {
+    _isLoadingBills = true;
+    notifyListeners();
+
+    try {
+      final pharmacyData = StorageService.getPharmacy();
+      final userData = StorageService.getUser();
+      final int effectivePharmacyId = pharmacyId ??
+          int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
+          int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
+          int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
+          8;
+
+      final response = await ApiService.get(ApiEndpoints.pharmacyBills(effectivePharmacyId));
+      if (response.success && response.data != null) {
+        final List list = response.data is List ? response.data as List : [];
+        final now = DateTime.now();
+        final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+        final yesterday = now.subtract(const Duration(days: 1));
+        final yesterdayStr = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+
+        double todayTotal = 0.0;
+        int todayCount = 0;
+        double yesterdayTotal = 0.0;
+
+        final List<Map<String, dynamic>> parsedBills = [];
+
+        for (final item in list) {
+          if (item is Map) {
+            final billMap = Map<String, dynamic>.from(item);
+            final rawDate = billMap['createdAt']?.toString() ?? billMap['billDate']?.toString() ?? '';
+            final total = double.tryParse(billMap['total']?.toString() ?? '0') ?? 0.0;
+            final isCancelled = billMap['paymentStatus']?.toString().toUpperCase() == 'CANCELLED';
+
+            if (!isCancelled) {
+              DateTime? billDt;
+              try {
+                if (rawDate.isNotEmpty) {
+                  billDt = DateTime.parse(rawDate).toLocal();
+                }
+              } catch (_) {}
+
+              if (billDt != null) {
+                if (billDt.year == now.year && billDt.month == now.month && billDt.day == now.day) {
+                  todayTotal += total;
+                  todayCount += 1;
+                } else if (billDt.year == yesterday.year && billDt.month == yesterday.month && billDt.day == yesterday.day) {
+                  yesterdayTotal += total;
+                }
+              } else {
+                if (rawDate.startsWith(todayStr)) {
+                  todayTotal += total;
+                  todayCount += 1;
+                } else if (rawDate.startsWith(yesterdayStr)) {
+                  yesterdayTotal += total;
+                }
+              }
+            }
+
+            final itemsList = billMap['items'] is List ? (billMap['items'] as List) : [];
+            final itemsSummary = itemsList.map((e) {
+              if (e is Map) {
+                return '• ${e['medicineName'] ?? e['medicine_name'] ?? 'Medicine'} x${e['quantity'] ?? 1}';
+              }
+              return '• Item';
+            }).join('\n');
+
+            parsedBills.add({
+              'id': billMap['id'],
+              'bill_number': billMap['billNumber']?.toString() ?? 'PC-${billMap['id']}',
+              'customer_name': billMap['customerName']?.toString() ?? 'Walk-in Customer',
+              'customer_phone': billMap['customerPhone']?.toString() ?? '',
+              'items_count': itemsList.isNotEmpty ? itemsList.length : 1,
+              'subtotal': double.tryParse(billMap['subtotal']?.toString() ?? '0') ?? total,
+              'discount': double.tryParse(billMap['discount']?.toString() ?? '0') ?? 0.0,
+              'total': total,
+              'date': _formatBillDate(rawDate),
+              'raw_date': rawDate,
+              'payment_mode': billMap['billType']?.toString() ?? 'POS',
+              'payment_status': billMap['paymentStatus']?.toString() ?? 'PAID',
+              'items_summary': itemsSummary,
+            });
+          }
+        }
+
+        _recentBills.clear();
+        _recentBills.addAll(parsedBills);
+        _todaySales = todayTotal;
+        _todayBillsCount = todayCount;
+        _yesterdaySales = yesterdayTotal;
+      }
+    } catch (e) {
+      debugPrint('Failed to load real bills: $e');
+    } finally {
+      _isLoadingBills = false;
+      notifyListeners();
+    }
+  }
+
+  static String _formatBillDate(String rawDate) {
+    if (rawDate.isEmpty) return 'Recent';
+    try {
+      final dt = DateTime.parse(rawDate).toLocal();
+      final now = DateTime.now();
+      final timeStr = DateFormat('hh:mm a').format(dt);
+      if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+        return 'Today, $timeStr';
+      }
+      final yesterday = now.subtract(const Duration(days: 1));
+      if (dt.year == yesterday.year && dt.month == yesterday.month && dt.day == yesterday.day) {
+        return 'Yesterday, $timeStr';
+      }
+      return DateFormat('dd MMM, hh:mm a').format(dt);
+    } catch (_) {
+      return rawDate;
     }
   }
 }

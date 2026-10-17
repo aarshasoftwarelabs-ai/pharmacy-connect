@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -76,6 +77,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       setState(() {});
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      context.read<BillingProvider>().fetchBills(auth.pharmacyId);
     });
   }
 

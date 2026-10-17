@@ -41,6 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InventoryProvider>().fetchMedicines();
       final auth = context.read<AuthProvider>();
+      context.read<BillingProvider>().fetchBills(auth.pharmacyId);
       context.read<SubscriptionProvider>().fetchSubscription(auth.pharmacyId);
     });
   }
@@ -179,7 +180,14 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => inventory.fetchMedicines(),
+        onRefresh: () async {
+          final auth = context.read<AuthProvider>();
+          await Future.wait([
+            inventory.fetchMedicines(),
+            billing.fetchBills(auth.pharmacyId),
+            subProvider.fetchSubscription(auth.pharmacyId),
+          ]);
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
@@ -394,14 +402,41 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
               Row(
                 children: [
                   Expanded(
-                    child: _buildModernKpiCard(
-                      title: 'Sales Today',
-                      value: _currency.format(14850),
-                      trend: '+14.2% vs yesterday',
-                      isPositiveTrend: true,
-                      icon: Icons.currency_rupee_rounded,
-                      color: AppColors.success,
-                      bgColor: AppColors.successBg,
+                    child: Builder(
+                      builder: (context) {
+                        String salesTrend;
+                        bool isPositiveTrend = true;
+                        if (billing.todayBillsCount == 0 && billing.todaySales == 0) {
+                          salesTrend = '0 bills recorded today';
+                          isPositiveTrend = false;
+                        } else if (billing.yesterdaySales > 0) {
+                          final diff = billing.todaySales - billing.yesterdaySales;
+                          final pct = ((diff / billing.yesterdaySales) * 100).abs().toStringAsFixed(1);
+                          if (diff >= 0) {
+                            salesTrend = '+$pct% vs yesterday';
+                            isPositiveTrend = true;
+                          } else {
+                            salesTrend = '-$pct% vs yesterday';
+                            isPositiveTrend = false;
+                          }
+                        } else {
+                          salesTrend = '${billing.todayBillsCount} bill${billing.todayBillsCount == 1 ? '' : 's'} recorded today';
+                          isPositiveTrend = true;
+                        }
+
+                        return _buildModernKpiCard(
+                          title: 'Sales Today',
+                          value: billing.isLoadingBills && billing.recentBills.isEmpty
+                              ? '...'
+                              : _currency.format(billing.todaySales),
+                          trend: salesTrend,
+                          isPositiveTrend: isPositiveTrend,
+                          icon: Icons.currency_rupee_rounded,
+                          color: AppColors.success,
+                          bgColor: AppColors.successBg,
+                          onTap: () => widget.onNavigateTab?.call(3),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),

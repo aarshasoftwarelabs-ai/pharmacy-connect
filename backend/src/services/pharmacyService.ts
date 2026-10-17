@@ -58,8 +58,16 @@ export class PharmacyService {
   static async updateSubscriptionPlan(
     id: number,
     planType: string,
-    subscriptionEndDate: string | null = null
-  ): Promise<PharmacyProfile | null> {
+    subscriptionEndDate: string | null = null,
+    paymentDetails?: {
+      amount?: number;
+      paymentMethod?: string;
+      transactionId?: string;
+      upiId?: string;
+      agentNote?: string;
+      durationMonths?: number;
+    }
+  ): Promise<{ pharmacy: PharmacyProfile; payment?: any } | null> {
     const query = `
       UPDATE pharmacies
       SET plan_type = $2,
@@ -76,7 +84,58 @@ export class PharmacyService {
     if (result.rows.length === 0) {
       return null;
     }
-    return result.rows[0];
+
+    const pharmacy = result.rows[0];
+    let paymentRecord: any = null;
+
+    if (paymentDetails) {
+      try {
+        const receiptNo = `DS-SUB-${Date.now().toString().slice(-6)}`;
+        const amount = paymentDetails.amount || 1499.00;
+        const paymentMethod = (paymentDetails.paymentMethod || 'UPI').toUpperCase();
+        const transactionId = paymentDetails.transactionId || (paymentMethod === 'UPI' ? `UPI-${Date.now()}` : `CASH-${Date.now().toString().slice(-4)}`);
+        const upiId = paymentDetails.upiId || 'lodaliya@ptyes';
+        const agentNote = paymentDetails.agentNote || null;
+        const durationMonths = paymentDetails.durationMonths || 12;
+
+        const insertPaymentQuery = `
+          INSERT INTO subscription_payments (
+            pharmacy_id, amount, payment_method, payment_status, 
+            transaction_id, receipt_number, upi_id, agent_note, 
+            plan_type, duration_months, billing_end_date
+          ) VALUES ($1, $2, $3, 'SUCCESS', $4, $5, $6, $7, $8, $9, $10)
+          RETURNING *
+        `;
+        const paymentRes = await pool.query(insertPaymentQuery, [
+          id, amount, paymentMethod, transactionId, receiptNo,
+          upiId, agentNote, planType, durationMonths, subscriptionEndDate
+        ]);
+        paymentRecord = paymentRes.rows[0];
+      } catch (payErr) {
+        console.error('Error recording subscription payment transaction:', payErr);
+      }
+    }
+
+    return { pharmacy, payment: paymentRecord };
+  }
+
+  static async getSubscriptionPayments(pharmacyId: number): Promise<any[]> {
+    try {
+      const query = `
+        SELECT id, pharmacy_id, amount, currency, payment_method, payment_status,
+               transaction_id, receipt_number, upi_id, agent_note, plan_type,
+               duration_months, billing_end_date, paid_at, created_at
+        FROM subscription_payments
+        WHERE pharmacy_id = $1
+        ORDER BY id DESC
+        LIMIT 20
+      `;
+      const result = await pool.query(query, [pharmacyId]);
+      return result.rows;
+    } catch (err) {
+      console.error('Error fetching subscription payments:', err);
+      return [];
+    }
   }
 
   static async getPaidPharmaciesCount(): Promise<number> {
