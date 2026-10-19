@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Camera, Upload, Smartphone, Check, AlertTriangle, X, RefreshCw, 
-  Sparkles, Layers, Zap, Calendar, DollarSign, Tag, Barcode, Scan, Search, CheckCircle, ArrowRight
+  Sparkles, Layers, Zap, Calendar, DollarSign, Tag, Barcode, Scan, Search, CheckCircle, ArrowRight,
+  Wifi
 } from 'lucide-react';
+import { io } from 'socket.io-client';
 import { scanMedicineBox, ScannedMedicineBoxData } from '../../services/medicineService';
 import { AudioAlert } from '../../utils/audioAlertService';
 
@@ -33,16 +35,16 @@ export const SmartScannerModal: React.FC<SmartScannerModalProps> = ({
   title,
   subtitle,
 }) => {
-  const [activeTab, setActiveTab] = useState<'camera' | 'upload' | 'mobile'>('camera');
+  const [activeTab, setActiveTab] = useState<'mobile' | 'camera' | 'upload'>('mobile');
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScannedMedicineBoxData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Barcode Detection & Manual Input states
+  // Barcode Detection & Mobile Live states
   const [barcodeAutoDetect, setBarcodeAutoDetect] = useState(true);
   const [lastDetectedBarcode, setLastDetectedBarcode] = useState<string | null>(null);
-  const [manualInput, setManualInput] = useState('');
+  const [mobileLastScan, setMobileLastScan] = useState<any>(null);
   const scanIntervalRef = useRef<any>(null);
 
   // Camera states
@@ -104,7 +106,7 @@ export const SmartScannerModal: React.FC<SmartScannerModalProps> = ({
 
     } catch (err: any) {
       console.warn('Camera start error:', err);
-      setError('Could not access camera. Please allow camera permissions, use your USB barcode gun, or upload an image.');
+      setError('Could not access camera. Please allow camera permissions, use your Mobile App scanner, or upload an image.');
       setCameraActive(false);
     }
   };
@@ -159,6 +161,45 @@ export const SmartScannerModal: React.FC<SmartScannerModalProps> = ({
     }
     return () => stopCamera();
   }, [isOpen, activeTab, result]);
+
+  // Live Socket connection for mobile app scans
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://pharmacy-backend-e210.onrender.com';
+    const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
+
+    socket.on('connect', () => {
+      const activeId = (pharmacyId || 1).toString();
+      socket.emit('join_pharmacy', activeId);
+      if (activeId !== '8') socket.emit('join_pharmacy', '8');
+      if (activeId !== '1') socket.emit('join_pharmacy', '1');
+    });
+
+    socket.on('mobile_item_scanned', (scanItem: any) => {
+      if (scanItem && (scanItem.medicineName || scanItem.barcode)) {
+        setMobileLastScan(scanItem);
+        AudioAlert.playSuccessChime();
+        if (scanItem.barcode && onBarcodeScan) {
+          setTimeout(() => {
+            onBarcodeScan(scanItem.barcode);
+            onClose();
+          }, 900);
+        }
+      }
+    });
+
+    socket.on('mobile_box_ocr_scanned', (scanItem: any) => {
+      if (scanItem) {
+        setMobileLastScan(scanItem);
+        AudioAlert.playSuccessChime();
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [isOpen, pharmacyId, onBarcodeScan, onClose]);
 
   // Handle Capture from Camera for AI Box Text (Batch, Exp, MRP)
   const handleCaptureFromCamera = async () => {
@@ -252,15 +293,6 @@ export const SmartScannerModal: React.FC<SmartScannerModalProps> = ({
     };
   };
 
-  const handleManualSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!manualInput.trim()) return;
-    AudioAlert.playBarcodeBeep();
-    if (onBarcodeScan) {
-      onBarcodeScan(manualInput.trim());
-      onClose();
-    }
-  };
 
   if (!isOpen) return null;
 
@@ -302,6 +334,18 @@ export const SmartScannerModal: React.FC<SmartScannerModalProps> = ({
           <div className="flex space-x-2">
             <button
               type="button"
+              onClick={() => { setActiveTab('mobile'); setResult(null); setError(null); stopCamera(); }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all ${
+                activeTab === 'mobile'
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-600/30 ring-2 ring-indigo-400/40'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              <Smartphone className={`w-4 h-4 ${activeTab === 'mobile' ? 'text-emerald-300 animate-pulse' : 'text-indigo-600'}`} />
+              <span>📱 Mobile Scanner (ભલામણ કરેલ - No Gun Needed)</span>
+            </button>
+            <button
+              type="button"
               onClick={() => { setActiveTab('camera'); setResult(null); setError(null); }}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all ${
                 activeTab === 'camera'
@@ -310,7 +354,7 @@ export const SmartScannerModal: React.FC<SmartScannerModalProps> = ({
               }`}
             >
               <Scan className="w-4 h-4 text-emerald-300" />
-              <span>Live Camera (Barcode + OCR)</span>
+              <span>📷 PC Webcam (Barcode + Box OCR)</span>
             </button>
             <button
               type="button"
@@ -322,19 +366,7 @@ export const SmartScannerModal: React.FC<SmartScannerModalProps> = ({
               }`}
             >
               <Upload className="w-4 h-4" />
-              <span>Upload Photo</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab('mobile'); setResult(null); setError(null); stopCamera(); }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all ${
-                activeTab === 'mobile'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <Smartphone className="w-4 h-4" />
-              <span>Mobile Wireless Sync</span>
+              <span>📁 Upload Box Image</span>
             </button>
           </div>
 
@@ -455,28 +487,6 @@ export const SmartScannerModal: React.FC<SmartScannerModalProps> = ({
                 </button>
               </div>
 
-              {/* Fast Barcode Gun / Manual Input Bar */}
-              <div className="mt-4 w-full max-w-xl bg-slate-100/80 p-2.5 rounded-2xl border border-slate-200">
-                <form onSubmit={handleManualSubmit} className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Point USB Barcode Gun or type Barcode / SKU / Name & press Enter..."
-                      value={manualInput}
-                      onChange={(e) => setManualInput(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 flex items-center gap-1"
-                  >
-                    <span>Enter</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </form>
-              </div>
             </div>
           )}
 
@@ -523,37 +533,112 @@ export const SmartScannerModal: React.FC<SmartScannerModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: WIRELESS MOBILE COMPANION */}
+          {/* TAB 1: WIRELESS MOBILE COMPANION (RECOMMENDED / ZERO HARDWARE COST) */}
           {activeTab === 'mobile' && !result && (
-            <div className="max-w-xl mx-auto bg-gradient-to-br from-indigo-50 to-slate-50 border border-indigo-100 rounded-3xl p-6 text-slate-800">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
-                  <Smartphone className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-indigo-950">Mobile Wireless Scanner Active</h3>
-                  <p className="text-xs text-indigo-700 font-medium">Use staff phone to scan Barcodes, QR Codes, or Medicine Boxes live</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-5 border border-indigo-100 shadow-sm space-y-3">
-                <div className="flex items-start space-x-3 text-xs text-slate-700">
-                  <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center shrink-0">1</div>
-                  <p>Open the <b>PharmacyConnect Mobile App</b> on staff phone & tap <b>Staff Scanner</b>.</p>
-                </div>
-                <div className="flex items-start space-x-3 text-xs text-slate-700">
-                  <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center shrink-0">2</div>
-                  <p>Scan barcode directly, or toggle to <b>Box OCR (ટેક્સ્ટ સ્કેન)</b> to snap the packaging.</p>
-                </div>
-                <div className="flex items-start space-x-3 text-xs text-slate-700">
-                  <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center shrink-0">3</div>
-                  <p>The scanned medicine beams <b>live into this PC POS / Inventory</b> in real-time!</p>
+            <div className="max-w-2xl mx-auto space-y-4">
+              {/* Money Saving Banner */}
+              <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white rounded-3xl p-5 shadow-xl shadow-teal-600/15 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+                    <Smartphone className="w-7 h-7 text-emerald-200" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-base font-bold tracking-tight">📱 Mobile Smartphone Scanner</h3>
+                      <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        ₹0 Hardware Cost
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-100 font-medium mt-0.5">
+                      કોઈ મોંઘી USB Barcode Gun ખરીદવાની જરૂર નથી — સ્માર્ટફોન કેમેરાથી 1 સેકન્ડમાં સ્કેન કરો!
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-5 p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center space-x-3 text-emerald-800">
-                <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-xs font-bold">PC Live Socket Listener: ACTIVE & LISTENING for incoming mobile scans</span>
+              {/* Live Real-Time Radar Card */}
+              <div className="bg-white rounded-3xl p-5 border border-indigo-100 shadow-md">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative">
+                      <div className="w-3.5 h-3.5 rounded-full bg-emerald-500" />
+                      <div className="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-ping absolute inset-0" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Wifi className="w-3.5 h-3.5 text-emerald-600" />
+                        Live Socket Cloud Sync: CONNECTED & READY
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Pharmacy Station ID #{pharmacyId || 1} • Listening for mobile phone scans
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-xl">
+                    ⚡ Auto-Inject to PC
+                  </span>
+                </div>
+
+                {/* 3 Step Visual Guide in Gujarati & English */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                  <div className="bg-slate-50 hover:bg-indigo-50/50 p-4 rounded-2xl border border-slate-200/80 transition-all">
+                    <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white text-xs font-bold flex items-center justify-center mb-2.5 shadow-sm">
+                      1
+                    </div>
+                    <h5 className="text-xs font-bold text-slate-800">મોબાઇલ એપ ખોલો</h5>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      સ્ટાફના ફોનમાં <b>PharmacyConnect App</b> ખોલી <b>Staff Scanner</b> પર ટેપ કરો.
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 hover:bg-indigo-50/50 p-4 rounded-2xl border border-slate-200/80 transition-all">
+                    <div className="w-7 h-7 rounded-xl bg-teal-600 text-white text-xs font-bold flex items-center justify-center mb-2.5 shadow-sm">
+                      2
+                    </div>
+                    <h5 className="text-xs font-bold text-slate-800">દવા કે બોક્સ સ્કેન કરો</h5>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      દવાનો <b>Barcode</b> સ્કેન કરો અથવા <b>Box OCR</b> થી દવાના બોક્સનો ફોટો પાડો.
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 hover:bg-indigo-50/50 p-4 rounded-2xl border border-slate-200/80 transition-all">
+                    <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center mb-2.5 shadow-sm">
+                      3
+                    </div>
+                    <h5 className="text-xs font-bold text-slate-800">PC માં સીધું લાઈવ આવશે</h5>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      તમારે કશું જ ટાઈપ નહીં કરવું પડે — દવા આપોઆપ PC સ્ક્રીન પર ઉમેરાઈ જશે!
+                    </p>
+                  </div>
+                </div>
+
+                {/* Last Received Scan Display (Live Feedback) */}
+                {mobileLastScan && (
+                  <div className="mt-4 p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between animate-fadeIn">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                        <Check className="w-5 h-5 stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                          <span>✓ તાજેતરમાં સ્કેન થયેલ દવા: {mobileLastScan.medicineName}</span>
+                          {mobileLastScan.batchNumber && (
+                            <span className="text-[10px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                              Batch: {mobileLastScan.batchNumber}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-emerald-700">
+                          MRP: ₹{mobileLastScan.mrp || mobileLastScan.unitPrice || 0} • Expiry: {mobileLastScan.expiryDate || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-emerald-800 bg-white px-2.5 py-1 rounded-xl border border-emerald-200 shadow-sm">
+                      Live Added!
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
