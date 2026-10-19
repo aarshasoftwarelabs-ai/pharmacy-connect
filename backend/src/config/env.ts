@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
 // Load environment variables from .env file
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 interface EnvConfig {
   PORT: number;
@@ -12,6 +14,7 @@ interface EnvConfig {
   RAZORPAY_KEY_ID?: string;
   RAZORPAY_KEY_SECRET?: string;
   CORS_ORIGINS?: string;
+  GEMINI_API_KEY?: string;
 }
 
 const getEnvConfig = (): EnvConfig => {
@@ -23,6 +26,7 @@ const getEnvConfig = (): EnvConfig => {
   const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
   const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
   const CORS_ORIGINS = process.env.CORS_ORIGINS;
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
   if (!DATABASE_URL) {
     console.error('❌ FATAL ERROR: DATABASE_URL environment variable is missing.');
@@ -43,6 +47,7 @@ const getEnvConfig = (): EnvConfig => {
     RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET,
     CORS_ORIGINS,
+    GEMINI_API_KEY,
   };
 };
 
