@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { 
   Package, 
   AlertTriangle, 
@@ -31,7 +30,7 @@ import ExpiryReturnModule from '../components/inventory/ExpiryReturnModule';
 import DistributorCsvImport from '../components/inventory/DistributorCsvImport';
 import MedicineBatchesModal from '../components/inventory/MedicineBatchesModal';
 import DeadStockModule from '../components/inventory/DeadStockModule';
-import MedicineBoxOcrModal from '../components/inventory/MedicineBoxOcrModal';
+import SmartScannerModal from '../components/common/SmartScannerModal';
 import { BatchService } from '../services/batchService';
 
 export default function Inventory() {
@@ -49,161 +48,15 @@ export default function Inventory() {
   const [autoOrderConfirmMed, setAutoOrderConfirmMed] = useState<Medicine | null>(null);
   const [deleteConfirmMed, setDeleteConfirmMed] = useState<Medicine | null>(null);
   const [generatingBarcodes, setGeneratingBarcodes] = useState(false);
-  const [isBoxOcrModalOpen, setIsBoxOcrModalOpen] = useState(false);
   const [initializingBatches, setInitializingBatches] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LOW_STOCK' | 'OUT_OF_STOCK'>('ALL');
   const [selectedDistributorId, setSelectedDistributorId] = useState<number | ''>('');
   const [distributorDropdownOpen, setDistributorDropdownOpen] = useState(false);
 
-  // Real Live Barcode Scanner States (same to same as POS Scanner)
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
-  const [scannerSearchQuery, setScannerSearchQuery] = useState('');
+  // Unified All-in-One Smart Scanner State (Barcode + QR + AI Box OCR)
+  const [isSmartScannerOpen, setIsSmartScannerOpen] = useState(false);
   const [barcodeStatus, setBarcodeStatus] = useState<{ type: 'success' | 'error' | 'idle'; message: string } | null>(null);
-
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanIntervalRef = useRef<any>(null);
-
-  const setVideoRef = (node: HTMLVideoElement | null) => {
-    videoRef.current = node;
-    if (node && streamRef.current) {
-      if (node.srcObject !== streamRef.current) {
-        node.srcObject = streamRef.current;
-      }
-      node.play().catch(err => console.warn('Video play error:', err));
-    }
-  };
-
-  const startCamera = async (deviceId?: string) => {
-    try {
-      setCameraError(null);
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera not supported on this device');
-      }
-
-      // Stop existing tracks if any
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-
-      const targetDeviceId = deviceId || selectedCameraId;
-      const constraints: MediaStreamConstraints = {
-        video: targetDeviceId
-          ? { deviceId: { exact: targetDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-          : { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-      };
-
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-      } catch (err) {
-        console.warn('Target camera constraints failed, attempting fallback to any video source:', err);
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      }
-
-      streamRef.current = stream;
-      setCameraActive(true);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(e => console.warn('Video play error:', e));
-      }
-
-      // Enumerate cameras for device switcher
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        setAvailableCameras(videoDevices);
-        if (!selectedCameraId && videoDevices.length > 0) {
-          const currentTrack = stream.getVideoTracks()[0];
-          const settings = currentTrack ? currentTrack.getSettings() : null;
-          if (settings?.deviceId) {
-            setSelectedCameraId(settings.deviceId);
-          }
-        }
-      } catch (e) {}
-
-      // Clear previous scan interval
-      if (scanIntervalRef.current) {
-        clearInterval(scanIntervalRef.current);
-        scanIntervalRef.current = null;
-      }
-
-      // Native Barcode Detector support in Chromium / Electron
-      if ('BarcodeDetector' in window) {
-        try {
-          const detector = new (window as any).BarcodeDetector({
-            formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e']
-          });
-          scanIntervalRef.current = setInterval(async () => {
-            if (!streamRef.current || !videoRef.current) {
-              if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
-              return;
-            }
-            if (videoRef.current.readyState >= 2) {
-              try {
-                const barcodes = await detector.detect(videoRef.current);
-                if (barcodes.length > 0 && barcodes[0].rawValue) {
-                  if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
-                  stopCamera();
-                  handleBarcodeScan(barcodes[0].rawValue);
-                }
-              } catch (e) {}
-            }
-          }, 350);
-        } catch (e) {}
-      }
-    } catch (err: any) {
-      console.warn('Camera access error:', err);
-      setCameraError('Camera not accessible or permission denied. You can use your USB barcode gun or select a medicine below.');
-      setCameraActive(false);
-    }
-  };
-
-  const stopCamera = () => {
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setCameraActive(false);
-  };
-
-  const handleStartScan = () => {
-    setIsScannerOpen(true);
-    setScannerSearchQuery('');
-    setBarcodeStatus(null);
-  };
-
-  useEffect(() => {
-    if (isScannerOpen) {
-      startCamera();
-    } else {
-      stopCamera();
-    }
-    return () => stopCamera();
-  }, [isScannerOpen]);
-
-  useEffect(() => {
-    if (cameraActive && videoRef.current && streamRef.current) {
-      if (videoRef.current.srcObject !== streamRef.current) {
-        videoRef.current.srcObject = streamRef.current;
-        videoRef.current.play().catch(e => console.warn('Video play error:', e));
-      }
-    }
-  }, [cameraActive]);
 
   const handleBarcodeScan = async (rawCode: string) => {
     const code = rawCode.trim();
@@ -226,11 +79,11 @@ export default function Inventory() {
       AudioAlert.playBarcodeBeep();
       setBarcodeStatus({ 
         type: 'success', 
-        message: `✓ Scanned: ${match.name} (Stock: ${match.currentStock || 0} Units)` 
+        message: `âœ“ Scanned: ${match.name} (Stock: ${match.currentStock || 0} Units)` 
       });
       setSearchTerm(match.name);
       setTimeout(() => {
-        setIsScannerOpen(false);
+        setIsSmartScannerOpen(false);
         setBarcodeStatus(null);
         setSelectedMedicine(match);
         setIsAddModalOpen(true);
@@ -239,7 +92,7 @@ export default function Inventory() {
       AudioAlert.playBarcodeBeep();
       setBarcodeStatus({ 
         type: 'idle', 
-        message: `🔍 Looking up Barcode "${code}"...` 
+        message: `ðŸ” Looking up Barcode "${code}"...` 
       });
 
       let autoFill: any = null;
@@ -254,11 +107,11 @@ export default function Inventory() {
 
       setBarcodeStatus({ 
         type: 'success', 
-        message: autoFill?.name ? `✓ Auto-filled "${autoFill.name}" from Barcode!` : `New Barcode "${code}"! Opening Add Medicine...` 
+        message: autoFill?.name ? `âœ“ Auto-filled "${autoFill.name}" from Barcode!` : `New Barcode "${code}"! Opening Add Medicine...` 
       });
 
       setTimeout(() => {
-        setIsScannerOpen(false);
+        setIsSmartScannerOpen(false);
         setBarcodeStatus(null);
         setSelectedMedicine({
           name: autoFill?.name || '',
@@ -281,7 +134,6 @@ export default function Inventory() {
         setIsAddModalOpen(true);
       }, 700);
     }
-    setScannerSearchQuery('');
   };
 
   // Global listener for USB Barcode Scanners (rapid keyboard stroke sequence ending with Enter)
@@ -291,7 +143,7 @@ export default function Inventory() {
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
-      if (!isScannerOpen && activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      if (!isSmartScannerOpen && activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
         return;
       }
 
@@ -314,7 +166,7 @@ export default function Inventory() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [isScannerOpen, medicines]);
+  }, [isSmartScannerOpen, medicines]);
 
   const loadInitialData = async () => {
     try {
@@ -517,19 +369,12 @@ export default function Inventory() {
           )}
 
           <button 
-            onClick={() => setIsBoxOcrModalOpen(true)}
-            className="flex items-center px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-lg text-sm font-bold hover:from-teal-700 hover:to-emerald-700 shadow-sm shadow-teal-500/20 transition-all transform active:scale-95"
-            title="AI Box Text Scanner: Scan Batch No, Exp Date & MRP directly from medicine box packaging"
+            onClick={() => setIsSmartScannerOpen(true)}
+            className="flex items-center px-4 py-2 bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white rounded-lg text-sm font-bold hover:from-teal-700 hover:to-emerald-800 shadow-md shadow-teal-600/20 transition-all transform active:scale-95 border border-teal-400/30"
+            title="âš¡ All-in-One Smart Scanner: Barcode, QR Code & AI Box Text"
           >
-            <Camera className="w-4 h-4 mr-2 text-emerald-200" /> 
-            📸 AI Box OCR
-          </button>
-
-          <button 
-            onClick={handleStartScan}
-            className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-900 shadow-sm transition-all"
-          >
-            <Scan className="w-4 h-4 mr-2" /> Smart Scan
+            <Sparkles className="w-4 h-4 mr-2 text-amber-300 animate-pulse" /> 
+            âš¡ Smart Scanner
           </button>
 
           <button 
@@ -768,7 +613,7 @@ export default function Inventory() {
                               <span className="text-xs text-slate-500">{item.category}</span>
                               {item.barcode && (
                                 <span className="font-mono text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded flex items-center">
-                                  🏷️ {item.barcode}
+                                  ðŸ·ï¸ {item.barcode}
                                 </span>
                               )}
                             </div>
@@ -1007,13 +852,19 @@ export default function Inventory() {
         />
       )}
       
-      {isBoxOcrModalOpen && (
-        <MedicineBoxOcrModal
-          isOpen={isBoxOcrModalOpen}
-          onClose={() => setIsBoxOcrModalOpen(false)}
+      {isSmartScannerOpen && (
+        <SmartScannerModal
+          isOpen={isSmartScannerOpen}
+          onClose={() => setIsSmartScannerOpen(false)}
           pharmacyId={getPharmacyId()}
+          mode="INVENTORY"
+          title="âš¡ Smart Inventory Scanner (Barcode + Box OCR)"
+          subtitle="àª¸à«àª•à«‡àª¨ àª•àª°à«‹: Barcode, QR Code àª…àª¥àªµàª¾ àª¬à«‹àª•à«àª¸àª¨à«àª‚ àª²àª–àª¾àª£ (Batch, Exp, MRP)"
+          onBarcodeScan={(code) => {
+            handleBarcodeScan(code);
+          }}
           onApplyToStock={(ocrData) => {
-            setIsBoxOcrModalOpen(false);
+            setIsSmartScannerOpen(false);
             if (ocrData.matched_medicine) {
               setViewBatchesMed(ocrData.matched_medicine);
             } else {
@@ -1030,7 +881,7 @@ export default function Inventory() {
             }
           }}
           onApplyToCreate={(ocrData) => {
-            setIsBoxOcrModalOpen(false);
+            setIsSmartScannerOpen(false);
             setSelectedMedicine({
               name: ocrData.medicine_name || '',
               genericName: ocrData.generic_name || '',
@@ -1044,213 +895,6 @@ export default function Inventory() {
           }}
         />
       )}
-
-      {/* Real Live Barcode Scanner Modal (same to same as POS Scanner) */}
-      {isScannerOpen && createPortal(
-        <div className="fixed inset-0 z-[100] bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-4 text-white flex justify-between items-center">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-white/10 rounded-xl">
-                  <Scan className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base">Barcode Scanner (Inventory)</h3>
-                  <p className="text-xs text-emerald-100">Webcam Camera & USB Gun Scanner</p>
-                </div>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setIsScannerOpen(false)}
-                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-5 overflow-y-auto space-y-4">
-              {/* Webcam Preview / Laser Box */}
-              <div className="relative w-full h-56 bg-slate-950 rounded-xl overflow-hidden flex flex-col items-center justify-center shadow-inner border border-slate-800">
-                <video 
-                  ref={setVideoRef} 
-                  autoPlay 
-                  playsInline 
-                  muted 
-                  className={`w-full h-full object-cover transition-opacity duration-300 ${cameraActive ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'}`} 
-                />
-                {cameraActive ? (
-                  <>
-                    {/* Glowing Laser Scan Line */}
-                    <div 
-                      className="absolute left-0 w-full h-0.5 bg-emerald-400 shadow-[0_0_12px_2px_rgba(52,211,153,0.9)] z-20 pointer-events-none"
-                      style={{ animation: 'laserScan 1.6s ease-in-out infinite' }}
-                    />
-                    <div className="absolute inset-x-8 inset-y-6 border-2 border-emerald-400/40 rounded-xl pointer-events-none flex items-center justify-center">
-                      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-emerald-400 -mt-0.5 -ml-0.5 rounded-tl"></div>
-                      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-400 -mt-0.5 -mr-0.5 rounded-tr"></div>
-                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-emerald-400 -mb-0.5 -ml-0.5 rounded-bl"></div>
-                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-emerald-400 -mb-0.5 -mr-0.5 rounded-br"></div>
-                      <span className="text-[11px] font-bold text-white/90 bg-slate-900/70 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10 shadow-sm">
-                        Align Barcode in Box
-                      </span>
-                    </div>
-
-                    {/* Camera Switcher if multiple webcams */}
-                    {availableCameras.length > 1 && (
-                      <div className="absolute bottom-2 right-2 z-30">
-                        <select
-                          value={selectedCameraId}
-                          onChange={(e) => {
-                            setSelectedCameraId(e.target.value);
-                            startCamera(e.target.value);
-                          }}
-                          className="text-[10px] bg-slate-900/80 hover:bg-slate-900 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 outline-none font-medium backdrop-blur-sm transition-colors cursor-pointer"
-                        >
-                          {availableCameras.map((cam, idx) => (
-                            <option key={cam.deviceId || idx} value={cam.deviceId}>
-                              📷 {cam.label || `Camera ${idx + 1}`}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="p-4 text-center text-slate-400 flex flex-col items-center">
-                    <div className="p-3 bg-slate-800 rounded-full mb-2 text-emerald-400">
-                      <Barcode className="w-8 h-8 animate-pulse" />
-                    </div>
-                    <p className="text-xs font-semibold text-slate-300">
-                      {cameraError || 'Ready for Barcode Gun Scanner'}
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-1 max-w-xs">
-                      Pull your USB Barcode Gun trigger, or enter barcode / medicine name below.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => startCamera()}
-                      className="mt-3 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
-                    >
-                      <Camera className="w-3.5 h-3.5" /> Retry Webcam
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Status Alert Banner */}
-              {barcodeStatus && (
-                <div className={`p-3 rounded-xl text-xs font-bold text-center animate-in fade-in zoom-in duration-150 ${
-                  barcodeStatus.type === 'success' 
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-sm' 
-                    : 'bg-amber-50 text-amber-800 border border-amber-200 shadow-sm'
-                }`}>
-                  {barcodeStatus.message}
-                </div>
-              )}
-
-              {/* Fast Manual / Gun Scan Input */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Scan Barcode or Search Product
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                    <input
-                      type="text"
-                      autoFocus
-                      placeholder="Type or scan Barcode / SKU / Name..."
-                      value={scannerSearchQuery}
-                      onChange={(e) => setScannerSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (scannerSearchQuery.trim()) {
-                            handleBarcodeScan(scannerSearchQuery);
-                          }
-                        }
-                      }}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (scannerSearchQuery.trim()) {
-                        handleBarcodeScan(scannerSearchQuery);
-                      }
-                    }}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-
-              {/* Instant Catalogue Picker (Quick 1-Click Scan) */}
-              <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                    Quick Items from Catalogue
-                  </span>
-                  <span className="text-[11px] text-slate-400">Click to scan & add</span>
-                </div>
-                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-slate-50/50">
-                  {medicines
-                    .filter(m => !scannerSearchQuery.trim() || 
-                      m.name.toLowerCase().includes(scannerSearchQuery.toLowerCase()) || 
-                      (m.barcode && m.barcode.includes(scannerSearchQuery)))
-                    .slice(0, 6)
-                    .map((med) => (
-                      <div 
-                        key={med.id} 
-                        className="pt-1.5 first:pt-0 flex items-center justify-between text-xs hover:bg-white p-1.5 rounded-lg transition-colors cursor-pointer"
-                        onClick={() => {
-                          handleBarcodeScan(med.barcode || med.name);
-                        }}
-                      >
-                        <div className="min-w-0 pr-2">
-                          <p className="font-bold text-slate-800 truncate">{med.name}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">
-                            🏷️ {med.barcode || med.sku || 'No Barcode'} • Stock: {med.currentStock}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-bold text-slate-800">₹{med.sellingPrice}</span>
-                          <button
-                            type="button"
-                            className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-[11px] rounded-md transition-colors"
-                          >
-                            + Add
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsScannerOpen(false)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition-colors"
-              >
-                Close Scanner
-              </button>
-            </div>
-
-            <style>{`
-              @keyframes laserScan {
-                0%, 100% { top: 12%; }
-                50% { top: 88%; }
-              }
-            `}</style>
-          </div>
-        </div>
-      , document.body)}
     </div>
   );
 }
