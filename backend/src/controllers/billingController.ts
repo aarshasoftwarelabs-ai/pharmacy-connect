@@ -261,7 +261,10 @@ If any field cannot be found, use null or 0.`;
   static async pushLiveScan(req: Request, res: Response, next: NextFunction) {
     try {
       const pharmacyId = Number(req.body.pharmacyId || req.body.pharmacy_id || (req as any).user?.pharmacyId || 1);
-      const { medicineName, quantity, unitPrice, barcode, hsnCode, gstRate, mrp, scannedBy } = req.body;
+      const { 
+        medicineName, quantity, unitPrice, barcode, hsnCode, gstRate, mrp, scannedBy,
+        batchNumber, expiryDate, mfgDate, packSize, mfgLicNo, isOcrScan
+      } = req.body;
 
       if (!medicineName) {
         return res.status(400).json({ success: false, message: 'medicineName is required' });
@@ -276,6 +279,12 @@ If any field cannot be found, use null or 0.`;
         hsnCode: hsnCode || '30049099',
         gstRate: Number(gstRate ?? 5),
         mrp: Number(mrp ?? 0),
+        batchNumber: batchNumber ? String(batchNumber).trim() : undefined,
+        expiryDate: expiryDate ? String(expiryDate).trim() : undefined,
+        mfgDate: mfgDate ? String(mfgDate).trim() : undefined,
+        packSize: packSize ? String(packSize).trim() : undefined,
+        mfgLicNo: mfgLicNo ? String(mfgLicNo).trim() : undefined,
+        isOcrScan: Boolean(isOcrScan),
         scannedBy: scannedBy || 'Mobile Staff/Owner'
       });
 

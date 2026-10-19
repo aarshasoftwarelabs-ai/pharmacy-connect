@@ -128,3 +128,61 @@ export const fetchDeadStock = async (minDays = 30): Promise<DeadStockResponse> =
   const result = await response.json();
   return result.data;
 };
+
+export interface ScannedMedicineBoxData {
+  medicine_name?: string | null;
+  generic_name?: string | null;
+  batch_number?: string | null;
+  mfg_date?: string | null;
+  expiry_date?: string | null;
+  raw_expiry?: string | null;
+  days_until_expiry?: number;
+  expiry_status?: 'HEALTHY' | 'NEAR_EXPIRY' | 'EXPIRED';
+  mrp?: number;
+  pack_size?: string | null;
+  mfg_lic_no?: string | null;
+  manufacturer?: string | null;
+  confidence?: number;
+  matched_medicine?: any;
+  synced_item?: any;
+}
+
+export const scanMedicineBox = async (
+  input: File | string,
+  pharmacyId?: number,
+  syncToPc?: boolean
+): Promise<ScannedMedicineBoxData> => {
+  let response: Response;
+
+  if (input instanceof File) {
+    const formData = new FormData();
+    formData.append('image', input);
+    if (pharmacyId) formData.append('pharmacyId', String(pharmacyId));
+    if (syncToPc !== undefined) formData.append('syncToPc', String(syncToPc));
+
+    response = await apiFetch(`${API_BASE_URL}/medicines/scan-box`, {
+      method: 'POST',
+      body: formData,
+    });
+  } else {
+    // Base64 string
+    response = await apiFetch(`${API_BASE_URL}/medicines/scan-box`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: input,
+        pharmacyId: pharmacyId || 1,
+        syncToPc: syncToPc ?? false,
+      }),
+    });
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.error || 'Failed to scan medicine box');
+  }
+
+  const result = await response.json();
+  return result.data;
+};
+

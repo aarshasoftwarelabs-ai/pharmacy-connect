@@ -1,5 +1,7 @@
 import pool from '../config/database';
 import { lookupMasterMedicineByBarcode } from '../data/masterMedicines';
+import { liveScanService } from './liveScanService';
+import { getIo } from '../socket';
 
 export function parseExpiryDate(dateStr: any): string {
   if (!dateStr || String(dateStr).trim() === '') {
@@ -605,6 +607,188 @@ export class MedicineService {
       success: true,
       updatedCount,
       message: `Generated barcodes for ${updatedCount} medicines.`
+    };
+  }
+
+  static async scanMedicineBox(
+    buffer: Buffer,
+    mimeType: string,
+    pharmacyId: number,
+    syncToPc: boolean = false
+  ) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('Gemini API key is not configured on server.');
+    }
+
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+
+    const imageParts = [
+      {
+        inlineData: {
+          data: buffer.toString('base64'),
+          mimeType: mimeType || 'image/jpeg'
+        }
+      }
+    ];
+
+    const prompt = `Analyze this medicine packaging / medicine box flap image.
+Extract the following exact fields accurately, reading dot-matrix inkjet or printed text:
+{
+  "medicine_name": "string (brand name of medicine, e.g. Panresh-DSR, Rabresh-DSR, Arvind, etc.)",
+  "generic_name": "string or null (active chemical salt/composition if mentioned)",
+  "batch_number": "string (Batch No. / Batch क्रमांक, e.g. T260241, CO92604, etc.)",
+  "mfg_date": "string (Manufacturing date as MM/YYYY or YYYY-MM)",
+  "expiry_date": "string (Expiry date as MM/YYYY or YYYY-MM, Exp Date / समाप्ती की तिथि)",
+  "mrp": number (MRP in INR as float e.g. 74.99 or 120.00),
+  "pack_size": "string (e.g. 10 Tablets or 10 Capsules or 100ml)",
+  "mfg_lic_no": "string (e.g. G/25/1820 or G/25/2342)",
+  "manufacturer": "string (Company / Manufacturer name)",
+  "confidence": number (between 0.0 and 1.0)
+}
+Return ONLY valid JSON without markdown wrapping.`;
+
+    let result;
+    let lastError;
+    const fallbackModels = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
+
+    for (const modelName of fallbackModels) {
+      try {
+        const aiModel = genAI.getGenerativeModel({ model: modelName });
+        result = await aiModel.generateContent([prompt, ...imageParts]);
+        if (result && result.response) break;
+      } catch (err: any) {
+        console.warn(`[OCR Box Scan] Model ${modelName} failed:`, err.message);
+        lastError = err;
+      }
+    }
+
+    if (!result || !result.response) {
+      throw lastError || new Error('All AI Vision OCR models failed to parse the box image.');
+    }
+
+    let rawText = result.response.text();
+    rawText = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+
+    let extracted: any;
+    try {
+      extracted = JSON.parse(rawText);
+    } catch (e) {
+      throw new Error(`Failed to parse OCR response: ${rawText}`);
+    }
+
+    // Clean and normalize fields
+    const batchNumber = extracted.batch_number ? String(extracted.batch_number).trim().toUpperCase() : null;
+    const rawExpDate = extracted.expiry_date ? String(extracted.expiry_date).trim() : null;
+    const normalizedExpiry = rawExpDate ? parseExpiryDate(rawExpDate) : null;
+    const mrp = Number(extracted.mrp) > 0 ? Number(extracted.mrp) : 0;
+    const medicineName = extracted.medicine_name ? String(extracted.medicine_name).trim() : null;
+    const genericName = extracted.generic_name ? String(extracted.generic_name).trim() : null;
+    const packSize = extracted.pack_size ? String(extracted.pack_size).trim() : null;
+    const mfgDate = extracted.mfg_date ? String(extracted.mfg_date).trim() : null;
+    const mfgLicNo = extracted.mfg_lic_no ? String(extracted.mfg_lic_no).trim() : null;
+    const manufacturer = extracted.manufacturer ? String(extracted.manufacturer).trim() : null;
+
+    // Check expiry health
+    let expiryStatus: 'HEALTHY' | 'NEAR_EXPIRY' | 'EXPIRED' = 'HEALTHY';
+    let daysUntilExpiry = 999;
+    if (normalizedExpiry) {
+      const expD = new Date(normalizedExpiry);
+      const now = new Date();
+      daysUntilExpiry = Math.ceil((expD.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntilExpiry <= 0) {
+        expiryStatus = 'EXPIRED';
+      } else if (daysUntilExpiry <= 90) {
+        expiryStatus = 'NEAR_EXPIRY';
+      }
+    }
+
+    // Database lookup for matched medicine in pharmacy inventory
+    let matchedMedicine: any = null;
+    try {
+      if (batchNumber) {
+        const batchRes = await pool.query(
+          `SELECT m.id, m.name, m.generic_name as "genericName", m.category, m.selling_price as "sellingPrice",
+                  m.mrp, m.current_stock as "currentStock", m.barcode, mb.batch_number as "batchNumber", mb.expiry_date as "expiryDate"
+           FROM medicines m
+           JOIN medicine_batches mb ON mb.medicine_id = m.id
+           WHERE m.pharmacy_id = $1 AND LOWER(mb.batch_number) = LOWER($2)
+           LIMIT 1`,
+          [pharmacyId, batchNumber]
+        );
+        if (batchRes.rows.length > 0) {
+          matchedMedicine = batchRes.rows[0];
+        }
+      }
+
+      if (!matchedMedicine && medicineName && medicineName.length >= 3) {
+        const cleanName = medicineName.replace(/[^a-zA-Z0-9]/g, '%');
+        const medRes = await pool.query(
+          `SELECT id, name, generic_name as "genericName", category, selling_price as "sellingPrice",
+                  mrp, current_stock as "currentStock", barcode
+           FROM medicines
+           WHERE pharmacy_id = $1 AND name ILIKE $2
+           LIMIT 1`,
+          [pharmacyId, `%${cleanName}%`]
+        );
+        if (medRes.rows.length > 0) {
+          matchedMedicine = medRes.rows[0];
+        }
+      }
+    } catch (dbErr) {
+      console.warn('Medicine lookup error:', dbErr);
+    }
+
+    // Live sync to PC if requested
+    let syncedItem: any = null;
+    if (syncToPc) {
+      try {
+        const itemToPush = {
+          pharmacyId,
+          medicineName: matchedMedicine ? matchedMedicine.name : (medicineName || 'Scanned Box Medicine'),
+          quantity: 1,
+          unitPrice: mrp > 0 ? mrp : (matchedMedicine?.sellingPrice || 0),
+          mrp: mrp > 0 ? mrp : (matchedMedicine?.mrp || 0),
+          batchNumber: batchNumber || undefined,
+          expiryDate: normalizedExpiry || undefined,
+          mfgDate: mfgDate || undefined,
+          packSize: packSize || undefined,
+          mfgLicNo: mfgLicNo || undefined,
+          isOcrScan: true,
+          scannedBy: 'AI Box OCR Scanner'
+        };
+
+        syncedItem = liveScanService.addScan(itemToPush);
+
+        const io = getIo();
+        if (io) {
+          io.to(`pharmacy_${pharmacyId}`).emit('mobile_item_scanned', syncedItem);
+          io.to(`pharmacy_${pharmacyId}`).emit('mobile_box_ocr_scanned', syncedItem);
+          io.emit('mobile_item_scanned', syncedItem);
+          io.emit('mobile_box_ocr_scanned', syncedItem);
+        }
+      } catch (syncErr) {
+        console.warn('Live sync error:', syncErr);
+      }
+    }
+
+    return {
+      medicine_name: medicineName,
+      generic_name: genericName,
+      batch_number: batchNumber,
+      mfg_date: mfgDate,
+      expiry_date: normalizedExpiry,
+      raw_expiry: rawExpDate,
+      days_until_expiry: daysUntilExpiry,
+      expiry_status: expiryStatus,
+      mrp: mrp,
+      pack_size: packSize,
+      mfg_lic_no: mfgLicNo,
+      manufacturer: manufacturer,
+      confidence: Number(extracted.confidence) || 0.95,
+      matched_medicine: matchedMedicine,
+      synced_item: syncedItem
     };
   }
 }

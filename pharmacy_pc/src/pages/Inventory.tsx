@@ -31,6 +31,7 @@ import ExpiryReturnModule from '../components/inventory/ExpiryReturnModule';
 import DistributorCsvImport from '../components/inventory/DistributorCsvImport';
 import MedicineBatchesModal from '../components/inventory/MedicineBatchesModal';
 import DeadStockModule from '../components/inventory/DeadStockModule';
+import MedicineBoxOcrModal from '../components/inventory/MedicineBoxOcrModal';
 import { BatchService } from '../services/batchService';
 
 export default function Inventory() {
@@ -48,6 +49,7 @@ export default function Inventory() {
   const [autoOrderConfirmMed, setAutoOrderConfirmMed] = useState<Medicine | null>(null);
   const [deleteConfirmMed, setDeleteConfirmMed] = useState<Medicine | null>(null);
   const [generatingBarcodes, setGeneratingBarcodes] = useState(false);
+  const [isBoxOcrModalOpen, setIsBoxOcrModalOpen] = useState(false);
   const [initializingBatches, setInitializingBatches] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LOW_STOCK' | 'OUT_OF_STOCK'>('ALL');
@@ -513,6 +515,15 @@ export default function Inventory() {
               Auto-Batches ({missingBatchCount})
             </button>
           )}
+
+          <button 
+            onClick={() => setIsBoxOcrModalOpen(true)}
+            className="flex items-center px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-lg text-sm font-bold hover:from-teal-700 hover:to-emerald-700 shadow-sm shadow-teal-500/20 transition-all transform active:scale-95"
+            title="AI Box Text Scanner: Scan Batch No, Exp Date & MRP directly from medicine box packaging"
+          >
+            <Camera className="w-4 h-4 mr-2 text-emerald-200" /> 
+            📸 AI Box OCR
+          </button>
 
           <button 
             onClick={handleStartScan}
@@ -996,6 +1007,44 @@ export default function Inventory() {
         />
       )}
       
+      {isBoxOcrModalOpen && (
+        <MedicineBoxOcrModal
+          isOpen={isBoxOcrModalOpen}
+          onClose={() => setIsBoxOcrModalOpen(false)}
+          pharmacyId={getPharmacyId()}
+          onApplyToStock={(ocrData) => {
+            setIsBoxOcrModalOpen(false);
+            if (ocrData.matched_medicine) {
+              setViewBatchesMed(ocrData.matched_medicine);
+            } else {
+              setSelectedMedicine({
+                name: ocrData.medicine_name || '',
+                genericName: ocrData.generic_name || '',
+                sellingPrice: ocrData.mrp || 0,
+                mrp: ocrData.mrp || 0,
+                currentStock: 10,
+                category: 'Tablets',
+                manufacturer: ocrData.manufacturer || ''
+              } as any);
+              setIsAddModalOpen(true);
+            }
+          }}
+          onApplyToCreate={(ocrData) => {
+            setIsBoxOcrModalOpen(false);
+            setSelectedMedicine({
+              name: ocrData.medicine_name || '',
+              genericName: ocrData.generic_name || '',
+              sellingPrice: ocrData.mrp || 0,
+              mrp: ocrData.mrp || 0,
+              currentStock: 10,
+              category: 'Tablets',
+              manufacturer: ocrData.manufacturer || ''
+            } as any);
+            setIsAddModalOpen(true);
+          }}
+        />
+      )}
+
       {/* Real Live Barcode Scanner Modal (same to same as POS Scanner) */}
       {isScannerOpen && createPortal(
         <div className="fixed inset-0 z-[100] bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4">

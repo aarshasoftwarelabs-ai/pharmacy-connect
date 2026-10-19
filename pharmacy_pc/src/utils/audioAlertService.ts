@@ -162,6 +162,12 @@ class AudioAlertEngine {
       { freq: 783.99, duration: 0.35, delay: 0.24, gain: 0.5 },
     ]);
   }
+
+  // Alias for success chime (OCR match, item added, billing complete)
+  public playSuccessSound() {
+    this.playSuccessChime();
+  }
 }
 
 export const AudioAlert = new AudioAlertEngine();
+export default AudioAlert;

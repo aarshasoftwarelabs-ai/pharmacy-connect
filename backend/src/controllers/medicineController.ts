@@ -100,4 +100,44 @@ export class MedicineController {
       next(error);
     }
   }
+
+  static async scanBox(req: any, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = Number(req.body.pharmacyId || req.body.pharmacy_id || req.user?.pharmacyId || 1);
+      const syncToPc = req.body.syncToPc === true || req.body.syncToPc === 'true';
+
+      let buffer: Buffer | null = null;
+      let mimeType = 'image/jpeg';
+
+      if (req.file) {
+        buffer = req.file.buffer;
+        mimeType = req.file.mimetype || 'image/jpeg';
+      } else if (req.body.image) {
+        // Base64 string support (e.g. from webcam capture)
+        const rawBase64 = String(req.body.image);
+        const matches = rawBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          mimeType = matches[1];
+          buffer = Buffer.from(matches[2], 'base64');
+        } else {
+          buffer = Buffer.from(rawBase64, 'base64');
+        }
+      }
+
+      if (!buffer) {
+        return res.status(400).json({
+          success: false,
+          message: 'No medicine box image provided (either as multipart file or base64 string).'
+        });
+      }
+
+      const data = await MedicineService.scanMedicineBox(buffer, mimeType, pharmacyId, syncToPc);
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

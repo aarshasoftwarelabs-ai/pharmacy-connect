@@ -9,10 +9,11 @@ import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../core/services/barcode_medicine_service.dart';
+import '../../core/services/medicine_box_ocr_service.dart';
 import '../auth/login_screen.dart';
 import '../navigation/main_nav_screen.dart';
 
-enum StaffScannerMode { billing, stockInward }
+enum StaffScannerMode { billing, stockInward, boxOcr }
 
 class StaffScannerScreen extends StatefulWidget {
   const StaffScannerScreen({super.key});
@@ -978,6 +979,309 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     );
   }
 
+  // -------------------------------------------------------------
+  // 4. AI MEDICINE BOX OCR MODAL
+  // -------------------------------------------------------------
+  void _showBoxOcrModal() {
+    _isBottomSheetOpen = true;
+    bool isProcessing = false;
+    BoxOcrResult? ocrResult;
+    String? ocrError;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0D9488).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.auto_awesome_rounded, size: 16, color: Color(0xFF0D9488)),
+                              SizedBox(width: 6),
+                              Text('AI Medicine Box OCR', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0D9488))),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'દવાના બોક્સ પરનો છાપેલો ડેટા (AI સ્કેન)',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Batch No, Expiry Date અને MRP વાંચીને સીધું PC POS / Inventory માં પહોંચાડો',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (ocrError != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Text(ocrError!, style: TextStyle(color: Colors.red.shade800, fontSize: 12)),
+                      ),
+
+                    if (ocrResult != null) ...[
+                      // Scanned Result Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFBBF7D0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    ocrResult!.medicineName ?? 'Medicine Box Item',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF14532D)),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text('✓ DETECTED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 20),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Batch No:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                      Text(ocrResult!.batchNumber ?? 'N/A', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F766E))),
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Expiry Date:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                      Text(ocrResult!.expiryDate ?? ocrResult!.rawExpiry ?? 'N/A', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF15803D))),
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('MRP:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                      Text('₹${ocrResult!.mrp.toStringAsFixed(2)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF4338CA))),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (ocrResult!.manufacturer != null) ...[
+                              const SizedBox(height: 10),
+                              Text('Mfg: ${ocrResult!.manufacturer!}', style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Push to PC POS Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            HapticFeedback.heavyImpact();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: const Color(0xFF0D9488),
+                                behavior: SnackBarBehavior.floating,
+                                content: Text('✓ ${ocrResult!.medicineName} [Batch: ${ocrResult!.batchNumber}] Synced to PC POS 💻'),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0D9488),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                          label: const Text('Confirm & Synced to PC 💻', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
+                    // Direct One-Touch Real Tests
+                    const Text('Real Medicine Box Tests (તમારી મોકલેલી ઇમેજ):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 8),
+
+                    // Test Button 1: Image 1 (ARVIND Care)
+                    OutlinedButton(
+                      onPressed: isProcessing
+                          ? null
+                          : () async {
+                              setSheetState(() {
+                                isProcessing = true;
+                                ocrError = null;
+                              });
+                              try {
+                                final auth = context.read<AuthProvider>();
+                                final pId = auth.pharmacyId;
+                                final res = await MedicineBoxOcrService.testSampleBoxScan(
+                                  sampleIndex: 1,
+                                  pharmacyId: pId,
+                                  syncToPc: true,
+                                );
+                                HapticFeedback.heavyImpact();
+                                setSheetState(() {
+                                  ocrResult = res;
+                                  isProcessing = false;
+                                });
+                              } catch (e) {
+                                setSheetState(() {
+                                  ocrError = e.toString();
+                                  isProcessing = false;
+                                });
+                              }
+                            },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: const BorderSide(color: Color(0xFF0D9488), width: 1.2),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.medication_rounded, color: Color(0xFF0D9488), size: 20),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Image 1: ARVIND Care 10 Tablets', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0D9488))),
+                                Text('Batch: T260241 • Exp: 03/28 • MRP: ₹74.99', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                              ],
+                            ),
+                          ),
+                          if (isProcessing)
+                            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          else
+                            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF0D9488)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Test Button 2: Image 2 (...resh-DSR Dot-Matrix)
+                    OutlinedButton(
+                      onPressed: isProcessing
+                          ? null
+                          : () async {
+                              setSheetState(() {
+                                isProcessing = true;
+                                ocrError = null;
+                              });
+                              try {
+                                final auth = context.read<AuthProvider>();
+                                final pId = auth.pharmacyId;
+                                final res = await MedicineBoxOcrService.testSampleBoxScan(
+                                  sampleIndex: 2,
+                                  pharmacyId: pId,
+                                  syncToPc: true,
+                                );
+                                HapticFeedback.heavyImpact();
+                                setSheetState(() {
+                                  ocrResult = res;
+                                  isProcessing = false;
+                                });
+                              } catch (e) {
+                                setSheetState(() {
+                                  ocrError = e.toString();
+                                  isProcessing = false;
+                                });
+                              }
+                            },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: const BorderSide(color: Color(0xFF4338CA), width: 1.2),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.document_scanner_rounded, color: Color(0xFF4338CA), size: 20),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Image 2: resh-DSR Dot-Matrix Capsules', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF4338CA))),
+                                Text('Batch: CO92604 • Exp: 06/2028 • MRP: ₹120.00', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                              ],
+                            ),
+                          ),
+                          if (isProcessing)
+                            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          else
+                            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF4338CA)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      _isBottomSheetOpen = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -1018,9 +1322,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: _currentMode == StaffScannerMode.billing ? AppColors.primary : Colors.deepOrange,
+                    backgroundColor: _currentMode == StaffScannerMode.billing 
+                        ? AppColors.primary 
+                        : _currentMode == StaffScannerMode.stockInward 
+                            ? Colors.deepOrange 
+                            : const Color(0xFF0D9488),
                     child: Icon(
-                      _currentMode == StaffScannerMode.billing ? Icons.point_of_sale_rounded : Icons.inventory_2_rounded,
+                      _currentMode == StaffScannerMode.billing 
+                          ? Icons.point_of_sale_rounded 
+                          : _currentMode == StaffScannerMode.stockInward 
+                              ? Icons.inventory_2_rounded 
+                              : Icons.auto_awesome_rounded,
                       color: Colors.white,
                       size: 20,
                     ),
@@ -1096,18 +1408,58 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
               child: Text(
                 _currentMode == StaffScannerMode.billing
                     ? '🎯 Point camera at medicine barcode to add to POS Bill'
-                    : '📦 Point camera at medicine box to update stock or add new item',
+                    : _currentMode == StaffScannerMode.stockInward
+                        ? '📦 Point camera at medicine box to update stock or add new item'
+                        : '📸 Point camera at medicine box printed text (Batch, Exp, MRP)',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
               ),
             ),
           ),
 
-          // 5. Mode Switcher (Billing vs Stock Inward)
+          // 5. Floating Box OCR Trigger Button (when in boxOcr mode)
+          if (_currentMode == StaffScannerMode.boxOcr)
+            Positioned(
+              bottom: 96,
+              left: 24,
+              right: 24,
+              child: GestureDetector(
+                onTap: _showBoxOcrModal,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0D9488).withValues(alpha: 0.4),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 22),
+                      SizedBox(width: 10),
+                      Text(
+                        '📸 Scan Box Text (AI સ્કેન - Batch, Exp, MRP)',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // 6. Mode Switcher (Billing vs Stock Inward vs Box OCR)
           Positioned(
             bottom: billing.itemCount > 0 && _currentMode == StaffScannerMode.billing ? 96 : 30,
-            left: 20,
-            right: 20,
+            left: 16,
+            right: 16,
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
@@ -1124,7 +1476,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         setState(() => _currentMode = StaffScannerMode.billing);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
                         decoration: BoxDecoration(
                           color: _currentMode == StaffScannerMode.billing ? AppColors.primary : Colors.transparent,
                           borderRadius: BorderRadius.circular(26),
@@ -1134,16 +1486,16 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           children: [
                             Icon(
                               Icons.shopping_cart_checkout_rounded,
-                              size: 18,
+                              size: 16,
                               color: _currentMode == StaffScannerMode.billing ? Colors.white : Colors.white70,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             Text(
-                              'Billing Mode (વેચાણ)',
+                              'Billing',
                               style: TextStyle(
                                 color: _currentMode == StaffScannerMode.billing ? Colors.white : Colors.white70,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -1158,7 +1510,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         setState(() => _currentMode = StaffScannerMode.stockInward);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
                         decoration: BoxDecoration(
                           color: _currentMode == StaffScannerMode.stockInward ? Colors.deepOrange : Colors.transparent,
                           borderRadius: BorderRadius.circular(26),
@@ -1168,16 +1520,51 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           children: [
                             Icon(
                               Icons.inventory_2_rounded,
-                              size: 18,
+                              size: 16,
                               color: _currentMode == StaffScannerMode.stockInward ? Colors.white : Colors.white70,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             Text(
-                              'Stock Inward (નવો માલ)',
+                              'Stock Inward',
                               style: TextStyle(
                                 color: _currentMode == StaffScannerMode.stockInward ? Colors.white : Colors.white70,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _currentMode = StaffScannerMode.boxOcr);
+                        _showBoxOcrModal();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        decoration: BoxDecoration(
+                          color: _currentMode == StaffScannerMode.boxOcr ? const Color(0xFF0D9488) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 16,
+                              color: _currentMode == StaffScannerMode.boxOcr ? Colors.white : Colors.white70,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Box OCR 📸',
+                              style: TextStyle(
+                                color: _currentMode == StaffScannerMode.boxOcr ? Colors.white : Colors.white70,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
                               ),
                             ),
                           ],

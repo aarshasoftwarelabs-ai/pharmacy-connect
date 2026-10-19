@@ -9,6 +9,7 @@ import { fetchMedicines, lookupMedicineByBarcode } from '../../services/medicine
 import MedicineSearchDropdown from '../ui/MedicineSearchDropdown';
 import { AudioAlert } from '../../utils/audioAlertService';
 import { io } from 'socket.io-client';
+import MedicineBoxOcrModal from '../inventory/MedicineBoxOcrModal';
 
 interface Props {
   onSuccess: () => void;
@@ -40,6 +41,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
   const scanIntervalRef = useRef<any>(null);
   const [scannerSearchQuery, setScannerSearchQuery] = useState('');
+  const [isBoxOcrModalOpen, setIsBoxOcrModalOpen] = useState(false);
 
   const [barcodeInput, setBarcodeInput] = useState('');
   const [barcodeStatus, setBarcodeStatus] = useState<{ type: 'success' | 'error' | 'idle'; message: string } | null>(null);
@@ -683,6 +685,15 @@ export default function OfflineBillForm({ onSuccess }: Props) {
               >
                 <Barcode className="w-5 h-5 animate-pulse" />
               </button>
+              <button
+                type="button"
+                onClick={() => setIsBoxOcrModalOpen(true)}
+                className="px-3 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-xl shadow-sm text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all transform active:scale-95"
+                title="AI Medicine Box Text Scanner: Scan Batch No, Exp Date & MRP"
+              >
+                <Camera className="w-4 h-4 text-emerald-200" />
+                <span>📸 Box OCR</span>
+              </button>
               <div className="flex-1 relative">
                 <input
                   ref={barcodeInputRef}
@@ -1190,6 +1201,45 @@ export default function OfflineBillForm({ onSuccess }: Props) {
             `}</style>
           </div>
         </div>
+      )}
+
+      {/* AI Medicine Box OCR Modal */}
+      {isBoxOcrModalOpen && (
+        <MedicineBoxOcrModal
+          isOpen={isBoxOcrModalOpen}
+          onClose={() => setIsBoxOcrModalOpen(false)}
+          pharmacyId={getPharmacyId()}
+          onApplyToBilling={(ocrData) => {
+            setIsBoxOcrModalOpen(false);
+            const medName = ocrData.matched_medicine?.name || ocrData.medicine_name || 'Scanned Box Medicine';
+            const price = Number(ocrData.mrp) > 0 ? Number(ocrData.mrp) : (ocrData.matched_medicine?.sellingPrice || 50);
+            const hsn = ocrData.matched_medicine?.hsnCode || '30049099';
+            const gst = ocrData.matched_medicine?.gstRate ?? 5;
+
+            AudioAlert.playSuccessSound();
+            setItems(prevItems => {
+              const existingIdx = prevItems.findIndex(it => 
+                it.medicineName.trim().toLowerCase() === medName.toLowerCase()
+              );
+              if (existingIdx !== -1) {
+                const updated = [...prevItems];
+                updated[existingIdx].quantity += 1;
+                return updated;
+              }
+              const newItem = {
+                medicineName: medName,
+                quantity: 1,
+                unitPrice: price,
+                hsnCode: hsn,
+                gstRate: gst
+              };
+              if (prevItems.length === 1 && !prevItems[0].medicineName.trim()) {
+                return [newItem];
+              }
+              return [...prevItems, newItem];
+            });
+          }}
+        />
       )}
     </div>
   );

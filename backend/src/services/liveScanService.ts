@@ -8,6 +8,12 @@ export interface LiveScanItem {
   hsnCode?: string;
   gstRate?: number;
   mrp?: number;
+  batchNumber?: string;
+  expiryDate?: string;
+  mfgDate?: string;
+  packSize?: string;
+  mfgLicNo?: string;
+  isOcrScan?: boolean;
   scannedBy?: string;
   timestamp: number;
 }
