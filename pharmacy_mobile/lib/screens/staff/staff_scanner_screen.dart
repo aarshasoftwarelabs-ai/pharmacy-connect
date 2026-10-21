@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/medicine_model.dart';
@@ -1046,6 +1047,156 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     ),
                     const SizedBox(height: 16),
 
+                    // Primary Real Camera & Gallery Action Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: isProcessing
+                                ? null
+                                : () async {
+                                    final auth = context.read<AuthProvider>();
+                                    final pId = auth.pharmacyId;
+                                    try {
+                                      final picker = ImagePicker();
+                                      final photo = await picker.pickImage(
+                                        source: ImageSource.camera,
+                                        imageQuality: 88,
+                                        maxWidth: 1600,
+                                      );
+                                      if (photo == null) return;
+
+                                      setSheetState(() {
+                                        isProcessing = true;
+                                        ocrError = null;
+                                      });
+
+                                      final bytes = await photo.readAsBytes();
+                                      final res = await MedicineBoxOcrService.scanBoxImage(
+                                        imageBytes: bytes,
+                                        pharmacyId: pId,
+                                        syncToPc: true,
+                                      );
+                                      HapticFeedback.heavyImpact();
+                                      setSheetState(() {
+                                        ocrResult = res;
+                                        isProcessing = false;
+                                      });
+                                    } catch (e) {
+                                      setSheetState(() {
+                                        ocrError = e.toString().replaceAll('Exception:', '').trim();
+                                        isProcessing = false;
+                                      });
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0D9488),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 2,
+                            ),
+                            icon: const Icon(Icons.camera_alt_rounded, size: 20),
+                            label: const Text(
+                              '📸 ફોટો પાડો',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: isProcessing
+                                ? null
+                                : () async {
+                                    final auth = context.read<AuthProvider>();
+                                    final pId = auth.pharmacyId;
+                                    try {
+                                      final picker = ImagePicker();
+                                      final photo = await picker.pickImage(
+                                        source: ImageSource.gallery,
+                                        imageQuality: 88,
+                                        maxWidth: 1600,
+                                      );
+                                      if (photo == null) return;
+
+                                      setSheetState(() {
+                                        isProcessing = true;
+                                        ocrError = null;
+                                      });
+
+                                      final bytes = await photo.readAsBytes();
+                                      final res = await MedicineBoxOcrService.scanBoxImage(
+                                        imageBytes: bytes,
+                                        pharmacyId: pId,
+                                        syncToPc: true,
+                                      );
+                                      HapticFeedback.heavyImpact();
+                                      setSheetState(() {
+                                        ocrResult = res;
+                                        isProcessing = false;
+                                      });
+                                    } catch (e) {
+                                      setSheetState(() {
+                                        ocrError = e.toString().replaceAll('Exception:', '').trim();
+                                        isProcessing = false;
+                                      });
+                                    }
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF0D9488),
+                              side: const BorderSide(color: Color(0xFF0D9488), width: 1.5),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            icon: const Icon(Icons.photo_library_rounded, size: 20),
+                            label: const Text(
+                              '📁 ગેલેરીમાંથી લો',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    if (isProcessing) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDFA),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFF99F6E4)),
+                        ),
+                        child: const Row(
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF0D9488)),
+                            ),
+                            SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'AI Vision થી બોક્સનું લખાણ વંચાઈ રહ્યું છે...',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F766E)),
+                                  ),
+                                  Text(
+                                    'Extracting Batch No, Expiry & MRP with Gemini AI',
+                                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
                     if (ocrError != null)
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -1417,43 +1568,42 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
             ),
           ),
 
-          // 5. Floating Box OCR Trigger Button (when in boxOcr mode)
-          if (_currentMode == StaffScannerMode.boxOcr)
-            Positioned(
-              bottom: 96,
-              left: 24,
-              right: 24,
-              child: GestureDetector(
-                onTap: _showBoxOcrModal,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
+          // 5. Floating Box OCR Trigger Button (Always accessible for smart 1-touch scanning)
+          Positioned(
+            bottom: billing.itemCount > 0 && _currentMode == StaffScannerMode.billing ? 154 : 86,
+            left: 20,
+            right: 20,
+            child: GestureDetector(
+              onTap: _showBoxOcrModal,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0D9488).withValues(alpha: 0.4),
+                      blurRadius: 18,
+                      offset: const Offset(0, 6),
                     ),
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0D9488).withValues(alpha: 0.4),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 22),
-                      SizedBox(width: 10),
-                      Text(
-                        '📸 Scan Box Text (AI સ્કેન - Batch, Exp, MRP)',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                    ],
-                  ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      '📸 Snap Box Text (AI સ્કેન - Batch, Exp, MRP)',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ],
                 ),
               ),
             ),
+          ),
 
           // 6. Mode Switcher (Billing vs Stock Inward vs Box OCR)
           Positioned(

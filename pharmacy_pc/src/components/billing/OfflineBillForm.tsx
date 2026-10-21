@@ -9,7 +9,6 @@ import { fetchMedicines, lookupMedicineByBarcode } from '../../services/medicine
 import MedicineSearchDropdown from '../ui/MedicineSearchDropdown';
 import { AudioAlert } from '../../utils/audioAlertService';
 import { io } from 'socket.io-client';
-import SmartScannerModal from '../common/SmartScannerModal';
 
 interface Props {
   onSuccess: () => void;
@@ -30,9 +29,6 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const [scanStep, setScanStep] = useState(0); // 0: upload, 1: scanning, 2: success
   const [showAiModal, setShowAiModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Unified All-in-One Smart Scanner State (Barcode + QR + AI Box OCR)
-  const [isSmartScannerOpen, setIsSmartScannerOpen] = useState(false);
 
   const [barcodeInput, setBarcodeInput] = useState('');
   const [barcodeStatus, setBarcodeStatus] = useState<{ type: 'success' | 'error' | 'idle'; message: string } | null>(null);
@@ -176,10 +172,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
   const handleBarcodeScan = (rawCode: string) => {
     const code = rawCode.trim();
-    if (!code) {
-      setIsSmartScannerOpen(true);
-      return;
-    }
+    if (!code) return;
 
     const lowerCode = code.toLowerCase();
     // Search medicine by barcode, SKU, ID, batch number, or name (exact or substring)
@@ -228,8 +221,6 @@ export default function OfflineBillForm({ onSuccess }: Props) {
           }]);
         }
       }
-
-      setIsSmartScannerOpen(false);
     } else {
       AudioAlert.playBarcodeBeep();
       setBarcodeStatus({ 
@@ -260,7 +251,6 @@ export default function OfflineBillForm({ onSuccess }: Props) {
         const fallbackName = `Medicine (${code})`;
         setItems(prev => [...prev, { medicineName: fallbackName, quantity: 1, unitPrice: 50, hsnCode: '30049099', gstRate: 5 }]);
       });
-      setIsSmartScannerOpen(false);
     }
 
     setBarcodeInput('');
@@ -527,26 +517,17 @@ export default function OfflineBillForm({ onSuccess }: Props) {
               Scan Barcode / SKU
             </span>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100/90 border border-emerald-300 text-emerald-800 text-[11px] font-bold shadow-sm">
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
-              <Smartphone className="w-3 h-3 text-emerald-700" />
-              <span>Mobile Scanner Live Linked</span>
+              <Smartphone className="w-3.5 h-3.5 text-emerald-700" />
+              <span>📱 Mobile Phone Scanner Connected (Live Sync ON)</span>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex-1 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsSmartScannerOpen(true)}
-                className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl shadow-md shadow-emerald-600/20 text-xs font-bold flex items-center gap-2 shrink-0 transition-all transform active:scale-95 border border-emerald-400/30"
-                title="⚡ All-in-One Smart Scanner: Barcode, QR Code & AI Box Text"
-              >
-                <Sparkles className="w-4 h-4 text-emerald-200 animate-pulse" />
-                <span>⚡ Smart Scanner</span>
-              </button>
               <div className="flex-1 relative">
                 <input
                   ref={barcodeInputRef}
@@ -559,8 +540,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                       handleBarcodeScan(barcodeInput);
                     }
                   }}
-                  placeholder="Point Barcode Gun Scanner or type Barcode / SKU & press Enter..."
-                  className="w-full pl-3 pr-20 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
+                  placeholder="Scan from Mobile App, or enter Barcode / SKU here & press Enter..."
+                  className="w-full pl-3 pr-20 py-2 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
                 />
                 <div className="absolute right-1.5 top-1.5 flex items-center">
                   <button
@@ -568,15 +549,13 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                     onClick={() => {
                       if (barcodeInput.trim()) {
                         handleBarcodeScan(barcodeInput);
-                      } else {
-                        setIsSmartScannerOpen(true);
                       }
                     }}
-                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1"
-                    title="Scan Barcode or Open Smart Scanner"
+                    className="px-3.5 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+                    title="Find Medicine"
                   >
-                    <Scan className="w-3.5 h-3.5" />
-                    Scan
+                    <Search className="w-3.5 h-3.5" />
+                    Enter
                   </button>
                 </div>
               </div>
@@ -858,50 +837,6 @@ export default function OfflineBillForm({ onSuccess }: Props) {
         </div>
       )}
 
-      {/* Unified All-in-One Smart Scanner Modal (Barcode + QR + AI Box OCR) */}
-      {isSmartScannerOpen && (
-        <SmartScannerModal
-          isOpen={isSmartScannerOpen}
-          onClose={() => setIsSmartScannerOpen(false)}
-          pharmacyId={getPharmacyId()}
-          mode="BILLING"
-          title="⚡ Smart POS Scanner (Barcode + Box OCR)"
-          subtitle="સ્કેન કરો: Barcode, QR Code અથવા બોક્સનું પ્રિન્ટેડ લખાણ (Batch, Exp, MRP)"
-          onBarcodeScan={(code) => {
-            handleBarcodeScan(code);
-          }}
-          onApplyToBilling={(ocrData) => {
-            setIsSmartScannerOpen(false);
-            const medName = ocrData.matched_medicine?.name || ocrData.medicine_name || 'Scanned Box Medicine';
-            const price = Number(ocrData.mrp) > 0 ? Number(ocrData.mrp) : (ocrData.matched_medicine?.sellingPrice || 50);
-            const hsn = ocrData.matched_medicine?.hsnCode || '30049099';
-            const gst = ocrData.matched_medicine?.gstRate ?? 5;
-
-            AudioAlert.playSuccessSound();
-            setItems(prevItems => {
-              const existingIdx = prevItems.findIndex(it => 
-                it.medicineName.trim().toLowerCase() === medName.toLowerCase()
-              );
-              if (existingIdx !== -1) {
-                const updated = [...prevItems];
-                updated[existingIdx].quantity += 1;
-                return updated;
-              }
-              const newItem = {
-                medicineName: medName,
-                quantity: 1,
-                unitPrice: price,
-                hsnCode: hsn,
-                gstRate: gst
-              };
-              if (prevItems.length === 1 && !prevItems[0].medicineName.trim()) {
-                return [newItem];
-              }
-              return [...prevItems, newItem];
-            });
-          }}
-        />
-      )}
     </div>
   );
 }

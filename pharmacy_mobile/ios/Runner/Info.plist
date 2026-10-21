@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is needed to scan medicine barcodes and box packaging text.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is needed to select medicine box images for AI OCR scanning.</string>
 </dict>
 </plist>

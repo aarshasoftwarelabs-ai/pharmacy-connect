@@ -30,7 +30,6 @@ import ExpiryReturnModule from '../components/inventory/ExpiryReturnModule';
 import DistributorCsvImport from '../components/inventory/DistributorCsvImport';
 import MedicineBatchesModal from '../components/inventory/MedicineBatchesModal';
 import DeadStockModule from '../components/inventory/DeadStockModule';
-import SmartScannerModal from '../components/common/SmartScannerModal';
 import { BatchService } from '../services/batchService';
 
 export default function Inventory() {
@@ -54,8 +53,6 @@ export default function Inventory() {
   const [selectedDistributorId, setSelectedDistributorId] = useState<number | ''>('');
   const [distributorDropdownOpen, setDistributorDropdownOpen] = useState(false);
 
-  // Unified All-in-One Smart Scanner State (Barcode + QR + AI Box OCR)
-  const [isSmartScannerOpen, setIsSmartScannerOpen] = useState(false);
   const [barcodeStatus, setBarcodeStatus] = useState<{ type: 'success' | 'error' | 'idle'; message: string } | null>(null);
 
   const handleBarcodeScan = async (rawCode: string) => {
@@ -83,7 +80,6 @@ export default function Inventory() {
       });
       setSearchTerm(match.name);
       setTimeout(() => {
-        setIsSmartScannerOpen(false);
         setBarcodeStatus(null);
         setSelectedMedicine(match);
         setIsAddModalOpen(true);
@@ -111,7 +107,6 @@ export default function Inventory() {
       });
 
       setTimeout(() => {
-        setIsSmartScannerOpen(false);
         setBarcodeStatus(null);
         setSelectedMedicine({
           name: autoFill?.name || '',
@@ -143,7 +138,7 @@ export default function Inventory() {
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
-      if (!isSmartScannerOpen && activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
         return;
       }
 
@@ -166,7 +161,7 @@ export default function Inventory() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [isSmartScannerOpen, medicines]);
+  }, [medicines]);
 
   const loadInitialData = async () => {
     try {
@@ -368,14 +363,6 @@ export default function Inventory() {
             </button>
           )}
 
-          <button 
-            onClick={() => setIsSmartScannerOpen(true)}
-            className="flex items-center px-4 py-2 bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white rounded-lg text-sm font-bold hover:from-teal-700 hover:to-emerald-800 shadow-md shadow-teal-600/20 transition-all transform active:scale-95 border border-teal-400/30"
-            title="âš¡ All-in-One Smart Scanner: Barcode, QR Code & AI Box Text"
-          >
-            <Sparkles className="w-4 h-4 mr-2 text-amber-300 animate-pulse" /> 
-            âš¡ Smart Scanner
-          </button>
 
           <button 
             onClick={() => setIsAddModalOpen(true)}
@@ -852,49 +839,6 @@ export default function Inventory() {
         />
       )}
       
-      {isSmartScannerOpen && (
-        <SmartScannerModal
-          isOpen={isSmartScannerOpen}
-          onClose={() => setIsSmartScannerOpen(false)}
-          pharmacyId={getPharmacyId()}
-          mode="INVENTORY"
-          title="âš¡ Smart Inventory Scanner (Barcode + Box OCR)"
-          subtitle="àª¸à«àª•à«‡àª¨ àª•àª°à«‹: Barcode, QR Code àª…àª¥àªµàª¾ àª¬à«‹àª•à«àª¸àª¨à«àª‚ àª²àª–àª¾àª£ (Batch, Exp, MRP)"
-          onBarcodeScan={(code) => {
-            handleBarcodeScan(code);
-          }}
-          onApplyToStock={(ocrData) => {
-            setIsSmartScannerOpen(false);
-            if (ocrData.matched_medicine) {
-              setViewBatchesMed(ocrData.matched_medicine);
-            } else {
-              setSelectedMedicine({
-                name: ocrData.medicine_name || '',
-                genericName: ocrData.generic_name || '',
-                sellingPrice: ocrData.mrp || 0,
-                mrp: ocrData.mrp || 0,
-                currentStock: 10,
-                category: 'Tablets',
-                manufacturer: ocrData.manufacturer || ''
-              } as any);
-              setIsAddModalOpen(true);
-            }
-          }}
-          onApplyToCreate={(ocrData) => {
-            setIsSmartScannerOpen(false);
-            setSelectedMedicine({
-              name: ocrData.medicine_name || '',
-              genericName: ocrData.generic_name || '',
-              sellingPrice: ocrData.mrp || 0,
-              mrp: ocrData.mrp || 0,
-              currentStock: 10,
-              category: 'Tablets',
-              manufacturer: ocrData.manufacturer || ''
-            } as any);
-            setIsAddModalOpen(true);
-          }}
-        />
-      )}
     </div>
   );
 }
