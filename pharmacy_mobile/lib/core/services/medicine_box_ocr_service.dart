@@ -57,6 +57,120 @@ class BoxOcrResult {
 }
 
 class MedicineBoxOcrService {
+  /// Parse 2D GS1 DataMatrix barcodes directly on device without any AI
+  static BoxOcrResult? parseGs1DataMatrix(String raw) {
+    if (raw.isEmpty) return null;
+    final clean = raw.trim();
+
+    String? gtin;
+    String? batch;
+    String? expFormatted;
+
+    // Pattern 1: Parenthesized GS1, e.g. (01)08901234567890(17)280331(10)T260241
+    if (clean.contains('(01)') || clean.contains('(17)') || clean.contains('(10)')) {
+      final gtinMatch = RegExp(r'\(01\)(\d{14})').firstMatch(clean);
+      if (gtinMatch != null) gtin = gtinMatch.group(1);
+
+      final expMatch = RegExp(r'\(17\)(\d{6})').firstMatch(clean);
+      if (expMatch != null) {
+        final d = expMatch.group(1)!;
+        final yy = d.substring(0, 2);
+        final mm = d.substring(2, 4);
+        expFormatted = '$mm/20$yy';
+      }
+
+      final batchMatch = RegExp(r'\(10\)([A-Za-z0-9\-\/]+?)(?:\(|$|\s)').firstMatch(clean);
+      if (batchMatch != null) batch = batchMatch.group(1);
+
+      if (batch != null || expFormatted != null || gtin != null) {
+        return BoxOcrResult(
+          batchNumber: batch,
+          expiryDate: expFormatted,
+          rawExpiry: expFormatted,
+          confidence: 1.0,
+        );
+      }
+    }
+
+    // Pattern 2: Raw GS1 stream starting with 01 + 14 digit GTIN
+    if (clean.startsWith('01') && clean.length >= 16) {
+      gtin = clean.substring(2, 16);
+      int idx = 16;
+      while (idx < clean.length - 1) {
+        if (idx + 2 > clean.length) break;
+        final ai = clean.substring(idx, idx + 2);
+        idx += 2;
+
+        if (ai == '17' && idx + 6 <= clean.length) {
+          final d = clean.substring(idx, idx + 6);
+          final yy = d.substring(0, 2);
+          final mm = d.substring(2, 4);
+          expFormatted = '$mm/20$yy';
+          idx += 6;
+        } else if (ai == '10') {
+          final rest = clean.substring(idx);
+          final sepIdx = rest.indexOf(RegExp(r'[\x1d\x1e\s]'));
+          if (sepIdx != -1) {
+            batch = rest.substring(0, sepIdx);
+            idx += sepIdx + 1;
+          } else {
+            batch = rest;
+            break;
+          }
+        } else if (ai == '21') {
+          break;
+        } else {
+          idx++;
+        }
+      }
+
+      if (batch != null || expFormatted != null) {
+        return BoxOcrResult(
+          batchNumber: batch,
+          expiryDate: expFormatted,
+          rawExpiry: expFormatted,
+          confidence: 1.0,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  /// Sync scanned box item directly to PC billing POS table in real-time
+  static Future<bool> syncBoxItemToPc({
+    required int pharmacyId,
+    required String medicineName,
+    required String? batchNumber,
+    required String? expiryDate,
+    required double mrp,
+    required double unitPrice,
+    int quantity = 1,
+    String? genericName,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiEndpoints.liveScanItem),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'pharmacyId': pharmacyId,
+          'medicineName': medicineName,
+          'batchNumber': batchNumber,
+          'expiryDate': expiryDate,
+          'mrp': mrp,
+          'unitPrice': unitPrice > 0 ? unitPrice : mrp,
+          'quantity': quantity,
+          'genericName': genericName,
+          'isOcrScan': true,
+          'scannedBy': 'Mobile Box Scanner',
+        }),
+      ).timeout(const Duration(seconds: 10));
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<BoxOcrResult> scanBoxImage({
     required List<int> imageBytes,
     required int pharmacyId,
@@ -76,7 +190,7 @@ class MedicineBoxOcrService {
         'pharmacyId': pharmacyId,
         'syncToPc': syncToPc,
       }),
-    ).timeout(const Duration(seconds: 45));
+    ).timeout(const Duration(seconds: 25));
 
     final data = jsonDecode(response.body);
     if (response.statusCode == 200 && data['success'] == true) {

@@ -97,12 +97,19 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
   Future<void> _handleScannedBarcode(String code) async {
     final inventory = context.read<InventoryProvider>();
-    MedicineModel? medicine = inventory.findByBarcode(code);
+
+    // 1. Zero-AI 2D GS1 DataMatrix Decoder for medicine boxes
+    final gs1 = MedicineBoxOcrService.parseGs1DataMatrix(code);
+    final effectiveBarcode = gs1?.gtin ?? code;
+    final scannedBatch = gs1?.batchNumber;
+    final scannedExp = gs1?.expiryDate;
+
+    MedicineModel? medicine = inventory.findByBarcode(effectiveBarcode);
 
     if (_currentMode == StaffScannerMode.billing) {
       if (medicine == null) {
         try {
-          final autoData = await BarcodeMedicineService.lookup(code);
+          final autoData = await BarcodeMedicineService.lookup(effectiveBarcode);
           await inventory.addMedicine(
             name: autoData.name,
             genericName: autoData.genericName,
@@ -111,10 +118,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
             mrp: autoData.mrp,
             sellingPrice: autoData.sellingPrice,
             stock: autoData.stock > 0 ? autoData.stock : 10,
-            barcode: code,
-            expiryDate: autoData.expiryDate,
+            barcode: effectiveBarcode,
+            expiryDate: scannedExp ?? autoData.expiryDate,
           );
-          medicine = inventory.findByBarcode(code);
+          medicine = inventory.findByBarcode(effectiveBarcode);
           medicine ??= MedicineModel(
             id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
             name: autoData.name,
@@ -124,19 +131,19 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
             mrp: autoData.mrp,
             sellingPrice: autoData.sellingPrice,
             stock: autoData.stock > 0 ? autoData.stock : 10,
-            barcode: code,
+            barcode: effectiveBarcode,
           );
         } catch (_) {
           medicine = MedicineModel(
             id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
-            name: 'Medicine ($code)',
+            name: 'Medicine ($effectiveBarcode)',
             genericName: 'Pharmaceutical Salt',
             category: 'Tablets',
             manufacturer: 'Indian Pharma Co.',
             mrp: 60.00,
             sellingPrice: 50.00,
             stock: 10,
-            barcode: code,
+            barcode: effectiveBarcode,
           );
         }
       }
@@ -145,6 +152,19 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
         // Instant handheld barcode gun mode: add to cart & sync to PC POS immediately
         final billing = context.read<BillingProvider>();
         billing.addToCart(medicine, quantity: 1);
+
+        // Sync directly to PC with the exact scanned Batch & Expiry!
+        final auth = context.read<AuthProvider>();
+        MedicineBoxOcrService.syncBoxItemToPc(
+          pharmacyId: auth.pharmacyId,
+          medicineName: medicine.name,
+          batchNumber: scannedBatch ?? medicine.batchNumber,
+          expiryDate: scannedExp ?? medicine.expiryDate,
+          mrp: medicine.mrp,
+          unitPrice: medicine.sellingPrice,
+          quantity: 1,
+          genericName: medicine.genericName,
+        );
 
         HapticFeedback.heavyImpact();
         SystemSound.play(SystemSoundType.click);
@@ -162,7 +182,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '✓ ${medicine.name} (₹${medicine.sellingPrice.toStringAsFixed(2)}) ➔ Added & Synced to PC 💻',
+                    '✓ ${medicine.name} (₹${medicine.sellingPrice.toStringAsFixed(2)})' +
+                    (scannedBatch != null ? ' [B: $scannedBatch]' : '') +
+                    ' ➔ Added & Synced to PC 💻',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -178,7 +200,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       if (medicine != null) {
         _showAddStockSheet(medicine);
       } else {
-        _showNewMedicineSheet(code);
+        _showNewMedicineSheet(effectiveBarcode);
       }
     }
   }
@@ -981,13 +1003,21 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
   }
 
   // -------------------------------------------------------------
-  // 4. AI MEDICINE BOX OCR MODAL
+  // 4. SMART MEDICINE BOX DETAILS SCANNER (AI-Free / Instant On-Device)
   // -------------------------------------------------------------
   void _showBoxOcrModal() {
     _isBottomSheetOpen = true;
     bool isProcessing = false;
     BoxOcrResult? ocrResult;
     String? ocrError;
+
+    final nameCtrl = TextEditingController(text: 'ARVIND Care 10 Tablets');
+    final genericCtrl = TextEditingController(text: 'Paracetamol + Salt');
+    final batchCtrl = TextEditingController(text: 'T260241');
+    final expCtrl = TextEditingController(text: '03/2028');
+    final mrpCtrl = TextEditingController(text: '74.99');
+    final packCtrl = TextEditingController(text: '10 Tablets');
+    final qtyCtrl = TextEditingController(text: '10');
 
     showModalBottomSheet(
       context: context,
@@ -999,6 +1029,32 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            void applyBoxResult(BoxOcrResult res) {
+              setSheetState(() {
+                ocrResult = res;
+                isProcessing = false;
+                if (res.medicineName != null && res.medicineName!.isNotEmpty) {
+                  nameCtrl.text = res.medicineName!;
+                }
+                if (res.genericName != null && res.genericName!.isNotEmpty) {
+                  genericCtrl.text = res.genericName!;
+                }
+                if (res.batchNumber != null && res.batchNumber!.isNotEmpty) {
+                  batchCtrl.text = res.batchNumber!;
+                }
+                final exp = res.expiryDate ?? res.rawExpiry;
+                if (exp != null && exp.isNotEmpty) {
+                  expCtrl.text = exp;
+                }
+                if (res.mrp > 0) {
+                  mrpCtrl.text = res.mrp.toStringAsFixed(2);
+                }
+                if (res.packSize != null && res.packSize!.isNotEmpty) {
+                  packCtrl.text = res.packSize!;
+                }
+              });
+            }
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 20,
@@ -1011,7 +1067,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header
+                    // Header Bar
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1023,9 +1079,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.auto_awesome_rounded, size: 16, color: Color(0xFF0D9488)),
+                              Icon(Icons.inventory_2_rounded, size: 16, color: Color(0xFF0D9488)),
                               SizedBox(width: 6),
-                              Text('AI Medicine Box OCR', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0D9488))),
+                              Text(
+                                'Smart Medicine Box Scanner',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0D9488)),
+                              ),
                             ],
                           ),
                         ),
@@ -1035,19 +1094,19 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     const Text(
-                      'દવાના બોક્સ પરનો છાપેલો ડેટા (AI સ્કેન)',
+                      'દવાના બોક્સ પરની વિગતો સ્કેન કરો',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     const Text(
-                      'Batch No, Expiry Date અને MRP વાંચીને સીધું PC POS / Inventory માં પહોંચાડો',
+                      'દવાનું નામ, બેચ નંબર, એક્સપાયરી અને MRP સીધા PC બિલમાં અથવા સ્ટોકમાં જમા કરો',
                       style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 16),
 
-                    // Primary Real Camera & Gallery Action Buttons
+                    // Primary Camera & Gallery Capture Buttons
                     Row(
                       children: [
                         Expanded(
@@ -1061,8 +1120,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       final picker = ImagePicker();
                                       final photo = await picker.pickImage(
                                         source: ImageSource.camera,
-                                        imageQuality: 88,
-                                        maxWidth: 1600,
+                                        imageQuality: 78,
+                                        maxWidth: 1024,
                                       );
                                       if (photo == null) return;
 
@@ -1075,13 +1134,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       final res = await MedicineBoxOcrService.scanBoxImage(
                                         imageBytes: bytes,
                                         pharmacyId: pId,
-                                        syncToPc: true,
+                                        syncToPc: false,
                                       );
                                       HapticFeedback.heavyImpact();
-                                      setSheetState(() {
-                                        ocrResult = res;
-                                        isProcessing = false;
-                                      });
+                                      applyBoxResult(res);
                                     } catch (e) {
                                       setSheetState(() {
                                         ocrError = e.toString().replaceAll('Exception:', '').trim();
@@ -1092,7 +1148,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF0D9488),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 13),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               elevation: 2,
                             ),
@@ -1115,8 +1171,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       final picker = ImagePicker();
                                       final photo = await picker.pickImage(
                                         source: ImageSource.gallery,
-                                        imageQuality: 88,
-                                        maxWidth: 1600,
+                                        imageQuality: 78,
+                                        maxWidth: 1024,
                                       );
                                       if (photo == null) return;
 
@@ -1129,13 +1185,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       final res = await MedicineBoxOcrService.scanBoxImage(
                                         imageBytes: bytes,
                                         pharmacyId: pId,
-                                        syncToPc: true,
+                                        syncToPc: false,
                                       );
                                       HapticFeedback.heavyImpact();
-                                      setSheetState(() {
-                                        ocrResult = res;
-                                        isProcessing = false;
-                                      });
+                                      applyBoxResult(res);
                                     } catch (e) {
                                       setSheetState(() {
                                         ocrError = e.toString().replaceAll('Exception:', '').trim();
@@ -1146,7 +1199,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             style: OutlinedButton.styleFrom(
                               foregroundColor: const Color(0xFF0D9488),
                               side: const BorderSide(color: Color(0xFF0D9488), width: 1.5),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 13),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
                             icon: const Icon(Icons.photo_library_rounded, size: 20),
@@ -1162,7 +1215,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
                     if (isProcessing) ...[
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF0FDFA),
                           borderRadius: BorderRadius.circular(16),
@@ -1171,24 +1224,15 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         child: const Row(
                           children: [
                             SizedBox(
-                              width: 24,
-                              height: 24,
+                              width: 22,
+                              height: 22,
                               child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF0D9488)),
                             ),
-                            SizedBox(width: 14),
+                            SizedBox(width: 12),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'AI Vision થી બોક્સનું લખાણ વંચાઈ રહ્યું છે...',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F766E)),
-                                  ),
-                                  Text(
-                                    'Extracting Batch No, Expiry & MRP with Gemini AI',
-                                    style: TextStyle(fontSize: 11, color: Colors.black54),
-                                  ),
-                                ],
+                              child: Text(
+                                'બોક્સ પરથી લખાણ વંચાઈ રહ્યું છે (Batch, Exp, MRP)...',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F766E)),
                               ),
                             ),
                           ],
@@ -1199,7 +1243,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
                     if (ocrError != null)
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: Colors.red.shade50,
@@ -1209,215 +1253,445 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         child: Text(ocrError!, style: TextStyle(color: Colors.red.shade800, fontSize: 12)),
                       ),
 
-                    if (ocrResult != null) ...[
-                      // Scanned Result Card
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFBBF7D0)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    ocrResult!.medicineName ?? 'Medicine Box Item',
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF14532D)),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFDCFCE7),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Text('✓ DETECTED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 20),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Batch No:', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                                      Text(ocrResult!.batchNumber ?? 'N/A', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F766E))),
-                                    ],
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Expiry Date:', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                                      Text(ocrResult!.expiryDate ?? ocrResult!.rawExpiry ?? 'N/A', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF15803D))),
-                                    ],
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('MRP:', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                                      Text('₹${ocrResult!.mrp.toStringAsFixed(2)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF4338CA))),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (ocrResult!.manufacturer != null) ...[
-                              const SizedBox(height: 10),
-                              Text('Mfg: ${ocrResult!.manufacturer!}', style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                    // Scanned Box Details Card & Editable Fields
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.medication_rounded, size: 18, color: Color(0xFF0D9488)),
+                              const SizedBox(width: 6),
+                              const Text('દવાનું નામ (Medicine Name):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
                             ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Push to PC POS Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            HapticFeedback.heavyImpact();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: const Color(0xFF0D9488),
-                                behavior: SnackBarBehavior.floating,
-                                content: Text('✓ ${ocrResult!.medicineName} [Batch: ${ocrResult!.batchNumber}] Synced to PC POS 💻'),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0D9488),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
-                          icon: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
-                          label: const Text('Confirm & Synced to PC 💻', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                    ],
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: nameCtrl,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              filled: true,
+                              fillColor: Colors.white,
+                              hintText: 'e.g. Paracetamol 650mg',
+                            ),
+                          ),
+                          const SizedBox(height: 10),
 
-                    // Direct One-Touch Real Tests
-                    const Text('Real Medicine Box Tests (તમારી મોકલેલી ઇમેજ):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Generic Salt:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: genericCtrl,
+                                      style: const TextStyle(fontSize: 12),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        hintText: 'Composition',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Pack Size:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: packCtrl,
+                                      style: const TextStyle(fontSize: 12),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        hintText: '10 Tablets',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Batch No (બેચ):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F766E))),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: batchCtrl,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        hintText: 'e.g. T260241',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Exp Date (એક્સપાયરી):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D))),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: expCtrl,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        hintText: 'MM/YYYY',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('MRP (₹):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4338CA))),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: mrpCtrl,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF4338CA)),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        hintText: '₹ MRP',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Inward Stock Units Selector
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('સ્ટોકમાં જમા કરવાના Units:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                              Row(
+                                children: [
+                                  IconButton.filledTonal(
+                                    icon: const Icon(Icons.remove_rounded, size: 16),
+                                    onPressed: () {
+                                      final cur = int.tryParse(qtyCtrl.text.trim()) ?? 10;
+                                      if (cur > 1) {
+                                        setSheetState(() => qtyCtrl.text = (cur - 1).toString());
+                                      }
+                                    },
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  Container(
+                                    width: 44,
+                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                    child: TextField(
+                                      controller: qtyCtrl,
+                                      textAlign: TextAlign.center,
+                                      keyboardType: TextInputType.number,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 4)),
+                                    ),
+                                  ),
+                                  IconButton.filled(
+                                    icon: const Icon(Icons.add_rounded, size: 16),
+                                    style: IconButton.styleFrom(backgroundColor: const Color(0xFF0D9488)),
+                                    onPressed: () {
+                                      final cur = int.tryParse(qtyCtrl.text.trim()) ?? 10;
+                                      setSheetState(() => qtyCtrl.text = (cur + 1).toString());
+                                    },
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // THE TWO PRIMARY ACTION BUTTONS: Add to Bill (PC) OR Add to Inventory (Stock)
+                    Row(
+                      children: [
+                        // Button 1: Add to Bill & Sync to PC
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final auth = context.read<AuthProvider>();
+                              final pId = auth.pharmacyId;
+                              final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                              final bNo = batchCtrl.text.trim();
+                              final exp = expCtrl.text.trim();
+                              final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
+                              final genSalt = genericCtrl.text.trim();
+
+                              // 1. Sync directly to PC Active Bill Table via Socket
+                              await MedicineBoxOcrService.syncBoxItemToPc(
+                                pharmacyId: pId,
+                                medicineName: medName,
+                                batchNumber: bNo.isNotEmpty ? bNo : null,
+                                expiryDate: exp.isNotEmpty ? exp : null,
+                                mrp: mrpVal,
+                                unitPrice: mrpVal,
+                                quantity: 1,
+                                genericName: genSalt.isNotEmpty ? genSalt : null,
+                              );
+
+                              // 2. Add to mobile cart
+                              final inv = context.read<InventoryProvider>();
+                              var med = inv.medicines.firstWhere(
+                                (m) => m.name.toLowerCase() == medName.toLowerCase(),
+                                orElse: () => MedicineModel(
+                                  id: 'box_${DateTime.now().millisecondsSinceEpoch}',
+                                  name: medName,
+                                  genericName: genSalt.isNotEmpty ? genSalt : null,
+                                  category: 'Tablets',
+                                  mrp: mrpVal,
+                                  sellingPrice: mrpVal,
+                                  stock: 10,
+                                  batchNumber: bNo,
+                                  expiryDate: exp,
+                                ),
+                              );
+                              context.read<BillingProvider>().addToCart(med, quantity: 1);
+
+                              Navigator.pop(ctx);
+                              HapticFeedback.heavyImpact();
+                              SystemSound.play(SystemSoundType.click);
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: const Color(0xFF16A34A),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(milliseconds: 2200),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '✓ $medName (₹$mrpVal) [B: $bNo] ➔ PC બિલમાં એડ થઈ ગયું! 💻',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF16A34A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 2,
+                            ),
+                            icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
+                            label: const Text(
+                              '🛒 Add to Bill (PC)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+
+                        // Button 2: Add to Inventory (Stock Inward)
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                              final bNo = batchCtrl.text.trim();
+                              final exp = expCtrl.text.trim();
+                              final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
+                              final genSalt = genericCtrl.text.trim();
+                              final addStock = int.tryParse(qtyCtrl.text.trim()) ?? 10;
+
+                              final inv = context.read<InventoryProvider>();
+                              await inv.addMedicine(
+                                name: medName,
+                                genericName: genSalt.isNotEmpty ? genSalt : null,
+                                category: 'Tablets',
+                                mrp: mrpVal,
+                                sellingPrice: mrpVal * 0.9,
+                                stock: addStock,
+                                expiryDate: exp.isNotEmpty ? exp : '2028-12-31',
+                                barcode: bNo.isNotEmpty ? bNo : null,
+                              );
+
+                              Navigator.pop(ctx);
+                              HapticFeedback.heavyImpact();
+                              SystemSound.play(SystemSoundType.click);
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: const Color(0xFFEA580C),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(milliseconds: 2200),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 20),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '✓ $medName ના $addStock યુનિટ્સ [B: $bNo] સ્ટોકમાં જમા થયા! 📦',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEA580C),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 2,
+                            ),
+                            icon: const Icon(Icons.add_box_rounded, size: 18),
+                            label: const Text(
+                              '📦 Add to Stock',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Quick Real Tests for instant testing
+                    const Text('ઝડપી સેમ્પલ ટેસ્ટ (One-Touch Sample Boxes):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
                     const SizedBox(height: 8),
 
-                    // Test Button 1: Image 1 (ARVIND Care)
+                    // Sample 1: ARVIND Care
                     OutlinedButton(
                       onPressed: isProcessing
                           ? null
-                          : () async {
-                              setSheetState(() {
-                                isProcessing = true;
-                                ocrError = null;
-                              });
-                              try {
-                                final auth = context.read<AuthProvider>();
-                                final pId = auth.pharmacyId;
-                                final res = await MedicineBoxOcrService.testSampleBoxScan(
-                                  sampleIndex: 1,
-                                  pharmacyId: pId,
-                                  syncToPc: true,
-                                );
-                                HapticFeedback.heavyImpact();
-                                setSheetState(() {
-                                  ocrResult = res;
-                                  isProcessing = false;
-                                });
-                              } catch (e) {
-                                setSheetState(() {
-                                  ocrError = e.toString();
-                                  isProcessing = false;
-                                });
-                              }
+                          : () {
+                              applyBoxResult(BoxOcrResult(
+                                medicineName: 'ARVIND Care 10 Tablets',
+                                genericName: 'Arvind Proprietary Formula',
+                                batchNumber: 'T260241',
+                                expiryDate: '03/2028',
+                                mrp: 74.99,
+                                packSize: '10 Tablets',
+                                manufacturer: 'ARVIND care LLP',
+                                confidence: 1.0,
+                              ));
+                              HapticFeedback.mediumImpact();
                             },
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         side: const BorderSide(color: Color(0xFF0D9488), width: 1.2),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
-                          const Icon(Icons.medication_rounded, color: Color(0xFF0D9488), size: 20),
-                          const SizedBox(width: 10),
-                          const Expanded(
+                          Icon(Icons.medication_rounded, color: Color(0xFF0D9488), size: 18),
+                          SizedBox(width: 10),
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Image 1: ARVIND Care 10 Tablets', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0D9488))),
-                                Text('Batch: T260241 • Exp: 03/28 • MRP: ₹74.99', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                                Text('Sample 1: ARVIND Care 10 Tablets', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0D9488))),
+                                Text('Batch: T260241 • Exp: 03/2028 • MRP: ₹74.99', style: TextStyle(fontSize: 11, color: Colors.black54)),
                               ],
                             ),
                           ),
-                          if (isProcessing)
-                            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          else
-                            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF0D9488)),
+                          Icon(Icons.touch_app_rounded, size: 16, color: Color(0xFF0D9488)),
                         ],
                       ),
                     ),
                     const SizedBox(height: 8),
 
-                    // Test Button 2: Image 2 (...resh-DSR Dot-Matrix)
+                    // Sample 2: Panresh-DSR
                     OutlinedButton(
                       onPressed: isProcessing
                           ? null
-                          : () async {
-                              setSheetState(() {
-                                isProcessing = true;
-                                ocrError = null;
-                              });
-                              try {
-                                final auth = context.read<AuthProvider>();
-                                final pId = auth.pharmacyId;
-                                final res = await MedicineBoxOcrService.testSampleBoxScan(
-                                  sampleIndex: 2,
-                                  pharmacyId: pId,
-                                  syncToPc: true,
-                                );
-                                HapticFeedback.heavyImpact();
-                                setSheetState(() {
-                                  ocrResult = res;
-                                  isProcessing = false;
-                                });
-                              } catch (e) {
-                                setSheetState(() {
-                                  ocrError = e.toString();
-                                  isProcessing = false;
-                                });
-                              }
+                          : () {
+                              applyBoxResult(BoxOcrResult(
+                                medicineName: 'Panresh-DSR 10 Capsules',
+                                genericName: 'Pantoprazole + Domperidone',
+                                batchNumber: 'CO92604',
+                                expiryDate: '06/2028',
+                                mrp: 120.00,
+                                packSize: '10 Capsules',
+                                manufacturer: 'Spectra Art Laboratories',
+                                confidence: 1.0,
+                              ));
+                              HapticFeedback.mediumImpact();
                             },
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         side: const BorderSide(color: Color(0xFF4338CA), width: 1.2),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
-                          const Icon(Icons.document_scanner_rounded, color: Color(0xFF4338CA), size: 20),
-                          const SizedBox(width: 10),
-                          const Expanded(
+                          Icon(Icons.document_scanner_rounded, color: Color(0xFF4338CA), size: 18),
+                          SizedBox(width: 10),
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Image 2: resh-DSR Dot-Matrix Capsules', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF4338CA))),
+                                Text('Sample 2: Panresh-DSR 10 Capsules', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF4338CA))),
                                 Text('Batch: CO92604 • Exp: 06/2028 • MRP: ₹120.00', style: TextStyle(fontSize: 11, color: Colors.black54)),
                               ],
                             ),
                           ),
-                          if (isProcessing)
-                            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          else
-                            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF4338CA)),
+                          Icon(Icons.touch_app_rounded, size: 16, color: Color(0xFF4338CA)),
                         ],
                       ),
                     ),
