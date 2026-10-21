@@ -4,6 +4,7 @@ import '../api/api_endpoints.dart';
 import 'storage_service.dart';
 
 class BoxOcrResult {
+  final String? gtin;
   final String? medicineName;
   final String? genericName;
   final String? batchNumber;
@@ -20,6 +21,7 @@ class BoxOcrResult {
   final Map<String, dynamic>? matchedMedicine;
 
   BoxOcrResult({
+    this.gtin,
     this.medicineName,
     this.genericName,
     this.batchNumber,
@@ -38,6 +40,7 @@ class BoxOcrResult {
 
   factory BoxOcrResult.fromJson(Map<String, dynamic> json) {
     return BoxOcrResult(
+      gtin: json['gtin'],
       medicineName: json['medicine_name'],
       genericName: json['generic_name'],
       batchNumber: json['batch_number'],
@@ -84,6 +87,7 @@ class MedicineBoxOcrService {
 
       if (batch != null || expFormatted != null || gtin != null) {
         return BoxOcrResult(
+          gtin: gtin,
           batchNumber: batch,
           expiryDate: expFormatted,
           rawExpiry: expFormatted,
@@ -124,8 +128,9 @@ class MedicineBoxOcrService {
         }
       }
 
-      if (batch != null || expFormatted != null) {
+      if (batch != null || expFormatted != null || gtin != null) {
         return BoxOcrResult(
+          gtin: gtin,
           batchNumber: batch,
           expiryDate: expFormatted,
           rawExpiry: expFormatted,
