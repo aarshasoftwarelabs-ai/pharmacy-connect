@@ -12,7 +12,6 @@ import '../../providers/inventory_provider.dart';
 import '../../core/services/barcode_medicine_service.dart';
 import '../../core/services/medicine_box_ocr_service.dart';
 import '../auth/login_screen.dart';
-import '../navigation/main_nav_screen.dart';
 
 enum StaffScannerMode { billing, stockInward, boxOcr }
 
@@ -1468,35 +1467,95 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     // THE TWO PRIMARY ACTION BUTTONS: Add to Bill (PC) OR Add to Inventory (Stock)
                     Row(
                       children: [
-                        // Button 1: Add to Bill & Sync to PC
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final auth = context.read<AuthProvider>();
-                              final pId = auth.pharmacyId;
-                              final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
-                              final bNo = batchCtrl.text.trim();
-                              final exp = expCtrl.text.trim();
-                              final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
-                              final genSalt = genericCtrl.text.trim();
+                        if (_currentMode == StaffScannerMode.stockInward) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                                final bNo = batchCtrl.text.trim();
+                                final exp = expCtrl.text.trim();
+                                final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
+                                final genSalt = genericCtrl.text.trim();
+                                final addStock = int.tryParse(qtyCtrl.text.trim()) ?? 10;
 
-                              // 1. Sync directly to PC Active Bill Table via Socket
-                              await MedicineBoxOcrService.syncBoxItemToPc(
-                                pharmacyId: pId,
-                                medicineName: medName,
-                                batchNumber: bNo.isNotEmpty ? bNo : null,
-                                expiryDate: exp.isNotEmpty ? exp : null,
-                                mrp: mrpVal,
-                                unitPrice: mrpVal,
-                                quantity: 1,
-                                genericName: genSalt.isNotEmpty ? genSalt : null,
-                              );
+                                final inv = context.read<InventoryProvider>();
+                                await inv.addMedicine(
+                                  name: medName,
+                                  genericName: genSalt.isNotEmpty ? genSalt : null,
+                                  category: 'Tablets',
+                                  mrp: mrpVal,
+                                  sellingPrice: mrpVal * 0.9,
+                                  stock: addStock,
+                                  expiryDate: exp.isNotEmpty ? exp : '2028-12-31',
+                                  barcode: bNo.isNotEmpty ? bNo : null,
+                                );
 
-                              // 2. Add to mobile cart
-                              final inv = context.read<InventoryProvider>();
-                              var med = inv.medicines.firstWhere(
-                                (m) => m.name.toLowerCase() == medName.toLowerCase(),
-                                orElse: () => MedicineModel(
+                                Navigator.pop(ctx);
+                                HapticFeedback.heavyImpact();
+                                SystemSound.play(SystemSoundType.click);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: const Color(0xFFEA580C),
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(milliseconds: 2200),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    content: Row(
+                                      children: [
+                                        const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 20),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            '✓ $medName ના $addStock યુનિટ્સ [B: $bNo] સ્ટોકમાં જમા થયા! 📦',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFEA580C),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 2,
+                              ),
+                              icon: const Icon(Icons.add_box_rounded, size: 18),
+                              label: const Text(
+                                '📦 Add to Stock',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                                final bNo = batchCtrl.text.trim();
+                                final exp = expCtrl.text.trim();
+                                final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
+                                final genSalt = genericCtrl.text.trim();
+
+                                // Sync to PC Billing instantly
+                                final auth = context.read<AuthProvider>();
+                                await MedicineBoxOcrService.syncBoxItemToPc(
+                                  pharmacyId: auth.pharmacyId,
+                                  medicineName: medName,
+                                  batchNumber: bNo.isNotEmpty ? bNo : null,
+                                  expiryDate: exp.isNotEmpty ? exp : null,
+                                  mrp: mrpVal,
+                                  unitPrice: mrpVal,
+                                  quantity: 1,
+                                  genericName: genSalt.isNotEmpty ? genSalt : null,
+                                );
+
+                                // Also add to mobile billing cart
+                                final med = context.read<InventoryProvider>().findByBarcode(bNo) ?? MedicineModel(
                                   id: 'box_${DateTime.now().millisecondsSinceEpoch}',
                                   name: medName,
                                   genericName: genSalt.isNotEmpty ? genSalt : null,
@@ -1506,204 +1565,52 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                   stock: 10,
                                   batchNumber: bNo,
                                   expiryDate: exp,
-                                ),
-                              );
-                              context.read<BillingProvider>().addToCart(med, quantity: 1);
+                                );
+                                context.read<BillingProvider>().addToCart(med, quantity: 1);
 
-                              Navigator.pop(ctx);
-                              HapticFeedback.heavyImpact();
-                              SystemSound.play(SystemSoundType.click);
+                                Navigator.pop(ctx);
+                                HapticFeedback.heavyImpact();
+                                SystemSound.play(SystemSoundType.click);
 
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: const Color(0xFF16A34A),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(milliseconds: 2200),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  content: Row(
-                                    children: [
-                                      const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          '✓ $medName (₹$mrpVal) [B: $bNo] ➔ PC બિલમાં એડ થઈ ગયું! 💻',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: const Color(0xFF16A34A),
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(milliseconds: 2200),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    content: Row(
+                                      children: [
+                                        const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            '✓ $medName (₹$mrpVal) [B: $bNo] ➔ PC બિલમાં એડ થઈ ગયું! 💻',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF16A34A),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              elevation: 2,
-                            ),
-                            icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
-                            label: const Text(
-                              '🛒 Add to Bill (PC)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF16A34A),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 2,
+                              ),
+                              icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
+                              label: const Text(
+                                '🛒 Add to Bill (PC)',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-
-                        // Button 2: Add to Inventory (Stock Inward)
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
-                              final bNo = batchCtrl.text.trim();
-                              final exp = expCtrl.text.trim();
-                              final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
-                              final genSalt = genericCtrl.text.trim();
-                              final addStock = int.tryParse(qtyCtrl.text.trim()) ?? 10;
-
-                              final inv = context.read<InventoryProvider>();
-                              await inv.addMedicine(
-                                name: medName,
-                                genericName: genSalt.isNotEmpty ? genSalt : null,
-                                category: 'Tablets',
-                                mrp: mrpVal,
-                                sellingPrice: mrpVal * 0.9,
-                                stock: addStock,
-                                expiryDate: exp.isNotEmpty ? exp : '2028-12-31',
-                                barcode: bNo.isNotEmpty ? bNo : null,
-                              );
-
-                              Navigator.pop(ctx);
-                              HapticFeedback.heavyImpact();
-                              SystemSound.play(SystemSoundType.click);
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: const Color(0xFFEA580C),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(milliseconds: 2200),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  content: Row(
-                                    children: [
-                                      const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 20),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          '✓ $medName ના $addStock યુનિટ્સ [B: $bNo] સ્ટોકમાં જમા થયા! 📦',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFEA580C),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              elevation: 2,
-                            ),
-                            icon: const Icon(Icons.add_box_rounded, size: 18),
-                            label: const Text(
-                              '📦 Add to Stock',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                          ),
-                        ),
+                        ],
                       ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Quick Real Tests for instant testing
-                    const Text('ઝડપી સેમ્પલ ટેસ્ટ (One-Touch Sample Boxes):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
-                    const SizedBox(height: 8),
-
-                    // Sample 1: ARVIND Care
-                    OutlinedButton(
-                      onPressed: isProcessing
-                          ? null
-                          : () {
-                              applyBoxResult(BoxOcrResult(
-                                medicineName: 'ARVIND Care 10 Tablets',
-                                genericName: 'Arvind Proprietary Formula',
-                                batchNumber: 'T260241',
-                                expiryDate: '03/2028',
-                                mrp: 74.99,
-                                packSize: '10 Tablets',
-                                manufacturer: 'ARVIND care LLP',
-                                confidence: 1.0,
-                              ));
-                              HapticFeedback.mediumImpact();
-                            },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        side: const BorderSide(color: Color(0xFF0D9488), width: 1.2),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.medication_rounded, color: Color(0xFF0D9488), size: 18),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Sample 1: ARVIND Care 10 Tablets', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0D9488))),
-                                Text('Batch: T260241 • Exp: 03/2028 • MRP: ₹74.99', style: TextStyle(fontSize: 11, color: Colors.black54)),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.touch_app_rounded, size: 16, color: Color(0xFF0D9488)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Sample 2: Panresh-DSR
-                    OutlinedButton(
-                      onPressed: isProcessing
-                          ? null
-                          : () {
-                              applyBoxResult(BoxOcrResult(
-                                medicineName: 'Panresh-DSR 10 Capsules',
-                                genericName: 'Pantoprazole + Domperidone',
-                                batchNumber: 'CO92604',
-                                expiryDate: '06/2028',
-                                mrp: 120.00,
-                                packSize: '10 Capsules',
-                                manufacturer: 'Spectra Art Laboratories',
-                                confidence: 1.0,
-                              ));
-                              HapticFeedback.mediumImpact();
-                            },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        side: const BorderSide(color: Color(0xFF4338CA), width: 1.2),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.document_scanner_rounded, color: Color(0xFF4338CA), size: 18),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Sample 2: Panresh-DSR 10 Capsules', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF4338CA))),
-                                Text('Batch: CO92604 • Exp: 06/2028 • MRP: ₹120.00', style: TextStyle(fontSize: 11, color: Colors.black54)),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.touch_app_rounded, size: 16, color: Color(0xFF4338CA)),
-                        ],
-                      ),
                     ),
                   ],
                 ),
@@ -1808,17 +1715,6 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     tooltip: 'Manual Search',
                     onPressed: _showManualSearchDialog,
                   ),
-                  // Direct Store Dashboard button
-                  IconButton(
-                    icon: const Icon(Icons.dashboard_rounded, color: Colors.white),
-                    tooltip: 'Store Dashboard (ડેશબોર્ડ)',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MainNavScreen()),
-                      );
-                    },
-                  ),
                   // Logout
                   IconButton(
                     icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 20),
@@ -1852,42 +1748,43 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
             ),
           ),
 
-          // 5. Floating Box OCR Trigger Button (Always accessible for smart 1-touch scanning)
-          Positioned(
-            bottom: billing.itemCount > 0 && _currentMode == StaffScannerMode.billing ? 154 : 86,
-            left: 20,
-            right: 20,
-            child: GestureDetector(
-              onTap: _showBoxOcrModal,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
+          // 5. Floating Box OCR Trigger Button (Shown cleanly ONLY in Box OCR mode)
+          if (_currentMode == StaffScannerMode.boxOcr)
+            Positioned(
+              bottom: 96,
+              left: 20,
+              right: 20,
+              child: GestureDetector(
+                onTap: _showBoxOcrModal,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0D9488).withValues(alpha: 0.45),
+                        blurRadius: 18,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0D9488).withValues(alpha: 0.4),
-                      blurRadius: 18,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      '📸 Snap Box Text (AI સ્કેન - Batch, Exp, MRP)',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ],
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        '📸 બોક્સ ફોટો પાડો (Scan Box Flap)',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
           // 6. Mode Switcher (Billing vs Stock Inward vs Box OCR)
           Positioned(
