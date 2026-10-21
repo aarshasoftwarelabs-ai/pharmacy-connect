@@ -1120,8 +1120,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       final picker = ImagePicker();
                                       final photo = await picker.pickImage(
                                         source: ImageSource.camera,
-                                        imageQuality: 78,
-                                        maxWidth: 1024,
+                                        imageQuality: 70,
+                                        maxWidth: 800,
                                       );
                                       if (photo == null) return;
 
@@ -1140,7 +1140,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       applyBoxResult(res);
                                     } catch (e) {
                                       setSheetState(() {
-                                        ocrError = e.toString().replaceAll('Exception:', '').trim();
+                                        final err = e.toString().toLowerCase();
+                                        if (err.contains('timeout') || err.contains('future not completed')) {
+                                          ocrError = 'સર્વર રિસ્પોન્સમાં વાર લાગી. કૃપા કરીને ફરી ફોટો પાડો અથવા સેમ્પલ પસંદ કરો.';
+                                        } else {
+                                          ocrError = e.toString().replaceAll('Exception:', '').trim();
+                                        }
                                         isProcessing = false;
                                       });
                                     }
@@ -1171,8 +1176,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       final picker = ImagePicker();
                                       final photo = await picker.pickImage(
                                         source: ImageSource.gallery,
-                                        imageQuality: 78,
-                                        maxWidth: 1024,
+                                        imageQuality: 70,
+                                        maxWidth: 800,
                                       );
                                       if (photo == null) return;
 
@@ -1191,7 +1196,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       applyBoxResult(res);
                                     } catch (e) {
                                       setSheetState(() {
-                                        ocrError = e.toString().replaceAll('Exception:', '').trim();
+                                        final err = e.toString().toLowerCase();
+                                        if (err.contains('timeout') || err.contains('future not completed')) {
+                                          ocrError = 'સર્વર રિસ્પોન્સમાં વાર લાગી. કૃપા કરીને ફરી ફોટો પાડો અથવા સેમ્પલ પસંદ કરો.';
+                                        } else {
+                                          ocrError = e.toString().replaceAll('Exception:', '').trim();
+                                        }
                                         isProcessing = false;
                                       });
                                     }

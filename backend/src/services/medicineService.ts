@@ -652,12 +652,16 @@ Return ONLY valid JSON without markdown wrapping.`;
     let result;
     let lastError;
     let extracted: any;
-    const fallbackModels = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    const fallbackModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-8b'];
 
     for (const modelName of fallbackModels) {
       try {
         const aiModel = genAI.getGenerativeModel({ model: modelName });
-        result = await aiModel.generateContent([prompt, ...imageParts]);
+        const generatePromise = aiModel.generateContent([prompt, ...imageParts]);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`Timeout on model ${modelName}`)), 7000)
+        );
+        result = await Promise.race([generatePromise, timeoutPromise]);
         if (result && result.response) break;
       } catch (err: any) {
         console.warn(`[OCR Box Scan] Model ${modelName} failed:`, err.message);
