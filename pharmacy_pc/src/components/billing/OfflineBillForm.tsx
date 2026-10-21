@@ -21,7 +21,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
   const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [items, setItems] = useState([{ medicineName: '', quantity: 1, unitPrice: 0, hsnCode: '', gstRate: 0 }]);
+  const [items, setItems] = useState<Array<{ medicineName: string; quantity: number; unitPrice: number; hsnCode: string; gstRate: number }>>([]);
   const [discount, setDiscount] = useState(0);
   const [paymentMode, setPaymentMode] = useState('CASH');
   const [catalogue, setCatalogue] = useState<Medicine[]>([]);
@@ -196,31 +196,30 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       setTimeout(() => setBarcodeStatus(null), 3000);
 
       // Check if medicine already exists in cart
-      const existingIdx = items.findIndex(it => it.medicineName.toLowerCase() === match.name.toLowerCase());
-      if (existingIdx !== -1) {
-        const updated = [...items];
-        updated[existingIdx].quantity += 1;
-        setItems(updated);
-      } else {
-        // If the only item is empty, replace it
-        if (items.length === 1 && !items[0].medicineName.trim()) {
-          setItems([{
-            medicineName: match.name,
-            quantity: 1,
-            unitPrice: match.sellingPrice || 0,
-            hsnCode: match.hsnCode || '',
-            gstRate: match.gstRate || 0
-          }]);
-        } else {
-          setItems([...items, {
-            medicineName: match.name,
-            quantity: 1,
-            unitPrice: match.sellingPrice || 0,
-            hsnCode: match.hsnCode || '',
-            gstRate: match.gstRate || 0
-          }]);
+      setItems(prev => {
+        const existingIdx = prev.findIndex(it => it.medicineName.toLowerCase() === match.name.toLowerCase());
+        if (existingIdx !== -1) {
+          const updated = [...prev];
+          updated[existingIdx].quantity += 1;
+          return updated;
         }
-      }
+        if (prev.length === 1 && !prev[0].medicineName.trim()) {
+          return [{
+            medicineName: match.name,
+            quantity: 1,
+            unitPrice: match.sellingPrice || 0,
+            hsnCode: match.hsnCode || '',
+            gstRate: match.gstRate || 0
+          }];
+        }
+        return [...prev, {
+          medicineName: match.name,
+          quantity: 1,
+          unitPrice: match.sellingPrice || 0,
+          hsnCode: match.hsnCode || '',
+          gstRate: match.gstRate || 0
+        }];
+      });
     } else {
       AudioAlert.playBarcodeBeep();
       setBarcodeStatus({ 
@@ -249,7 +248,12 @@ export default function OfflineBillForm({ onSuccess }: Props) {
         });
       }).catch(() => {
         const fallbackName = `Medicine (${code})`;
-        setItems(prev => [...prev, { medicineName: fallbackName, quantity: 1, unitPrice: 50, hsnCode: '30049099', gstRate: 5 }]);
+        setItems(prev => {
+          if (prev.length === 1 && !prev[0].medicineName.trim()) {
+            return [{ medicineName: fallbackName, quantity: 1, unitPrice: 50, hsnCode: '30049099', gstRate: 5 }];
+          }
+          return [...prev, { medicineName: fallbackName, quantity: 1, unitPrice: 50, hsnCode: '30049099', gstRate: 5 }];
+        });
       });
     }
 
@@ -291,14 +295,18 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [catalogue, items]);
+  }, [catalogue]);
 
   const handleAddItem = () => {
-    setItems([...items, { medicineName: '', quantity: 1, unitPrice: 0, hsnCode: '', gstRate: 0 }]);
+    setItems(prev => [...prev, { medicineName: '', quantity: 1, unitPrice: 0, hsnCode: '', gstRate: 0 }]);
   };
 
   const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+    setItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClearCart = () => {
+    setItems([]);
   };
 
   const handleItemChange = (index: number, field: string, value: string | number, selectedMedicine?: Medicine) => {
@@ -363,7 +371,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const resetForm = () => {
     setCustomerName('Walk-in Customer');
     setCustomerPhone('');
-    setItems([{ medicineName: '', quantity: 1, unitPrice: 0, hsnCode: '', gstRate: 0 }]);
+    setItems([]);
     setDiscount(0);
     setCreatedBill(null);
   };
@@ -417,7 +425,11 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       setError('Customer name is required.');
       return;
     }
-    if (items.some(item => !item.medicineName || item.quantity <= 0 || item.unitPrice < 0)) {
+    if (items.length === 0 || items.every(item => !item.medicineName.trim())) {
+      setError('Billing cart is empty. Please add or scan at least one medicine before generating bill.');
+      return;
+    }
+    if (items.some(item => !item.medicineName.trim() || item.quantity <= 0 || item.unitPrice < 0)) {
       setError('Please fill all item details correctly. Quantity must be > 0 and price >= 0.');
       return;
     }
@@ -605,88 +617,116 @@ export default function OfflineBillForm({ onSuccess }: Props) {
           <div className="flex justify-between items-center mb-3">
             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
               Cart Items
-              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                {items.filter(it => it.medicineName.trim()).length} Items
+              <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                {items.length} {items.length === 1 ? 'Item' : 'Items'}
               </span>
             </h4>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {items.length > 0 && (
+                <button 
+                  type="button" 
+                  onClick={handleClearCart}
+                  className="text-xs flex items-center text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 font-semibold px-2.5 py-1.5 rounded-lg transition-colors"
+                  title="Clear all medicines from cart"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1" /> Clear Cart
+                </button>
+              )}
               <button 
                 type="button" 
                 onClick={handleAddItem}
-                className="text-xs flex items-center text-white bg-emerald-600 hover:bg-emerald-700 font-medium px-3 py-1.5 rounded-md transition-colors"
+                className="text-xs flex items-center text-white bg-emerald-600 hover:bg-emerald-700 font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-colors"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" /> Add Product
               </button>
             </div>
           </div>
 
-          <div className="space-y-3 pb-2">
-            {items.map((item, index) => (
-              <div key={index} className="grid grid-cols-12 gap-3 items-center p-3 bg-slate-50 rounded-lg border border-slate-100 group hover:border-emerald-200 transition-colors">
-                <div className="col-span-12 xl:col-span-4">
-                  <MedicineSearchDropdown
-                    catalogue={catalogue}
-                    value={item.medicineName}
-                    onChange={(val, med) => handleItemChange(index, 'medicineName', val, med)}
-                    placeholder="Medicine / Product Name"
-                    className="w-full"
-                  />
-                </div>
-                <div className="col-span-3 xl:col-span-2">
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Qty"
-                    value={item.quantity}
-                    onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white"
-                    required
-                  />
-                </div>
-                <div className="col-span-5 xl:col-span-2 relative">
-                  <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-medium">₹</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Price"
-                    value={item.unitPrice || ''}
-                    onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                    className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white"
-                    required
-                  />
-                </div>
-                <div className="col-span-4 xl:col-span-2">
-                  <select
-                    value={item.gstRate}
-                    onChange={(e) => handleItemChange(index, 'gstRate', parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white"
-                  >
-                    <option value={0}>0%</option>
-                    <option value={5}>5%</option>
-                    <option value={12}>12%</option>
-                    <option value={18}>18%</option>
-                    <option value={28}>28%</option>
-                  </select>
-                </div>
-                <div className="col-span-10 xl:col-span-1 text-right text-sm font-semibold text-slate-700">
-                  ₹{(item.quantity * item.unitPrice).toFixed(2)}
-                </div>
-                <div className="col-span-2 xl:col-span-1 flex justify-end">
-                  {items.length > 1 && (
+          {items.length === 0 ? (
+            <div className="py-10 px-4 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/70 flex flex-col items-center justify-center transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2.5 shadow-sm border border-emerald-100">
+                <Barcode className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold text-slate-800">Billing Cart is Empty</p>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                Scan medicine barcode via mobile/USB scanner, or click below to search medicine manually.
+              </p>
+              <button
+                type="button"
+                onClick={handleAddItem}
+                className="mt-3.5 inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm hover:shadow transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Medicine Manually
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3 pb-2">
+              {items.map((item, index) => (
+                <div key={index} className="grid grid-cols-12 gap-3 items-center p-3 bg-slate-50 rounded-lg border border-slate-100 group hover:border-emerald-200 transition-colors">
+                  <div className="col-span-12 xl:col-span-4">
+                    <MedicineSearchDropdown
+                      catalogue={catalogue}
+                      value={item.medicineName}
+                      onChange={(val, med) => handleItemChange(index, 'medicineName', val, med)}
+                      placeholder="Medicine / Product Name"
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="col-span-3 xl:col-span-2">
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Qty"
+                      value={item.quantity}
+                      onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white font-medium"
+                      required
+                    />
+                  </div>
+                  <div className="col-span-5 xl:col-span-2 relative">
+                    <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-medium">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Price"
+                      value={item.unitPrice || ''}
+                      onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                      className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white font-medium"
+                      required
+                    />
+                  </div>
+                  <div className="col-span-4 xl:col-span-2">
+                    <select
+                      value={item.gstRate}
+                      onChange={(e) => handleItemChange(index, 'gstRate', parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white"
+                    >
+                      <option value={0}>0%</option>
+                      <option value={5}>5%</option>
+                      <option value={12}>12%</option>
+                      <option value={18}>18%</option>
+                      <option value={28}>28%</option>
+                    </select>
+                  </div>
+                  <div className="col-span-10 xl:col-span-1 text-right text-sm font-semibold text-slate-700">
+                    ₹{(item.quantity * item.unitPrice).toFixed(2)}
+                  </div>
+                  <div className="col-span-2 xl:col-span-1 flex justify-end">
                     <button 
                       type="button"
                       onClick={() => handleRemoveItem(index)}
-                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      title={`Remove ${item.medicineName || 'this medicine'} from bill`}
+                      className="p-2 text-rose-500 hover:text-white hover:bg-rose-500 rounded-lg border border-transparent hover:border-rose-600 transition-all shadow-none hover:shadow-sm flex items-center justify-center group/del"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 transition-transform group-hover/del:scale-110" />
                     </button>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="border-t border-slate-200 pt-5 mt-6 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-xl">
@@ -753,8 +793,9 @@ export default function OfflineBillForm({ onSuccess }: Props) {
               
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 border border-transparent rounded-lg shadow-md text-base font-bold text-white hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-all transform hover:-translate-y-0.5"
+                disabled={loading || items.length === 0}
+                className="w-full flex items-center justify-center px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 border border-transparent rounded-lg shadow-md text-base font-bold text-white hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-0.5"
+                title={items.length === 0 ? 'Add medicines to cart to complete billing' : 'Complete Billing'}
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
