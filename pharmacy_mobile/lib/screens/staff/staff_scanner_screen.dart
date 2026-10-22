@@ -1821,7 +1821,6 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       onTap: () {
                         HapticFeedback.selectionClick();
                         setState(() => _currentMode = StaffScannerMode.boxOcr);
-                        _showBoxOcrModal();
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 11),
