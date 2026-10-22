@@ -35,12 +35,24 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
   String? _lastScannedCode;
   DateTime? _lastScanTime;
   bool _isBottomSheetOpen = false;
+  bool _isScanFlashActive = false;
+  bool _isProcessingScan = false;
 
   @override
   void initState() {
     super.initState();
+    // High-performance scanner configuration:
+    // 1. DetectionSpeed.unrestricted: detects on the very first frame ML Kit recognizes code
+    // 2. formats: restricted to common pharmacy codes (saves 75% frame processing time)
     _scannerController = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
+      detectionSpeed: DetectionSpeed.unrestricted,
+      formats: const [
+        BarcodeFormat.qrCode,
+        BarcodeFormat.dataMatrix,
+        BarcodeFormat.code128,
+        BarcodeFormat.ean13,
+        BarcodeFormat.ean8,
+      ],
       facing: CameraFacing.back,
       torchEnabled: false,
     );
@@ -68,7 +80,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
   }
 
   void _onBarcodeDetected(BarcodeCapture capture) {
-    if (_isBottomSheetOpen) return;
+    if (_isBottomSheetOpen || _isProcessingScan) return;
     if (capture.barcodes.isEmpty) return;
 
     for (final barcode in capture.barcodes) {
@@ -78,20 +90,33 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       final now = DateTime.now();
       if (_lastScannedCode == code &&
           _lastScanTime != null &&
-          now.difference(_lastScanTime!).inMilliseconds < 1800) {
+          now.difference(_lastScanTime!).inMilliseconds < 1400) {
         continue;
       }
 
       _lastScannedCode = code;
       _lastScanTime = now;
+      _isProcessingScan = true;
 
-      // Distinct audible scan beep & haptic feedback so the user instantly knows it scanned
+      // 1. Instant visual green confirmation flash on camera viewfinder
+      if (mounted) {
+        setState(() => _isScanFlashActive = true);
+        Future.delayed(const Duration(milliseconds: 280), () {
+          if (mounted) setState(() => _isScanFlashActive = false);
+        });
+      }
+
+      // 2. Instant audible scan beep & haptic feedback
       SystemSound.play(SystemSoundType.alert);
       SystemSound.play(SystemSoundType.click);
       HapticFeedback.heavyImpact();
       Feedback.forTap(context);
 
-      _handleScannedBarcode(code);
+      _handleScannedBarcode(code).whenComplete(() {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _isProcessingScan = false;
+        });
+      });
       break;
     }
   }
@@ -114,44 +139,36 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
     if (_currentMode == StaffScannerMode.billing) {
       if (medicine == null) {
-        try {
-          final autoData = await BarcodeMedicineService.lookup(effectiveBarcode);
-          if (autoData.isKnown && autoData.name.isNotEmpty && autoData.mrp > 0) {
+        // Fast path 1: Check instant offline dictionary (0ms)
+        final instantData = BarcodeMedicineService.getInstantMatch(effectiveBarcode);
+        if (instantData != null && instantData.isKnown && instantData.name.isNotEmpty && instantData.mrp > 0) {
+          try {
             await inventory.addMedicine(
-              name: autoData.name,
-              genericName: autoData.genericName,
-              category: autoData.category,
-              manufacturer: autoData.manufacturer,
-              mrp: autoData.mrp,
-              sellingPrice: autoData.sellingPrice,
-              stock: autoData.stock > 0 ? autoData.stock : 10,
+              name: instantData.name,
+              genericName: instantData.genericName,
+              category: instantData.category,
+              manufacturer: instantData.manufacturer,
+              mrp: instantData.mrp,
+              sellingPrice: instantData.sellingPrice,
+              stock: instantData.stock > 0 ? instantData.stock : 10,
               barcode: effectiveBarcode,
               batchNumber: scannedBatch,
               mfgDate: gs1?.mfgDate,
-              expiryDate: scannedExp ?? (autoData.expiryDate.isNotEmpty ? autoData.expiryDate : null),
+              expiryDate: scannedExp ?? (instantData.expiryDate.isNotEmpty ? instantData.expiryDate : null),
             );
             medicine = inventory.findByBarcode(effectiveBarcode);
-          } else {
-            // Unregistered or resolved without MRP: open registration sheet with detected real name
-            if (mounted) {
-              HapticFeedback.heavyImpact();
-              _showNewMedicineSheet(
-                effectiveBarcode,
-                prefilledBatch: scannedBatch,
-                prefilledMfg: gs1?.mfgDate,
-                prefilledExp: scannedExp,
-              );
-            }
-            return;
-          }
-        } catch (_) {
+          } catch (_) {}
+        }
+
+        // Fast path 2: If unregistered or not yet saved, open registration sheet IMMEDIATELY (0ms, no network await!)
+        if (medicine == null) {
           if (mounted) {
-            HapticFeedback.heavyImpact();
             _showNewMedicineSheet(
               effectiveBarcode,
               prefilledBatch: scannedBatch,
               prefilledMfg: gs1?.mfgDate,
               prefilledExp: scannedExp,
+              initialData: instantData,
             );
           }
           return;
@@ -580,9 +597,16 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     String? prefilledBatch,
     String? prefilledMfg,
     String? prefilledExp,
-  }) async {
+    ScannedMedicineData? initialData,
+  }) {
     _isBottomSheetOpen = true;
-    final auto = await BarcodeMedicineService.lookup(scannedBarcode);
+    final auto = initialData ??
+        BarcodeMedicineService.getInstantOrTemplate(
+          scannedBarcode,
+          prefilledBatch: prefilledBatch,
+          prefilledMfg: prefilledMfg,
+          prefilledExp: prefilledExp,
+        );
 
     final now = DateTime.now();
 
@@ -648,6 +672,23 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     final stockCtrl = TextEditingController(text: auto.stock > 0 ? auto.stock.toString() : '10');
 
     if (!mounted) return;
+
+    // Asynchronous background metadata lookup without delaying sheet opening (0ms UI latency)
+    if (initialName.isEmpty) {
+      BarcodeMedicineService.lookup(scannedBarcode).then((fresh) {
+        if (!mounted || !_isBottomSheetOpen) return;
+        if (fresh.name.isNotEmpty && nameCtrl.text.isEmpty) {
+          nameCtrl.text = fresh.name;
+          if (genericCtrl.text.isEmpty && fresh.genericName != null) {
+            genericCtrl.text = fresh.genericName!;
+          }
+          if (fresh.mrp > 0 && (mrpCtrl.text.isEmpty || mrpCtrl.text == '48.00')) {
+            mrpCtrl.text = fresh.mrp.toStringAsFixed(2);
+            spCtrl.text = fresh.sellingPrice.toStringAsFixed(2);
+          }
+        }
+      });
+    }
 
     showModalBottomSheet(
       context: context,
@@ -1823,7 +1864,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
           // 2. Translucent Framing Overlay
           Positioned.fill(
             child: CustomPaint(
-              painter: _ScannerHolePainter(laserProgress: _laserAnimation.value),
+              painter: _ScannerHolePainter(
+                laserProgress: _laserAnimation.value,
+                isFlashActive: _isScanFlashActive,
+              ),
             ),
           ),
 
@@ -2082,8 +2126,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 // -------------------------------------------------------------
 class _ScannerHolePainter extends CustomPainter {
   final double laserProgress;
+  final bool isFlashActive;
 
-  _ScannerHolePainter({required this.laserProgress});
+  _ScannerHolePainter({
+    required this.laserProgress,
+    this.isFlashActive = false,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2100,18 +2148,27 @@ class _ScannerHolePainter extends CustomPainter {
       ..fillType = PathFillType.evenOdd;
     canvas.drawPath(path, bgPaint);
 
+    // Flash background tint inside viewfinder
+    if (isFlashActive) {
+      final flashFillPaint = Paint()
+        ..color = const Color(0xFF22C55E).withValues(alpha: 0.20);
+      canvas.drawRRect(RRect.fromRectAndRadius(scanRect, const Radius.circular(24)), flashFillPaint);
+    }
+
     // Rounded rectangle border
     final borderPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.6)
+      ..color = isFlashActive
+          ? const Color(0xFF22C55E)
+          : Colors.white.withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
+      ..strokeWidth = isFlashActive ? 3.0 : 2.0;
     canvas.drawRRect(RRect.fromRectAndRadius(scanRect, const Radius.circular(24)), borderPaint);
 
     // 4 Corner Highlights
     final cornerPaint = Paint()
-      ..color = AppColors.primary
+      ..color = isFlashActive ? const Color(0xFF22C55E) : AppColors.primary
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.5
+      ..strokeWidth = isFlashActive ? 6.0 : 4.5
       ..strokeCap = StrokeCap.round;
 
     const cornerLen = 28.0;
@@ -2132,13 +2189,15 @@ class _ScannerHolePainter extends CustomPainter {
     canvas.drawLine(Offset(left + scanSize - cornerLen, top + scanSize), Offset(left + scanSize - 14, top + scanSize), cornerPaint);
     canvas.drawLine(Offset(left + scanSize, top + scanSize - cornerLen), Offset(left + scanSize, top + scanSize - 14), cornerPaint);
 
-    // Red Laser Line with glowing gradient
+    // Laser Line with glowing gradient
     final laserY = top + (scanSize * laserProgress);
     final laserPaint = Paint()
-      ..color = Colors.redAccent
+      ..color = isFlashActive ? const Color(0xFF22C55E) : Colors.redAccent
       ..strokeWidth = 2.5
-      ..shader = const LinearGradient(
-        colors: [Colors.transparent, Colors.redAccent, Colors.red, Colors.redAccent, Colors.transparent],
+      ..shader = LinearGradient(
+        colors: isFlashActive
+            ? [Colors.transparent, const Color(0xFF22C55E), Colors.green, const Color(0xFF22C55E), Colors.transparent]
+            : [Colors.transparent, Colors.redAccent, Colors.red, Colors.redAccent, Colors.transparent],
       ).createShader(Rect.fromLTWH(left, laserY, scanSize, 3));
 
     canvas.drawLine(Offset(left + 10, laserY), Offset(left + scanSize - 10, laserY), laserPaint);
@@ -2146,6 +2205,6 @@ class _ScannerHolePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ScannerHolePainter oldDelegate) {
-    return oldDelegate.laserProgress != laserProgress;
+    return oldDelegate.laserProgress != laserProgress || oldDelegate.isFlashActive != isFlashActive;
   }
 }

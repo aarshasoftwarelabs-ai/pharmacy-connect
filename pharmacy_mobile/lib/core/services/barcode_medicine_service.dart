@@ -70,6 +70,9 @@ class ScannedMedicineData {
 }
 
 class BarcodeMedicineService {
+  // In-memory runtime cache for 0ms ultra-fast repetitive scans
+  static final Map<String, ScannedMedicineData> _runtimeCache = {};
+
   // Built-in offline dictionary of common Indian medicines and standard barcodes
   static final Map<String, ScannedMedicineData> _offlineMaster = {
     'https://me-qr.com/YiRiOz1r': ScannedMedicineData(
@@ -578,8 +581,90 @@ class BarcodeMedicineService {
     return null;
   }
 
+  /// Synchronous instant lookup (0 milliseconds response time):
+  /// Checks in-memory cache and offline master dictionary immediately.
+  static ScannedMedicineData? getInstantMatch(String rawBarcode) {
+    final code = rawBarcode.trim();
+    if (code.isEmpty) return null;
+
+    // 1. Check runtime memory cache
+    if (_runtimeCache.containsKey(code)) {
+      return _runtimeCache[code];
+    }
+
+    // 2. Direct offline master match
+    if (_offlineMaster.containsKey(code)) {
+      final m = _offlineMaster[code]!;
+      _runtimeCache[code] = m;
+      return m;
+    }
+
+    // 3. Partial or URL key match (e.g. YiRiOz1r or fluok)
+    for (final entry in _offlineMaster.entries) {
+      if (code.contains(entry.key) || entry.key.contains(code)) {
+        final m = entry.value;
+        final matched = ScannedMedicineData(
+          barcode: code,
+          name: m.name,
+          genericName: m.genericName,
+          category: m.category,
+          manufacturer: m.manufacturer,
+          mrp: m.mrp,
+          sellingPrice: m.sellingPrice,
+          stock: m.stock,
+          expiryDate: m.expiryDate,
+          isKnown: true,
+        );
+        _runtimeCache[code] = matched;
+        return matched;
+      }
+    }
+
+    return null;
+  }
+
+  /// Instant synchronous data provider (guarantees 0ms UI bottom sheet opening):
+  /// Returns either an exact offline match or an intelligently derived template.
+  static ScannedMedicineData getInstantOrTemplate(
+    String rawBarcode, {
+    String? prefilledBatch,
+    String? prefilledMfg,
+    String? prefilledExp,
+  }) {
+    final code = rawBarcode.trim();
+    final instant = getInstantMatch(code);
+    if (instant != null) return instant;
+
+    final now = DateTime.now();
+    final expDefault = (prefilledExp != null && prefilledExp.isNotEmpty)
+        ? prefilledExp
+        : '${now.month.toString().padLeft(2, '0')}/${(now.year + 2).toString().substring(2)}';
+
+    // Heuristics for common barcode/URL patterns
+    String guessedName = '';
+    if (code.contains('YiRiOz1r') || code.toLowerCase().contains('fluok')) {
+      guessedName = 'FLUOK FT';
+    }
+
+    final derivedGen = guessedName.isNotEmpty ? deriveGenericSalt(guessedName) : null;
+    final derivedCat = guessedName.isNotEmpty ? deriveCategory(guessedName) : 'Tablets';
+
+    return ScannedMedicineData(
+      name: guessedName,
+      genericName: derivedGen,
+      category: derivedCat,
+      manufacturer: null,
+      mrp: 48.0,
+      sellingPrice: 42.0,
+      stock: 10,
+      barcode: code,
+      expiryDate: expDefault,
+      isKnown: guessedName.isNotEmpty,
+    );
+  }
+
   /// Lookup medicine details by scanned barcode:
-  /// 1. Tries direct match in offline master dictionary
+  /// 1. Tries instant cache/offline master dictionary (0ms)
   /// 2. Tries live cloud server API `/medicines/lookup-barcode/:barcode`
   /// 3. If barcode is an HTTP/HTTPS URL, resolves medicine title directly via web metadata
   /// 4. Auto-derives generic salt, category, and realistic defaults so the user has zero empty fields
@@ -601,31 +686,13 @@ class BarcodeMedicineService {
       );
     }
 
-    // 1. Direct offline master match (instant zero-latency response)
-    if (_offlineMaster.containsKey(code)) {
-      return _offlineMaster[code]!;
+    // 1. Check instant cache & offline master first (0ms)
+    final instant = getInstantMatch(code);
+    if (instant != null) {
+      return instant;
     }
 
-    // 2. Partial match check (e.g. URL query or key like YiRiOz1r)
-    for (final entry in _offlineMaster.entries) {
-      if (code.contains(entry.key) || entry.key.contains(code)) {
-        final m = entry.value;
-        return ScannedMedicineData(
-          barcode: code,
-          name: m.name,
-          genericName: m.genericName,
-          category: m.category,
-          manufacturer: m.manufacturer,
-          mrp: m.mrp,
-          sellingPrice: m.sellingPrice,
-          stock: m.stock,
-          expiryDate: m.expiryDate,
-          isKnown: true,
-        );
-      }
-    }
-
-    // 3. Try Live Cloud API
+    // 2. Try Live Cloud API
     try {
       final url = '${ApiEndpoints.medicines}/lookup-barcode/${Uri.encodeComponent(code)}';
       final res = await ApiService.get(url);
@@ -637,7 +704,7 @@ class BarcodeMedicineService {
           if (result.name.isNotEmpty) {
             final derivedGen = result.genericName ?? deriveGenericSalt(result.name);
             final derivedCat = result.category.isNotEmpty ? result.category : deriveCategory(result.name);
-            return ScannedMedicineData(
+            final resolved = ScannedMedicineData(
               barcode: code,
               name: result.name,
               genericName: derivedGen,
@@ -649,6 +716,8 @@ class BarcodeMedicineService {
               expiryDate: result.expiryDate.isNotEmpty ? result.expiryDate : expDefault,
               isKnown: true,
             );
+            _runtimeCache[code] = resolved;
+            return resolved;
           }
         }
       }
@@ -656,13 +725,13 @@ class BarcodeMedicineService {
       // Network failure, continue to direct resolvers
     }
 
-    // 4. If barcode is an HTTP/HTTPS URL (like ME-QR links), resolve title directly
+    // 3. If barcode is an HTTP/HTTPS URL (like ME-QR links), resolve title directly
     if (code.startsWith('http://') || code.startsWith('https://')) {
       final resolvedName = await resolveUrlMedicineName(code);
       if (resolvedName != null && resolvedName.isNotEmpty) {
         final derivedGen = deriveGenericSalt(resolvedName);
         final derivedCat = deriveCategory(resolvedName);
-        return ScannedMedicineData(
+        final resolved = ScannedMedicineData(
           barcode: code,
           name: resolvedName,
           genericName: derivedGen,
@@ -673,21 +742,25 @@ class BarcodeMedicineService {
           expiryDate: expDefault,
           isKnown: true,
         );
+        _runtimeCache[code] = resolved;
+        return resolved;
       }
     }
 
-    // 5. Unregistered barcode: return clean editable template with intelligent defaults
-    return ScannedMedicineData(
+    // 4. Unregistered barcode: return clean editable template with intelligent defaults
+    final fallback = ScannedMedicineData(
       name: '',
       genericName: null,
       category: 'Tablets',
       manufacturer: null,
-      mrp: 45.0,
-      sellingPrice: 40.0,
+      mrp: 48.0,
+      sellingPrice: 42.0,
       stock: 10,
       barcode: code,
       expiryDate: expDefault,
       isKnown: false,
     );
+    _runtimeCache[code] = fallback;
+    return fallback;
   }
 }
