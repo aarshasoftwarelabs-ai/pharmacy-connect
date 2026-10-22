@@ -670,16 +670,16 @@ Return ONLY valid JSON without markdown wrapping.`;
     }
 
     if (!result || !result.response) {
-      console.warn('[OCR Box Scan] AI models busy or failed, using intelligent catalog fallback');
+      console.warn('[OCR Box Scan] Vision model did not return a response:', lastError?.message);
       extracted = {
-        medicine_name: 'Scanned Box Medicine',
-        generic_name: 'Pharmaceutical Salt',
-        batch_number: 'B' + Date.now().toString().slice(-6),
-        expiry_date: '12/2028',
-        mrp: 65.00,
-        pack_size: '10 Tablets',
-        manufacturer: 'Pharma Labs',
-        confidence: 0.85
+        medicine_name: null,
+        generic_name: null,
+        batch_number: null,
+        expiry_date: null,
+        mrp: 0,
+        pack_size: null,
+        manufacturer: null,
+        confidence: 0.0
       };
     } else {
       let rawText = result.response.text();
@@ -688,16 +688,16 @@ Return ONLY valid JSON without markdown wrapping.`;
       try {
         extracted = JSON.parse(rawText);
       } catch (e) {
-        console.warn('[OCR Box Scan] Failed to parse OCR response, using safe fallback:', rawText);
+        console.warn('[OCR Box Scan] Failed to parse OCR response as JSON:', rawText);
         extracted = {
-          medicine_name: 'Scanned Box Medicine',
-          generic_name: 'Pharmaceutical Salt',
-          batch_number: 'B' + Date.now().toString().slice(-6),
-          expiry_date: '12/2028',
-          mrp: 65.00,
-          pack_size: '10 Tablets',
-          manufacturer: 'Pharma Labs',
-          confidence: 0.80
+          medicine_name: null,
+          generic_name: null,
+          batch_number: null,
+          expiry_date: null,
+          mrp: 0,
+          pack_size: null,
+          manufacturer: null,
+          confidence: 0.0
         };
       }
     }
@@ -770,7 +770,7 @@ Return ONLY valid JSON without markdown wrapping.`;
       try {
         const itemToPush = {
           pharmacyId,
-          medicineName: matchedMedicine ? matchedMedicine.name : (medicineName || 'Scanned Box Medicine'),
+          medicineName: matchedMedicine ? matchedMedicine.name : (medicineName || (batchNumber ? 'Batch $batchNumber' : 'Scanned Medicine')),
           quantity: 1,
           unitPrice: mrp > 0 ? mrp : (matchedMedicine?.sellingPrice || 0),
           mrp: mrp > 0 ? mrp : (matchedMedicine?.mrp || 0),

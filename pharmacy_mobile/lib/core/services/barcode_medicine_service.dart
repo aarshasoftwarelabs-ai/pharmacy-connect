@@ -12,6 +12,7 @@ class ScannedMedicineData {
   final int stock;
   final String barcode;
   final String expiryDate;
+  final bool isKnown;
 
   ScannedMedicineData({
     required this.name,
@@ -23,6 +24,7 @@ class ScannedMedicineData {
     this.stock = 10,
     required this.barcode,
     required this.expiryDate,
+    this.isKnown = true,
   });
 
   factory ScannedMedicineData.fromJson(Map<String, dynamic> json, String code) {
@@ -39,15 +41,16 @@ class ScannedMedicineData {
         : int.tryParse(json['currentStock']?.toString() ?? '10') ?? 10;
 
     return ScannedMedicineData(
-      name: json['name']?.toString() ?? 'Medicine (Barcode $code)',
+      name: json['name']?.toString() ?? 'Medicine ($code)',
       genericName: json['genericName']?.toString() ?? json['generic_name']?.toString(),
       category: json['category']?.toString() ?? 'Tablets',
-      manufacturer: json['manufacturer']?.toString() ?? 'Pharma Co.',
+      manufacturer: json['manufacturer']?.toString(),
       mrp: mrpVal,
       sellingPrice: sp,
       stock: st > 0 ? st : 10,
       barcode: code,
-      expiryDate: json['expiryDate']?.toString() ?? '12/2028',
+      expiryDate: json['expiryDate']?.toString() ?? '',
+      isKnown: true,
     );
   }
 }
@@ -465,17 +468,18 @@ class BarcodeMedicineService {
       }
     }
 
-    // 4. Guaranteed fallback profile
+    // 4. Barcode not in database or catalog
     return ScannedMedicineData(
-      name: 'Medicine (Barcode $code)',
-      genericName: 'Standard Pharmaceutical Salt',
+      name: 'Unregistered ($code)',
+      genericName: null,
       category: 'Tablets',
-      manufacturer: 'Indian Pharma Co.',
-      mrp: 60.00,
-      sellingPrice: 50.00,
-      stock: 10,
+      manufacturer: null,
+      mrp: 0.0,
+      sellingPrice: 0.0,
+      stock: 0,
       barcode: code,
-      expiryDate: '12/2028',
+      expiryDate: '',
+      isKnown: false,
     );
   }
 }

@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:http/http.dart' as http;
 import '../api/api_endpoints.dart';
-import 'storage_service.dart';
 
 class BoxOcrResult {
   final String? gtin;
@@ -20,6 +21,7 @@ class BoxOcrResult {
   final String? manufacturer;
   final double confidence;
   final Map<String, dynamic>? matchedMedicine;
+  final bool hasRealData;
 
   BoxOcrResult({
     this.gtin,
@@ -37,6 +39,7 @@ class BoxOcrResult {
     this.manufacturer,
     this.confidence = 0.95,
     this.matchedMedicine,
+    this.hasRealData = false,
   });
 
   factory BoxOcrResult.fromJson(Map<String, dynamic> json) {
@@ -56,6 +59,7 @@ class BoxOcrResult {
       manufacturer: json['manufacturer'],
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.95,
       matchedMedicine: json['matched_medicine'],
+      hasRealData: json['medicine_name'] != null || json['batch_number'] != null,
     );
   }
 }
@@ -93,6 +97,7 @@ class MedicineBoxOcrService {
           expiryDate: expFormatted,
           rawExpiry: expFormatted,
           confidence: 1.0,
+          hasRealData: true,
         );
       }
     }
@@ -129,15 +134,14 @@ class MedicineBoxOcrService {
         }
       }
 
-      if (batch != null || expFormatted != null || gtin != null) {
-        return BoxOcrResult(
-          gtin: gtin,
-          batchNumber: batch,
-          expiryDate: expFormatted,
-          rawExpiry: expFormatted,
-          confidence: 1.0,
-        );
-      }
+      return BoxOcrResult(
+        gtin: gtin,
+        batchNumber: batch,
+        expiryDate: expFormatted,
+        rawExpiry: expFormatted,
+        confidence: 1.0,
+        hasRealData: true,
+      );
     }
 
     return null;
@@ -177,112 +181,351 @@ class MedicineBoxOcrService {
     }
   }
 
-  static Future<BoxOcrResult> scanBoxImage({
-    required List<int> imageBytes,
+  /// 100% Free On-Device Box OCR using Google ML Kit (No Gemini API Key Needed)
+  static Future<BoxOcrResult> scanBoxImageOnDevice({
+    required String imagePath,
     required int pharmacyId,
-    bool syncToPc = true,
+    bool syncToPc = false,
   }) async {
-    final base64Image = base64Encode(imageBytes);
-    final token = StorageService.getToken();
+    final file = File(imagePath);
+    if (!await file.exists()) {
+      throw Exception('ઇમેજ ફાઈલ ઉપલબ્ધ નથી');
+    }
+
+    final inputImage = InputImage.fromFilePath(imagePath);
+    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiEndpoints.scanMedicineBox),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'image': base64Image,
-          'pharmacyId': pharmacyId,
-          'syncToPc': syncToPc,
-        }),
-      ).timeout(const Duration(seconds: 45));
+      final recognizedText = await textRecognizer.processImage(inputImage);
+      final rawText = recognizedText.text;
 
-      final data = jsonDecode(response.body);
-      if (response.statusCode == 200 && data['success'] == true) {
-        return BoxOcrResult.fromJson(data['data']);
-      } else {
-        throw Exception(data['message'] ?? 'Failed to extract text from box');
+      if (rawText.trim().isEmpty) {
+        return BoxOcrResult(hasRealData: false, confidence: 0.0);
       }
-    } on TimeoutException {
-      // Graceful offline fallback on timeout so user never gets stuck
-      return BoxOcrResult(
-        medicineName: 'ARVIND Care 10 Tablets',
-        genericName: 'Paracetamol + Salt',
-        batchNumber: 'T260241',
-        expiryDate: '03/2028',
-        rawExpiry: '03/2028',
-        mrp: 74.99,
-        packSize: '10 Tablets',
-        mfgDate: '04/26',
-        mfgLicNo: 'G/25/1820',
-        manufacturer: 'ARVIND Care LLP',
-        confidence: 0.85,
-        expiryStatus: 'HEALTHY',
+
+      // Collect all lines
+      final lines = <String>[];
+      for (final block in recognizedText.blocks) {
+        for (final line in block.lines) {
+          final t = line.text.trim();
+          if (t.isNotEmpty) lines.add(t);
+        }
+      }
+
+      // 1. Extract Batch Number
+      String? batchNumber = _extractBatchNumber(rawText, lines);
+
+      // 2. Extract Expiry Date
+      String? expiryDate = _extractExpiryDate(rawText, lines);
+
+      // 3. Extract Manufacturing Date
+      String? mfgDate = _extractMfgDate(rawText, lines);
+
+      // 4. Extract MRP
+      double mrp = _extractMrp(rawText, lines);
+
+      // 5. Extract Pack Size
+      String? packSize = _extractPackSize(rawText, lines);
+
+      // 6. Extract Mfg Lic No
+      String? mfgLicNo = _extractMfgLicNo(rawText, lines);
+
+      // 7. Extract Medicine Name & Generic Salt
+      final nameResult = _extractMedicineNameAndSalt(lines);
+      String? medicineName = nameResult['name'];
+      String? genericName = nameResult['generic'];
+
+      // Expiry Health Status
+      String expiryStatus = 'HEALTHY';
+      int daysUntilExpiry = 999;
+      if (expiryDate != null && expiryDate.isNotEmpty) {
+        final parsed = _parseDateForHealth(expiryDate);
+        if (parsed != null) {
+          final now = DateTime.now();
+          daysUntilExpiry = parsed.difference(now).inDays;
+          if (daysUntilExpiry <= 0) {
+            expiryStatus = 'EXPIRED';
+          } else if (daysUntilExpiry <= 90) {
+            expiryStatus = 'NEAR_EXPIRY';
+          }
+        }
+      }
+
+      final hasData = (batchNumber != null && batchNumber.isNotEmpty) ||
+          (expiryDate != null && expiryDate.isNotEmpty) ||
+          (medicineName != null && medicineName.isNotEmpty) ||
+          (mrp > 0);
+
+      final result = BoxOcrResult(
+        medicineName: medicineName,
+        genericName: genericName,
+        batchNumber: batchNumber,
+        expiryDate: expiryDate,
+        rawExpiry: expiryDate,
+        mfgDate: mfgDate,
+        mrp: mrp,
+        packSize: packSize,
+        mfgLicNo: mfgLicNo,
+        daysUntilExpiry: daysUntilExpiry,
+        expiryStatus: expiryStatus,
+        confidence: hasData ? 0.90 : 0.0,
+        hasRealData: hasData,
       );
-    } catch (e) {
-      final errStr = e.toString().toLowerCase();
-      if (errStr.contains('timeout') ||
-          errStr.contains('future not completed') ||
-          errStr.contains('socketexception') ||
-          errStr.contains('failed host lookup') ||
-          errStr.contains('connection refused')) {
-        return BoxOcrResult(
-          medicineName: 'ARVIND Care 10 Tablets',
-          genericName: 'Paracetamol + Salt',
-          batchNumber: 'T260241',
-          expiryDate: '03/2028',
-          rawExpiry: '03/2028',
-          mrp: 74.99,
-          packSize: '10 Tablets',
-          mfgDate: '04/26',
-          mfgLicNo: 'G/25/1820',
-          manufacturer: 'ARVIND Care LLP',
-          confidence: 0.85,
-          expiryStatus: 'HEALTHY',
+
+      // Sync to PC Billing table if requested and valid data exists
+      if (syncToPc && hasData && (medicineName != null || batchNumber != null)) {
+        await syncBoxItemToPc(
+          pharmacyId: pharmacyId,
+          medicineName: medicineName ?? 'Scanned Medicine',
+          batchNumber: batchNumber,
+          expiryDate: expiryDate,
+          mrp: mrp,
+          unitPrice: mrp,
+          genericName: genericName,
         );
       }
-      rethrow;
+
+      return result;
+    } finally {
+      await textRecognizer.close();
     }
   }
 
-  /// Direct sample scan test for verifying real images (ARVIND Care or Spectra Art)
-  static Future<BoxOcrResult> testSampleBoxScan({
-    required int sampleIndex, // 1: ARVIND Care, 2: Spectra Art Dot Matrix
+  /// Compatibility wrapper for existing calls passing imageBytes
+  static Future<BoxOcrResult> scanBoxImage({
+    required List<int> imageBytes,
     required int pharmacyId,
-    bool syncToPc = true,
+    bool syncToPc = false,
   }) async {
-    final response = await http.post(
-      Uri.parse(ApiEndpoints.liveScanItem),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'pharmacyId': pharmacyId,
-        'medicineName': sampleIndex == 1 ? 'ARVIND Care 10 Tabs' : 'resh-DSR 10 Capsules',
-        'quantity': 1,
-        'unitPrice': sampleIndex == 1 ? 74.99 : 120.00,
-        'mrp': sampleIndex == 1 ? 74.99 : 120.00,
-        'batchNumber': sampleIndex == 1 ? 'T260241' : 'CO92604',
-        'expiryDate': sampleIndex == 1 ? '2028-03-01' : '2028-06-01',
-        'mfgDate': sampleIndex == 1 ? '04/26' : '09/2024',
-        'packSize': sampleIndex == 1 ? '10 Tablets' : '10 Capsules',
-        'mfgLicNo': sampleIndex == 1 ? 'G/25/1820' : 'G/25/2342',
-        'isOcrScan': true,
-        'scannedBy': 'Mobile Box OCR',
-      }),
-    );
+    // Write bytes to a temporary file for fast ML Kit processing
+    final tempDir = Directory.systemTemp;
+    final tempFile = File('${tempDir.path}/box_scan_${DateTime.now().millisecondsSinceEpoch}.jpg');
+    try {
+      await tempFile.writeAsBytes(imageBytes);
+      return await scanBoxImageOnDevice(
+        imagePath: tempFile.path,
+        pharmacyId: pharmacyId,
+        syncToPc: syncToPc,
+      );
+    } finally {
+      if (await tempFile.exists()) {
+        await tempFile.delete().catchError((_) => tempFile);
+      }
+    }
+  }
 
-    return BoxOcrResult(
-      medicineName: sampleIndex == 1 ? 'ARVIND Care 10 Tabs' : 'resh-DSR 10 Capsules',
-      batchNumber: sampleIndex == 1 ? 'T260241' : 'CO92604',
-      expiryDate: sampleIndex == 1 ? '03/2028' : '06/2028',
-      mfgDate: sampleIndex == 1 ? '04/26' : '09/2024',
-      mrp: sampleIndex == 1 ? 74.99 : 120.00,
-      packSize: sampleIndex == 1 ? '10 Tablets' : '10 Capsules',
-      mfgLicNo: sampleIndex == 1 ? 'G/25/1820' : 'G/25/2342',
-      manufacturer: sampleIndex == 1 ? 'ARVIND care LLP' : 'Spectra Art Laboratories Pvt. Ltd.',
-      expiryStatus: 'HEALTHY',
-      confidence: 0.98,
+  // -------------------------------------------------------------
+  // REGEX PARSERS FOR INDIAN MEDICINE PACKAGING & LABELS
+  // -------------------------------------------------------------
+
+  static String? _extractBatchNumber(String rawText, List<String> lines) {
+    // Pattern 1: Same line "B.No. T260241" or "Batch No: CO92604"
+    final regexSameLine = RegExp(
+      r'(?:B\.?\s*No\.?|Batch(?:\s*No\.?)?|Lot(?:\s*No\.?)?|B\.?\s*Num(?:ber)?)[ \t:]*([A-Za-z0-9\-\/]{3,18})',
+      caseSensitive: false,
     );
+    final match = regexSameLine.firstMatch(rawText);
+    if (match != null && match.group(1) != null) {
+      final val = match.group(1)!.trim().toUpperCase();
+      if (!_isCommonFalseBatch(val)) return val;
+    }
+
+    // Pattern 2: Look across adjacent lines where label and value are split
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      final isBatchLabel = RegExp(r'^(?:B\.?\s*No\.?|Batch(?:\s*No\.?)?|Lot)$', caseSensitive: false).hasMatch(line);
+      if (isBatchLabel && i + 1 < lines.length) {
+        final next = lines[i + 1].trim().toUpperCase();
+        if (RegExp(r'^[A-Za-z0-9\-\/]{3,18}$').hasMatch(next) && !_isCommonFalseBatch(next)) {
+          return next;
+        }
+      }
+    }
+
+    // Pattern 3: Common dot-matrix batch formats (e.g. T260241, CO92604, AG2401)
+    final looseMatch = RegExp(r'\b([A-Z]{1,3}\d{4,9})\b').firstMatch(rawText);
+    if (looseMatch != null) {
+      final val = looseMatch.group(1)!.trim();
+      if (!_isCommonFalseBatch(val)) return val;
+    }
+
+    return null;
+  }
+
+  static bool _isCommonFalseBatch(String text) {
+    final upper = text.toUpperCase();
+    return upper.contains('TABLET') ||
+        upper.contains('CAPSULE') ||
+        upper.contains('STRIP') ||
+        upper.contains('PRICE') ||
+        upper.contains('EXPIRY') ||
+        upper.contains('TAXES') ||
+        upper.contains('ONLY');
+  }
+
+  static String? _extractExpiryDate(String rawText, List<String> lines) {
+    // Pattern 1: Same line "EXP. 03/2028" or "Expiry: 12/27" or "Use Before: MAR 2028"
+    final expRegex = RegExp(
+      r'(?:Exp\.?\s*(?:Dt\.?|Date)?|Expiry|Exp\b|Use\s*Before)[ \t:]*([0-9]{1,2}[\/\-\.][0-9]{2,4}|[A-Za-z]{3,4}[\s\/\-\.]*[0-9]{2,4})',
+      caseSensitive: false,
+    );
+    final match = expRegex.firstMatch(rawText);
+    if (match != null && match.group(1) != null) {
+      return _normalizeDate(match.group(1)!);
+    }
+
+    // Pattern 2: Multi-line
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      if (RegExp(r'^(?:Exp\.?|Expiry)$', caseSensitive: false).hasMatch(line) && i + 1 < lines.length) {
+        final next = lines[i + 1].trim();
+        final normed = _normalizeDate(next);
+        if (normed != null) return normed;
+      }
+    }
+
+    // Pattern 3: Standalone MM/YYYY or MM/YY where year is 2024 to 2038
+    final standaloneRegex = RegExp(r'\b(0[1-9]|1[0-2])[\/\-\.](20[2-3][0-9]|[2-3][0-9])\b');
+    final allMatches = standaloneRegex.allMatches(rawText);
+    for (final m in allMatches) {
+      final cand = m.group(0);
+      if (cand != null) {
+        return _normalizeDate(cand);
+      }
+    }
+
+    return null;
+  }
+
+  static String? _extractMfgDate(String rawText, List<String> lines) {
+    final mfgRegex = RegExp(
+      r'(?:Mfg\.?\s*(?:Dt\.?|Date)?|Mfd\.?|M\.F\.G\.)[ \t:]*([0-9]{1,2}[\/\-\.][0-9]{2,4}|[A-Za-z]{3,4}[\s\/\-\.]*[0-9]{2,4})',
+      caseSensitive: false,
+    );
+    final match = mfgRegex.firstMatch(rawText);
+    if (match != null && match.group(1) != null) {
+      return _normalizeDate(match.group(1)!);
+    }
+    return null;
+  }
+
+  static String? _normalizeDate(String raw) {
+    final clean = raw.trim().replaceAll('-', '/').replaceAll('.', '/').replaceAll(' ', '');
+    // MM/YYYY
+    if (RegExp(r'^\d{1,2}\/\d{4}$').hasMatch(clean)) {
+      final parts = clean.split('/');
+      final mm = parts[0].padLeft(2, '0');
+      return '$mm/${parts[1]}';
+    }
+    // MM/YY
+    if (RegExp(r'^\d{1,2}\/\d{2}$').hasMatch(clean)) {
+      final parts = clean.split('/');
+      final mm = parts[0].padLeft(2, '0');
+      return '$mm/20${parts[1]}';
+    }
+    return clean;
+  }
+
+  static DateTime? _parseDateForHealth(String expStr) {
+    try {
+      final parts = expStr.split('/');
+      if (parts.length == 2) {
+        final mm = int.parse(parts[0]);
+        final yy = int.parse(parts[1]);
+        return DateTime(yy, mm + 1, 0); // End of the expiry month
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static double _extractMrp(String rawText, List<String> lines) {
+    // Pattern 1: "M.R.P. Rs. 74.99" or "MRP ₹ 120.00"
+    final mrpRegex = RegExp(
+      r'(?:M\.?R\.?P\.?|Price)[ \t:]*(?:Rs\.?|INR|₹)?[ \t:]*([0-9]+(?:\.[0-9]{1,2})?)',
+      caseSensitive: false,
+    );
+    final match = mrpRegex.firstMatch(rawText);
+    if (match != null && match.group(1) != null) {
+      return double.tryParse(match.group(1)!) ?? 0.0;
+    }
+
+    // Pattern 2: ₹ or Rs. prefix
+    final currencyRegex = RegExp(r'(?:Rs\.?|₹)[ \t:]*([0-9]+(?:\.[0-9]{1,2})?)', caseSensitive: false);
+    final cMatch = currencyRegex.firstMatch(rawText);
+    if (cMatch != null && cMatch.group(1) != null) {
+      return double.tryParse(cMatch.group(1)!) ?? 0.0;
+    }
+
+    return 0.0;
+  }
+
+  static String? _extractPackSize(String rawText, List<String> lines) {
+    final packRegex = RegExp(
+      r'\b([0-9]+\s*(?:Tablets?|Tabs?|Capsules?|Caps?|ml|mg|gm|Vial|Ampoule|Strip))\b',
+      caseSensitive: false,
+    );
+    final match = packRegex.firstMatch(rawText);
+    if (match != null && match.group(1) != null) {
+      return match.group(1)!.trim();
+    }
+    return null;
+  }
+
+  static String? _extractMfgLicNo(String rawText, List<String> lines) {
+    final licRegex = RegExp(
+      r'(?:Mfg\.?\s*Lic\.?\s*No\.?|Lic\.?\s*No\.?|M\.L\.)[ \t:]*([A-Za-z0-9\/\-\.]{4,20})',
+      caseSensitive: false,
+    );
+    final match = licRegex.firstMatch(rawText);
+    if (match != null && match.group(1) != null) {
+      return match.group(1)!.trim();
+    }
+    return null;
+  }
+
+  static Map<String, String?> _extractMedicineNameAndSalt(List<String> lines) {
+    String? brandName;
+    String? genericSalt;
+
+    final boilerplatePatterns = [
+      RegExp(r'SCHEDULE\s+[A-Z]', caseSensitive: false),
+      RegExp(r'PRESCRIPTION\s+DRUG', caseSensitive: false),
+      RegExp(r'WARNING|CAUTION|DIRECTION', caseSensitive: false),
+      RegExp(r'KEEP\s+OUT\s+OF\s+REACH', caseSensitive: false),
+      RegExp(r'STORE\s+IN\s+A\s+COOL', caseSensitive: false),
+      RegExp(r'FOR\s+ORAL\s+USE', caseSensitive: false),
+      RegExp(r'MANUFACTURED\s+BY', caseSensitive: false),
+      RegExp(r'MARKETED\s+BY', caseSensitive: false),
+      RegExp(r'BATCH|EXPIRY|M\.R\.P|B\.NO|MFG', caseSensitive: false),
+      RegExp(r'INCL\.\s+OF\s+ALL\s+TAXES', caseSensitive: false),
+    ];
+
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.length < 3) continue;
+
+      bool isBoilerplate = boilerplatePatterns.any((p) => p.hasMatch(trimmed));
+      if (isBoilerplate) continue;
+
+      // Check if it's generic composition (e.g., contains "IP", "BP", "USP", "+", or chemical names)
+      if (RegExp(r'\b(?:IP|BP|USP|Tablets|Capsules|Injection|Syrup)\b', caseSensitive: false).hasMatch(trimmed) &&
+          brandName != null &&
+          genericSalt == null) {
+        genericSalt = trimmed;
+        continue;
+      }
+
+      // First prominent line is usually the brand name
+      if (brandName == null) {
+        // Clean out trailing symbols
+        brandName = trimmed.replaceAll(RegExp(r'[®™]'), '').trim();
+      } else if (genericSalt == null && trimmed.length > 5 && trimmed != brandName) {
+        genericSalt = trimmed;
+      }
+
+      if (genericSalt != null) break;
+    }
+
+    return {'name': brandName, 'generic': genericSalt};
   }
 }

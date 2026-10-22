@@ -109,41 +109,33 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       if (medicine == null) {
         try {
           final autoData = await BarcodeMedicineService.lookup(effectiveBarcode);
-          await inventory.addMedicine(
-            name: autoData.name,
-            genericName: autoData.genericName,
-            category: autoData.category,
-            manufacturer: autoData.manufacturer,
-            mrp: autoData.mrp,
-            sellingPrice: autoData.sellingPrice,
-            stock: autoData.stock > 0 ? autoData.stock : 10,
-            barcode: effectiveBarcode,
-            expiryDate: scannedExp ?? autoData.expiryDate,
-          );
-          medicine = inventory.findByBarcode(effectiveBarcode);
-          medicine ??= MedicineModel(
-            id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
-            name: autoData.name,
-            genericName: autoData.genericName,
-            category: autoData.category,
-            manufacturer: autoData.manufacturer,
-            mrp: autoData.mrp,
-            sellingPrice: autoData.sellingPrice,
-            stock: autoData.stock > 0 ? autoData.stock : 10,
-            barcode: effectiveBarcode,
-          );
+          if (autoData.isKnown && autoData.name.isNotEmpty) {
+            await inventory.addMedicine(
+              name: autoData.name,
+              genericName: autoData.genericName,
+              category: autoData.category,
+              manufacturer: autoData.manufacturer,
+              mrp: autoData.mrp,
+              sellingPrice: autoData.sellingPrice,
+              stock: autoData.stock > 0 ? autoData.stock : 10,
+              barcode: effectiveBarcode,
+              expiryDate: scannedExp ?? autoData.expiryDate,
+            );
+            medicine = inventory.findByBarcode(effectiveBarcode);
+          } else {
+            // Unregistered barcode: open registration sheet instead of adding fake dummy item
+            if (mounted) {
+              HapticFeedback.heavyImpact();
+              _showNewMedicineSheet(effectiveBarcode);
+            }
+            return;
+          }
         } catch (_) {
-          medicine = MedicineModel(
-            id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
-            name: 'Medicine ($effectiveBarcode)',
-            genericName: 'Pharmaceutical Salt',
-            category: 'Tablets',
-            manufacturer: 'Indian Pharma Co.',
-            mrp: 60.00,
-            sellingPrice: 50.00,
-            stock: 10,
-            barcode: effectiveBarcode,
-          );
+          if (mounted) {
+            HapticFeedback.heavyImpact();
+            _showNewMedicineSheet(effectiveBarcode);
+          }
+          return;
         }
       }
 
@@ -1010,13 +1002,13 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     BoxOcrResult? ocrResult;
     String? ocrError;
 
-    final nameCtrl = TextEditingController(text: 'ARVIND Care 10 Tablets');
-    final genericCtrl = TextEditingController(text: 'Paracetamol + Salt');
-    final batchCtrl = TextEditingController(text: 'T260241');
-    final expCtrl = TextEditingController(text: '03/2028');
-    final mrpCtrl = TextEditingController(text: '74.99');
-    final packCtrl = TextEditingController(text: '10 Tablets');
-    final qtyCtrl = TextEditingController(text: '10');
+    final nameCtrl = TextEditingController(text: '');
+    final genericCtrl = TextEditingController(text: '');
+    final batchCtrl = TextEditingController(text: '');
+    final expCtrl = TextEditingController(text: '');
+    final mrpCtrl = TextEditingController(text: '');
+    final packCtrl = TextEditingController(text: '');
+    final qtyCtrl = TextEditingController(text: '1');
 
     showModalBottomSheet(
       context: context,
@@ -1032,6 +1024,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
               setSheetState(() {
                 ocrResult = res;
                 isProcessing = false;
+                ocrError = null;
                 if (res.medicineName != null && res.medicineName!.isNotEmpty) {
                   nameCtrl.text = res.medicineName!;
                 }
@@ -1081,7 +1074,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               Icon(Icons.inventory_2_rounded, size: 16, color: Color(0xFF0D9488)),
                               SizedBox(width: 6),
                               Text(
-                                'Smart Medicine Box Scanner',
+                                'On-Device Box Scanner (૧૦૦% Real)',
                                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0D9488)),
                               ),
                             ],
@@ -1100,7 +1093,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     ),
                     const SizedBox(height: 2),
                     const Text(
-                      'દવાનું નામ, બેચ નંબર, એક્સપાયરી અને MRP સીધા PC બિલમાં અથવા સ્ટોકમાં જમા કરો',
+                      'દવાનું નામ, બેચ નંબર, એક્સપાયરી અને MRP સીધા કેમેરાથી વંચાશે',
                       style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 16),
@@ -1119,8 +1112,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       final picker = ImagePicker();
                                       final photo = await picker.pickImage(
                                         source: ImageSource.camera,
-                                        imageQuality: 70,
-                                        maxWidth: 800,
+                                        imageQuality: 92,
+                                        maxWidth: 1600,
                                       );
                                       if (photo == null) return;
 
@@ -1129,22 +1122,24 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                         ocrError = null;
                                       });
 
-                                      final bytes = await photo.readAsBytes();
-                                      final res = await MedicineBoxOcrService.scanBoxImage(
-                                        imageBytes: bytes,
+                                      final res = await MedicineBoxOcrService.scanBoxImageOnDevice(
+                                        imagePath: photo.path,
                                         pharmacyId: pId,
                                         syncToPc: false,
                                       );
                                       HapticFeedback.heavyImpact();
-                                      applyBoxResult(res);
+
+                                      if (!res.hasRealData) {
+                                        setSheetState(() {
+                                          isProcessing = false;
+                                          ocrError = 'બોક્સ પરથી લખાણ સ્પષ્ટ વંચાયું નથી. કૃપા કરીને થોડો નજીકથી અને સારા પ્રકાશમાં ફોટો પાડો અથવા વિગતો જાતે ભરો.';
+                                        });
+                                      } else {
+                                        applyBoxResult(res);
+                                      }
                                     } catch (e) {
                                       setSheetState(() {
-                                        final err = e.toString().toLowerCase();
-                                        if (err.contains('timeout') || err.contains('future not completed')) {
-                                          ocrError = 'સર્વર રિસ્પોન્સમાં વાર લાગી. કૃપા કરીને ફરી ફોટો પાડો અથવા સેમ્પલ પસંદ કરો.';
-                                        } else {
-                                          ocrError = e.toString().replaceAll('Exception:', '').trim();
-                                        }
+                                        ocrError = 'સ્કેન કરવામાં ભૂલ આવી: ${e.toString().replaceAll('Exception:', '').trim()}';
                                         isProcessing = false;
                                       });
                                     }
@@ -1175,8 +1170,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       final picker = ImagePicker();
                                       final photo = await picker.pickImage(
                                         source: ImageSource.gallery,
-                                        imageQuality: 70,
-                                        maxWidth: 800,
+                                        imageQuality: 92,
+                                        maxWidth: 1600,
                                       );
                                       if (photo == null) return;
 
@@ -1185,22 +1180,24 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                         ocrError = null;
                                       });
 
-                                      final bytes = await photo.readAsBytes();
-                                      final res = await MedicineBoxOcrService.scanBoxImage(
-                                        imageBytes: bytes,
+                                      final res = await MedicineBoxOcrService.scanBoxImageOnDevice(
+                                        imagePath: photo.path,
                                         pharmacyId: pId,
                                         syncToPc: false,
                                       );
                                       HapticFeedback.heavyImpact();
-                                      applyBoxResult(res);
+
+                                      if (!res.hasRealData) {
+                                        setSheetState(() {
+                                          isProcessing = false;
+                                          ocrError = 'બોક્સ પરથી લખાણ સ્પષ્ટ વંચાયું નથી. કૃપા કરીને થોડો નજીકથી અને સારા પ્રકાશમાં ફોટો પાડો અથવા વિગતો જાતે ભરો.';
+                                        });
+                                      } else {
+                                        applyBoxResult(res);
+                                      }
                                     } catch (e) {
                                       setSheetState(() {
-                                        final err = e.toString().toLowerCase();
-                                        if (err.contains('timeout') || err.contains('future not completed')) {
-                                          ocrError = 'સર્વર રિસ્પોન્સમાં વાર લાગી. કૃપા કરીને ફરી ફોટો પાડો અથવા સેમ્પલ પસંદ કરો.';
-                                        } else {
-                                          ocrError = e.toString().replaceAll('Exception:', '').trim();
-                                        }
+                                        ocrError = 'સ્કેન કરવામાં ભૂલ આવી: ${e.toString().replaceAll('Exception:', '').trim()}';
                                         isProcessing = false;
                                       });
                                     }
