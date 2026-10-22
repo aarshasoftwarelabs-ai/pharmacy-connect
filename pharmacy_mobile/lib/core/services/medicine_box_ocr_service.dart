@@ -74,9 +74,10 @@ class MedicineBoxOcrService {
     String? gtin;
     String? batch;
     String? expFormatted;
+    String? mfgFormatted;
 
     // Pattern 1: Parenthesized GS1, e.g. (01)08901234567890(17)280331(10)T260241
-    if (clean.contains('(01)') || clean.contains('(17)') || clean.contains('(10)')) {
+    if (clean.contains('(01)') || clean.contains('(17)') || clean.contains('(10)') || clean.contains('(11)')) {
       final gtinMatch = RegExp(r'\(01\)(\d{14})').firstMatch(clean);
       if (gtinMatch != null) gtin = gtinMatch.group(1);
 
@@ -88,13 +89,22 @@ class MedicineBoxOcrService {
         expFormatted = '$mm/20$yy';
       }
 
+      final mfgMatch = RegExp(r'\(11\)(\d{6})').firstMatch(clean);
+      if (mfgMatch != null) {
+        final d = mfgMatch.group(1)!;
+        final yy = d.substring(0, 2);
+        final mm = d.substring(2, 4);
+        mfgFormatted = '$mm/20$yy';
+      }
+
       final batchMatch = RegExp(r'\(10\)([A-Za-z0-9\-\/]+?)(?:\(|$|\s)').firstMatch(clean);
       if (batchMatch != null) batch = batchMatch.group(1);
 
-      if (batch != null || expFormatted != null || gtin != null) {
+      if (batch != null || expFormatted != null || gtin != null || mfgFormatted != null) {
         return BoxOcrResult(
           gtin: gtin,
           batchNumber: batch,
+          mfgDate: mfgFormatted,
           expiryDate: expFormatted,
           rawExpiry: expFormatted,
           confidence: 1.0,
@@ -118,6 +128,12 @@ class MedicineBoxOcrService {
           final mm = d.substring(2, 4);
           expFormatted = '$mm/20$yy';
           idx += 6;
+        } else if (ai == '11' && idx + 6 <= clean.length) {
+          final d = clean.substring(idx, idx + 6);
+          final yy = d.substring(0, 2);
+          final mm = d.substring(2, 4);
+          mfgFormatted = '$mm/20$yy';
+          idx += 6;
         } else if (ai == '10') {
           final rest = clean.substring(idx);
           final sepIdx = rest.indexOf(RegExp(r'[\x1d\x1e\s]'));
@@ -138,6 +154,7 @@ class MedicineBoxOcrService {
       return BoxOcrResult(
         gtin: gtin,
         batchNumber: batch,
+        mfgDate: mfgFormatted,
         expiryDate: expFormatted,
         rawExpiry: expFormatted,
         confidence: 1.0,
