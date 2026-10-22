@@ -41,6 +41,50 @@ export function parseExpiryDate(dateStr: any): string {
   return `${future.getFullYear()}-12-31`;
 }
 
+async function resolveUrlMedicineName(urlStr: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(urlStr, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const text = await res.text();
+
+    const isRealTitle = (t: string) => {
+      const lower = t.toLowerCase().trim();
+      return !lower.includes('giant qr') &&
+             !lower.includes('me-qr') &&
+             !lower.includes('qr code generator') &&
+             !lower.includes('view qr') &&
+             !lower.includes('free qr') &&
+             !lower.includes('dynamic qr') &&
+             !lower.includes('url / link') &&
+             !lower.includes('qr scanner') &&
+             lower.length > 0;
+    };
+
+    // 1. Check twitter:title (ME-QR stores the actual medicine name in twitter:title)
+    const tw = text.match(/<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
+               text.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:title["']/i);
+    if (tw && isRealTitle(tw[1])) return tw[1].trim();
+
+    // 2. Check og:title
+    const og = text.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+               text.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+    if (og && isRealTitle(og[1])) return og[1].trim();
+
+    // 3. Check <title>
+    const tm = text.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (tm && isRealTitle(tm[1])) return tm[1].trim();
+  } catch (_) {}
+  return null;
+}
+
 export class MedicineService {
   static async getMedicines(pharmacyId: number) {
     const query = `
@@ -167,27 +211,40 @@ export class MedicineService {
       };
     }
 
-    // 4. Guaranteed smart profile generator based on barcode digits
-    return {
-      found: true,
-      isExistingInPharmacy: false,
-      medicine: {
-        name: `Medicine (Barcode ${clean})`,
-        genericName: 'Standard Pharmaceutical Formulation',
-        category: 'Tablets',
-        strength: '500 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        manufacturer: 'Pharma Healthcare',
-        mrp: 60.00,
-        sellingPrice: 52.00,
-        purchasePrice: 38.00,
-        currentStock: 10,
-        barcode: clean,
-        hsnCode: '30049099',
-        gstRate: 12,
-        expiryDate: '2028-12-31'
+    // 4. If barcode is an HTTP/HTTPS URL, resolve real title dynamically (e.g. ME-QR medicine box QR codes)
+    if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      const resolvedName = await resolveUrlMedicineName(clean);
+      if (resolvedName) {
+        return {
+          found: true,
+          isExistingInPharmacy: false,
+          medicine: {
+            name: resolvedName,
+            genericName: '',
+            category: 'Tablets',
+            strength: '',
+            dosageForm: 'Tablet',
+            packSize: '10 tablets',
+            manufacturer: '',
+            mrp: 0.0,
+            sellingPrice: 0.0,
+            purchasePrice: 0.0,
+            currentStock: 10,
+            barcode: clean,
+            hsnCode: '30049099',
+            gstRate: 12,
+            expiryDate: ''
+          }
+        };
       }
+    }
+
+    // 5. Unknown barcode: do NOT return fake dummy values
+    return {
+      found: false,
+      isExistingInPharmacy: false,
+      barcode: clean,
+      message: 'Barcode not found in database or master catalog'
     };
   }
 
