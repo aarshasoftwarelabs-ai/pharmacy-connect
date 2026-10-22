@@ -1282,8 +1282,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       final picker = ImagePicker();
       final photo = await picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 92,
-        maxWidth: 1600,
+        preferredCameraDevice: CameraDevice.rear,
+        imageQuality: 88,
+        maxWidth: 1400,
+        requestFullMetadata: false,
       );
 
       if (photo == null) {
@@ -1293,7 +1295,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
       if (!mounted) return;
 
-      // Show sleek loading HUD while scanning box on device
+      // Show sleek loading HUD while scanning box/strip on device
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1303,19 +1305,19 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             backgroundColor: Colors.white,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircularProgressIndicator(strokeWidth: 3.5, color: Color(0xFF0D9488)),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
                   const Text(
-                    'બોક્સ સ્કેન થઈ રહ્યું છે...',
+                    'દવાનું પત્તું / બોક્સ સ્કેન થઈ રહ્યું છે...',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'દવાનું નામ, બેચ, ઉત્પાદન (MFG) અને એક્સપાયરી તારીખ વાંચી રહ્યા છીએ...',
+                    'દવાનું નામ, બેચ, ઉત્પાદન (MFG), એક્સપાયરી અને MRP વાંચી રહ્યા છીએ...',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.3),
                   ),
@@ -1335,8 +1337,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop(); // Dismiss loading HUD
-        HapticFeedback.heavyImpact();
+        
+        // Instant audio beep, heavy vibration and green screen flash
+        SystemSound.play(SystemSoundType.alert);
         SystemSound.play(SystemSoundType.click);
+        HapticFeedback.heavyImpact();
+
+        setState(() => _isScanFlashActive = true);
+        Future.delayed(const Duration(milliseconds: 280), () {
+          if (mounted) setState(() => _isScanFlashActive = false);
+        });
+
         _showBoxOcrModalWithResult(res);
       }
     } catch (e) {
@@ -1773,15 +1784,31 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 packSize: packVal.isNotEmpty ? packVal : null,
                               );
 
-                              // 2. Also add to mobile billing cart
-                              final med = context.read<InventoryProvider>().findByBarcode(bNo) ?? MedicineModel(
+                              // 2. Also register into Supabase inventory
+                              final inv = context.read<InventoryProvider>();
+                              await inv.addMedicine(
+                                name: medName,
+                                genericName: genSalt.isNotEmpty ? genSalt : null,
+                                category: 'Tablets',
+                                manufacturer: res.manufacturer,
+                                mrp: mrpVal,
+                                sellingPrice: mrpVal * 0.9,
+                                stock: 10,
+                                barcode: bNo.isNotEmpty ? bNo : null,
+                                batchNumber: bNo.isNotEmpty ? bNo : null,
+                                mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
+                                expiryDate: expVal.isNotEmpty ? expVal : null,
+                              );
+
+                              // 3. Add to mobile billing cart
+                              final med = inv.findByBarcode(bNo) ?? MedicineModel(
                                 id: 'box_${DateTime.now().millisecondsSinceEpoch}',
                                 name: medName,
                                 genericName: genSalt.isNotEmpty ? genSalt : null,
                                 manufacturer: res.manufacturer,
                                 category: 'Tablets',
                                 mrp: mrpVal,
-                                sellingPrice: mrpVal,
+                                sellingPrice: mrpVal * 0.9,
                                 stock: 10,
                                 batchNumber: bNo.isNotEmpty ? bNo : null,
                                 mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
@@ -1867,6 +1894,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
               painter: _ScannerHolePainter(
                 laserProgress: _laserAnimation.value,
                 isFlashActive: _isScanFlashActive,
+                isStripMode: _currentMode == StaffScannerMode.boxOcr,
               ),
             ),
           ),
@@ -1897,7 +1925,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           ? Icons.point_of_sale_rounded 
                           : _currentMode == StaffScannerMode.stockInward 
                               ? Icons.inventory_2_rounded 
-                              : Icons.auto_awesome_rounded,
+                              : Icons.document_scanner_rounded,
                       color: Colors.white,
                       size: 20,
                     ),
@@ -1950,39 +1978,97 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
           // 4. Center Scanner Guidance Text
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.22,
+            top: MediaQuery.of(context).size.height * 0.20,
             left: 20,
             right: 20,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
+                color: Colors.black.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _currentMode == StaffScannerMode.boxOcr ? const Color(0xFF0D9488) : Colors.white24,
+                  width: 1,
+                ),
               ),
               child: Text(
                 _currentMode == StaffScannerMode.billing
-                    ? '🎯 Point camera at medicine barcode or QR to add to POS Bill'
-                    : '📦 Point camera at medicine box barcode or QR to update stock or add item',
+                    ? '🎯 દવાના બારકોડ અથવા પત્તાના લખાણ માટે નીચે "Scan Strip" બટન દબાવો'
+                    : _currentMode == StaffScannerMode.stockInward
+                        ? '📦 ઇન્વેન્ટરી સ્ટોક અપડેટ માટે દવા અથવા પત્તું સ્કેન કરો'
+                        : '📄 દવાના પત્તા (Strip) ની પાછળ છાપેલું લખાણ સ્કેન કરવા નીચે બટન દબાવો',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
               ),
             ),
           ),
 
-          // 5. Mode Switcher (Billing vs Stock Inward)
+          // 4b. Floating "Scan Strip Back / પત્તું સ્કેન કરો" Action Button
           Positioned(
-            bottom: billing.itemCount > 0 && _currentMode == StaffScannerMode.billing ? 96 : 30,
-            left: 20,
-            right: 20,
+            bottom: (billing.itemCount > 0 && _currentMode == StaffScannerMode.billing ? 96 : 30) + 60,
+            left: 36,
+            right: 36,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.heavyImpact();
+                  _startDirectBoxScan();
+                },
+                borderRadius: BorderRadius.circular(30),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0D9488), Color(0xFF0F766E)],
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0D9488).withValues(alpha: 0.45),
+                        blurRadius: 16,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.2),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.document_scanner_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        '📸 Scan Strip Back (પત્તાનું લખાણ સ્કેન)',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 5. Mode Switcher (Billing vs Stock Inward vs Strip OCR)
+          Positioned(
+            bottom: billing.itemCount > 0 && _currentMode == StaffScannerMode.billing ? 96 : 28,
+            left: 16,
+            right: 16,
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.75),
+                color: Colors.black.withValues(alpha: 0.80),
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: Colors.white24),
               ),
               child: Row(
                 children: [
+                  // Tab 1: Billing
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
@@ -1990,26 +2076,26 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         setState(() => _currentMode = StaffScannerMode.billing);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
                           color: _currentMode == StaffScannerMode.billing ? AppColors.primary : Colors.transparent,
-                          borderRadius: BorderRadius.circular(26),
+                          borderRadius: BorderRadius.circular(24),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.shopping_cart_checkout_rounded,
-                              size: 16,
+                              size: 15,
                               color: _currentMode == StaffScannerMode.billing ? Colors.white : Colors.white70,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 4),
                             Text(
-                              'Billing (બિલિંગ)',
+                              'Billing',
                               style: TextStyle(
                                 color: _currentMode == StaffScannerMode.billing ? Colors.white : Colors.white70,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -2017,6 +2103,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       ),
                     ),
                   ),
+                  // Tab 2: Stock Inward
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
@@ -2024,26 +2111,61 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         setState(() => _currentMode = StaffScannerMode.stockInward);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
                           color: _currentMode == StaffScannerMode.stockInward ? Colors.deepOrange : Colors.transparent,
-                          borderRadius: BorderRadius.circular(26),
+                          borderRadius: BorderRadius.circular(24),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.inventory_2_rounded,
-                              size: 16,
+                              size: 15,
                               color: _currentMode == StaffScannerMode.stockInward ? Colors.white : Colors.white70,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 4),
                             Text(
-                              'Stock Inward (ઇન્વેન્ટરી)',
+                              'Stock',
                               style: TextStyle(
                                 color: _currentMode == StaffScannerMode.stockInward ? Colors.white : Colors.white70,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Tab 3: Strip OCR
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _currentMode = StaffScannerMode.boxOcr);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _currentMode == StaffScannerMode.boxOcr ? const Color(0xFF0D9488) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.document_scanner_rounded,
+                              size: 15,
+                              color: _currentMode == StaffScannerMode.boxOcr ? Colors.white : Colors.white70,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Strip OCR',
+                              style: TextStyle(
+                                color: _currentMode == StaffScannerMode.boxOcr ? Colors.white : Colors.white70,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -2127,18 +2249,22 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 class _ScannerHolePainter extends CustomPainter {
   final double laserProgress;
   final bool isFlashActive;
+  final bool isStripMode;
 
   _ScannerHolePainter({
     required this.laserProgress,
     this.isFlashActive = false,
+    this.isStripMode = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final scanSize = size.width * 0.76;
-    final left = (size.width - scanSize) / 2;
-    final top = (size.height - scanSize) / 2;
-    final scanRect = Rect.fromLTWH(left, top, scanSize, scanSize);
+    // Dynamic framing: wide rectangle for medicine strips/bottles, square for barcodes/boxes
+    final scanWidth = isStripMode ? size.width * 0.88 : size.width * 0.76;
+    final scanHeight = isStripMode ? size.width * 0.54 : size.width * 0.76;
+    final left = (size.width - scanWidth) / 2;
+    final top = (size.height - scanHeight) / 2;
+    final scanRect = Rect.fromLTWH(left, top, scanWidth, scanHeight);
 
     // Dark background mask
     final bgPaint = Paint()..color = Colors.black.withValues(alpha: 0.45);
@@ -2159,52 +2285,66 @@ class _ScannerHolePainter extends CustomPainter {
     final borderPaint = Paint()
       ..color = isFlashActive
           ? const Color(0xFF22C55E)
-          : Colors.white.withValues(alpha: 0.6)
+          : isStripMode
+              ? const Color(0xFF0D9488)
+              : Colors.white.withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = isFlashActive ? 3.0 : 2.0;
     canvas.drawRRect(RRect.fromRectAndRadius(scanRect, const Radius.circular(24)), borderPaint);
 
     // 4 Corner Highlights
     final cornerPaint = Paint()
-      ..color = isFlashActive ? const Color(0xFF22C55E) : AppColors.primary
+      ..color = isFlashActive
+          ? const Color(0xFF22C55E)
+          : isStripMode
+              ? const Color(0xFF0D9488)
+              : AppColors.primary
       ..style = PaintingStyle.stroke
       ..strokeWidth = isFlashActive ? 6.0 : 4.5
       ..strokeCap = StrokeCap.round;
 
-    const cornerLen = 28.0;
+    final cornerLen = isStripMode ? 32.0 : 28.0;
 
     // Top-Left
     canvas.drawLine(Offset(left, top + cornerLen), Offset(left, top + 14), cornerPaint);
     canvas.drawLine(Offset(left + 14, top), Offset(left + cornerLen, top), cornerPaint);
 
     // Top-Right
-    canvas.drawLine(Offset(left + scanSize - cornerLen, top), Offset(left + scanSize - 14, top), cornerPaint);
-    canvas.drawLine(Offset(left + scanSize, top + 14), Offset(left + scanSize, top + cornerLen), cornerPaint);
+    canvas.drawLine(Offset(left + scanWidth - cornerLen, top), Offset(left + scanWidth - 14, top), cornerPaint);
+    canvas.drawLine(Offset(left + scanWidth, top + 14), Offset(left + scanWidth, top + cornerLen), cornerPaint);
 
     // Bottom-Left
-    canvas.drawLine(Offset(left, top + scanSize - cornerLen), Offset(left, top + scanSize - 14), cornerPaint);
-    canvas.drawLine(Offset(left + 14, top + scanSize), Offset(left + cornerLen, top + scanSize), cornerPaint);
+    canvas.drawLine(Offset(left, top + scanHeight - cornerLen), Offset(left, top + scanHeight - 14), cornerPaint);
+    canvas.drawLine(Offset(left + 14, top + scanHeight), Offset(left + cornerLen, top + scanHeight), cornerPaint);
 
     // Bottom-Right
-    canvas.drawLine(Offset(left + scanSize - cornerLen, top + scanSize), Offset(left + scanSize - 14, top + scanSize), cornerPaint);
-    canvas.drawLine(Offset(left + scanSize, top + scanSize - cornerLen), Offset(left + scanSize, top + scanSize - 14), cornerPaint);
+    canvas.drawLine(Offset(left + scanWidth - cornerLen, top + scanHeight), Offset(left + scanWidth - 14, top + scanHeight), cornerPaint);
+    canvas.drawLine(Offset(left + scanWidth, top + scanHeight - 14), Offset(left + scanWidth, top + scanHeight - cornerLen), cornerPaint);
 
     // Laser Line with glowing gradient
-    final laserY = top + (scanSize * laserProgress);
+    final laserY = top + (scanHeight * laserProgress);
     final laserPaint = Paint()
-      ..color = isFlashActive ? const Color(0xFF22C55E) : Colors.redAccent
+      ..color = isFlashActive
+          ? const Color(0xFF22C55E)
+          : isStripMode
+              ? const Color(0xFF0D9488)
+              : Colors.redAccent
       ..strokeWidth = 2.5
       ..shader = LinearGradient(
         colors: isFlashActive
             ? [Colors.transparent, const Color(0xFF22C55E), Colors.green, const Color(0xFF22C55E), Colors.transparent]
-            : [Colors.transparent, Colors.redAccent, Colors.red, Colors.redAccent, Colors.transparent],
-      ).createShader(Rect.fromLTWH(left, laserY, scanSize, 3));
+            : isStripMode
+                ? [Colors.transparent, const Color(0xFF0D9488), Colors.tealAccent, const Color(0xFF0D9488), Colors.transparent]
+                : [Colors.transparent, Colors.redAccent, Colors.red, Colors.redAccent, Colors.transparent],
+      ).createShader(Rect.fromLTWH(left, laserY, scanWidth, 3));
 
-    canvas.drawLine(Offset(left + 10, laserY), Offset(left + scanSize - 10, laserY), laserPaint);
+    canvas.drawLine(Offset(left + 10, laserY), Offset(left + scanWidth - 10, laserY), laserPaint);
   }
 
   @override
   bool shouldRepaint(covariant _ScannerHolePainter oldDelegate) {
-    return oldDelegate.laserProgress != laserProgress || oldDelegate.isFlashActive != isFlashActive;
+    return oldDelegate.laserProgress != laserProgress ||
+        oldDelegate.isFlashActive != isFlashActive ||
+        oldDelegate.isStripMode != isStripMode;
   }
 }
