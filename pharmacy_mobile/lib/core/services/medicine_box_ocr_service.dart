@@ -333,6 +333,175 @@ class MedicineBoxOcrService {
     }
   }
 
+  /// 2-Step Front & Back Strip Scan on device:
+  /// Step 1 (Front Side): Extracts Brand Name, Generic Composition, Manufacturer.
+  /// Step 2 (Back Side): Extracts Batch Number, MFG Date, Expiry Date, MRP, Pack Size.
+  /// Merges both results into a single comprehensive BoxOcrResult.
+  static Future<BoxOcrResult> scanTwoStepStripOnDevice({
+    required String frontImagePath,
+    String? backImagePath,
+    required int pharmacyId,
+    bool syncToPc = false,
+  }) async {
+    final frontFile = File(frontImagePath);
+    if (!await frontFile.exists()) {
+      throw Exception('આગળની ઇમેજ ફાઈલ ઉપલબ્ધ નથી');
+    }
+
+    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    try {
+      // 1. Process Front Side
+      final frontInput = InputImage.fromFilePath(frontImagePath);
+      final frontRecognized = await textRecognizer.processImage(frontInput);
+      final frontRawText = frontRecognized.text;
+      final frontLines = <String>[];
+      for (final block in frontRecognized.blocks) {
+        for (final line in block.lines) {
+          final t = line.text.trim();
+          if (t.isNotEmpty) frontLines.add(t);
+        }
+      }
+
+      final frontNameRes = _extractMedicineNameAndSalt(frontLines);
+      String? medicineName = frontNameRes['name']?.trim();
+      String? genericName = frontNameRes['generic']?.trim();
+      String? manufacturer = frontNameRes['manufacturer']?.trim();
+
+      String? batchNumber = _extractBatchNumber(frontRawText, frontLines);
+      final frontDates = _extractMfgAndExpDates(frontRawText, frontLines);
+      String? mfgDate = frontDates['mfg'];
+      String? expiryDate = frontDates['exp'];
+      double mrp = _extractMrp(frontRawText, frontLines);
+      String? packSize = _extractPackSize(frontRawText, frontLines);
+      String? mfgLicNo = _extractMfgLicNo(frontRawText, frontLines);
+
+      // 2. Process Back Side (if provided)
+      if (backImagePath != null && backImagePath.isNotEmpty) {
+        final backFile = File(backImagePath);
+        if (await backFile.exists()) {
+          final backInput = InputImage.fromFilePath(backImagePath);
+          final backRecognized = await textRecognizer.processImage(backInput);
+          final backRawText = backRecognized.text;
+          final backLines = <String>[];
+          for (final block in backRecognized.blocks) {
+            for (final line in block.lines) {
+              final t = line.text.trim();
+              if (t.isNotEmpty) backLines.add(t);
+            }
+          }
+
+          // Back side takes priority for Batch Number
+          final backBatch = _extractBatchNumber(backRawText, backLines);
+          if (backBatch != null && backBatch.isNotEmpty) {
+            batchNumber = backBatch;
+          }
+
+          // Back side takes priority for Dates
+          final backDates = _extractMfgAndExpDates(backRawText, backLines);
+          if (backDates['mfg'] != null && backDates['mfg']!.isNotEmpty) {
+            mfgDate = backDates['mfg'];
+          }
+          if (backDates['exp'] != null && backDates['exp']!.isNotEmpty) {
+            expiryDate = backDates['exp'];
+          }
+
+          // Back side takes priority for MRP
+          final backMrp = _extractMrp(backRawText, backLines);
+          if (backMrp > 0) {
+            mrp = backMrp;
+          }
+
+          final backPack = _extractPackSize(backRawText, backLines);
+          if (backPack != null && backPack.isNotEmpty) {
+            packSize ??= backPack;
+          }
+
+          final backLic = _extractMfgLicNo(backRawText, backLines);
+          if (backLic != null && backLic.isNotEmpty) {
+            mfgLicNo ??= backLic;
+          }
+
+          // Back side can fill in missing Manufacturer or Medicine Name
+          final backNameRes = _extractMedicineNameAndSalt(backLines);
+          if (manufacturer == null || manufacturer.isEmpty) {
+            manufacturer = backNameRes['manufacturer']?.trim();
+          }
+          if (medicineName == null || medicineName.isEmpty) {
+            medicineName = backNameRes['name']?.trim();
+          }
+          if (genericName == null || genericName.isEmpty) {
+            genericName = backNameRes['generic']?.trim();
+          }
+        }
+      }
+
+      // Auto-derive missing values
+      if (medicineName != null && medicineName.isNotEmpty) {
+        if (manufacturer == null || manufacturer.isEmpty) {
+          manufacturer = BarcodeMedicineService.deriveManufacturer(medicineName);
+        }
+        if (genericName == null || genericName.isEmpty) {
+          genericName = BarcodeMedicineService.deriveGenericSalt(medicineName);
+        }
+      }
+
+      final now = DateTime.now();
+
+      // Expiry Health Status
+      String expiryStatus = 'HEALTHY';
+      int daysUntilExpiry = 999;
+      if (expiryDate != null && expiryDate.isNotEmpty) {
+        final parsed = _parseDateForHealth(expiryDate);
+        if (parsed != null) {
+          daysUntilExpiry = parsed.difference(now).inDays;
+          if (daysUntilExpiry <= 0) {
+            expiryStatus = 'EXPIRED';
+          } else if (daysUntilExpiry <= 90) {
+            expiryStatus = 'NEAR_EXPIRY';
+          }
+        }
+      }
+
+      final hasData = (medicineName != null && medicineName.isNotEmpty) ||
+          (batchNumber != null && batchNumber.isNotEmpty);
+
+      final result = BoxOcrResult(
+        medicineName: medicineName ?? 'Scanned Medicine',
+        genericName: genericName,
+        batchNumber: batchNumber,
+        expiryDate: expiryDate,
+        rawExpiry: expiryDate,
+        mfgDate: mfgDate,
+        mrp: mrp > 0 ? mrp : 0.0,
+        packSize: packSize,
+        mfgLicNo: mfgLicNo,
+        manufacturer: manufacturer,
+        daysUntilExpiry: daysUntilExpiry,
+        expiryStatus: expiryStatus,
+        confidence: hasData ? 0.98 : 0.0,
+        hasRealData: true,
+      );
+
+      if (syncToPc && hasData && (medicineName != null || batchNumber != null)) {
+        await syncBoxItemToPc(
+          pharmacyId: pharmacyId,
+          medicineName: medicineName ?? 'Scanned Medicine',
+          batchNumber: batchNumber,
+          expiryDate: expiryDate,
+          mfgDate: mfgDate,
+          mrp: mrp > 0 ? mrp : 0.0,
+          unitPrice: mrp > 0 ? mrp : 0.0,
+          genericName: genericName,
+          packSize: packSize,
+        );
+      }
+
+      return result;
+    } finally {
+      await textRecognizer.close();
+    }
+  }
+
   /// Compatibility wrapper for existing calls passing imageBytes
   static Future<BoxOcrResult> scanBoxImage({
     required List<int> imageBytes,

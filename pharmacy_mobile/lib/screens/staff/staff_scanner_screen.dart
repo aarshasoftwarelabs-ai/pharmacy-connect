@@ -1302,70 +1302,362 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
   // 4. SMART MEDICINE BOX DETAILS SCANNER (AI-Free / Instant On-Device)
   // -------------------------------------------------------------
   // -------------------------------------------------------------
-  // 4. SMART MEDICINE BOX DETAILS SCANNER (AI-Free / Instant On-Device)
+  // -------------------------------------------------------------
+  // 4. SMART MEDICINE STRIP / BOX DETAILS SCANNER (2-Step Front & Back)
   // -------------------------------------------------------------
   Future<void> _startDirectBoxScan() async {
     _isBottomSheetOpen = true;
-    try {
-      final picker = ImagePicker();
-      final photo = await picker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.rear,
-        imageQuality: 88,
-        maxWidth: 1400,
-        requestFullMetadata: false,
-      );
+    final picker = ImagePicker();
+    XFile? frontPhoto;
+    XFile? backPhoto;
 
-      if (photo == null) {
-        _isBottomSheetOpen = false;
-        return;
-      }
+    final shouldProcess = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final isFrontDone = frontPhoto != null;
+            final isBackDone = backPhoto != null;
 
-      if (!mounted) return;
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Handle bar
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
 
-      // Show sleek loading HUD while scanning box/strip on device
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => PopScope(
-          canPop: false,
-          child: Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            backgroundColor: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(strokeWidth: 3.5, color: Color(0xFF0D9488)),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'દવાનું પત્તું / બોક્સ સ્કેન થઈ રહ્યું છે...',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'દવાનું નામ, બેચ, ઉત્પાદન (MFG), એક્સપાયરી અને MRP વાંચી રહ્યા છીએ...',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.3),
-                  ),
-                ],
+                    // Title
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.document_scanner_rounded, color: Color(0xFF0D9488), size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '૨-સ્ટેપ પત્તું / બોક્સ સ્કેનર',
+                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.black87),
+                              ),
+                              Text(
+                                'નામ, કંપની, બેચ, MFG, Expiry અને MRP ઓટો-ફિલ કરો',
+                                style: TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20, color: Colors.grey),
+                          onPressed: () => Navigator.pop(ctx, false),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // STEP 1 CARD (Front Side: Brand, Company, Salt)
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isFrontDone ? Colors.green.shade50 : const Color(0xFFF0FDFA),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isFrontDone ? Colors.green.shade400 : const Color(0xFF0D9488).withValues(alpha: 0.4),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isFrontDone ? Colors.green.shade600 : const Color(0xFF0D9488),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isFrontDone ? Icons.check_rounded : Icons.looks_one_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isFrontDone ? 'સ્ટેપ ૧ પૂર્ણ (આગળની બાજુ)' : 'સ્ટેપ ૧: આગળની બાજુ (Front Side)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: isFrontDone ? Colors.green.shade900 : Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  isFrontDone
+                                      ? '✅ આગળનો ફોટો સેવ થયો (નામ + કંપની)'
+                                      : 'દવાનું નામ, કંપની અને સોલ્ટ શોધવા આગળનો ફોટો લો',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isFrontDone ? Colors.green.shade700 : const Color(0xFF0D9488),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: Icon(isFrontDone ? Icons.replay_rounded : Icons.camera_alt_rounded, size: 15),
+                            label: Text(
+                              isFrontDone ? 'બદલો' : 'ફોટો લો',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                            onPressed: () async {
+                              final photo = await picker.pickImage(
+                                source: ImageSource.camera,
+                                preferredCameraDevice: CameraDevice.rear,
+                                imageQuality: 90,
+                                maxWidth: 1600,
+                              );
+                              if (photo != null) {
+                                setSheetState(() => frontPhoto = photo);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // STEP 2 CARD (Back Side: Batch, Mfg, Exp, MRP)
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: !isFrontDone
+                            ? Colors.grey.shade100
+                            : (isBackDone ? Colors.green.shade50 : const Color(0xFFFFF7ED)),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: !isFrontDone
+                              ? Colors.grey.shade300
+                              : (isBackDone ? Colors.green.shade400 : Colors.orange.shade400),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: !isFrontDone
+                                  ? Colors.grey.shade400
+                                  : (isBackDone ? Colors.green.shade600 : Colors.deepOrange),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isBackDone ? Icons.check_rounded : Icons.looks_two_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isBackDone
+                                      ? 'સ્ટેપ ૨ પૂર્ણ (પાછળની બાજુ)'
+                                      : 'સ્ટેપ ૨: પાછળની બાજુ (Back Side)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: !isFrontDone
+                                        ? Colors.grey.shade500
+                                        : (isBackDone ? Colors.green.shade900 : Colors.black87),
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  isBackDone
+                                      ? '✅ પાછળનો ફોટો સેવ થયો (B.No + તારીખો + MRP)'
+                                      : 'બેચ નંબર, MFG, Expiry અને MRP માટે પાછળનો ફોટો લો',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: !isFrontDone ? Colors.grey.shade500 : Colors.grey.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isFrontDone)
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isBackDone ? Colors.green.shade700 : Colors.deepOrange,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              icon: Icon(isBackDone ? Icons.replay_rounded : Icons.camera_alt_rounded, size: 15),
+                              label: Text(
+                                isBackDone ? 'બદલો' : 'ફોટો લો',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                              onPressed: () async {
+                                final photo = await picker.pickImage(
+                                  source: ImageSource.camera,
+                                  preferredCameraDevice: CameraDevice.rear,
+                                  imageQuality: 90,
+                                  maxWidth: 1600,
+                                );
+                                if (photo != null) {
+                                  setSheetState(() => backPhoto = photo);
+                                  // Auto-proceed to merge when both photos are ready
+                                  Navigator.pop(ctx, true);
+                                }
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Primary Action when at least Front is done
+                    if (isFrontDone) ...[
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0F766E),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.auto_awesome_rounded),
+                        label: Text(
+                          isBackDone
+                              ? 'ડેટા મર્જ કરો (Merge & Auto-Fill)'
+                              : 'વિગતો સ્કેન કરો (માત્ર આગળનો ડેટા)',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx, true);
+                        },
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+
+                    // Gallery fallback
+                    TextButton.icon(
+                      style: TextButton.styleFrom(foregroundColor: Colors.grey.shade700),
+                      icon: const Icon(Icons.photo_library_outlined, size: 18),
+                      label: const Text('ગેલેરીમાંથી ફોટો પસંદ કરો (Gallery)'),
+                      onPressed: () async {
+                        final photo = await picker.pickImage(
+                          source: ImageSource.gallery,
+                          imageQuality: 90,
+                          maxWidth: 1600,
+                        );
+                        if (photo != null) {
+                          if (frontPhoto == null) {
+                            setSheetState(() => frontPhoto = photo);
+                          } else {
+                            setSheetState(() => backPhoto = photo);
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
+            );
+          },
+        );
+      },
+    );
+
+    if (shouldProcess != true || frontPhoto == null) {
+      _isBottomSheetOpen = false;
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Show sleek loading HUD while scanning box/strip on device
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(strokeWidth: 3.5, color: Color(0xFF0D9488)),
+                const SizedBox(height: 18),
+                const Text(
+                  'દવાની વિગતો મર્જ થઈ રહી છે...',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  backPhoto != null
+                      ? 'આગળ અને પાછળ બંને બાજુથી દવાનું નામ, કંપની, બેચ, તારીખો અને MRP વાંચી રહ્યા છીએ...'
+                      : 'દવાનું નામ, ઉત્પાદક કંપની અને સોલ્ટ વાંચી રહ્યા છીએ...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.3),
+                ),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    );
 
+    try {
       final auth = context.read<AuthProvider>();
-      final res = await MedicineBoxOcrService.scanBoxImageOnDevice(
-        imagePath: photo.path,
+      final res = await MedicineBoxOcrService.scanTwoStepStripOnDevice(
+        frontImagePath: frontPhoto!.path,
+        backImagePath: backPhoto?.path,
         pharmacyId: auth.pharmacyId,
         syncToPc: false,
       );
 
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop(); // Dismiss loading HUD
-        
+
         // Instant audio beep, heavy vibration and green screen flash
         SystemSound.play(SystemSoundType.alert);
         SystemSound.play(SystemSoundType.click);
@@ -2013,7 +2305,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                   // Camera OCR scan for text-only strips/boxes without barcode
                   IconButton(
                     icon: const Icon(Icons.camera_alt_rounded, color: Colors.white),
-                    tooltip: 'ફોટો OCR સ્કેન (Strip/Box OCR)',
+                    tooltip: '૨-સ્ટેપ પત્તું સ્કેનર (Front & Back Strip)',
                     onPressed: _startDirectBoxScan,
                   ),
                   // Manual search button
@@ -2050,7 +2342,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
               child: Text(
                 _currentMode == StaffScannerMode.billing
                     ? '🎯 દવાના બારકોડ, QR અથવા બોક્સ સ્કેન કરો (POS બિલિંગ)'
-                    : '📦 દવાના બોક્સ અથવા સ્ટ્રીપ સ્કેન કરો (ઇન્વેન્ટરી સ્ટોક)',
+                    : '📦 બારકોડ સ્કેન કરો અથવા ઉપર 📸 દબાવી આગળ-પાછળ ૨ ફોટા પાડો',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
               ),
