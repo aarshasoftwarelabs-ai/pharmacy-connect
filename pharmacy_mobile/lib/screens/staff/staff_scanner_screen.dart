@@ -640,6 +640,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
         ? auto.category
         : (initialName.isNotEmpty ? BarcodeMedicineService.deriveCategory(initialName) : 'Tablets');
 
+    // 3.5 Resolve Manufacturer / Company Name
+    String initialManufacturer = (auto.manufacturer != null && auto.manufacturer!.isNotEmpty)
+        ? auto.manufacturer!
+        : (initialName.isNotEmpty ? (BarcodeMedicineService.deriveManufacturer(initialName) ?? '') : '');
+
     // 4. Resolve Batch Number (auto-generated realistic batch if not in GS1)
     String initialBatch = (prefilledBatch != null && prefilledBatch.isNotEmpty)
         ? prefilledBatch
@@ -668,6 +673,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
         : (effectiveMrp * 0.9);
 
     final nameCtrl = TextEditingController(text: initialName);
+    final mfgCompanyCtrl = TextEditingController(text: initialManufacturer);
     final genericCtrl = TextEditingController(text: initialGeneric);
     final categoryCtrl = TextEditingController(text: initialCategory);
     final batchCtrl = TextEditingController(text: initialBatch);
@@ -685,6 +691,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
         if (!mounted || !_isBottomSheetOpen) return;
         if (fresh.name.isNotEmpty && nameCtrl.text.isEmpty) {
           nameCtrl.text = fresh.name;
+          if (mfgCompanyCtrl.text.isEmpty) {
+            mfgCompanyCtrl.text = fresh.manufacturer ?? (BarcodeMedicineService.deriveManufacturer(fresh.name) ?? '');
+          }
           if (genericCtrl.text.isEmpty && fresh.genericName != null) {
             genericCtrl.text = fresh.genericName!;
           }
@@ -764,6 +773,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         labelText: 'Medicine Name * (દવાનું નામ)',
                         hintText: 'e.g. FLUOK FT / Dolo 650',
                         prefixIcon: Icon(Icons.medication_rounded, color: AppColors.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Company / Manufacturer Input
+                    TextField(
+                      controller: mfgCompanyCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Company / Manufacturer (ઉત્પાદક કંપની)',
+                        hintText: 'e.g. Micro Labs Ltd / Sun Pharma',
+                        prefixIcon: Icon(Icons.business_rounded, color: Colors.blueGrey),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -906,6 +926,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           final bNo = batchCtrl.text.trim();
                           final mfgVal = mfgCtrl.text.trim();
                           final expVal = expiryCtrl.text.trim();
+                          final compVal = mfgCompanyCtrl.text.trim();
 
                           Navigator.pop(ctx);
                           final inv = context.read<InventoryProvider>();
@@ -913,7 +934,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             name: medName,
                             genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
                             category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'Tablets',
-                            manufacturer: auto.manufacturer,
+                            manufacturer: compVal.isNotEmpty ? compVal : auto.manufacturer,
                             mrp: mrp,
                             sellingPrice: sp,
                             stock: stock,
@@ -936,6 +957,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                   name: medName,
                                   genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
                                   category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'Tablets',
+                                  manufacturer: compVal.isNotEmpty ? compVal : auto.manufacturer,
                                   mrp: mrp,
                                   sellingPrice: sp,
                                   stock: stock,
@@ -1374,6 +1396,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     _isBottomSheetOpen = true;
 
     final nameCtrl = TextEditingController(text: res.medicineName ?? '');
+    final mfgCompanyCtrl = TextEditingController(
+      text: res.manufacturer ?? (res.medicineName != null ? (BarcodeMedicineService.deriveManufacturer(res.medicineName!) ?? '') : ''),
+    );
     final genericCtrl = TextEditingController(text: res.genericName ?? '');
     final packCtrl = TextEditingController(text: res.packSize ?? '');
     final batchCtrl = TextEditingController(text: res.batchNumber ?? '');
@@ -1488,6 +1513,28 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               filled: true,
                               fillColor: Colors.white,
                               hintText: 'e.g. Paracetamol 650mg',
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          Row(
+                            children: [
+                              const Icon(Icons.business_rounded, size: 16, color: Color(0xFF0D9488)),
+                              const SizedBox(width: 6),
+                              const Text('કંપની / Manufacturer:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: mfgCompanyCtrl,
+                            style: const TextStyle(fontSize: 13),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              filled: true,
+                              fillColor: Colors.white,
+                              hintText: 'e.g. Micro Labs Ltd / Sun Pharma',
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -1699,6 +1746,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           child: ElevatedButton.icon(
                             onPressed: () async {
                               final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                              final compVal = mfgCompanyCtrl.text.trim();
                               final bNo = batchCtrl.text.trim();
                               final mfgVal = mfgCtrl.text.trim();
                               final expVal = expCtrl.text.trim();
@@ -1711,7 +1759,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 name: medName,
                                 genericName: genSalt.isNotEmpty ? genSalt : null,
                                 category: 'Tablets',
-                                manufacturer: res.manufacturer,
+                                manufacturer: compVal.isNotEmpty ? compVal : res.manufacturer,
                                 mrp: mrpVal,
                                 sellingPrice: mrpVal * 0.9,
                                 stock: addStock,
@@ -1767,6 +1815,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           child: ElevatedButton.icon(
                             onPressed: () async {
                               final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                              final compVal = mfgCompanyCtrl.text.trim();
                               final bNo = batchCtrl.text.trim();
                               final mfgVal = mfgCtrl.text.trim();
                               final expVal = expCtrl.text.trim();
@@ -1796,7 +1845,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 name: medName,
                                 genericName: genSalt.isNotEmpty ? genSalt : null,
                                 category: 'Tablets',
-                                manufacturer: res.manufacturer,
+                                manufacturer: compVal.isNotEmpty ? compVal : res.manufacturer,
                                 mrp: mrpVal,
                                 sellingPrice: mrpVal * 0.9,
                                 stock: 10,
@@ -1811,7 +1860,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 id: 'box_${DateTime.now().millisecondsSinceEpoch}',
                                 name: medName,
                                 genericName: genSalt.isNotEmpty ? genSalt : null,
-                                manufacturer: res.manufacturer,
+                                manufacturer: compVal.isNotEmpty ? compVal : res.manufacturer,
                                 category: 'Tablets',
                                 mrp: mrpVal,
                                 sellingPrice: mrpVal * 0.9,

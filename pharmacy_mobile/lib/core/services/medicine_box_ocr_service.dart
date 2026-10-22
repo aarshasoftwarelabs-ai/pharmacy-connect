@@ -469,18 +469,44 @@ class MedicineBoxOcrService {
   }
 
   static String? _normalizeDate(String raw) {
-    final clean = raw.trim().replaceAll('-', '/').replaceAll('.', '/').replaceAll(' ', '');
-    // MM/YYYY
+    var clean = raw.trim().replaceAll('-', '/').replaceAll('.', '/');
+
+    final monthMap = {
+      'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04',
+      'MAY': '05', 'JUN': '06', 'JUL': '07', 'AUG': '08',
+      'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12',
+    };
+    for (final entry in monthMap.entries) {
+      if (clean.toUpperCase().contains(entry.key)) {
+        clean = clean.toUpperCase().replaceAll(entry.key, entry.value);
+        break;
+      }
+    }
+    clean = clean.replaceAll(' ', '');
+
+    // MM/YYYY (e.g. 05/2024)
     if (RegExp(r'^\d{1,2}\/\d{4}$').hasMatch(clean)) {
       final parts = clean.split('/');
       final mm = parts[0].padLeft(2, '0');
       return '$mm/${parts[1]}';
     }
-    // MM/YY
+    // MM/YY (e.g. 05/24) -> 05/2024
     if (RegExp(r'^\d{1,2}\/\d{2}$').hasMatch(clean)) {
       final parts = clean.split('/');
       final mm = parts[0].padLeft(2, '0');
       return '$mm/20${parts[1]}';
+    }
+    // DD/MM/YYYY (e.g. 15/05/2024) -> 05/2024
+    if (RegExp(r'^\d{1,2}\/\d{1,2}\/\d{4}$').hasMatch(clean)) {
+      final parts = clean.split('/');
+      final mm = parts[1].padLeft(2, '0');
+      return '$mm/${parts[2]}';
+    }
+    // DD/MM/YY (e.g. 15/05/24) -> 05/2024
+    if (RegExp(r'^\d{1,2}\/\d{1,2}\/\d{2}$').hasMatch(clean)) {
+      final parts = clean.split('/');
+      final mm = parts[1].padLeft(2, '0');
+      return '$mm/20${parts[2]}';
     }
     return clean.isNotEmpty ? clean : null;
   }
@@ -547,6 +573,11 @@ class MedicineBoxOcrService {
     String? genericSalt;
     String? manufacturer;
 
+    final companyPrefixRegex = RegExp(
+      r'^(?:Mfg\.?\s*(?:in\s+India\s*)?by|Marketed\s*by|Mfd\.?\s*(?:in\s+India\s*)?by|Mkt\.?\s*by|Manufactured\s*(?:in\s+India\s*)?by|Packed\s*by)[ \t:]*',
+      caseSensitive: false,
+    );
+
     final companyRegex = RegExp(
       r'\b(?:PVT\.?\s*LTD\.?|PRIVATE\s+LIMITED|LTD\.?|LIMITED|PHARMA(?:CEUTICALS)?|LABORATORIES|LABS?|REMEDIES|HEALTHCARE|LIFE\s*SCIENCES|FORMULATIONS|BIOTECH|THERAPEUTICS|MFG\.?\s*BY|MKT\.?\s*BY|MARKETED\s+BY|MANUFACTURED\s+BY|LLP|INC)\b',
       caseSensitive: false,
@@ -579,8 +610,15 @@ class MedicineBoxOcrService {
       if (trimmed.length < 3) continue;
 
       // Check if it's a manufacturer / company line
-      if (companyRegex.hasMatch(trimmed)) {
-        manufacturer ??= trimmed;
+      if (companyPrefixRegex.hasMatch(trimmed) || companyRegex.hasMatch(trimmed)) {
+        String cleanMfg = trimmed.replaceFirst(companyPrefixRegex, '').trim();
+        final addrIdx = cleanMfg.indexOf(RegExp(r',\s*(?:At|Plot|Phase|Sipcot|Industrial|Regd|Vill|Dist|Tal)\b', caseSensitive: false));
+        if (addrIdx != -1) {
+          cleanMfg = cleanMfg.substring(0, addrIdx).trim();
+        }
+        if (cleanMfg.isNotEmpty && cleanMfg.length >= 3 && cleanMfg.length <= 60) {
+          manufacturer ??= cleanMfg;
+        }
         continue; // NEVER treat company line as generic salt or brand name!
       }
 
@@ -608,6 +646,11 @@ class MedicineBoxOcrService {
           brandName = cleaned;
         }
       }
+    }
+
+    // Auto-derive manufacturer from Indian brand master if not captured in OCR
+    if (manufacturer == null && brandName != null && brandName.isNotEmpty) {
+      manufacturer = BarcodeMedicineService.deriveManufacturer(brandName);
     }
 
     return {'name': brandName, 'generic': genericSalt, 'manufacturer': manufacturer};

@@ -512,6 +512,33 @@ class BarcodeMedicineService {
     return 'Tablets';
   }
 
+  /// Auto-derives manufacturer / pharmaceutical company from brand name
+  static String? deriveManufacturer(String name) {
+    final upper = name.toUpperCase().trim();
+    if (upper.contains('DOLO') || upper.contains('AMLONG')) return 'Micro Labs Ltd';
+    if (upper.contains('CROCIN') || upper.contains('CALPOL') || upper.contains('AUGMENTIN')) return 'GlaxoSmithKline';
+    if (upper.contains('PANTOCID') || upper.contains('VOLINI') || upper.contains('STORVAS') || upper.contains('ROSUVAS')) return 'Sun Pharma';
+    if (upper.contains('PAN 40') || upper.contains('PAN D') || upper.contains('PAN-') || upper.contains('CETRIZ') || upper.contains('CLAVAM') || upper.contains('A TO Z')) return 'Alkem Laboratories';
+    if (upper.contains('SHELCAL') || upper.contains('CHYMORAL') || upper.contains('NEXPRO')) return 'Torrent Pharmaceuticals';
+    if (upper.contains('AZITHRAL') || upper.contains('ALERID') || upper.contains('WIKORYL')) return 'Alembic Pharmaceuticals';
+    if (upper.contains('TELMA') || upper.contains('ASCORIL') || upper.contains('CANDID')) return 'Glenmark Pharmaceuticals';
+    if (upper.contains('BECOSULES') || upper.contains('COREX') || upper.contains('WYSOCOLONE')) return 'Pfizer Ltd';
+    if (upper.contains('COMBIFLAM') || upper.contains('ALLEGRA') || upper.contains('AVIL') || upper.contains('TARGOCID')) return 'Sanofi India';
+    if (upper.contains('ATORVA') || upper.contains('DECOLD') || upper.contains('LIPAGLYN')) return 'Zydus Cadila';
+    if (upper.contains('BENADRYL') || upper.contains('BAND-AID')) return 'Johnson & Johnson';
+    if (upper.contains('BETADINE')) return 'Win-Medicare';
+    if (upper.contains('ZINCOVIT')) return 'Apex Laboratories';
+    if (upper.contains('EVION') || upper.contains('NEUROBION') || upper.contains('LIVOGEN') || upper.contains('NASIVION')) return 'Procter & Gamble Health';
+    if (upper.contains('FLUOK') || upper.contains('MOXIKIND') || upper.contains('MANFORCE') || upper.contains('MEFTAL') || upper.contains('GUDCEF')) return 'Mankind Pharma';
+    if (upper.contains('GLYCOMET') || upper.contains('ECOSPRIN') || upper.contains('JALRA')) return 'USV Pvt Ltd';
+    if (upper.contains('CIPLOX') || upper.contains('FORACORT') || upper.contains('ASTHALIN') || upper.contains('BUDECORT') || upper.contains('MONTICOP')) return 'Cipla Ltd';
+    if (upper.contains('OMEE') || upper.contains('RAZO') || upper.contains('STAMLO') || upper.contains('ECONORM')) return 'Dr. Reddy\'s Laboratories';
+    if (upper.contains('DUBASTON') || upper.contains('THYRONORM') || upper.contains('CREMAFFIN') || upper.contains('BRUFEN') || upper.contains('VERTIN')) return 'Abbott India';
+    if (upper.contains('HUMALOG') || upper.contains('HUMALOG')) return 'Eli Lilly';
+    if (upper.contains('MIXTARD') || upper.contains('NOVORAPID')) return 'Novo Nordisk';
+    return null;
+  }
+
   /// Resolves the real brand/medicine name from a medicine QR code URL (e.g. me-qr.com links)
   static Future<String?> resolveUrlMedicineName(String urlStr) async {
     try {
