@@ -570,32 +570,66 @@ class InventoryScreen extends StatelessWidget {
                   ],
                 ),
 
-                // Barcode / Expiry micro row (if available)
-                if ((med.barcode != null && med.barcode!.isNotEmpty) || (med.expiryDate != null && med.expiryDate!.isNotEmpty)) ...[
+                // Barcode / Batch / Mfg / Expiry micro row (if available)
+                if ((med.barcode != null && med.barcode!.isNotEmpty) ||
+                    (med.batchNumber != null && med.batchNumber!.isNotEmpty) ||
+                    (med.mfgDate != null && med.mfgDate!.isNotEmpty) ||
+                    (med.expiryDate != null && med.expiryDate!.isNotEmpty)) ...[
                   const SizedBox(height: 10),
-                  Row(
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
-                      if (med.barcode != null && med.barcode!.isNotEmpty) ...[
-                        const Icon(Icons.qr_code_2_rounded, size: 13, color: AppColors.textMuted),
-                        const SizedBox(width: 4),
-                        Text(
-                          med.barcode!,
-                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontFamily: 'monospace'),
+                      if (med.barcode != null && med.barcode!.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.qr_code_2_rounded, size: 13, color: AppColors.textMuted),
+                            const SizedBox(width: 4),
+                            Text(
+                              med.barcode!,
+                              style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontFamily: 'monospace'),
+                            ),
+                          ],
                         ),
-                      ],
-                      if (med.barcode != null && med.expiryDate != null)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Text('•', style: TextStyle(color: AppColors.textMuted)),
+                      if (med.batchNumber != null && med.batchNumber!.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDFA),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFCCFBF1)),
+                          ),
+                          child: Text(
+                            'B: ${med.batchNumber}',
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
+                          ),
                         ),
-                      if (med.expiryDate != null && med.expiryDate!.isNotEmpty) ...[
-                        const Icon(Icons.event_outlined, size: 12, color: AppColors.textMuted),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Exp: ${med.expiryDate}',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      if (med.mfgDate != null && med.mfgDate!.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.build_circle_outlined, size: 12, color: AppColors.textMuted),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Mfg: ${med.mfgDate}',
+                              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            ),
+                          ],
                         ),
-                      ],
+                      if (med.expiryDate != null && med.expiryDate!.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.event_outlined, size: 12, color: Color(0xFF15803D)),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Exp: ${med.expiryDate}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF15803D)),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ],

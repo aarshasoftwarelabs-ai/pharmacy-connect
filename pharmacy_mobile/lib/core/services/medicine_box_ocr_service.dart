@@ -153,10 +153,12 @@ class MedicineBoxOcrService {
     required String medicineName,
     required String? batchNumber,
     required String? expiryDate,
+    String? mfgDate,
     required double mrp,
     required double unitPrice,
     int quantity = 1,
     String? genericName,
+    String? packSize,
   }) async {
     try {
       final response = await http.post(
@@ -167,6 +169,8 @@ class MedicineBoxOcrService {
           'medicineName': medicineName,
           'batchNumber': batchNumber,
           'expiryDate': expiryDate,
+          'mfgDate': mfgDate,
+          'packSize': packSize,
           'mrp': mrp,
           'unitPrice': unitPrice > 0 ? unitPrice : mrp,
           'quantity': quantity,
@@ -215,25 +219,25 @@ class MedicineBoxOcrService {
       // 1. Extract Batch Number
       String? batchNumber = _extractBatchNumber(rawText, lines);
 
-      // 2. Extract Expiry Date
-      String? expiryDate = _extractExpiryDate(rawText, lines);
+      // 2. Extract MFG and Expiry Dates
+      final dates = _extractMfgAndExpDates(rawText, lines);
+      String? mfgDate = dates['mfg'];
+      String? expiryDate = dates['exp'];
 
-      // 3. Extract Manufacturing Date
-      String? mfgDate = _extractMfgDate(rawText, lines);
-
-      // 4. Extract MRP
+      // 3. Extract MRP
       double mrp = _extractMrp(rawText, lines);
 
-      // 5. Extract Pack Size
+      // 4. Extract Pack Size
       String? packSize = _extractPackSize(rawText, lines);
 
-      // 6. Extract Mfg Lic No
+      // 5. Extract Mfg Lic No
       String? mfgLicNo = _extractMfgLicNo(rawText, lines);
 
-      // 7. Extract Medicine Name & Generic Salt
+      // 6. Extract Medicine Name, Generic Salt & Manufacturer
       final nameResult = _extractMedicineNameAndSalt(lines);
       String? medicineName = nameResult['name'];
       String? genericName = nameResult['generic'];
+      String? manufacturer = nameResult['manufacturer'];
 
       // Expiry Health Status
       String expiryStatus = 'HEALTHY';
@@ -266,6 +270,7 @@ class MedicineBoxOcrService {
         mrp: mrp,
         packSize: packSize,
         mfgLicNo: mfgLicNo,
+        manufacturer: manufacturer,
         daysUntilExpiry: daysUntilExpiry,
         expiryStatus: expiryStatus,
         confidence: hasData ? 0.90 : 0.0,
@@ -279,9 +284,11 @@ class MedicineBoxOcrService {
           medicineName: medicineName ?? 'Scanned Medicine',
           batchNumber: batchNumber,
           expiryDate: expiryDate,
+          mfgDate: mfgDate,
           mrp: mrp,
           unitPrice: mrp,
           genericName: genericName,
+          packSize: packSize,
         );
       }
 
@@ -363,50 +370,67 @@ class MedicineBoxOcrService {
         upper.contains('ONLY');
   }
 
-  static String? _extractExpiryDate(String rawText, List<String> lines) {
-    // Pattern 1: Same line "EXP. 03/2028" or "Expiry: 12/27" or "Use Before: MAR 2028"
-    final expRegex = RegExp(
-      r'(?:Exp\.?\s*(?:Dt\.?|Date)?|Expiry|Exp\b|Use\s*Before)[ \t:]*([0-9]{1,2}[\/\-\.][0-9]{2,4}|[A-Za-z]{3,4}[\s\/\-\.]*[0-9]{2,4})',
-      caseSensitive: false,
-    );
-    final match = expRegex.firstMatch(rawText);
-    if (match != null && match.group(1) != null) {
-      return _normalizeDate(match.group(1)!);
-    }
+  static Map<String, String?> _extractMfgAndExpDates(String rawText, List<String> lines) {
+    String? mfg;
+    String? exp;
 
-    // Pattern 2: Multi-line
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i].trim();
-      if (RegExp(r'^(?:Exp\.?|Expiry)$', caseSensitive: false).hasMatch(line) && i + 1 < lines.length) {
-        final next = lines[i + 1].trim();
-        final normed = _normalizeDate(next);
-        if (normed != null) return normed;
-      }
-    }
-
-    // Pattern 3: Standalone MM/YYYY or MM/YY where year is 2024 to 2038
-    final standaloneRegex = RegExp(r'\b(0[1-9]|1[0-2])[\/\-\.](20[2-3][0-9]|[2-3][0-9])\b');
-    final allMatches = standaloneRegex.allMatches(rawText);
-    for (final m in allMatches) {
-      final cand = m.group(0);
-      if (cand != null) {
-        return _normalizeDate(cand);
-      }
-    }
-
-    return null;
-  }
-
-  static String? _extractMfgDate(String rawText, List<String> lines) {
+    // 1. Explicit labeled matches
     final mfgRegex = RegExp(
       r'(?:Mfg\.?\s*(?:Dt\.?|Date)?|Mfd\.?|M\.F\.G\.)[ \t:]*([0-9]{1,2}[\/\-\.][0-9]{2,4}|[A-Za-z]{3,4}[\s\/\-\.]*[0-9]{2,4})',
       caseSensitive: false,
     );
-    final match = mfgRegex.firstMatch(rawText);
-    if (match != null && match.group(1) != null) {
-      return _normalizeDate(match.group(1)!);
+    final mMatch = mfgRegex.firstMatch(rawText);
+    if (mMatch != null && mMatch.group(1) != null) {
+      mfg = _normalizeDate(mMatch.group(1)!);
     }
-    return null;
+
+    final expRegex = RegExp(
+      r'(?:Exp\.?\s*(?:Dt\.?|Date)?|Expiry|Exp\b|Use\s*Before)[ \t:]*([0-9]{1,2}[\/\-\.][0-9]{2,4}|[A-Za-z]{3,4}[\s\/\-\.]*[0-9]{2,4})',
+      caseSensitive: false,
+    );
+    final eMatch = expRegex.firstMatch(rawText);
+    if (eMatch != null && eMatch.group(1) != null) {
+      exp = _normalizeDate(eMatch.group(1)!);
+    }
+
+    // 2. Check multi-line where label is on one line and date on next
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      if (mfg == null && RegExp(r'^(?:Mfg\.?|Mfd\.?|Mfg\s*Date)$', caseSensitive: false).hasMatch(line) && i + 1 < lines.length) {
+        mfg = _normalizeDate(lines[i + 1].trim());
+      }
+      if (exp == null && RegExp(r'^(?:Exp\.?|Expiry|Exp\s*Date)$', caseSensitive: false).hasMatch(line) && i + 1 < lines.length) {
+        exp = _normalizeDate(lines[i + 1].trim());
+      }
+    }
+
+    // 3. Fallback: Standalone MM/YYYY or MM/YY dates
+    if (mfg == null || exp == null) {
+      final standaloneRegex = RegExp(r'\b(0[1-9]|1[0-2])[\/\-\.](20[2-3][0-9]|[2-3][0-9])\b');
+      final allMatches = standaloneRegex.allMatches(rawText).map((m) => m.group(0)!).toList();
+      final normalized = allMatches.map(_normalizeDate).whereType<String>().toSet().toList();
+
+      if (normalized.length >= 2) {
+        // If two standalone dates are found, the earlier is MFG, the later is EXP
+        normalized.sort((a, b) {
+          final da = _parseDateForHealth(a) ?? DateTime(2000);
+          final db = _parseDateForHealth(b) ?? DateTime(2000);
+          return da.compareTo(db);
+        });
+        mfg ??= normalized.first;
+        exp ??= normalized.last;
+      } else if (normalized.length == 1) {
+        // One date: if year >= 2026, it's EXP; otherwise MFG
+        final d = _parseDateForHealth(normalized.first);
+        if (d != null && d.year >= 2026) {
+          exp ??= normalized.first;
+        } else {
+          mfg ??= normalized.first;
+        }
+      }
+    }
+
+    return {'mfg': mfg, 'exp': exp};
   }
 
   static String? _normalizeDate(String raw) {
@@ -423,7 +447,7 @@ class MedicineBoxOcrService {
       final mm = parts[0].padLeft(2, '0');
       return '$mm/20${parts[1]}';
     }
-    return clean;
+    return clean.isNotEmpty ? clean : null;
   }
 
   static DateTime? _parseDateForHealth(String expStr) {
@@ -432,7 +456,7 @@ class MedicineBoxOcrService {
       if (parts.length == 2) {
         final mm = int.parse(parts[0]);
         final yy = int.parse(parts[1]);
-        return DateTime(yy, mm + 1, 0); // End of the expiry month
+        return DateTime(yy, mm + 1, 0); // End of the month
       }
     } catch (_) {}
     return null;
@@ -486,6 +510,12 @@ class MedicineBoxOcrService {
   static Map<String, String?> _extractMedicineNameAndSalt(List<String> lines) {
     String? brandName;
     String? genericSalt;
+    String? manufacturer;
+
+    final companyRegex = RegExp(
+      r'\b(?:PVT\.?\s*LTD\.?|PRIVATE\s+LIMITED|LTD\.?|LIMITED|PHARMA(?:CEUTICALS)?|LABORATORIES|LABS?|REMEDIES|HEALTHCARE|LIFE\s*SCIENCES|FORMULATIONS|BIOTECH|THERAPEUTICS|MFG\.?\s*BY|MKT\.?\s*BY|MARKETED\s+BY|MANUFACTURED\s+BY|LLP|INC)\b',
+      caseSensitive: false,
+    );
 
     final boilerplatePatterns = [
       RegExp(r'SCHEDULE\s+[A-Z]', caseSensitive: false),
@@ -494,38 +524,50 @@ class MedicineBoxOcrService {
       RegExp(r'KEEP\s+OUT\s+OF\s+REACH', caseSensitive: false),
       RegExp(r'STORE\s+IN\s+A\s+COOL', caseSensitive: false),
       RegExp(r'FOR\s+ORAL\s+USE', caseSensitive: false),
-      RegExp(r'MANUFACTURED\s+BY', caseSensitive: false),
-      RegExp(r'MARKETED\s+BY', caseSensitive: false),
-      RegExp(r'BATCH|EXPIRY|M\.R\.P|B\.NO|MFG', caseSensitive: false),
+      RegExp(r'BATCH|EXPIRY|M\.R\.P|B\.NO|MFG|LIC\.?\s*NO', caseSensitive: false),
       RegExp(r'INCL\.\s+OF\s+ALL\s+TAXES', caseSensitive: false),
+      RegExp(r'DOSAGE|COMPOSITION|NOT\s+FOR|EXPORT', caseSensitive: false),
     ];
 
-    for (final line in lines) {
-      final trimmed = line.trim();
+    final compositionKeywords = RegExp(
+      r'\b(?:IP|BP|USP|Tablets?|Capsules?|Injection|Syrup|Suspension|Ointment|Gel|Domperidone|Pantoprazole|Paracetamol|Amoxicillin|Rabeprazole|Omeprazole|Cefixime|Azithromycin|Montelukast|Levocetirizine|Sustained\s*Release|Gastro-resistant)\b',
+      caseSensitive: false,
+    );
+
+    for (int i = 0; i < lines.length; i++) {
+      final trimmed = lines[i].trim();
       if (trimmed.length < 3) continue;
 
-      bool isBoilerplate = boilerplatePatterns.any((p) => p.hasMatch(trimmed));
-      if (isBoilerplate) continue;
-
-      // Check if it's generic composition (e.g., contains "IP", "BP", "USP", "+", or chemical names)
-      if (RegExp(r'\b(?:IP|BP|USP|Tablets|Capsules|Injection|Syrup)\b', caseSensitive: false).hasMatch(trimmed) &&
-          brandName != null &&
-          genericSalt == null) {
-        genericSalt = trimmed;
-        continue;
+      // Check if it's a manufacturer / company line
+      if (companyRegex.hasMatch(trimmed)) {
+        manufacturer ??= trimmed;
+        continue; // NEVER treat company line as generic salt or brand name!
       }
 
-      // First prominent line is usually the brand name
+      // Check boilerplate
+      if (boilerplatePatterns.any((p) => p.hasMatch(trimmed))) continue;
+
+      // Check if line describes chemical composition / generic salt
+      if (compositionKeywords.hasMatch(trimmed)) {
+        if (genericSalt == null) {
+          genericSalt = trimmed;
+          continue;
+        }
+      }
+
+      // Candidate for medicine brand name
       if (brandName == null) {
-        // Clean out trailing symbols
-        brandName = trimmed.replaceAll(RegExp(r'[®™]'), '').trim();
-      } else if (genericSalt == null && trimmed.length > 5 && trimmed != brandName) {
-        genericSalt = trimmed;
+        String cleaned = trimmed.replaceAll(RegExp(r'[®™:.]'), '').trim();
+        // If it looks like a suffix (e.g. "h-DSR" or "-DSR"), check if previous line had the prefix
+        if (cleaned.startsWith('h-') || cleaned.startsWith('-')) {
+          if (i > 0 && lines[i - 1].trim().length >= 3 && !companyRegex.hasMatch(lines[i - 1])) {
+            cleaned = '${lines[i - 1].trim().replaceAll(RegExp(r'[®™:.]'), '')}$cleaned';
+          }
+        }
+        brandName = cleaned;
       }
-
-      if (genericSalt != null) break;
     }
 
-    return {'name': brandName, 'generic': genericSalt};
+    return {'name': brandName, 'generic': genericSalt, 'manufacturer': manufacturer};
   }
 }

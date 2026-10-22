@@ -103,6 +103,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     final scannedBatch = gs1?.batchNumber;
     final scannedExp = gs1?.expiryDate;
 
+    if (_currentMode == StaffScannerMode.boxOcr && gs1 != null && (gs1.hasRealData || gs1.batchNumber != null)) {
+      _showBoxOcrModalWithResult(gs1);
+      return;
+    }
+
     MedicineModel? medicine = inventory.findByBarcode(effectiveBarcode);
 
     if (_currentMode == StaffScannerMode.billing) {
@@ -996,18 +1001,96 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
   // -------------------------------------------------------------
   // 4. SMART MEDICINE BOX DETAILS SCANNER (AI-Free / Instant On-Device)
   // -------------------------------------------------------------
-  void _showBoxOcrModal() {
+  // -------------------------------------------------------------
+  // 4. SMART MEDICINE BOX DETAILS SCANNER (AI-Free / Instant On-Device)
+  // -------------------------------------------------------------
+  Future<void> _startDirectBoxScan() async {
     _isBottomSheetOpen = true;
-    bool isProcessing = false;
-    BoxOcrResult? ocrResult;
-    String? ocrError;
+    try {
+      final picker = ImagePicker();
+      final photo = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 92,
+        maxWidth: 1600,
+      );
 
-    final nameCtrl = TextEditingController(text: '');
-    final genericCtrl = TextEditingController(text: '');
-    final batchCtrl = TextEditingController(text: '');
-    final expCtrl = TextEditingController(text: '');
-    final mrpCtrl = TextEditingController(text: '');
-    final packCtrl = TextEditingController(text: '');
+      if (photo == null) {
+        _isBottomSheetOpen = false;
+        return;
+      }
+
+      if (!mounted) return;
+
+      // Show sleek loading HUD while scanning box on device
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => PopScope(
+          canPop: false,
+          child: Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(strokeWidth: 3.5, color: Color(0xFF0D9488)),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'બોક્સ સ્કેન થઈ રહ્યું છે...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'દવાનું નામ, બેચ, ઉત્પાદન (MFG) અને એક્સપાયરી તારીખ વાંચી રહ્યા છીએ...',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.3),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final auth = context.read<AuthProvider>();
+      final res = await MedicineBoxOcrService.scanBoxImageOnDevice(
+        imagePath: photo.path,
+        pharmacyId: auth.pharmacyId,
+        syncToPc: false,
+      );
+
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // Dismiss loading HUD
+        HapticFeedback.heavyImpact();
+        SystemSound.play(SystemSoundType.click);
+        _showBoxOcrModalWithResult(res);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // Dismiss loading HUD if open
+        _isBottomSheetOpen = false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red.shade700,
+            content: Text('સ્કેન કરવામાં ભૂલ આવી: ${e.toString().replaceAll('Exception:', '').trim()}'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showBoxOcrModalWithResult(BoxOcrResult res) {
+    _isBottomSheetOpen = true;
+
+    final nameCtrl = TextEditingController(text: res.medicineName ?? '');
+    final genericCtrl = TextEditingController(text: res.genericName ?? '');
+    final packCtrl = TextEditingController(text: res.packSize ?? '');
+    final batchCtrl = TextEditingController(text: res.batchNumber ?? '');
+    final mfgCtrl = TextEditingController(text: res.mfgDate ?? '');
+    final expCtrl = TextEditingController(text: res.expiryDate ?? res.rawExpiry ?? '');
+    final mrpCtrl = TextEditingController(text: res.mrp > 0 ? res.mrp.toStringAsFixed(2) : '');
     final qtyCtrl = TextEditingController(text: '1');
 
     showModalBottomSheet(
@@ -1020,246 +1103,74 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            void applyBoxResult(BoxOcrResult res) {
-              setSheetState(() {
-                ocrResult = res;
-                isProcessing = false;
-                ocrError = null;
-                if (res.medicineName != null && res.medicineName!.isNotEmpty) {
-                  nameCtrl.text = res.medicineName!;
-                }
-                if (res.genericName != null && res.genericName!.isNotEmpty) {
-                  genericCtrl.text = res.genericName!;
-                }
-                if (res.batchNumber != null && res.batchNumber!.isNotEmpty) {
-                  batchCtrl.text = res.batchNumber!;
-                }
-                final exp = res.expiryDate ?? res.rawExpiry;
-                if (exp != null && exp.isNotEmpty) {
-                  expCtrl.text = exp;
-                }
-                if (res.mrp > 0) {
-                  mrpCtrl.text = res.mrp.toStringAsFixed(2);
-                }
-                if (res.packSize != null && res.packSize!.isNotEmpty) {
-                  packCtrl.text = res.packSize!;
-                }
-              });
-            }
-
             return Padding(
               padding: EdgeInsets.only(
                 left: 20,
                 right: 20,
-                top: 20,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+                top: 18,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
               ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header Bar
+                    // Header Bar with Real On-Device Badge, Rescan button and Close button
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0D9488).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(14),
+                            color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.inventory_2_rounded, size: 16, color: Color(0xFF0D9488)),
-                              SizedBox(width: 6),
+                              Icon(Icons.auto_awesome_rounded, size: 15, color: Color(0xFF0D9488)),
+                              SizedBox(width: 5),
                               Text(
-                                'On-Device Box Scanner (૧૦૦% Real)',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0D9488)),
+                                '૧૦૦% On-Device Smart Scan',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0D9488)),
                               ),
                             ],
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'દવાના બોક્સ પરની વિગતો સ્કેન કરો',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'દવાનું નામ, બેચ નંબર, એક્સપાયરી અને MRP સીધા કેમેરાથી વંચાશે',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Primary Camera & Gallery Capture Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: isProcessing
-                                ? null
-                                : () async {
-                                    final auth = context.read<AuthProvider>();
-                                    final pId = auth.pharmacyId;
-                                    try {
-                                      final picker = ImagePicker();
-                                      final photo = await picker.pickImage(
-                                        source: ImageSource.camera,
-                                        imageQuality: 92,
-                                        maxWidth: 1600,
-                                      );
-                                      if (photo == null) return;
-
-                                      setSheetState(() {
-                                        isProcessing = true;
-                                        ocrError = null;
-                                      });
-
-                                      final res = await MedicineBoxOcrService.scanBoxImageOnDevice(
-                                        imagePath: photo.path,
-                                        pharmacyId: pId,
-                                        syncToPc: false,
-                                      );
-                                      HapticFeedback.heavyImpact();
-
-                                      if (!res.hasRealData) {
-                                        setSheetState(() {
-                                          isProcessing = false;
-                                          ocrError = 'બોક્સ પરથી લખાણ સ્પષ્ટ વંચાયું નથી. કૃપા કરીને થોડો નજીકથી અને સારા પ્રકાશમાં ફોટો પાડો અથવા વિગતો જાતે ભરો.';
-                                        });
-                                      } else {
-                                        applyBoxResult(res);
-                                      }
-                                    } catch (e) {
-                                      setSheetState(() {
-                                        ocrError = 'સ્કેન કરવામાં ભૂલ આવી: ${e.toString().replaceAll('Exception:', '').trim()}';
-                                        isProcessing = false;
-                                      });
-                                    }
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0D9488),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              elevation: 2,
-                            ),
-                            icon: const Icon(Icons.camera_alt_rounded, size: 20),
-                            label: const Text(
-                              '📸 ફોટો પાડો',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: isProcessing
-                                ? null
-                                : () async {
-                                    final auth = context.read<AuthProvider>();
-                                    final pId = auth.pharmacyId;
-                                    try {
-                                      final picker = ImagePicker();
-                                      final photo = await picker.pickImage(
-                                        source: ImageSource.gallery,
-                                        imageQuality: 92,
-                                        maxWidth: 1600,
-                                      );
-                                      if (photo == null) return;
-
-                                      setSheetState(() {
-                                        isProcessing = true;
-                                        ocrError = null;
-                                      });
-
-                                      final res = await MedicineBoxOcrService.scanBoxImageOnDevice(
-                                        imagePath: photo.path,
-                                        pharmacyId: pId,
-                                        syncToPc: false,
-                                      );
-                                      HapticFeedback.heavyImpact();
-
-                                      if (!res.hasRealData) {
-                                        setSheetState(() {
-                                          isProcessing = false;
-                                          ocrError = 'બોક્સ પરથી લખાણ સ્પષ્ટ વંચાયું નથી. કૃપા કરીને થોડો નજીકથી અને સારા પ્રકાશમાં ફોટો પાડો અથવા વિગતો જાતે ભરો.';
-                                        });
-                                      } else {
-                                        applyBoxResult(res);
-                                      }
-                                    } catch (e) {
-                                      setSheetState(() {
-                                        ocrError = 'સ્કેન કરવામાં ભૂલ આવી: ${e.toString().replaceAll('Exception:', '').trim()}';
-                                        isProcessing = false;
-                                      });
-                                    }
-                                  },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF0D9488),
-                              side: const BorderSide(color: Color(0xFF0D9488), width: 1.5),
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            icon: const Icon(Icons.photo_library_rounded, size: 20),
-                            label: const Text(
-                              '📁 ગેલેરીમાંથી લો',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    if (isProcessing) ...[
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDFA),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFF99F6E4)),
-                        ),
-                        child: const Row(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF0D9488)),
+                            IconButton(
+                              icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0D9488), size: 22),
+                              tooltip: 'ફરી સ્કેન કરો',
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _startDirectBoxScan();
+                              },
                             ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'બોક્સ પરથી લખાણ વંચાઈ રહ્યું છે (Batch, Exp, MRP)...',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F766E)),
-                              ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 22),
+                              onPressed: () => Navigator.pop(ctx),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                    ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'દવાના બોક્સ પરની વિગતો',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      res.hasRealData
+                          ? 'બોક્સ પરથી વાંચેલી સાચી વિગતો ઓટો-ફિલ થઈ ગઈ છે'
+                          : 'બોક્સ પરથી લખાણ સ્પષ્ટ ન મળ્યું હોય તો વિગતો જાતે ચકાસી લો',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
 
-                    if (ocrError != null)
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: Text(ocrError!, style: TextStyle(color: Colors.red.shade800, fontSize: 12)),
-                      ),
-
-                    // Scanned Box Details Card & Editable Fields
+                    // Scanned Box Details Card
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -1295,10 +1206,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           Row(
                             children: [
                               Expanded(
+                                flex: 2,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Generic Salt:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
+                                    const Text('Generic Salt / Composition:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
                                     const SizedBox(height: 4),
                                     TextField(
                                       controller: genericCtrl,
@@ -1317,6 +1229,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               ),
                               const SizedBox(width: 8),
                               Expanded(
+                                flex: 1,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -1341,6 +1254,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           ),
                           const SizedBox(height: 10),
 
+                          // Batch No & MRP Row
                           Row(
                             children: [
                               Expanded(
@@ -1358,29 +1272,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                         filled: true,
                                         fillColor: Colors.white,
-                                        hintText: 'e.g. T260241',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Exp Date (એક્સપાયરી):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D))),
-                                    const SizedBox(height: 4),
-                                    TextField(
-                                      controller: expCtrl,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        hintText: 'MM/YYYY',
+                                        hintText: 'ખાલી (નથી)',
                                       ),
                                     ),
                                   ],
@@ -1413,17 +1305,67 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           ),
                           const SizedBox(height: 10),
 
+                          // MFG Date and Expiry Date Row (Side by Side)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('MFG Date (ઉત્પાદન):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: mfgCtrl,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        hintText: 'MM/YYYY',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Exp Date (એક્સપાયરી):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D))),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: expCtrl,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        hintText: 'MM/YYYY',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
                           // Inward Stock Units Selector
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('સ્ટોકમાં જમા કરવાના Units:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                              const Text('જથ્થો / Units:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
                               Row(
                                 children: [
                                   IconButton.filledTonal(
                                     icon: const Icon(Icons.remove_rounded, size: 16),
                                     onPressed: () {
-                                      final cur = int.tryParse(qtyCtrl.text.trim()) ?? 10;
+                                      final cur = int.tryParse(qtyCtrl.text.trim()) ?? 1;
                                       if (cur > 1) {
                                         setSheetState(() => qtyCtrl.text = (cur - 1).toString());
                                       }
@@ -1446,7 +1388,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                     icon: const Icon(Icons.add_rounded, size: 16),
                                     style: IconButton.styleFrom(backgroundColor: const Color(0xFF0D9488)),
                                     onPressed: () {
-                                      final cur = int.tryParse(qtyCtrl.text.trim()) ?? 10;
+                                      final cur = int.tryParse(qtyCtrl.text.trim()) ?? 1;
                                       setSheetState(() => qtyCtrl.text = (cur + 1).toString());
                                     },
                                     constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -1461,152 +1403,161 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     ),
                     const SizedBox(height: 16),
 
-                    // THE TWO PRIMARY ACTION BUTTONS: Add to Bill (PC) OR Add to Inventory (Stock)
+                    // THE TWO PRIMARY ACTION BUTTONS: Add to Stock OR Add to Bill (PC & Mobile)
                     Row(
                       children: [
-                        if (_currentMode == StaffScannerMode.stockInward) ...[
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
-                                final bNo = batchCtrl.text.trim();
-                                final exp = expCtrl.text.trim();
-                                final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
-                                final genSalt = genericCtrl.text.trim();
-                                final addStock = int.tryParse(qtyCtrl.text.trim()) ?? 10;
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                              final bNo = batchCtrl.text.trim();
+                              final mfgVal = mfgCtrl.text.trim();
+                              final expVal = expCtrl.text.trim();
+                              final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
+                              final genSalt = genericCtrl.text.trim();
+                              final addStock = int.tryParse(qtyCtrl.text.trim()) ?? 10;
 
-                                final inv = context.read<InventoryProvider>();
-                                await inv.addMedicine(
-                                  name: medName,
-                                  genericName: genSalt.isNotEmpty ? genSalt : null,
-                                  category: 'Tablets',
-                                  mrp: mrpVal,
-                                  sellingPrice: mrpVal * 0.9,
-                                  stock: addStock,
-                                  expiryDate: exp.isNotEmpty ? exp : '2028-12-31',
-                                  barcode: bNo.isNotEmpty ? bNo : null,
-                                );
+                              final inv = context.read<InventoryProvider>();
+                              await inv.addMedicine(
+                                name: medName,
+                                genericName: genSalt.isNotEmpty ? genSalt : null,
+                                category: 'Tablets',
+                                manufacturer: res.manufacturer,
+                                mrp: mrpVal,
+                                sellingPrice: mrpVal * 0.9,
+                                stock: addStock,
+                                barcode: bNo.isNotEmpty ? bNo : null,
+                                batchNumber: bNo.isNotEmpty ? bNo : null,
+                                mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
+                                expiryDate: expVal.isNotEmpty ? expVal : null,
+                              );
 
-                                Navigator.pop(ctx);
-                                HapticFeedback.heavyImpact();
-                                SystemSound.play(SystemSoundType.click);
+                              Navigator.pop(ctx);
+                              HapticFeedback.heavyImpact();
+                              SystemSound.play(SystemSoundType.click);
 
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    backgroundColor: const Color(0xFFEA580C),
-                                    behavior: SnackBarBehavior.floating,
-                                    duration: const Duration(milliseconds: 2200),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    content: Row(
-                                      children: [
-                                        const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 20),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            '✓ $medName ના $addStock યુનિટ્સ [B: $bNo] સ્ટોકમાં જમા થયા! 📦',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: const Color(0xFFEA580C),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(milliseconds: 2200),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 20),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '✓ $medName ના $addStock યુનિટ્સ [B: $bNo] સ્ટોકમાં જમા થયા! 📦',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFEA580C),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                elevation: 2,
-                              ),
-                              icon: const Icon(Icons.add_box_rounded, size: 18),
-                              label: const Text(
-                                '📦 Add to Stock',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEA580C),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 2,
+                            ),
+                            icon: const Icon(Icons.add_box_rounded, size: 18),
+                            label: const Text(
+                              '📦 Add to Stock',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ),
-                        ] else ...[
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
-                                final bNo = batchCtrl.text.trim();
-                                final exp = expCtrl.text.trim();
-                                final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
-                                final genSalt = genericCtrl.text.trim();
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                              final bNo = batchCtrl.text.trim();
+                              final mfgVal = mfgCtrl.text.trim();
+                              final expVal = expCtrl.text.trim();
+                              final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
+                              final genSalt = genericCtrl.text.trim();
+                              final packVal = packCtrl.text.trim();
+                              final count = int.tryParse(qtyCtrl.text.trim()) ?? 1;
 
-                                // Sync to PC Billing instantly
-                                final auth = context.read<AuthProvider>();
-                                await MedicineBoxOcrService.syncBoxItemToPc(
-                                  pharmacyId: auth.pharmacyId,
-                                  medicineName: medName,
-                                  batchNumber: bNo.isNotEmpty ? bNo : null,
-                                  expiryDate: exp.isNotEmpty ? exp : null,
-                                  mrp: mrpVal,
-                                  unitPrice: mrpVal,
-                                  quantity: 1,
-                                  genericName: genSalt.isNotEmpty ? genSalt : null,
-                                );
+                              // 1. Sync to PC Billing instantly
+                              final auth = context.read<AuthProvider>();
+                              await MedicineBoxOcrService.syncBoxItemToPc(
+                                pharmacyId: auth.pharmacyId,
+                                medicineName: medName,
+                                batchNumber: bNo.isNotEmpty ? bNo : null,
+                                expiryDate: expVal.isNotEmpty ? expVal : null,
+                                mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
+                                mrp: mrpVal,
+                                unitPrice: mrpVal,
+                                quantity: count,
+                                genericName: genSalt.isNotEmpty ? genSalt : null,
+                                packSize: packVal.isNotEmpty ? packVal : null,
+                              );
 
-                                // Also add to mobile billing cart
-                                final med = context.read<InventoryProvider>().findByBarcode(bNo) ?? MedicineModel(
-                                  id: 'box_${DateTime.now().millisecondsSinceEpoch}',
-                                  name: medName,
-                                  genericName: genSalt.isNotEmpty ? genSalt : null,
-                                  category: 'Tablets',
-                                  mrp: mrpVal,
-                                  sellingPrice: mrpVal,
-                                  stock: 10,
-                                  batchNumber: bNo,
-                                  expiryDate: exp,
-                                );
-                                context.read<BillingProvider>().addToCart(med, quantity: 1);
+                              // 2. Also add to mobile billing cart
+                              final med = context.read<InventoryProvider>().findByBarcode(bNo) ?? MedicineModel(
+                                id: 'box_${DateTime.now().millisecondsSinceEpoch}',
+                                name: medName,
+                                genericName: genSalt.isNotEmpty ? genSalt : null,
+                                manufacturer: res.manufacturer,
+                                category: 'Tablets',
+                                mrp: mrpVal,
+                                sellingPrice: mrpVal,
+                                stock: 10,
+                                batchNumber: bNo.isNotEmpty ? bNo : null,
+                                mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
+                                expiryDate: expVal.isNotEmpty ? expVal : null,
+                              );
+                              context.read<BillingProvider>().addToCart(med, quantity: count);
 
-                                Navigator.pop(ctx);
-                                HapticFeedback.heavyImpact();
-                                SystemSound.play(SystemSoundType.click);
+                              Navigator.pop(ctx);
+                              HapticFeedback.heavyImpact();
+                              SystemSound.play(SystemSoundType.click);
 
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    backgroundColor: const Color(0xFF16A34A),
-                                    behavior: SnackBarBehavior.floating,
-                                    duration: const Duration(milliseconds: 2200),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    content: Row(
-                                      children: [
-                                        const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            '✓ $medName (₹$mrpVal) [B: $bNo] ➔ PC બિલમાં એડ થઈ ગયું! 💻',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: const Color(0xFF16A34A),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(milliseconds: 2200),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '✓ $medName (₹$mrpVal) [B: $bNo] ➔ Live બિલમાં એડ થઈ ગયું! 💻',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF16A34A),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                elevation: 2,
-                              ),
-                              icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
-                              label: const Text(
-                                '🛒 Add to Bill (PC)',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF16A34A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 2,
+                            ),
+                            icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
+                            label: const Text(
+                              '🛒 Add to Bill (Live)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ),
-                        ],
+                        ),
                       ],
                     ),
                   ],
@@ -1752,7 +1703,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
               left: 20,
               right: 20,
               child: GestureDetector(
-                onTap: _showBoxOcrModal,
+                onTap: _startDirectBoxScan,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
                   decoration: BoxDecoration(
@@ -1774,7 +1725,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
                       SizedBox(width: 8),
                       Text(
-                        '📸 બોક્સ ફોટો પાડો (Scan Box Flap)',
+                        '📸 બોક્સ સ્કેન કરો (Scan Box Details)',
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                     ],

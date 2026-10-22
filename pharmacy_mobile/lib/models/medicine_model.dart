@@ -49,6 +49,7 @@ class MedicineModel {
   final String? category;
   final String? sku;
   final String? batchNumber;
+  final String? mfgDate;
   final String? expiryDate;
   final double mrp;
   final double sellingPrice;
@@ -67,6 +68,7 @@ class MedicineModel {
     this.category,
     this.sku,
     this.batchNumber,
+    this.mfgDate,
     this.expiryDate,
     required this.mrp,
     required this.sellingPrice,
@@ -148,6 +150,7 @@ class MedicineModel {
       category: json['category'] ?? 'General',
       sku: json['sku']?.toString(),
       batchNumber: json['batchNumber'] ?? json['batch_number'] ?? (parsedBatches.isNotEmpty ? parsedBatches.first.batchNumber : null),
+      mfgDate: json['mfgDate'] ?? json['mfg_date'],
       expiryDate: json['expiryDate'] ?? json['expiry_date'] ?? (parsedBatches.isNotEmpty ? parsedBatches.first.expiryDate : null),
       mrp: parsedMrp,
       sellingPrice: parsedSellingPrice,
@@ -173,6 +176,8 @@ class MedicineModel {
       'category': category,
       'sku': sku,
       'batch_number': batchNumber,
+      'mfg_date': mfgDate,
+      'mfgDate': mfgDate,
       'expiry_date': expiryDate,
       'mrp': mrp,
       'sellingPrice': sellingPrice,
