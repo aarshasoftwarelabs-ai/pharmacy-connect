@@ -16,6 +16,36 @@ export interface MasterMedicine {
 
 export const MASTER_MEDICINES: MasterMedicine[] = [
   {
+    barcode: 'https://me-qr.com/YiRiOz1r',
+    name: 'FLUOK FT',
+    genericName: 'Fluoxetine HCl (Dispersible)',
+    category: 'Tablets',
+    strength: '20 mg',
+    dosageForm: 'Dispersible Tablet',
+    packSize: '10 tablets',
+    manufacturer: 'Mankind Pharma',
+    mrp: 48.00,
+    sellingPrice: 42.00,
+    hsnCode: '30049099',
+    gstRate: 12,
+    prescriptionRequired: true
+  },
+  {
+    barcode: 'YiRiOz1r',
+    name: 'FLUOK FT',
+    genericName: 'Fluoxetine HCl (Dispersible)',
+    category: 'Tablets',
+    strength: '20 mg',
+    dosageForm: 'Dispersible Tablet',
+    packSize: '10 tablets',
+    manufacturer: 'Mankind Pharma',
+    mrp: 48.00,
+    sellingPrice: 42.00,
+    hsnCode: '30049099',
+    gstRate: 12,
+    prescriptionRequired: true
+  },
+  {
     barcode: '890103600123',
     name: 'Dolo 650mg Tablet',
     genericName: 'Paracetamol',

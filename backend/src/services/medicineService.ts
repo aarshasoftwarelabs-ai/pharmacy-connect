@@ -68,15 +68,27 @@ async function resolveUrlMedicineName(urlStr: string): Promise<string | null> {
              lower.length > 0;
     };
 
-    // 1. Check twitter:title (ME-QR stores the actual medicine name in twitter:title)
-    const tw = text.match(/<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
-               text.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:title["']/i);
-    if (tw && isRealTitle(tw[1])) return tw[1].trim();
+    // 1. Check ALL twitter:title tags (ME-QR stores page default at top, and user custom title lower down)
+    const twMatches = [
+      ...Array.from(text.matchAll(/<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']+)["']/gi)),
+      ...Array.from(text.matchAll(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:title["']/gi))
+    ];
+    for (const match of twMatches) {
+      if (match && match[1] && isRealTitle(match[1])) {
+        return match[1].trim();
+      }
+    }
 
-    // 2. Check og:title
-    const og = text.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-               text.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
-    if (og && isRealTitle(og[1])) return og[1].trim();
+    // 2. Check ALL og:title tags
+    const ogMatches = [
+      ...Array.from(text.matchAll(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/gi)),
+      ...Array.from(text.matchAll(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/gi))
+    ];
+    for (const match of ogMatches) {
+      if (match && match[1] && isRealTitle(match[1])) {
+        return match[1].trim();
+      }
+    }
 
     // 3. Check <title>
     const tm = text.match(/<title[^>]*>([^<]+)<\/title>/i);
