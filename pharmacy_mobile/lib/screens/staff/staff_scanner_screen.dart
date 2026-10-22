@@ -124,15 +124,22 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
   Future<void> _handleScannedBarcode(String code) async {
     final inventory = context.read<InventoryProvider>();
 
-    // 1. Zero-AI 2D GS1 DataMatrix Decoder for medicine boxes & strips
-    final gs1 = MedicineBoxOcrService.parseGs1DataMatrix(code);
-    final effectiveBarcode = gs1?.gtin ?? code;
-    final scannedBatch = gs1?.batchNumber;
-    final scannedExp = gs1?.expiryDate;
+    // 1. Universal Barcode & QR Code Decoder (GS1 DataMatrix, URL QR, Multiline QR, JSON, EAN-13)
+    final parsed = MedicineBoxOcrService.parseUniversalBarcodeOrQr(code);
+    final effectiveBarcode = (parsed.gtin != null && parsed.gtin!.isNotEmpty) ? parsed.gtin! : code;
+    final scannedBatch = parsed.batchNumber;
+    final scannedExp = parsed.expiryDate;
+    final scannedMfg = parsed.mfgDate;
+    final scannedMrp = parsed.mrp > 0 ? parsed.mrp : null;
+    final scannedName = parsed.medicineName;
+    final scannedMfgCompany = parsed.manufacturer;
 
     MedicineModel? medicine = inventory.findByBarcode(effectiveBarcode);
     if (medicine == null && effectiveBarcode.length == 14 && effectiveBarcode.startsWith('0')) {
       medicine = inventory.findByBarcode(effectiveBarcode.substring(1));
+    }
+    if (medicine == null && code != effectiveBarcode) {
+      medicine = inventory.findByBarcode(code);
     }
 
     // Fast path 1: Check instant offline dictionary (0ms)
@@ -158,21 +165,24 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
               stock: instantData.stock > 0 ? instantData.stock : 10,
               barcode: effectiveBarcode,
               batchNumber: scannedBatch,
-              mfgDate: gs1?.mfgDate,
+              mfgDate: scannedMfg,
               expiryDate: scannedExp ?? (instantData.expiryDate.isNotEmpty ? instantData.expiryDate : null),
             );
             medicine = inventory.findByBarcode(effectiveBarcode);
           } catch (_) {}
         }
 
-        // Fast path 2: If unregistered or not yet saved, open registration sheet IMMEDIATELY (0ms, no network await!)
+        // Fast path 2: If unregistered or not yet saved, open registration sheet with ALL extracted details
         if (medicine == null) {
           if (mounted) {
             _showNewMedicineSheet(
               effectiveBarcode,
               prefilledBatch: scannedBatch,
-              prefilledMfg: gs1?.mfgDate,
+              prefilledMfg: scannedMfg,
               prefilledExp: scannedExp,
+              prefilledMrp: scannedMrp,
+              prefilledName: scannedName,
+              prefilledCompany: scannedMfgCompany,
               initialData: instantData,
             );
           }
@@ -192,7 +202,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
           medicineName: medicine.name,
           batchNumber: scannedBatch ?? medicine.batchNumber,
           expiryDate: scannedExp ?? medicine.expiryDate,
-          mrp: medicine.mrp,
+          mfgDate: scannedMfg ?? medicine.mfgDate,
+          mrp: scannedMrp ?? medicine.mrp,
           unitPrice: medicine.sellingPrice,
           quantity: 1,
           genericName: medicine.genericName,
@@ -230,13 +241,21 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     } else {
       // Stock Inward Mode
       if (medicine != null) {
-        _showAddStockSheet(medicine);
+        _showAddStockSheet(
+          medicine,
+          scannedBatch: scannedBatch,
+          scannedExp: scannedExp,
+          scannedMfg: scannedMfg,
+        );
       } else {
         _showNewMedicineSheet(
           effectiveBarcode,
           prefilledBatch: scannedBatch,
-          prefilledMfg: gs1?.mfgDate,
+          prefilledMfg: scannedMfg,
           prefilledExp: scannedExp,
+          prefilledMrp: scannedMrp,
+          prefilledName: scannedName,
+          prefilledCompany: scannedMfgCompany,
           initialData: instantData,
         );
       }
@@ -418,7 +437,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
   // -------------------------------------------------------------
   // 2. STOCK INWARD MODE: Update Existing Stock Sheet
   // -------------------------------------------------------------
-  void _showAddStockSheet(MedicineModel medicine) {
+  void _showAddStockSheet(
+    MedicineModel medicine, {
+    String? scannedBatch,
+    String? scannedExp,
+    String? scannedMfg,
+  }) {
     _isBottomSheetOpen = true;
     final addQtyCtrl = TextEditingController(text: '10');
     final priceCtrl = TextEditingController(text: medicine.sellingPrice.toStringAsFixed(2));
@@ -489,6 +513,29 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       ),
                     ],
                   ),
+                  if (scannedBatch != null || scannedExp != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.green.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.qr_code_2_rounded, size: 16, color: Colors.green),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'કોડમાંથી મેળવેલ: બેચ: ${scannedBatch ?? "-"} | Expiry: ${scannedExp ?? "-"}',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade900),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   const Text('Quick Add Units (જથ્થો પસંદ કરો):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                   const SizedBox(height: 8),
@@ -603,6 +650,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     String? prefilledBatch,
     String? prefilledMfg,
     String? prefilledExp,
+    double? prefilledMrp,
+    String? prefilledName,
+    String? prefilledCompany,
     ScannedMedicineData? initialData,
   }) {
     _isBottomSheetOpen = true;
@@ -616,8 +666,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
     final now = DateTime.now();
 
-    // 1. Resolve medicine name (check QR barcode and offline masters)
-    String initialName = auto.name.trim();
+    // 1. Resolve medicine name (check prefilledName, QR barcode and offline masters)
+    String initialName = (prefilledName != null && prefilledName.trim().isNotEmpty)
+        ? prefilledName.trim()
+        : auto.name.trim();
+
     if (initialName.startsWith('Medicine (Barcode') ||
         initialName.startsWith('Unregistered') ||
         initialName.startsWith('http://') ||
@@ -641,33 +694,35 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
         : (initialName.isNotEmpty ? BarcodeMedicineService.deriveCategory(initialName) : 'Tablets');
 
     // 3.5 Resolve Manufacturer / Company Name
-    String initialManufacturer = (auto.manufacturer != null && auto.manufacturer!.isNotEmpty)
-        ? auto.manufacturer!
-        : (initialName.isNotEmpty ? (BarcodeMedicineService.deriveManufacturer(initialName) ?? '') : '');
+    String initialManufacturer = (prefilledCompany != null && prefilledCompany.trim().isNotEmpty)
+        ? prefilledCompany.trim()
+        : ((auto.manufacturer != null && auto.manufacturer!.isNotEmpty)
+            ? auto.manufacturer!
+            : (initialName.isNotEmpty ? (BarcodeMedicineService.deriveManufacturer(initialName) ?? '') : ''));
 
-    // 4. Resolve Batch Number (auto-generated realistic batch if not in GS1)
+    // 4. Resolve Batch Number (prioritize scanned batch from Barcode/QR)
     String initialBatch = (prefilledBatch != null && prefilledBatch.isNotEmpty)
         ? prefilledBatch
         : (initialName.isNotEmpty
             ? '${initialName.replaceAll(RegExp(r'[^A-Za-z]'), '').padRight(2, 'X').substring(0, 2).toUpperCase()}${now.year.toString().substring(2)}${now.month.toString().padLeft(2, '0')}'
             : 'B${now.year.toString().substring(2)}${now.month.toString().padLeft(2, '0')}');
 
-    // 5. Resolve MFG Date (e.g. 10/25)
+    // 5. Resolve MFG Date (prioritize scanned mfg from Barcode/QR)
     String initialMfg = (prefilledMfg != null && prefilledMfg.isNotEmpty)
         ? prefilledMfg
         : '${now.month.toString().padLeft(2, '0')}/${(now.year - 1).toString().substring(2)}';
 
-    // 6. Resolve Expiry Date (e.g. 10/28)
+    // 6. Resolve Expiry Date (prioritize scanned expiry from Barcode/QR)
     String initialExp = (prefilledExp != null && prefilledExp.isNotEmpty)
         ? prefilledExp
         : (auto.expiryDate.isNotEmpty && auto.expiryDate != '2028-12-31'
             ? auto.expiryDate
             : '${now.month.toString().padLeft(2, '0')}/${(now.year + 2).toString().substring(2)}');
 
-    // 7. Resolve MRP and Selling Price (realistic non-zero defaults so user never sees 0.00)
-    double effectiveMrp = (auto.mrp > 0 && auto.mrp != 60.0)
-        ? auto.mrp
-        : 48.00;
+    // 7. Resolve MRP and Selling Price (prioritize scanned MRP from Barcode/QR)
+    double effectiveMrp = (prefilledMrp != null && prefilledMrp > 0)
+        ? prefilledMrp
+        : ((auto.mrp > 0 && auto.mrp != 60.0) ? auto.mrp : 48.00);
     double effectiveSp = (auto.sellingPrice > 0 && auto.sellingPrice != 52.0)
         ? auto.sellingPrice
         : (effectiveMrp * 0.9);
@@ -687,6 +742,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
     // Asynchronous background metadata lookup without delaying sheet opening (0ms UI latency)
     if (initialName.isEmpty) {
+      if (scannedBarcode.startsWith('http://') || scannedBarcode.startsWith('https://')) {
+        BarcodeMedicineService.resolveUrlMedicineName(scannedBarcode).then((urlName) {
+          if (!mounted || !_isBottomSheetOpen) return;
+          if (urlName != null && urlName.isNotEmpty && nameCtrl.text.isEmpty) {
+            nameCtrl.text = urlName;
+            if (mfgCompanyCtrl.text.isEmpty) {
+              mfgCompanyCtrl.text = BarcodeMedicineService.deriveManufacturer(urlName) ?? '';
+            }
+          }
+        });
+      }
       BarcodeMedicineService.lookup(scannedBarcode).then((fresh) {
         if (!mounted || !_isBottomSheetOpen) return;
         if (fresh.name.isNotEmpty && nameCtrl.text.isEmpty) {

@@ -66,6 +66,207 @@ class BoxOcrResult {
 }
 
 class MedicineBoxOcrService {
+  /// Universal Barcode & QR Code Decoder:
+  /// Extracts ALL embedded data (GTIN, Batch No, MFG Date, Expiry Date, MRP, Medicine Name, Manufacturer)
+  /// from ANY barcode or QR code format:
+  /// - 2D GS1 DataMatrix (parenthesized or raw stream with FNC1 / group separators)
+  /// - Pharma Verification URLs (e.g. Mankind, Sun Pharma, Cipla, me-qr, gov portals)
+  /// - Delimited QR strings (pipe |, comma ,, semicolon ;, tab \t)
+  /// - Key-Value multiline text (B.No:, EXP:, MFG:, MRP:)
+  /// - JSON payloads ({"batch":..., "exp":...})
+  /// - Standard 1D Barcodes (EAN-13, GTIN-14, UPC-A, Code 128)
+  static BoxOcrResult parseUniversalBarcodeOrQr(String raw) {
+    if (raw.trim().isEmpty) {
+      return BoxOcrResult(hasRealData: false);
+    }
+
+    String clean = raw.trim();
+
+    // Remove common scanner prefix symbology headers (e.g. ]d2 for DataMatrix, ]Q1 for QR, ]C1 for Code128, ~1)
+    if (clean.startsWith(']d2') || clean.startsWith(']Q1') || clean.startsWith(']C1') || clean.startsWith(']e0')) {
+      clean = clean.substring(3).trim();
+    }
+    if (clean.startsWith('~1')) {
+      clean = clean.substring(2).trim();
+    }
+
+    String? gtin;
+    String? batch;
+    String? expFormatted;
+    String? mfgFormatted;
+    double mrp = 0.0;
+    String? medicineName;
+    String? genericName;
+    String? manufacturer;
+
+    // 1. Format A: JSON Encoded QR Code
+    if (clean.startsWith('{') && clean.endsWith('}')) {
+      try {
+        final map = jsonDecode(clean);
+        if (map is Map<String, dynamic>) {
+          gtin = map['gtin']?.toString() ?? map['barcode']?.toString() ?? map['code']?.toString();
+          batch = map['batch']?.toString() ?? map['bno']?.toString() ?? map['batchNumber']?.toString() ?? map['lot']?.toString();
+          final rawExp = map['exp']?.toString() ?? map['expiry']?.toString() ?? map['expiryDate']?.toString();
+          if (rawExp != null) expFormatted = _normalizeDate(rawExp);
+          final rawMfg = map['mfg']?.toString() ?? map['mfgDate']?.toString() ?? map['mfd']?.toString();
+          if (rawMfg != null) mfgFormatted = _normalizeDate(rawMfg);
+          mrp = (map['mrp'] as num?)?.toDouble() ?? double.tryParse(map['price']?.toString() ?? '') ?? 0.0;
+          medicineName = map['name']?.toString() ?? map['medicineName']?.toString() ?? map['product']?.toString();
+          genericName = map['generic']?.toString() ?? map['genericName']?.toString();
+          manufacturer = map['manufacturer']?.toString() ?? map['company']?.toString();
+
+          if (batch != null || expFormatted != null || gtin != null || medicineName != null) {
+            return BoxOcrResult(
+              gtin: gtin,
+              medicineName: medicineName,
+              genericName: genericName,
+              manufacturer: manufacturer,
+              batchNumber: batch,
+              mfgDate: mfgFormatted,
+              expiryDate: expFormatted,
+              rawExpiry: expFormatted,
+              mrp: mrp,
+              confidence: 1.0,
+              hasRealData: true,
+            );
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Format B: URL QR Code (Pharma Traceability / Verification Portals)
+    if (clean.startsWith('http://') || clean.startsWith('https://') || clean.contains('://')) {
+      final uri = Uri.tryParse(clean);
+      if (uri != null) {
+        // Query parameters
+        final qp = uri.queryParameters;
+        if (qp.isNotEmpty) {
+          gtin = qp['gtin'] ?? qp['barcode'] ?? qp['code'] ?? qp['item'] ?? qp['id'];
+          batch = qp['batch'] ?? qp['bno'] ?? qp['b_no'] ?? qp['b'] ?? qp['lot'] ?? qp['lotno'] ?? qp['batchnumber'];
+          final rawExp = qp['exp'] ?? qp['expiry'] ?? qp['expdate'] ?? qp['exp_date'] ?? qp['ed'];
+          if (rawExp != null) expFormatted = _normalizeDate(rawExp);
+          final rawMfg = qp['mfg'] ?? qp['mfd'] ?? qp['mfgdate'] ?? qp['mfg_date'] ?? qp['md'];
+          if (rawMfg != null) mfgFormatted = _normalizeDate(rawMfg);
+          final rawMrp = qp['mrp'] ?? qp['price'] ?? qp['rate'];
+          if (rawMrp != null) mrp = double.tryParse(rawMrp.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+          medicineName = qp['name'] ?? qp['med'] ?? qp['medicine'] ?? qp['product'] ?? qp['itemname'];
+          manufacturer = qp['mfgby'] ?? qp['company'] ?? qp['manufacturer'];
+        }
+
+        // Path segments (e.g. /verify/08901234567890/BT2401/270430)
+        final segs = uri.pathSegments;
+        for (final seg in segs) {
+          if (gtin == null && RegExp(r'^\d{13,14}$').hasMatch(seg)) {
+            gtin = seg;
+          } else if (batch == null && RegExp(r'^[A-Za-z0-9\-\/]{3,16}$').hasMatch(seg) && !RegExp(r'^\d+$').hasMatch(seg)) {
+            if (!_isCommonFalseBatch(seg) && !seg.toLowerCase().contains('verify') && !seg.toLowerCase().contains('trace')) {
+              batch = seg;
+            }
+          } else if (expFormatted == null && RegExp(r'^\d{6}$').hasMatch(seg)) {
+            final yy = seg.substring(0, 2);
+            final mm = seg.substring(2, 4);
+            expFormatted = '$mm/20$yy';
+          }
+        }
+
+        if (batch != null || expFormatted != null || gtin != null || medicineName != null) {
+          if (medicineName != null && manufacturer == null) {
+            manufacturer = BarcodeMedicineService.deriveManufacturer(medicineName);
+          }
+          return BoxOcrResult(
+            gtin: gtin,
+            medicineName: medicineName,
+            genericName: genericName,
+            manufacturer: manufacturer,
+            batchNumber: batch,
+            mfgDate: mfgFormatted,
+            expiryDate: expFormatted,
+            rawExpiry: expFormatted,
+            mrp: mrp,
+            confidence: 1.0,
+            hasRealData: true,
+          );
+        }
+      }
+    }
+
+    // 3. Format C: Standard 2D GS1 DataMatrix (Parenthesized or Raw stream)
+    final gs1 = parseGs1DataMatrix(clean);
+    if (gs1 != null && (gs1.batchNumber != null || gs1.expiryDate != null || gs1.gtin != null)) {
+      return gs1;
+    }
+
+    // 4. Format D: Key-Value / Multiline Text QR Code (e.g. B.No: ... Exp: ... MRP: ...)
+    final lines = clean.split(RegExp(r'[\r\n]+')).map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+
+    final bMatch = _extractBatchNumber(clean, lines);
+    if (bMatch != null && bMatch.isNotEmpty) {
+      batch = bMatch;
+    }
+
+    final dates = _extractMfgAndExpDates(clean, lines);
+    if (dates['mfg'] != null) mfgFormatted = dates['mfg'];
+    if (dates['exp'] != null) expFormatted = dates['exp'];
+
+    final parsedMrp = _extractMrp(clean, lines);
+    if (parsedMrp > 0) mrp = parsedMrp;
+
+    final nameRes = _extractMedicineNameAndSalt(lines);
+    if (nameRes['name'] != null && nameRes['name']!.isNotEmpty) {
+      medicineName = nameRes['name'];
+    }
+    if (nameRes['generic'] != null && nameRes['generic']!.isNotEmpty) {
+      genericName = nameRes['generic'];
+    }
+    if (nameRes['manufacturer'] != null && nameRes['manufacturer']!.isNotEmpty) {
+      manufacturer = nameRes['manufacturer'];
+    }
+
+    // 5. Format E: Delimited values (e.g. GTIN|BATCH|EXP|MFG|MRP)
+    if (clean.contains('|') || clean.contains(';') || clean.contains('\t')) {
+      final parts = clean.split(RegExp(r'[|;\t]')).map((p) => p.trim()).toList();
+      for (final p in parts) {
+        if (gtin == null && RegExp(r'^\d{12,14}$').hasMatch(p)) {
+          gtin = p;
+        } else if (expFormatted == null && (RegExp(r'^\d{1,2}[\/\-\.]\d{2,4}$').hasMatch(p) || RegExp(r'^\d{6}$').hasMatch(p))) {
+          expFormatted = _normalizeDate(p);
+        } else if (mfgFormatted == null && RegExp(r'^\d{1,2}[\/\-\.]\d{2,4}$').hasMatch(p)) {
+          mfgFormatted = _normalizeDate(p);
+        } else if (mrp <= 0 && RegExp(r'^\d+(?:\.\d{1,2})?$').hasMatch(p)) {
+          mrp = double.tryParse(p) ?? 0.0;
+        } else if (batch == null && RegExp(r'^[A-Za-z0-9\-\/]{3,16}$').hasMatch(p) && !_isCommonFalseBatch(p)) {
+          batch = p;
+        } else if (medicineName == null && p.length >= 3 && p.length <= 40 && !RegExp(r'^\d+$').hasMatch(p)) {
+          medicineName = p;
+        }
+      }
+    }
+
+    // 6. Format F: Standard 1D Barcode (EAN-13 / GTIN-14 / Code 128)
+    if (gtin == null && RegExp(r'^\d{8,14}$').hasMatch(clean)) {
+      gtin = clean;
+    }
+
+    if (medicineName != null && medicineName.isNotEmpty && (manufacturer == null || manufacturer.isEmpty)) {
+      manufacturer = BarcodeMedicineService.deriveManufacturer(medicineName);
+    }
+
+    final hasRealData = gtin != null || batch != null || expFormatted != null || mfgFormatted != null || mrp > 0 || medicineName != null;
+
+    return BoxOcrResult(
+      gtin: gtin ?? clean,
+      medicineName: medicineName,
+      genericName: genericName,
+      batchNumber: batch,
+      mfgDate: mfgFormatted,
+      expiryDate: expFormatted,
+      rawExpiry: expFormatted,
+      mrp: mrp,
+      manufacturer: manufacturer,
+      confidence: hasRealData ? 1.0 : 0.0,
+      hasRealData: hasRealData,
+    );
+  }
   /// Parse 2D GS1 DataMatrix barcodes directly on device without any AI
   static BoxOcrResult? parseGs1DataMatrix(String raw) {
     if (raw.isEmpty) return null;
