@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/api/api_endpoints.dart';
 import '../core/api/api_service.dart';
+import '../core/services/offline_sync_service.dart';
 import '../models/medicine_model.dart';
 
 class InventoryProvider extends ChangeNotifier {
@@ -147,14 +148,28 @@ class InventoryProvider extends ChangeNotifier {
             .map((item) => MedicineModel.fromJson(item as Map<String, dynamic>))
             .toList();
         _errorMessage = null;
+        OfflineSyncService.instance.cacheMedicines(_medicines);
         notifyListeners();
       } else {
-        _errorMessage = response.message ?? 'Failed to load medicines from server';
+        final cached = await OfflineSyncService.instance.getCachedMedicines();
+        if (cached.isNotEmpty) {
+          _medicines = cached;
+          _errorMessage = null;
+        } else {
+          _errorMessage = response.message ?? 'Failed to load medicines from server';
+        }
         notifyListeners();
       }
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Server connection error. Tap Reload to refresh inventory.';
+      final cached = await OfflineSyncService.instance.getCachedMedicines();
+      if (cached.isNotEmpty) {
+        _medicines = cached;
+        _errorMessage = null;
+        debugPrint('[InventoryProvider] Offline: loaded ${cached.length} medicines from local cache.');
+      } else {
+        _errorMessage = 'Offline mode: No cached medicines found.';
+      }
       notifyListeners();
     }
   }

@@ -45,21 +45,43 @@ export class BillingService {
   }
 
   /**
-   * Create a new bill
+   * Create a new bill (with offline resilience and auto-queue)
    */
   static async createBill(billData: any): Promise<Bill> {
-    const response = await apiFetch(`${API_BASE_URL}/billing`, {
-      method: 'POST',
-      body: JSON.stringify(billData),
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to create bill');
+    const { offlineSyncService } = await import('./offlineSyncService');
+
+    // If device is offline, instantly queue locally
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.warn('Network offline: queuing bill locally for cloud auto-sync.');
+      return offlineSyncService.queueBill(billData);
     }
-    
-    return data.data;
+
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/billing`, {
+        method: 'POST',
+        body: JSON.stringify(billData),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create bill');
+      }
+      
+      return data.data;
+    } catch (networkOrFetchErr: any) {
+      // If network failed (e.g. Failed to fetch, timeout, connection refused)
+      if (
+        networkOrFetchErr?.name === 'TypeError' ||
+        networkOrFetchErr?.message?.includes('Failed to fetch') ||
+        networkOrFetchErr?.message?.includes('NetworkError') ||
+        (typeof navigator !== 'undefined' && !navigator.onLine)
+      ) {
+        console.warn('Backend server unreachable during bill save. Queuing bill offline for auto-sync:', networkOrFetchErr);
+        return offlineSyncService.queueBill(billData);
+      }
+      throw networkOrFetchErr;
+    }
   }
 
   /**

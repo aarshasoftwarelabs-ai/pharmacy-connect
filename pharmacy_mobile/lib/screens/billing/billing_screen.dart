@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/services/thermal_printer_service.dart';
+import '../../core/services/offline_sync_service.dart';
 import '../../widgets/bluetooth_printer_modal.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/billing_provider.dart';
@@ -639,6 +640,44 @@ _Thank you for choosing DavaSetu Pharmacy!_
           ],
         ),
         actions: [
+          ValueListenableBuilder<int>(
+            valueListenable: OfflineSyncService.instance.pendingCountNotifier,
+            builder: (context, pendingCount, _) {
+              if (pendingCount == 0) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(right: 6.0),
+                child: ActionChip(
+                  avatar: const Icon(Icons.cloud_upload_rounded, size: 15, color: Color(0xFFB45309)),
+                  label: Text(
+                    '$pendingCount Offline',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
+                  ),
+                  backgroundColor: const Color(0xFFFEF3C7),
+                  side: const BorderSide(color: Color(0xFFFDE68A)),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () async {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Syncing offline bills with cloud database...'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                    final synced = await billing.syncOfflineQueue();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: const Color(0xFF15803D),
+                          behavior: SnackBarBehavior.floating,
+                          content: Text('$synced offline bills synced to cloud successfully!'),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
             tooltip: 'Live Camera Barcode Scanner',

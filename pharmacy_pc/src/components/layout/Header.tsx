@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, UserCircle, ChevronDown, Menu, ShoppingCart, Pill, Info, CheckCircle2, PanelLeft } from 'lucide-react';
+import { Bell, UserCircle, ChevronDown, Menu, ShoppingCart, Pill, Info, CheckCircle2, PanelLeft, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { PharmacyService } from '../../services/pharmacyService';
 import { NotificationService, Notification } from '../../services/notificationService';
 import { getPharmacyId } from '../../config/development';
+import { offlineSyncService } from '../../services/offlineSyncService';
 
 interface HeaderProps {
   pageTitle: string;
@@ -16,6 +17,9 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingOfflineBills, setPendingOfflineBills] = useState(0);
+  const [isOnlineState, setIsOnlineState] = useState(true);
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
@@ -59,9 +63,16 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
     window.addEventListener('app_notification', handleAppNotification);
     window.addEventListener('new_pharmacy_notification', handleAppNotification);
 
+    // Subscribe to Offline Sync Queue changes
+    const unsubscribeSync = offlineSyncService.subscribe((count, online) => {
+      setPendingOfflineBills(count);
+      setIsOnlineState(online);
+    });
+
     return () => {
       window.removeEventListener('app_notification', handleAppNotification);
       window.removeEventListener('new_pharmacy_notification', handleAppNotification);
+      unsubscribeSync();
     };
   }, []);
 
@@ -139,12 +150,41 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
         </div>
       </div>
       
-      <div className="flex items-center space-x-4">
-        {/* Live POS / Mobile Sync Badge */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>PC & Mobile Online</span>
-        </div>
+      <div className="flex items-center space-x-3">
+        {/* Dynamic Cloud / Offline Billing Sync Badge */}
+        {!isOnlineState ? (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold shadow-sm">
+            <WifiOff className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+            <span>Offline Mode</span>
+            {pendingOfflineBills > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-200 text-amber-900 text-[10px]">
+                {pendingOfflineBills} queued
+              </span>
+            )}
+          </div>
+        ) : pendingOfflineBills > 0 ? (
+          <button
+            onClick={async () => {
+              setIsManualSyncing(true);
+              try {
+                await offlineSyncService.syncQueue();
+              } finally {
+                setIsManualSyncing(false);
+              }
+            }}
+            disabled={isManualSyncing}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800 text-xs font-bold transition shadow-sm active:scale-95 disabled:opacity-50"
+            title="Click to sync offline bills to cloud database now"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${isManualSyncing ? 'animate-spin' : ''}`} />
+            <span>Sync {pendingOfflineBills} Offline {pendingOfflineBills === 1 ? 'Bill' : 'Bills'}</span>
+          </button>
+        ) : (
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Cloud Synced</span>
+          </div>
+        )}
         
         {/* Notification Bell */}
         <div 

@@ -9,6 +9,7 @@ import { fetchMedicines, lookupMedicineByBarcode } from '../../services/medicine
 import MedicineSearchDropdown from '../ui/MedicineSearchDropdown';
 import { AudioAlert } from '../../utils/audioAlertService';
 import { io } from 'socket.io-client';
+import { offlineSyncService } from '../../services/offlineSyncService';
 
 interface Props {
   onSuccess: () => void;
@@ -110,7 +111,15 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     fetchMedicines().then(data => {
       setCatalogue(data);
       catalogueRef.current = data;
-    }).catch(console.error);
+      offlineSyncService.cacheCatalog(data);
+    }).catch(err => {
+      console.warn('Network offline or medicine fetch failed, loading from local offline cache:', err);
+      const cached = offlineSyncService.getCachedCatalog();
+      if (cached && cached.length > 0) {
+        setCatalogue(cached);
+        catalogueRef.current = cached;
+      }
+    });
 
     // Setup live socket connection to listen for mobile scans
     const pharmacyId = getPharmacyId();

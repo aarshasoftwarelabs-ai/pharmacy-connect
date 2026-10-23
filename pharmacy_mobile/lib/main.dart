@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/constants/app_theme.dart';
 import 'core/services/storage_service.dart';
+import 'core/services/offline_sync_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/billing_provider.dart';
 import 'providers/inventory_provider.dart';
@@ -14,6 +15,7 @@ import 'screens/staff/staff_scanner_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService.init();
+  await OfflineSyncService.instance.init();
 
   runApp(const DavaSetuApp());
 }

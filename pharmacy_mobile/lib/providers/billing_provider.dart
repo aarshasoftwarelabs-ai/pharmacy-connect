@@ -5,6 +5,7 @@ import '../core/api/api_service.dart';
 import '../models/cart_item_model.dart';
 import '../models/medicine_model.dart';
 import '../core/services/storage_service.dart';
+import '../core/services/offline_sync_service.dart';
 
 class BillingProvider extends ChangeNotifier {
   final List<CartItemModel> _cartItems = [];
@@ -212,11 +213,43 @@ class BillingProvider extends ChangeNotifier {
         return true;
       }
     } catch (e) {
+      // Network failure or server unreachable: Auto-queue offline!
+      debugPrint('[BillingProvider] Network unreachable during checkout. Queuing bill offline for auto-sync: $e');
+      final offlineItem = await OfflineSyncService.instance.queueBill(billPayload);
+
       _isProcessing = false;
-      _errorMessage = 'Checkout failed: $e';
+      final billNum = offlineItem['bill_number']?.toString() ?? 'OFFLINE-${DateTime.now().millisecondsSinceEpoch % 100000}';
+      final billRecord = {
+        'bill_number': billNum,
+        'customer_name': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
+        'customer_phone': _customerPhone,
+        'items_count': itemCount,
+        'subtotal': subtotal,
+        'discount': totalDiscount,
+        'tax': taxAmount,
+        'total': grandTotal,
+        'date': 'Today, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+        'payment_mode': _paymentMode,
+        'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
+        'is_offline': true,
+      };
+      _lastBill = billRecord;
+      _recentBills.insert(0, billRecord);
+      _todaySales += grandTotal;
+      _todayBillsCount += 1;
+      clearCart();
       notifyListeners();
-      return false;
+      return true;
     }
+  }
+
+  /// Sync all pending offline bills to cloud database
+  Future<int> syncOfflineQueue() async {
+    final synced = await OfflineSyncService.instance.syncQueue();
+    if (synced > 0) {
+      await fetchBills();
+    }
+    return synced;
   }
 
   Future<void> fetchBills([int? pharmacyId]) async {
