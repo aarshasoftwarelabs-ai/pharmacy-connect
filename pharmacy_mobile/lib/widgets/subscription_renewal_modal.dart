@@ -226,13 +226,13 @@ class _SubscriptionRenewalModalState extends State<SubscriptionRenewalModal> {
             ),
             const SizedBox(height: 12),
             const Text(
-              '🎉 1-Year Pass Activated!',
+              '🎉 Mobile-Only 1-Year Pass Activated!',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
-              'Validity extended by 365 Days (12 Months)',
+              'Validity extended by 365 Days on Mobile App',
               style: TextStyle(fontSize: 12, color: Colors.green.shade800, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 14),
@@ -250,6 +250,8 @@ class _SubscriptionRenewalModalState extends State<SubscriptionRenewalModal> {
                   _buildReceiptRow('Store Name:', widget.pharmacyName),
                   const SizedBox(height: 4),
                   _buildReceiptRow('Store ID:', '#${widget.pharmacyId}'),
+                  const SizedBox(height: 4),
+                  _buildReceiptRow('Plan Name:', 'Mobile-Only Pro (No PC/Laptop)'),
                   const SizedBox(height: 4),
                   _buildReceiptRow('Receipt No:', receiptNo, isBold: true),
                   const SizedBox(height: 4),
@@ -419,7 +421,7 @@ Validity: 365 Days Extended
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Mobile Pro Annual License',
+                    'Mobile-Only Pro (1-Year Pass)',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
@@ -427,7 +429,28 @@ Validity: 365 Days Extended
                     'Store: ${widget.pharmacyName} (Store ID #${widget.pharmacyId})',
                     style: const TextStyle(color: Color(0xFFCCFBF1), fontSize: 12, fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.smartphone_rounded, size: 16, color: Color(0xFFFEF08A)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '📱 ખાસ સ્માર્ટફોન માટે (PC કે લેપટોપ વગરના સ્ટોર માટે)',
+                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -460,8 +483,32 @@ Validity: 365 Days Extended
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
-                      '✨ Just ₹4.10 / Day • All Features & Zero Data Loss Guarantee',
+                      '✨ Just ₹4.10 / Day • All Mobile Features & WhatsApp Billing',
                       style: TextStyle(color: Color(0xFFFEF08A), fontSize: 11, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Notice Box: Mobile-Only
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFFB45309)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'આ ₹1,499 વાળો પ્લાન ફક્ત Mobile App માટે છે. PC/લેપટોપ સોફ્ટવેર આમાં શામેલ નથી.',
+                      style: TextStyle(color: Color(0xFF92400E), fontSize: 11.5, fontWeight: FontWeight.w700, height: 1.3),
                     ),
                   ),
                 ],

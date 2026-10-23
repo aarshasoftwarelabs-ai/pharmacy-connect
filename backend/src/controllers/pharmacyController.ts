@@ -110,7 +110,7 @@ export class PharmacyController {
           pharmacyId: pharmacy.id,
           pharmacyName: pharmacy.name,
           planType,
-          planName: planType === 'MOBILE_YEARLY' ? 'Mobile Pro (1-Year Pass)'
+          planName: planType === 'MOBILE_YEARLY' ? 'Mobile-Only Pro (1-Year Pass)'
                   : planType === 'YEARLY' ? 'Yearly Pro'
                   : planType === 'MONTHLY' ? 'Monthly Pro'
                   : planType === 'LIFETIME' ? 'Founder Lifetime'
@@ -121,6 +121,8 @@ export class PharmacyController {
           rawDaysRemaining: daysRemaining,
           status,
           canBill,
+          isMobileOnly: planType === 'MOBILE_YEARLY',
+          supportsPc: planType !== 'MOBILE_YEARLY',
           pricing: {
             mobileYearly: 1499,
             originalPrice: 2499,
@@ -173,11 +175,11 @@ export class PharmacyController {
         planType, 
         endDate,
         {
-          amount: typeof amount === 'number' ? amount : parseFloat(amount) || 1499.00,
+          amount: typeof amount === 'number' ? amount : parseFloat(amount) || (planType === 'MOBILE_YEARLY' ? 1499.00 : 5999.00),
           paymentMethod: paymentMethod || 'UPI',
           transactionId,
           upiId: upiId || 'lodaliya@ptyes',
-          agentNote,
+          agentNote: agentNote || (planType === 'MOBILE_YEARLY' ? 'Mobile-Only 1-Year Pass (No PC/Laptop)' : undefined),
           durationMonths: monthsToAdd,
         }
       );

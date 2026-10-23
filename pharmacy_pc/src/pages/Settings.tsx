@@ -52,6 +52,7 @@ export default function Settings() {
   const [paidCount, setPaidCount] = useState<number>(0);
   const [isEarlyAdopter, setIsEarlyAdopter] = useState<boolean>(true); // default true before load
   const [spotsLeft, setSpotsLeft] = useState<number>(3);
+  const [profile, setProfile] = useState<any>(null);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -76,6 +77,22 @@ export default function Settings() {
       }
     };
     fetchStats();
+
+    const fetchProfile = async () => {
+      try {
+        let pId = 1;
+        const localData = localStorage.getItem('pharmacy_profile_data');
+        if (localData) {
+          const p = JSON.parse(localData);
+          if (p.id) pId = p.id;
+        }
+        const data = await PharmacyService.getPharmacyProfile(pId);
+        setProfile(data);
+      } catch (e) {
+        console.error('Failed to load pharmacy profile in settings', e);
+      }
+    };
+    fetchProfile();
   }, []);
 
   // Handle setting toggle
@@ -256,6 +273,25 @@ export default function Settings() {
                   <p className="text-sm text-slate-500">Upgrade to unlock Smart Inventory, Unlimited Billing & Analytics.</p>
                 </div>
               </div>
+
+              {profile?.planType === 'MOBILE_YEARLY' && (
+                <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 rounded-xl bg-amber-200 text-amber-900 shrink-0">
+                      <Smartphone className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-base text-amber-900">Current Plan: Mobile-Only Pro (₹1,499/Year)</span>
+                        <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300">📱 Mobile Phone Only</span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-amber-800 mt-1 leading-relaxed">
+                        આ એકાઉન્ટ ₹1,499 વાળા Mobile-Only પ્લાન પર છે જે ખાસ મોબાઈલ વાપરતા કેમિસ્ટ માટે છે (PC/લેપટોપ વગરના સ્ટોર માટે). PC અને Laptop પર ડેસ્કટોપ સોફ્ટવેર અને પ્રિન્ટિંગ ચલાવવા માટે નીચે આપેલા પ્લાનમાંથી PC પ્લાન પસંદ કરો.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                 

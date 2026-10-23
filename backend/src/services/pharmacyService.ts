@@ -39,7 +39,10 @@ export class PharmacyService {
     if (result.rows.length === 0) {
       return null;
     }
-    return result.rows[0];
+    const row = result.rows[0];
+    row.isMobileOnly = row.planType === 'MOBILE_YEARLY';
+    row.supportsPc = row.planType !== 'MOBILE_YEARLY';
+    return row;
   }
 
   static async getAllPharmacies(): Promise<PharmacyProfile[]> {

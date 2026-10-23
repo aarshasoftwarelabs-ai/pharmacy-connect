@@ -239,8 +239,8 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                             const SizedBox(height: 2),
                             Text(
                               sub.isExpired
-                                  ? 'Renew your 1-Year Pass to keep billing active.'
-                                  : 'Renew 1-Year Pass now at ₹1,499 (Save 40%).',
+                                  ? 'Renew your Mobile-Only 1-Year Pass to keep billing active.'
+                                  : 'Renew Mobile-Only 1-Year Pass now at ₹1,499 (Save 40%).',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: sub.isExpired ? const Color(0xFFB91C1C) : const Color(0xFFB45309),

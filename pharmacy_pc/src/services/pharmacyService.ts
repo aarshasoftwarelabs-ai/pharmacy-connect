@@ -13,6 +13,8 @@ export interface PharmacyProfile {
   state?: string;
   ownerName?: string;
   planType?: string;
+  isMobileOnly?: boolean;
+  supportsPc?: boolean;
   trialStartDate?: string;
   subscriptionEndDate?: string | null;
   createdAt: string;

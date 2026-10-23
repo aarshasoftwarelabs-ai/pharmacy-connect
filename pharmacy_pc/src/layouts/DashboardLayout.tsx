@@ -4,7 +4,7 @@ import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import MobileBottomNav from '../components/layout/MobileBottomNav';
 import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
-import { Lock, Sparkles, Bell, X } from 'lucide-react';
+import { Lock, Sparkles, Bell, X, Smartphone } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { getPharmacyId } from '../config/development';
 import NewOrderRingModal, { RingAlertData } from '../components/layout/NewOrderRingModal';
@@ -155,13 +155,16 @@ export default function DashboardLayout() {
   };
 
   const planType = profile?.planType || 'FREE_TRIAL';
-  const isLocked = isTrialExpired() && planType === 'FREE_TRIAL';
+  const isMobileOnly = planType === 'MOBILE_YEARLY' || profile?.isMobileOnly === true;
+  const isTrialLocked = isTrialExpired() && planType === 'FREE_TRIAL';
 
   const path = location.pathname;
+  const isSettingsPage = path.includes('settings');
   const isRestrictedRoute = path.includes('inventory') || path.includes('reports');
-  const isBillingPage = path.includes('billing');
 
-  const showLockScreen = isLocked && isRestrictedRoute;
+  // If plan is MOBILE_YEARLY, all PC desktop pages are locked except Settings (so they can upgrade to PC plan)
+  const showMobileOnlyLock = isMobileOnly && !isSettingsPage;
+  const showLockScreen = isTrialLocked && isRestrictedRoute;
 
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden relative">
@@ -174,6 +177,47 @@ export default function DashboardLayout() {
                <div className="flex justify-center items-center h-64">
                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pharmacy-600"></div>
                </div>
+            ) : showMobileOnlyLock ? (
+              <div className="flex flex-col items-center justify-center min-h-[70vh] text-center max-w-lg mx-auto px-4 py-8">
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 bg-amber-50 rounded-3xl border-2 border-amber-300 flex items-center justify-center shadow-xl shadow-amber-500/10">
+                    <Smartphone className="w-12 h-12 text-amber-600 animate-bounce" />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs uppercase tracking-wider mb-3 border border-amber-200">
+                  <span>📱 Mobile-Only Plan (₹1,499/Year)</span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight mb-3">
+                  PC & Laptop Access Not Included
+                </h2>
+
+                <div className="space-y-3 mb-8 text-left bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                  <p className="text-sm text-slate-800 leading-relaxed font-semibold">
+                    તમારું એકાઉન્ટ <span className="text-amber-700 font-bold">₹1,499/- વાળા Mobile-Only પ્લાન</span> પર છે, જે ખાસ એવા કેમિસ્ટ ભાઈઓ માટે છે જેઓ ફક્ત સ્માર્ટફોન વાપરે છે અને તેમની પાસે PC/લેપટોપ નથી.
+                  </p>
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 leading-relaxed">
+                    💡 PC / Laptop પર ડેસ્કટોપ સોફ્ટવેર અને થર્મલ પ્રિન્ટિંગ વાપરવા માટે, કૃપા કરીને નીચે બટન દબાવીને PC Pro અથવા Yearly પ્લાનમાં અપગ્રેડ કરો.
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    This account is licensed under the <strong>Mobile-Only Pass (₹1,499/yr)</strong>. PC / Laptop desktop software access is not included. To use DavaSetu on your PC, please upgrade to our PC plan.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
+                  <button 
+                    onClick={() => navigate('/settings')}
+                    className="bg-pharmacy-600 text-white px-7 py-3.5 rounded-xl font-bold shadow-lg shadow-pharmacy-500/30 hover:bg-pharmacy-700 transition-all flex items-center justify-center"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Upgrade for PC Access (પ્લાન અપગ્રેડ કરો)
+                  </button>
+                </div>
+              </div>
             ) : showLockScreen ? (
               <div className="flex flex-col items-center justify-center h-[70vh] text-center max-w-md mx-auto">
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6 shadow-inner">

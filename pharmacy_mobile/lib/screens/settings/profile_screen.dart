@@ -255,9 +255,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  sub?.planName ?? 'Mobile Pro (1-Year Pass)',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                                Expanded(
+                                  child: Text(
+                                    sub?.planName ?? 'Mobile-Only Pro (1-Year Pass)',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppColors.textPrimary),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -294,8 +297,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 4),
                             Text(
                               sub?.subscriptionEndDate != null
-                                  ? 'Valid till: ${sub!.subscriptionEndDate!.split('T')[0]} (Annual Plan)'
-                                  : '1-Year Chemist Pass • All Mobile Features Included',
+                                  ? 'Valid till: ${sub!.subscriptionEndDate!.split('T')[0]} • Smartphone Only (No PC)'
+                                  : '1-Year Pass • Smartphone Billing Only (No PC required)',
                               style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                             ),
                           ],
