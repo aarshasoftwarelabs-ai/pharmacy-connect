@@ -345,387 +345,311 @@ Validity: 365 Days Extended
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-            // Header Banner
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0F766E), Color(0xFF059669)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF059669).withValues(alpha: 0.25),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Clean Header: Icon, Plan Title, Close button
+              Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFDE047),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          '🔥 SAVE 40% LAUNCH OFFER',
-                          style: TextStyle(
-                            color: Color(0xFF78350F),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.verified_user_rounded, size: 12, color: Colors.white),
-                            SizedBox(width: 4),
-                            Text('1-Year License', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Mobile-Only Pro (1-Year Pass)',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Store: ${widget.pharmacyName} (Store ID #${widget.pharmacyId})',
-                    style: const TextStyle(color: Color(0xFFCCFBF1), fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFBBF7D0)),
                     ),
-                    child: const Row(
+                    child: const Icon(
+                      Icons.smartphone_rounded,
+                      color: Color(0xFF059669),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.smartphone_rounded, size: 16, color: Color(0xFFFEF08A)),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '📱 ખાસ સ્માર્ટફોન માટે (PC કે લેપટોપ વગરના સ્ટોર માટે)',
-                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        const Text(
+                          'Mobile-Only Pro',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
                           ),
+                        ),
+                        Text(
+                          '${widget.pharmacyName} • 1-Year Pass',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        '₹1,499',
-                        style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, height: 1),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '₹2,499',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 15,
-                          decoration: TextDecoration.lineThrough,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        '/ 1 Year (365 Days)',
-                        style: TextStyle(color: Color(0xFFCCFBF1), fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      '✨ Just ₹4.10 / Day • All Mobile Features & WhatsApp Billing',
-                      style: TextStyle(color: Color(0xFFFEF08A), fontSize: 11, fontWeight: FontWeight.w700),
-                    ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded, size: 20, color: Colors.grey),
+                    visualDensity: VisualDensity.compact,
+                    splashRadius: 18,
                   ),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 14),
 
-            // Notice Box: Mobile-Only
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFDE68A)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFFB45309)),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'આ ₹1,499 વાળો પ્લાન ફક્ત Mobile App માટે છે. PC/લેપટોપ સોફ્ટવેર આમાં શામેલ નથી.',
-                      style: TextStyle(color: Color(0xFF92400E), fontSize: 11.5, fontWeight: FontWeight.w700, height: 1.3),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Payee UPI ID Card
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFBBF7D0)),
-              ),
-              child: InkWell(
-                onTap: _copyUpiId,
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF86EFAC)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(8),
+              // Minimal Clean Pricing Box
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        const Text(
+                          '₹1,499',
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                        child: const Icon(Icons.qr_code_2_rounded, size: 20, color: Color(0xFF059669)),
-                      ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Official Payee UPI ID:', style: TextStyle(fontSize: 10.5, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
-                            Text(
-                              _kSubscriptionUpiId,
-                              style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                        const SizedBox(width: 4),
+                        const Text(
+                          '/ વર્ષ',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '₹2,499',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade400,
+                            decoration: TextDecoration.lineThrough,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            '40% OFF',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF16A34A),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF059669).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: const [
+                        Icon(Icons.check_circle_outline_rounded, size: 13, color: Color(0xFF059669)),
+                        SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            'માત્ર સ્માર્ટફોન માટે (PC/લેપટોપ સોફ્ટવેર શામેલ નથી)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF475569),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.copy_rounded, size: 13, color: Color(0xFF059669)),
-                            SizedBox(width: 4),
-                            Text('Copy', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ),
 
-            const SizedBox(height: 14),
+              const SizedBox(height: 16),
 
-            // Smart 1-Tap Direct UPI App Launchers
-            const Text(
-              '1. Tap to Pay with your UPI App (₹1,499 pre-filled):',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: 8),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _buildUpiAppButton(
-                    title: 'GPay',
-                    subtitle: 'Google Pay',
-                    icon: Icons.account_balance_wallet_rounded,
-                    color: const Color(0xFF1A73E8),
-                    bgColor: const Color(0xFFEFF6FF),
-                    borderColor: const Color(0xFFBFDBFE),
-                    onTap: () => _openUpiApp('com.google.android.apps.nbu.paisa.user'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildUpiAppButton(
-                    title: 'PhonePe',
-                    subtitle: 'Direct Pay',
-                    icon: Icons.payments_rounded,
-                    color: const Color(0xFF5F259F),
-                    bgColor: const Color(0xFFFAF5FF),
-                    borderColor: const Color(0xFFE9D5FF),
-                    onTap: () => _openUpiApp('com.phonepe.app'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildUpiAppButton(
-                    title: 'Paytm',
-                    subtitle: 'Instant UPI',
-                    icon: Icons.payment_rounded,
-                    color: const Color(0xFF002970),
-                    bgColor: const Color(0xFFF0F9FF),
-                    borderColor: const Color(0xFFBAE6FD),
-                    onTap: () => _openUpiApp('net.one97.paytm'),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Any UPI App Full Width Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _openUpiApp(null),
-                icon: const Icon(Icons.bolt_rounded, size: 20),
-                label: const Text(
-                  '⚡ Open Any UPI App / BHIM (Pay ₹1,499)',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF059669),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 2,
+              // UPI Quick Pay Options (1-Tap Launchers)
+              const Text(
+                'UPI એપ દ્વારા ચૂકવો:',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
 
-            const SizedBox(height: 16),
-
-            // Step 2: Payment Verification
-            const Text(
-              '2. Confirm & Activate License:',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: 8),
-
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  TextField(
-                    controller: _utrController,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      labelText: '12-Digit UPI Ref / UTR No. (Optional)',
-                      hintText: 'e.g. 428912345678',
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.paste_rounded, size: 18, color: Color(0xFF059669)),
-                        tooltip: 'Paste from clipboard',
-                        onPressed: _pasteUtrFromClipboard,
-                      ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  Expanded(
+                    child: _buildUpiAppButton(
+                      title: 'GPay',
+                      icon: Icons.account_balance_wallet_rounded,
+                      color: const Color(0xFF1A73E8),
+                      bgColor: const Color(0xFFEFF6FF),
+                      onTap: () => _openUpiApp('com.google.android.apps.nbu.paisa.user'),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Found in your GPay / PhonePe / Paytm transaction receipt.',
-                    style: TextStyle(fontSize: 10.5, color: AppColors.textMuted),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildUpiAppButton(
+                      title: 'PhonePe',
+                      icon: Icons.payments_rounded,
+                      color: const Color(0xFF5F259F),
+                      bgColor: const Color(0xFFFAF5FF),
+                      onTap: () => _openUpiApp('com.phonepe.app'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildUpiAppButton(
+                      title: 'Paytm',
+                      icon: Icons.payment_rounded,
+                      color: const Color(0xFF002970),
+                      bgColor: const Color(0xFFF0F9FF),
+                      onTap: () => _openUpiApp('net.one97.paytm'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildUpiAppButton(
+                      title: 'Other UPI',
+                      icon: Icons.bolt_rounded,
+                      color: const Color(0xFF059669),
+                      bgColor: const Color(0xFFF0FDF4),
+                      onTap: () => _openUpiApp(null),
+                    ),
                   ),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 14),
 
-            // Primary Activation Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _handleOnlinePayment,
-                icon: _isProcessing
-                    ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.check_circle_rounded, size: 20),
-                label: Text(
-                  _isProcessing ? 'Verifying & Activating License...' : 'Activate 1-Year Pass (₹1,499)',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+              // Ref / UTR Input
+              Container(
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF059669),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 3,
+                child: TextField(
+                  controller: _utrController,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: '12-digit UTR / Ref No. (ચૂકવણી પછી)',
+                    hintStyle: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                    prefixIcon: const Icon(Icons.tag_rounded, size: 18, color: Colors.grey),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.paste_rounded, size: 17, color: Color(0xFF059669)),
+                      tooltip: 'Paste',
+                      onPressed: _pasteUtrFromClipboard,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 10),
-            const Center(
-              child: Text(
-                '🔒 100% Genuine Payment Tracking • Instant Cloud License Activation',
-                style: TextStyle(fontSize: 10.5, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+              const SizedBox(height: 14),
+
+              // Primary Action Button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _isProcessing ? null : _handleOnlinePayment,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isProcessing
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text(
+                          'પ્લાન એક્ટિવેટ કરો • ₹1,499',
+                          style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+                        ),
+                ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 12),
+
+              // Clean Discrete Footer
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  InkWell(
+                    onTap: _copyUpiId,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.copy_rounded, size: 11, color: AppColors.textMuted),
+                          SizedBox(width: 4),
+                          Text(
+                            'UPI: $_kSubscriptionUpiId',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Text('  •  ', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                  const Text(
+                    '🔒 Instant Cloud Activation',
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -733,29 +657,34 @@ Validity: 365 Days Extended
 
   Widget _buildUpiAppButton({
     required String title,
-    required String subtitle,
     required IconData icon,
     required Color color,
     required Color bgColor,
-    required Color borderColor,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 4),
-            Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: color)),
-            Text(subtitle, style: const TextStyle(fontSize: 9.5, color: AppColors.textSecondary)),
+            Icon(icon, size: 20, color: color),
+            const SizedBox(height: 3),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),
