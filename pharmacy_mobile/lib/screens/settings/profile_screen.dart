@@ -7,6 +7,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/subscription_renewal_modal.dart';
+import '../../widgets/bluetooth_printer_modal.dart';
+import '../../core/services/thermal_printer_service.dart';
 import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -501,6 +503,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
                 ],
               ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 4.5 Bluetooth Thermal Hardware Printer
+            FutureBuilder<String?>(
+              future: ThermalPrinterService.instance.getSavedPrinterName(),
+              builder: (ctx, snapshot) {
+                final printerName = snapshot.data;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.cardBorder),
+                    boxShadow: AppColors.softShadow,
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () async {
+                        await BluetoothPrinterModal.show(context, storeName: auth.pharmacyName);
+                        setState(() {});
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFDBEAFE)),
+                              ),
+                              child: const Icon(Icons.print_rounded, color: Color(0xFF2563EB), size: 24),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        'Thermal Receipt Printer',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                        decoration: BoxDecoration(
+                                          color: printerName != null ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          printerName != null ? 'CONNECTED' : 'NOT SET',
+                                          style: TextStyle(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: printerName != null ? const Color(0xFF15803D) : AppColors.textMuted,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    printerName != null
+                                        ? '$printerName (58mm/80mm Ready)'
+                                        : 'Connect ₹1,500 - ₹2,000 Bluetooth POS printer',
+                                    style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 22),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
 
             const SizedBox(height: 24),

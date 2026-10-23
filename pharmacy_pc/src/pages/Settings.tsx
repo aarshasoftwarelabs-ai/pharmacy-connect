@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { PharmacyService } from '../services/pharmacyService';
 import { PaymentService } from '../services/paymentService';
+import { testPrintThermalReceipt } from '../utils/printUtils';
 import { 
   Bell, 
   Store, 
@@ -18,7 +19,9 @@ import {
   Coffee,
   ShieldCheck,
   TrendingUp,
-  HeartHandshake
+  HeartHandshake,
+  Zap,
+  RefreshCw
 } from 'lucide-react';
 
 import StaffManagement from '../components/settings/StaffManagement';
@@ -53,6 +56,46 @@ export default function Settings() {
   const [isEarlyAdopter, setIsEarlyAdopter] = useState<boolean>(true); // default true before load
   const [spotsLeft, setSpotsLeft] = useState<number>(3);
   const [profile, setProfile] = useState<any>(null);
+
+  // Hardware & POS Printer states
+  const [installedPrinters, setInstalledPrinters] = useState<Array<{ name: string; displayName?: string; isDefault: boolean }>>([]);
+  const [selectedPrinter, setSelectedPrinter] = useState<string>(localStorage.getItem('selected_printer_name') || '');
+  const [silentPrinting, setSilentPrinting] = useState<boolean>(localStorage.getItem('silent_printing_enabled') !== 'false');
+  const [printFormat, setPrintFormat] = useState<string>(localStorage.getItem('default_printer_format') || 'THERMAL_80MM');
+  const [isTestingPrint, setIsTestingPrint] = useState<boolean>(false);
+  const [testPrintStatus, setTestPrintStatus] = useState<string | null>(null);
+  const [isElectron, setIsElectron] = useState<boolean>(false);
+  const [isRefreshingPrinters, setIsRefreshingPrinters] = useState<boolean>(false);
+
+  const fetchPrinters = async () => {
+    const hasElectron = typeof window !== 'undefined' && !!(window as any).ipcRenderer;
+    setIsElectron(hasElectron);
+    if (hasElectron) {
+      setIsRefreshingPrinters(true);
+      try {
+        const printers = await (window as any).ipcRenderer.invoke('get-printers');
+        if (Array.isArray(printers)) {
+          setInstalledPrinters(printers);
+          const savedPrinter = localStorage.getItem('selected_printer_name');
+          if (!savedPrinter) {
+            const def = printers.find((p: any) => p.isDefault);
+            if (def) {
+              setSelectedPrinter(def.name);
+              localStorage.setItem('selected_printer_name', def.name);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load system printers:', err);
+      } finally {
+        setIsRefreshingPrinters(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchPrinters();
+  }, []);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -514,19 +557,106 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Printer & POS Thermal Receipts */}
+          {/* Hardware & POS Thermal Printing Suite */}
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center">
-                <Printer className="w-4 h-4 mr-2 text-pharmacy-600" />
-                Thermal Receipt & Printing Preferences
-              </h3>
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-pharmacy-50 flex items-center justify-center text-pharmacy-600 border border-pharmacy-100/60">
+                  <Printer className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    Thermal Hardware & Silent Printing
+                    {isElectron && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <Zap className="w-3 h-3 mr-1 text-emerald-600" />
+                        POS Hardware Engine Active
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-500">Configure 58mm / 80mm USB & thermal receipt printers</p>
+                </div>
+              </div>
+
+              {isElectron && (
+                <button
+                  type="button"
+                  onClick={fetchPrinters}
+                  disabled={isRefreshingPrinters}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition active:scale-95 disabled:opacity-50"
+                  title="Scan for newly plugged-in USB thermal printers"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshingPrinters ? 'animate-spin' : ''}`} />
+                  Refresh Printers
+                </button>
+              )}
             </div>
+
             <div className="p-6 space-y-4">
+              {/* Printer Hardware Selection (Electron) */}
+              {isElectron ? (
+                <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                      Selected POS Printer
+                      {selectedPrinter && <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Connected</span>}
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Choose your USB or thermal slip printer (e.g. TVS, POS-80, Epson, Everycom)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedPrinter}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSelectedPrinter(val);
+                        localStorage.setItem('selected_printer_name', val);
+                        setIsSaved(true);
+                        setTimeout(() => setIsSaved(false), 2000);
+                      }}
+                      className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pharmacy-500 min-w-[200px]"
+                    >
+                      <option value="">System Default Printer</option>
+                      {installedPrinters.map((p, idx) => (
+                        <option key={idx} value={p.name}>
+                          {p.displayName || p.name} {p.isDefault ? '(Default)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3.5 border border-amber-100 bg-amber-50/60 rounded-2xl flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                    <Printer className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs text-amber-900 leading-relaxed">
+                    <strong>Browser Mode:</strong> Printing opens via the standard system dialog. Launching from the DavaSetu Desktop App unlocks <strong>1-Click Instant Silent Printing</strong> directly to USB POS hardware!
+                  </div>
+                </div>
+              )}
+
+              {/* Silent Printing Toggle */}
+              {isElectron && (
+                <SettingRow 
+                  icon={Zap}
+                  title="Silent Instant Printing (Bypass Dialog)"
+                  description="Slip prints directly from the thermal printer in 0.5s without opening the Windows print popup"
+                  value={silentPrinting}
+                  onChange={() => {
+                    const nextVal = !silentPrinting;
+                    setSilentPrinting(nextVal);
+                    localStorage.setItem('silent_printing_enabled', String(nextVal));
+                    setIsSaved(true);
+                    setTimeout(() => setIsSaved(false), 2000);
+                  }}
+                />
+              )}
+
+              {/* Auto-Print on Bill Completion */}
               <SettingRow 
                 icon={Printer}
-                title="Auto-Print POS Thermal Slip"
-                description="Instantly trigger printer receipt when billing is completed"
+                title="Auto-Print POS Thermal Slip on Billing"
+                description="Automatically triggers receipt print the moment you click Save & Bill"
                 value={settings.autoPrintReceipts}
                 onChange={() => {
                   toggleSetting('autoPrintReceipts');
@@ -534,24 +664,67 @@ export default function Settings() {
                 }}
               />
 
-              <div className="p-4 border border-slate-100 rounded-xl bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Default Paper Format */}
+              <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-800">Default Receipt Slip Format</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">Select your medical store thermal printer roll width</p>
+                  <h4 className="text-sm font-semibold text-slate-800">Thermal Roll Paper Size</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">Select your retail pharmacy counter printer roll format</p>
                 </div>
                 <select
-                  value={localStorage.getItem('default_printer_format') || 'THERMAL_80MM'}
+                  value={printFormat}
                   onChange={(e) => {
-                    localStorage.setItem('default_printer_format', e.target.value);
+                    const val = e.target.value;
+                    setPrintFormat(val);
+                    localStorage.setItem('default_printer_format', val);
                     setIsSaved(true);
                     setTimeout(() => setIsSaved(false), 2000);
                   }}
                   className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pharmacy-500"
                 >
-                  <option value="THERMAL_80MM">Thermal 80mm (3-inch Standard POS)</option>
-                  <option value="THERMAL_58MM">Thermal 58mm (2-inch Mini Slip)</option>
+                  <option value="THERMAL_80MM">Thermal 80mm (3-Inch Standard POS Roll)</option>
+                  <option value="THERMAL_58MM">Thermal 58mm (2-Inch Mini Slip Roll)</option>
                   <option value="A4">Standard A4 Sheet / PDF</option>
                 </select>
+              </div>
+
+              {/* Hardware Test Print Bar */}
+              <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100">
+                <div className="text-xs text-slate-500">
+                  Test your thermal printer paper alignment, cut feed, and clarity with a sample receipt.
+                </div>
+                <div className="flex items-center gap-3">
+                  {testPrintStatus && (
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      {testPrintStatus}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    disabled={isTestingPrint}
+                    onClick={async () => {
+                      setIsTestingPrint(true);
+                      setTestPrintStatus('Printing test slip...');
+                      try {
+                        const fmt = printFormat === 'THERMAL_58MM' ? '58MM' : (printFormat === 'A4' ? 'A4' : '80MM');
+                        const res = await testPrintThermalReceipt(fmt);
+                        if (res?.success) {
+                          setTestPrintStatus(res.silent ? 'Receipt printed silently!' : 'Print sent!');
+                        } else {
+                          setTestPrintStatus('Print triggered');
+                        }
+                      } catch (err: any) {
+                        setTestPrintStatus('Print error: ' + (err?.message || 'Check printer'));
+                      } finally {
+                        setIsTestingPrint(false);
+                        setTimeout(() => setTestPrintStatus(null), 4000);
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50"
+                  >
+                    <Printer className={`w-3.5 h-3.5 ${isTestingPrint ? 'animate-pulse' : ''}`} />
+                    {isTestingPrint ? 'Printing...' : 'Test POS Thermal Print'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -18,6 +18,86 @@ ipcMain.handle('open-external', async (_event, url: string) => {
   return false;
 });
 
+// Get available system printers (USB, Thermal POS, Network, Virtual)
+ipcMain.handle('get-printers', async () => {
+  try {
+    if (!win || win.isDestroyed()) return [];
+    return await win.webContents.getPrintersAsync();
+  } catch (err: any) {
+    console.error('Failed to get printers:', err);
+    return [];
+  }
+});
+
+// Silent thermal / document printing directly to hardware without OS dialog
+ipcMain.handle('print-silent', async (_event, {
+  html,
+  printerName,
+  silent = true,
+  widthType = '80MM'
+}: {
+  html: string;
+  printerName?: string;
+  silent?: boolean;
+  widthType?: '58MM' | '80MM' | 'A4';
+}) => {
+  return new Promise((resolve) => {
+    let printWin: BrowserWindow | null = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    let resolved = false;
+    const finish = (result: { success: boolean; error?: string }) => {
+      if (resolved) return;
+      resolved = true;
+      if (printWin && !printWin.isDestroyed()) {
+        printWin.destroy();
+        printWin = null;
+      }
+      resolve(result);
+    };
+
+    // Failsafe timeout
+    const timeout = setTimeout(() => {
+      finish({ success: false, error: 'Hardware printing timed out' });
+    }, 12000);
+
+    printWin.webContents.on('did-finish-load', () => {
+      if (!printWin || printWin.isDestroyed()) return;
+
+      const printOptions: any = {
+        silent: silent ?? true,
+        printBackground: true,
+        margins: { marginType: 'none' },
+      };
+
+      if (printerName && printerName.trim().length > 0) {
+        printOptions.deviceName = printerName.trim();
+      }
+
+      // POS Thermal continuous roll sizing or standard sheet
+      if (widthType === '58MM') {
+        printOptions.pageSize = { width: 58000, height: 250000 };
+      } else if (widthType === '80MM') {
+        printOptions.pageSize = { width: 80000, height: 300000 };
+      } else {
+        printOptions.pageSize = 'A4';
+      }
+
+      printWin.webContents.print(printOptions, (success, failureReason) => {
+        clearTimeout(timeout);
+        finish({ success, error: failureReason || undefined });
+      });
+    });
+
+    printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+  });
+});
+
 process.on('uncaughtException', (error) => {
   dialog.showErrorBox('App Crash (Uncaught Exception)', error.message + '\n' + (error.stack || ''));
 });

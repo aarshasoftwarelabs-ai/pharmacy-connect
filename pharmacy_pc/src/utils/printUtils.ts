@@ -1,6 +1,11 @@
 import { Bill } from '../types/billing';
 
-export const generateA4PrintHTML = (bill: Bill, pharmacyName: string = 'PharmacyConnect', ownerName: string = 'Owner') => {
+export const generateA4PrintHTML = (
+  bill: Bill, 
+  pharmacyName: string = 'PharmacyConnect', 
+  ownerName: string = 'Owner',
+  autoPrint: boolean = true
+) => {
   const isOnline = bill.billType === 'ONLINE';
 
   const brandHeader = isOnline 
@@ -253,9 +258,7 @@ export const generateA4PrintHTML = (bill: Bill, pharmacyName: string = 'Pharmacy
           <p><strong>Powered by DavaSetu</strong></p>
         </div>
       </div>
-      <script>
-        window.onload = () => { setTimeout(() => window.print(), 500); }
-      </script>
+      ${autoPrint ? `<script>window.onload = () => { setTimeout(() => window.print(), 500); }</script>` : ''}
     </body>
     </html>
   `;
@@ -264,7 +267,8 @@ export const generateA4PrintHTML = (bill: Bill, pharmacyName: string = 'Pharmacy
 export const generateThermalPrintHTML = (
   bill: Bill, 
   pharmacyName: string = 'PharmacyConnect',
-  widthType: '58MM' | '80MM' = '80MM'
+  widthType: '58MM' | '80MM' = '80MM',
+  autoPrint: boolean = true
 ) => {
   const isOnline = bill.billType === 'ONLINE';
   const displayName = isOnline ? 'DavaSetu Medicals' : pharmacyName;
@@ -372,6 +376,7 @@ export const generateThermalPrintHTML = (
         <p style="margin: 1px 0;">Powered by DavaSetu</p>
       </div>
 
+      ${autoPrint ? `
       <script>
         window.onload = () => {
           setTimeout(() => {
@@ -379,12 +384,18 @@ export const generateThermalPrintHTML = (
           }, 250);
         };
       </script>
+      ` : ''}
     </body>
     </html>
   `;
 };
 
-export const generateB2BPrintHTML = (bill: Bill, pharmacyName: string = 'PharmacyConnect', ownerName: string = 'Owner') => {
+export const generateB2BPrintHTML = (
+  bill: Bill, 
+  pharmacyName: string = 'PharmacyConnect', 
+  ownerName: string = 'Owner',
+  autoPrint: boolean = true
+) => {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -519,18 +530,18 @@ export const generateB2BPrintHTML = (bill: Bill, pharmacyName: string = 'Pharmac
           System Generated Tax Invoice • Powered by DavaSetu
         </div>
       </div>
-      <script>window.onload = () => { setTimeout(() => window.print(), 500); }</script>
+      ${autoPrint ? `<script>window.onload = () => { setTimeout(() => window.print(), 500); }</script>` : ''}
     </body>
     </html>
   `;
 };
 
-export const printBill = (
+export const printBill = async (
   bill: Bill, 
   format: 'A4' | 'THERMAL' | 'THERMAL_80MM' | 'THERMAL_58MM' | 'B2B_A4' = 'THERMAL', 
   defaultPharmacyName = 'DavaSetu Pharmacy', 
   defaultOwnerName = 'Admin'
-) => {
+): Promise<{ success: boolean; silent?: boolean; error?: string }> => {
   let pharmacyName = defaultPharmacyName;
   let ownerName = defaultOwnerName;
   
@@ -543,12 +554,6 @@ export const printBill = (
     }
   } catch (e) {}
 
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    alert('Please allow popups to print bills.');
-    return;
-  }
-
   // Determine actual format
   let chosenFormat = format;
   if (chosenFormat === 'THERMAL') {
@@ -559,20 +564,119 @@ export const printBill = (
       chosenFormat = 'THERMAL_80MM';
     }
   }
+
+  // Check if running inside Electron desktop and silent printing is preferred
+  const isElectron = typeof window !== 'undefined' && !!(window as any).ipcRenderer;
+  const isSilentPref = localStorage.getItem('silent_printing_enabled') !== 'false';
+  const selectedPrinter = localStorage.getItem('selected_printer_name') || '';
+
+  if (isElectron && isSilentPref) {
+    let silentHtml = '';
+    let widthType: '58MM' | '80MM' | 'A4' = '80MM';
+
+    if (chosenFormat === 'B2B_A4') {
+      silentHtml = generateB2BPrintHTML(bill, pharmacyName, ownerName, false);
+      widthType = 'A4';
+    } else if (chosenFormat === 'A4') {
+      silentHtml = generateA4PrintHTML(bill, pharmacyName, ownerName, false);
+      widthType = 'A4';
+    } else if (chosenFormat === 'THERMAL_58MM') {
+      silentHtml = generateThermalPrintHTML(bill, pharmacyName, '58MM', false);
+      widthType = '58MM';
+    } else {
+      silentHtml = generateThermalPrintHTML(bill, pharmacyName, '80MM', false);
+      widthType = '80MM';
+    }
+
+    try {
+      const result = await (window as any).ipcRenderer.invoke('print-silent', {
+        html: silentHtml,
+        printerName: selectedPrinter || undefined,
+        silent: true,
+        widthType
+      });
+
+      if (result && result.success) {
+        return { success: true, silent: true };
+      }
+      console.warn('Silent print failed or cancelled in Electron, falling back to window dialog:', result?.error);
+    } catch (ipcErr) {
+      console.warn('IPC invoke print-silent error, falling back:', ipcErr);
+    }
+  }
+
+  // Standard browser print window fallback
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Please allow popups to print bills.');
+    return { success: false, error: 'Popup blocked' };
+  }
   
   let html = '';
   if (chosenFormat === 'B2B_A4') {
-    html = generateB2BPrintHTML(bill, pharmacyName, ownerName);
+    html = generateB2BPrintHTML(bill, pharmacyName, ownerName, true);
   } else if (chosenFormat === 'A4') {
-    html = generateA4PrintHTML(bill, pharmacyName, ownerName);
+    html = generateA4PrintHTML(bill, pharmacyName, ownerName, true);
   } else if (chosenFormat === 'THERMAL_58MM') {
-    html = generateThermalPrintHTML(bill, pharmacyName, '58MM');
+    html = generateThermalPrintHTML(bill, pharmacyName, '58MM', true);
   } else {
-    html = generateThermalPrintHTML(bill, pharmacyName, '80MM');
+    html = generateThermalPrintHTML(bill, pharmacyName, '80MM', true);
   }
   
   printWindow.document.write(html);
   printWindow.document.close();
+  return { success: true, silent: false };
+};
+
+export const testPrintThermalReceipt = async (format: '58MM' | '80MM' | 'A4' = '80MM') => {
+  const dummyBill: Bill = {
+    id: 'test-' + Date.now(),
+    billNumber: 'POS-TEST-' + Math.floor(100 + Math.random() * 900),
+    billType: 'RETAIL',
+    customerName: 'Demo Customer (Hardware Test)',
+    customerPhone: '9876543210',
+    items: [
+      {
+        medicineId: 'dolo650',
+        medicineName: 'Dolo 650mg Strip',
+        quantity: 2,
+        unitPrice: 32.50,
+        mrp: 35.00,
+        lineTotal: 65.00,
+        gstRate: 12,
+        hsnCode: '300490',
+        taxableAmount: 58.04,
+        cgst: 3.48,
+        sgst: 3.48
+      },
+      {
+        medicineId: 'pantocid40',
+        medicineName: 'Pantocid 40mg Tab',
+        quantity: 1,
+        unitPrice: 95.00,
+        mrp: 105.00,
+        lineTotal: 95.00,
+        gstRate: 12,
+        hsnCode: '300490',
+        taxableAmount: 84.82,
+        cgst: 5.09,
+        sgst: 5.09
+      }
+    ],
+    subtotal: 160.00,
+    discount: 0,
+    totalTaxableAmount: 142.86,
+    totalCgst: 8.57,
+    totalSgst: 8.57,
+    totalGst: 17.14,
+    total: 160.00,
+    paymentMode: 'CASH',
+    paymentStatus: 'PAID',
+    createdAt: new Date().toISOString()
+  };
+
+  const chosenFmt = format === '58MM' ? 'THERMAL_58MM' : (format === '80MM' ? 'THERMAL_80MM' : 'A4');
+  return await printBill(dummyBill, chosenFmt);
 };
 
 export const printReturnChallan = (challan: any, defaultPharmacyName = 'DavaSetu Pharmacy') => {

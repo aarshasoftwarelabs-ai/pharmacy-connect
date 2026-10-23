@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/storage_service.dart';
+import '../../core/services/thermal_printer_service.dart';
+import '../../widgets/bluetooth_printer_modal.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
@@ -479,11 +482,56 @@ class _BillingScreenState extends State<BillingScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Thermal receipt ${bill?['bill_number']} printed!')),
-                      );
+                    onPressed: () async {
+                      final pharmacy = StorageService.getPharmacy();
+                      final pharmacyName = pharmacy?['name']?.toString() ?? 'DavaSetu Medicals';
+                      final gstin = pharmacy?['gstin']?.toString();
+                      final dlNo = pharmacy?['dl_number']?.toString() ?? pharmacy?['dlNo']?.toString();
+                      final phone = pharmacy?['phone']?.toString();
+                      final address = pharmacy?['address']?.toString();
+                      final defaultMac = await ThermalPrinterService.instance.getSavedPrinterMac();
+
+                      if (defaultMac != null && defaultMac.isNotEmpty) {
+                        final ok = await ThermalPrinterService.instance.printViaBluetooth(
+                          billData: bill ?? {},
+                          storeName: pharmacyName,
+                          gstin: gstin,
+                          dlNo: dlNo,
+                          phone: phone,
+                          address: address,
+                        );
+
+                        if (ok) {
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: const Color(0xFF15803D),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                content: const Row(
+                                  children: [
+                                    Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Receipt printed to Bluetooth printer!'),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                          return;
+                        }
+                      }
+
+                      // If no default printer or print failed, open Bluetooth printer bottom sheet
+                      if (context.mounted) {
+                        Navigator.pop(ctx);
+                        BluetoothPrinterModal.show(
+                          context,
+                          autoPrintBill: bill,
+                          storeName: pharmacyName,
+                        );
+                      }
                     },
                     icon: const Icon(Icons.print_rounded, size: 16),
                     label: const Text('Print Receipt'),

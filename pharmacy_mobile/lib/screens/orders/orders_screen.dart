@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/storage_service.dart';
+import '../../core/services/thermal_printer_service.dart';
+import '../../widgets/bluetooth_printer_modal.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 
@@ -16,6 +19,55 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
   late TabController _tabController;
   final _currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
   String _searchQuery = '';
+
+  Future<void> _handlePrintReceipt(Map<String, dynamic> bill) async {
+    final pharmacy = StorageService.getPharmacy();
+    final pharmacyName = pharmacy?['name']?.toString() ?? 'DavaSetu Medicals';
+    final gstin = pharmacy?['gstin']?.toString();
+    final dlNo = pharmacy?['dl_number']?.toString() ?? pharmacy?['dlNo']?.toString();
+    final phone = pharmacy?['phone']?.toString();
+    final address = pharmacy?['address']?.toString();
+    final defaultMac = await ThermalPrinterService.instance.getSavedPrinterMac();
+
+    if (defaultMac != null && defaultMac.isNotEmpty) {
+      final ok = await ThermalPrinterService.instance.printViaBluetooth(
+        billData: bill,
+        storeName: pharmacyName,
+        gstin: gstin,
+        dlNo: dlNo,
+        phone: phone,
+        address: address,
+      );
+
+      if (ok) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF15803D),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Thermal slip printed for ${bill['bill_number'] ?? 'Bill'}!'),
+                ],
+              ),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    if (mounted) {
+      BluetoothPrinterModal.show(
+        context,
+        autoPrintBill: bill,
+        storeName: pharmacyName,
+      );
+    }
+  }
 
   final List<Map<String, dynamic>> _refills = [
     {
@@ -595,22 +647,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     // Print Receipt Button
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  const Icon(Icons.print_rounded, color: Colors.white, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text('Thermal slip printed for $billNo'),
-                                ],
-                              ),
-                              backgroundColor: AppColors.primaryDark,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                          );
-                        },
+                        onPressed: () => _handlePrintReceipt(bill),
                         icon: const Icon(Icons.print_rounded, size: 15, color: AppColors.textPrimary),
                         label: const Text(
                           'Print Receipt',
@@ -1141,9 +1178,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     child: OutlinedButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Printing Thermal Receipt for $billNo')),
-                        );
+                        _handlePrintReceipt(bill);
                       },
                       icon: const Icon(Icons.print_rounded, size: 16),
                       label: const Text('Print Receipt'),
