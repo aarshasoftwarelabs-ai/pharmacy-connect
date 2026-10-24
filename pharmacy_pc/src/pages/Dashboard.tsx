@@ -5,8 +5,8 @@ import {
   PlusCircle, Users, Activity, FileBox, 
   ActivitySquare, Pill, 
   ArrowRight, Package, Loader2, AlertCircle, RefreshCw, 
-  UserCircle, CheckCircle2, Receipt, AlertTriangle, Boxes,
-  MessageCircle, Calendar, Wallet, TrendingUp, Sparkles, CreditCard
+  UserCircle, CheckCircle2, Receipt, AlertTriangle,
+  Calendar, Wallet, TrendingUp, Sparkles
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -16,7 +16,6 @@ import { CustomerService, CustomerProfile } from '../services/customerService';
 import { getPharmacyId } from '../config/development';
 import { Medicine } from '../types/medicine';
 import { Bill } from '../types/billing';
-import { sendPaymentReminderWhatsApp } from '../utils/whatsappUtils';
 import SalesOverviewChart from '../components/dashboard/SalesOverviewChart';
 
 const containerVariants: Variants = {
@@ -115,12 +114,7 @@ export default function Dashboard() {
   // Inventory stats
   const lowStockMedicines = medicines.filter(m => Number(m.currentStock || 0) <= (m.minimumStock || 10) && Number(m.currentStock || 0) > 0);
   const outOfStockMedicines = medicines.filter(m => Number(m.currentStock || 0) <= 0);
-  const healthyStockMedicines = medicines.filter(m => Number(m.currentStock || 0) > (m.minimumStock || 10));
   const totalStockUnits = medicines.reduce((sum, m) => sum + Number(m.currentStock || 0), 0);
-  const totalInventoryValue = medicines.reduce((sum, m) => sum + (Number(m.sellingPrice || 0) * Number(m.currentStock || 0)), 0);
-  const inStockPercent = medicines.length > 0 ? Math.round((healthyStockMedicines.length / medicines.length) * 100) : 100;
-  const lowStockPercent = medicines.length > 0 ? Math.round((lowStockMedicines.length / medicines.length) * 100) : 0;
-  const outOfStockPercent = medicines.length > 0 ? Math.round((outOfStockMedicines.length / medicines.length) * 100) : 0;
 
   const newCustomersCount = customers.filter(c => new Date(c.created_at).toDateString() === todayStr).length;
   const activeCustomersCount = customers.filter(c => c.is_active !== false).length;
@@ -154,20 +148,12 @@ export default function Dashboard() {
     ...nearExpiryMeds.map(m => ({ ...m, shortageType: 'NEAR_EXPIRY' as const }))
   ];
 
-  const unpaidBills = bills
-    .filter(b => b.paymentStatus === 'UNPAID')
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
   const todaysCash = todaysBills
     .filter(b => b.paymentMode === 'CASH' || (!b.paymentMode && b.paymentStatus === 'PAID'))
     .reduce((sum, b) => sum + Number(b.total), 0);
 
   const todaysUPI = todaysBills
     .filter(b => b.paymentMode === 'UPI' || b.paymentMode === 'ONLINE' || b.paymentMode === 'CARD')
-    .reduce((sum, b) => sum + Number(b.total), 0);
-
-  const todaysCredit = todaysBills
-    .filter(b => b.paymentStatus === 'UNPAID')
     .reduce((sum, b) => sum + Number(b.total), 0);
 
   const todaysEstProfit = Math.round(todaysSalesValue * 0.18);
@@ -383,306 +369,108 @@ export default function Dashboard() {
           </motion.div>
         </div>
 
-
-        {/* ROW 2: SALES OVERVIEW (8) & INVENTORY STOCK HEALTH (4) */}
+        {/* ROW 2: SALES ANALYTICS (8 cols) & RECENT INVOICES (4 cols) */}
         
         {/* SALES OVERVIEW CHART */}
         <SalesOverviewChart bills={bills} className="col-span-1 lg:col-span-8" />
 
-        {/* INVENTORY HEALTH WIDGET (Executive Stock & Health Insight) */}
-        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition-shadow">
+        {/* RECENT INVOICES (Live POS Transaction Feed) */}
+        <motion.div 
+          variants={itemVariants} 
+          className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden"
+        >
           <div>
-            {/* Header with Status Pill and Quick Link */}
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl">
-                  <Package className="w-5 h-5" />
+                  <Receipt className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                    Inventory Health
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    Recent Invoices
                   </h3>
-                  <p className="text-xs text-slate-400">Stock availability & valuation</p>
+                  <p className="text-xs text-slate-400">Live POS transactions feed</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                  outOfStockMedicines.length === 0 && lowStockMedicines.length === 0
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : outOfStockMedicines.length > 0
-                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    outOfStockMedicines.length === 0 && lowStockMedicines.length === 0
-                      ? 'bg-emerald-500 animate-pulse'
-                      : outOfStockMedicines.length > 0
-                      ? 'bg-rose-500'
-                      : 'bg-amber-500'
-                  }`} />
-                  {inStockPercent}% Optimal
-                </span>
-                <Link to="/inventory" className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors" title="View Full Inventory">
-                  <ArrowRight className="w-4 h-4 -rotate-45" />
-                </Link>
-              </div>
+              <Link 
+                to="/billing" 
+                className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-colors"
+              >
+                <span>View All</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
 
-            {/* Segmented Visual Health Meter */}
-            <div className="mb-4 bg-slate-50/80 p-3 rounded-2xl border border-slate-100">
-              <div className="flex justify-between items-center text-xs font-semibold text-slate-500 mb-2">
-                <span>Health Distribution</span>
-                <span className="font-bold text-slate-800">{medicines.length} Products</span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex shadow-inner">
-                <div 
-                  style={{ width: `${inStockPercent}%` }} 
-                  className="bg-emerald-500 transition-all duration-500" 
-                  title={`In Stock: ${healthyStockMedicines.length} (${inStockPercent}%)`}
-                />
-                <div 
-                  style={{ width: `${lowStockPercent}%` }} 
-                  className="bg-amber-400 transition-all duration-500" 
-                  title={`Low Stock: ${lowStockMedicines.length} (${lowStockPercent}%)`}
-                />
-                <div 
-                  style={{ width: `${outOfStockPercent}%` }} 
-                  className="bg-rose-500 transition-all duration-500" 
-                  title={`Out of Stock: ${outOfStockMedicines.length} (${outOfStockPercent}%)`}
-                />
-              </div>
-              <div className="flex justify-between items-center text-[10px] font-medium mt-1.5 px-0.5">
-                <span className="flex items-center gap-1 text-emerald-700 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> In Stock ({inStockPercent}%)
-                </span>
-                <span className="flex items-center gap-1 text-amber-700 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Low ({lowStockPercent}%)
-                </span>
-                <span className="flex items-center gap-1 text-rose-700 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Out ({outOfStockPercent}%)
-                </span>
-              </div>
-            </div>
+            {/* Invoices List */}
+            <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
+              {recentTimeline.length === 0 ? (
+                <div className="py-14 flex flex-col items-center justify-center text-slate-400 text-sm font-medium border-2 border-dashed border-slate-100 rounded-2xl">
+                  <Receipt className="w-8 h-8 text-slate-300 mb-2" />
+                  <p className="text-xs text-slate-500 font-semibold">No invoices generated yet today.</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Click below to start counter billing</p>
+                </div>
+              ) : (
+                recentTimeline.map((bill, i) => (
+                  <div 
+                    key={`bill-${bill.id}-${i}`} 
+                    onClick={() => navigate('/billing')}
+                    className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/70 hover:bg-indigo-50/60 border border-slate-100/80 hover:border-indigo-200/70 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white text-indigo-600 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                        <Receipt className="w-4 h-4 text-indigo-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 group-hover:text-indigo-900 transition-colors">
+                          #{bill.billNumber || String(bill.id).slice(0, 8)}
+                        </p>
+                        <p className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                          <span>{new Date(bill.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>•</span>
+                          <span className="font-medium text-slate-500">
+                            {bill.customerName ? bill.customerName : 'Walk-in'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
 
-            {/* Status Breakdown Items (Clickable) */}
-            <div className="space-y-2 mb-4">
-              {/* Healthy Stock */}
-              <div 
-                className="group flex items-center justify-between p-2.5 bg-slate-50/70 hover:bg-emerald-50/80 rounded-2xl border border-slate-100/80 hover:border-emerald-200 transition-all cursor-pointer" 
-                onClick={() => navigate('/inventory')}
-              >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mr-2.5 group-hover:scale-105 transition-transform">
-                    <CheckCircle2 className="w-4 h-4" />
+                    <div className="text-right">
+                      <p className="text-xs font-black text-slate-900">
+                        ₹{Number(bill.total).toLocaleString('en-IN')}
+                      </p>
+                      <span className={`inline-block text-[10px] font-bold px-1.5 py-0.2 rounded mt-0.5 ${
+                        bill.paymentStatus === 'PAID'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {bill.paymentStatus}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-emerald-900">In Stock</h4>
-                    <p className="text-[10px] text-slate-400">Sufficient quantity</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 bg-emerald-100/70 text-emerald-800 rounded-lg text-[10px] font-bold">
-                    {inStockPercent}%
-                  </span>
-                  <span className="text-sm font-extrabold text-emerald-600 min-w-[20px] text-right">
-                    {healthyStockMedicines.length}
-                  </span>
-                </div>
-              </div>
-
-              {/* Low Stock */}
-              <div 
-                className="group flex items-center justify-between p-2.5 bg-slate-50/70 hover:bg-amber-50/80 rounded-2xl border border-slate-100/80 hover:border-amber-200 transition-all cursor-pointer" 
-                onClick={() => navigate('/inventory')}
-              >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mr-2.5 group-hover:scale-105 transition-transform">
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-amber-900">Low Stock</h4>
-                    <p className="text-[10px] text-slate-400">Needs purchase order</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {lowStockMedicines.length > 0 && (
-                    <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold">
-                      Reorder
-                    </span>
-                  )}
-                  <span className="text-sm font-extrabold text-amber-600 min-w-[20px] text-right">
-                    {lowStockMedicines.length}
-                  </span>
-                </div>
-              </div>
-
-              {/* Out of Stock */}
-              <div 
-                className="group flex items-center justify-between p-2.5 bg-slate-50/70 hover:bg-rose-50/80 rounded-2xl border border-slate-100/80 hover:border-rose-200 transition-all cursor-pointer" 
-                onClick={() => navigate('/inventory')}
-              >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mr-2.5 group-hover:scale-105 transition-transform">
-                    <AlertCircle className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-rose-900">Out of Stock</h4>
-                    <p className="text-[10px] text-slate-400">Zero inventory</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {outOfStockMedicines.length > 0 && (
-                    <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-lg text-[10px] font-bold">
-                      Critical
-                    </span>
-                  )}
-                  <span className="text-sm font-extrabold text-rose-600 min-w-[20px] text-right">
-                    {outOfStockMedicines.length}
-                  </span>
-                </div>
-              </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* Bottom Stock Insights: Units & Valuation & Quick Link */}
-          <div className="pt-3 border-t border-slate-100 space-y-2.5">
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100/80">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Stock</span>
-                <span className="text-sm font-extrabold text-slate-800 flex items-center gap-1 mt-0.5">
-                  <Boxes className="w-3.5 h-3.5 text-indigo-500" />
-                  {totalStockUnits.toLocaleString('en-IN')} <span className="text-[10px] font-medium text-slate-400">Units</span>
-                </span>
-              </div>
-              <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100/80">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Estimated Value</span>
-                <span className="text-sm font-extrabold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-                  <IndianRupee className="w-3.5 h-3.5" />
-                  {totalInventoryValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-            </div>
-
-            <Link
-              to="/inventory"
-              className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 group"
+          {/* Quick Footer Action */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs mt-3">
+            <span className="font-semibold text-slate-500">
+              {todaysBills.length} Invoices Today
+            </span>
+            <Link 
+              to="/billing" 
+              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
             >
-              <span>Manage Stock & Reorders</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Create New Bill</span>
             </Link>
           </div>
         </motion.div>
 
 
-        {/* ROW 3: CUSTOMER OVERVIEW (4), BILLING OVERVIEW (4), RECENT INVOICES (4) */}
+        {/* ROW 3: ALL-IN-ONE SMART OPERATIONS HUB (Full Width 12 cols) */}
         
-        {/* CUSTOMER OVERVIEW */}
-        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center">
-              <Users className="w-5 h-5 mr-2 text-blue-500" /> 
-              Customers
-            </h3>
-          </div>
-          <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100 flex items-center mb-4">
-             <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-4">
-               <UserCircle className="w-6 h-6" />
-             </div>
-             <div>
-               <p className="text-blue-800 text-sm font-semibold">Total Base</p>
-               <h4 className="text-2xl font-bold text-blue-900">{customers.length}</h4>
-             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 flex-1">
-             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col justify-center">
-               <p className="text-slate-500 text-xs font-semibold mb-1">New Today</p>
-               <h4 className="text-xl font-bold text-slate-800">{newCustomersCount}</h4>
-             </div>
-             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col justify-center">
-               <p className="text-slate-500 text-xs font-semibold mb-1">Active</p>
-               <h4 className="text-xl font-bold text-slate-800">{activeCustomersCount}</h4>
-             </div>
-          </div>
-        </motion.div>
-
-        {/* BILLING OVERVIEW */}
-        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center">
-              <FileBox className="w-5 h-5 mr-2 text-violet-500" /> 
-              Billing Summary
-            </h3>
-          </div>
-          <div className="space-y-4 flex-1 flex flex-col justify-center">
-            <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="flex items-center">
-                <FileText className="w-5 h-5 text-slate-400 mr-3" />
-                <span className="font-semibold text-slate-700">Total Bills</span>
-              </div>
-              <span className="font-bold text-slate-800">{bills.length}</span>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-emerald-500 mr-3" />
-                <span className="font-semibold text-emerald-800">Paid Amount</span>
-              </div>
-              <span className="font-bold text-emerald-700">₹{bills.filter(b => b.paymentStatus === 'PAID').reduce((sum, b) => sum + Number(b.total), 0).toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-red-50 rounded-2xl border border-red-100">
-              <div className="flex items-center">
-                <Clock className="w-5 h-5 text-red-400 mr-3" />
-                <span className="font-semibold text-red-800">Pending Amount</span>
-              </div>
-              <span className="font-bold text-red-700">₹{pendingBillsAmount.toLocaleString('en-IN')}</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* RECENT INVOICES (Replaced Mixed Activity with Pure POS Transactions) */}
-        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-indigo-500" /> 
-              Recent Invoices
-            </h3>
-            <Link to="/billing" className="text-xs font-bold text-indigo-600 hover:underline">
-              View All
-            </Link>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {recentTimeline.length === 0 ? (
-              <div className="h-full min-h-[150px] flex items-center justify-center text-slate-400 text-sm font-medium border-2 border-dashed border-slate-100 rounded-2xl">
-                No invoices created yet today.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {recentTimeline.map((bill, i) => (
-                  <div key={`bill-${bill.id}-${i}`} className="flex items-start group">
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mr-3 group-hover:bg-emerald-100 transition-colors">
-                      <Receipt className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <p className="text-sm text-slate-800 font-semibold line-clamp-1">
-                        Invoice #{bill.billNumber || String(bill.id).slice(0, 8)}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-0.5 flex items-center justify-between">
-                        <span className="font-bold text-slate-700">₹{Number(bill.total).toLocaleString('en-IN')} • {bill.paymentStatus}</span>
-                        <span>{new Date(bill.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </motion.div>
-
-
-        {/* ROW 4: ALL-IN-ONE SMART HUB (8) & STAFF AUDIT (4) */}
-        
-        {/* ALL-IN-ONE SMART OPERATIONS HUB */}
-        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-8 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+        <motion.div variants={itemVariants} className="col-span-12 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
           {/* Header & Segmented Tabs */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 pb-4 border-b border-slate-100">
             <div>
@@ -740,93 +528,95 @@ export default function Dashboard() {
 
           {/* TAB 1: EXPIRY & CRITICAL STOCK RADAR */}
           {activeHubTab === 'alerts' && (
-            <div className="space-y-3 flex-1 flex flex-col justify-between">
+            <div className="space-y-4 flex-1 flex flex-col justify-between">
               {/* Quick Summary Strip */}
-              <div className="grid grid-cols-3 gap-2.5">
-                <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-center justify-between">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/60 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-bold text-amber-700 uppercase">Near Expiry (&lt;90d)</span>
-                    <h5 className="text-base font-black text-amber-900">{nearExpiryMeds.length} Items</h5>
+                    <h5 className="text-lg font-black text-amber-900">{nearExpiryMeds.length} Items</h5>
                   </div>
-                  <Calendar className="w-4 h-4 text-amber-500" />
+                  <Calendar className="w-5 h-5 text-amber-500" />
                 </div>
-                <div className="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200/60 flex items-center justify-between">
+                <div className="p-3 rounded-2xl bg-rose-50/70 border border-rose-200/60 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-bold text-rose-700 uppercase">Out of Stock</span>
-                    <h5 className="text-base font-black text-rose-900">{outOfStockMedicines.length} Items</h5>
+                    <h5 className="text-lg font-black text-rose-900">{outOfStockMedicines.length} Items</h5>
                   </div>
-                  <AlertCircle className="w-4 h-4 text-rose-500" />
+                  <AlertCircle className="w-5 h-5 text-rose-500" />
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-bold text-slate-600 uppercase">Low Threshold</span>
-                    <h5 className="text-base font-black text-slate-900">{lowStockMedicines.length} Items</h5>
+                    <h5 className="text-lg font-black text-slate-900">{lowStockMedicines.length} Items</h5>
                   </div>
-                  <Package className="w-4 h-4 text-slate-400" />
+                  <Package className="w-5 h-5 text-slate-400" />
                 </div>
               </div>
 
-              {/* Items List */}
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              {/* Items List (Responsive 2-column grid for spacious layout) */}
+              <div className="max-h-[260px] overflow-y-auto pr-1">
                 {criticalStockList.length > 0 ? (
-                  criticalStockList.slice(0, 4).map((med, idx) => (
-                    <div
-                      key={med.id || idx}
-                      onClick={() => navigate('/inventory')}
-                      className="group flex items-center justify-between p-3 rounded-xl bg-slate-50/80 hover:bg-white border border-slate-100 hover:border-slate-300 hover:shadow-xs transition-all cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                          med.shortageType === 'OUT_OF_STOCK'
-                            ? 'bg-rose-100 text-rose-600'
-                            : med.shortageType === 'NEAR_EXPIRY'
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-amber-50 text-amber-600'
-                        }`}>
-                          <Pill className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h5 className="text-xs font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                              {med.name}
-                            </h5>
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              {med.strength || med.category}
-                            </span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {criticalStockList.slice(0, 6).map((med, idx) => (
+                      <div
+                        key={med.id || idx}
+                        onClick={() => navigate('/inventory')}
+                        className="group flex items-center justify-between p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 border border-slate-100 hover:border-emerald-200 hover:shadow-xs transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            med.shortageType === 'OUT_OF_STOCK'
+                              ? 'bg-rose-100 text-rose-600'
+                              : med.shortageType === 'NEAR_EXPIRY'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-amber-50 text-amber-600'
+                          }`}>
+                            <Pill className="w-4 h-4" />
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {med.shortageType === 'NEAR_EXPIRY' && med.daysUntilExpiry !== null ? (
-                              <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded ${
-                                med.daysUntilExpiry <= 30
-                                  ? 'bg-rose-100 text-rose-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}>
-                                {med.daysUntilExpiry <= 0 ? 'Expired' : `Expires in ${med.daysUntilExpiry} days (${med.expDateFormatted})`}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-bold text-slate-900 truncate group-hover:text-emerald-700 transition-colors">
+                                {med.name}
+                              </h5>
+                              <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                                {med.strength || med.category}
                               </span>
-                            ) : med.shortageType === 'OUT_OF_STOCK' ? (
-                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
-                                0 Units in Stock
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
-                                Low Stock: {med.currentStock} left (Min: {med.minimumStock || 10})
-                              </span>
-                            )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {med.shortageType === 'NEAR_EXPIRY' && med.daysUntilExpiry !== null ? (
+                                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded ${
+                                  med.daysUntilExpiry <= 30
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {med.daysUntilExpiry <= 0 ? 'Expired' : `Expires in ${med.daysUntilExpiry}d (${med.expDateFormatted})`}
+                                </span>
+                              ) : med.shortageType === 'OUT_OF_STOCK' ? (
+                                <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
+                                  0 Units in Stock
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
+                                  Low: {med.currentStock} left (Min: {med.minimumStock || 10})
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-xs font-black text-slate-800">₹{Number(med.sellingPrice || 0).toFixed(2)}</p>
-                          <p className="text-[10px] text-slate-400 font-medium">Selling MRP</p>
+                        <div className="flex items-center gap-2.5 shrink-0 ml-2">
+                          <div className="text-right">
+                            <p className="text-xs font-black text-slate-800">₹{Number(med.sellingPrice || 0).toFixed(2)}</p>
+                            <p className="text-[9px] text-slate-400 font-medium">Selling MRP</p>
+                          </div>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-slate-900 text-white hover:bg-emerald-600 transition-colors">
+                            Restock <ArrowRight className="w-3 h-3" />
+                          </span>
                         </div>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-900 text-white hover:bg-emerald-600 transition-colors">
-                          Restock <ArrowRight className="w-3 h-3" />
-                        </span>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
                   <div className="p-6 text-center bg-emerald-50/50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center">
                     <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-2" />
@@ -838,7 +628,7 @@ export default function Dashboard() {
 
               {/* Bottom Direct Jump */}
               <div className="pt-2 flex items-center justify-between text-xs font-semibold text-slate-500 border-t border-slate-100">
-                <span>Total Catalog: <strong>{medicines.length} Products</strong></span>
+                <span>Total Catalog: <strong>{medicines.length} Products</strong> ({totalStockUnits.toLocaleString('en-IN')} units)</span>
                 <Link to="/inventory" className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1">
                   Open Smart Inventory <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
@@ -846,79 +636,77 @@ export default function Dashboard() {
             </div>
           )}
 
-
-
-          {/* TAB 3: TODAY'S CASHIER & REGISTER */}
+          {/* TAB 2: TODAY'S CASHIER & REGISTER */}
           {activeHubTab === 'counter' && (
-            <div className="space-y-3 flex-1 flex flex-col justify-between">
+            <div className="space-y-4 flex-1 flex flex-col justify-between">
               {/* 4 Register Metric Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200/80">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200/80">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">Cash Drawer</span>
                     <Wallet className="w-3.5 h-3.5 text-emerald-600" />
                   </div>
-                  <h4 className="text-lg font-black text-emerald-900">₹{todaysCash.toLocaleString('en-IN')}</h4>
+                  <h4 className="text-xl font-black text-emerald-900">₹{todaysCash.toLocaleString('en-IN')}</h4>
                   <p className="text-[10px] text-emerald-700 font-medium mt-0.5">Physical Cash In Hand</p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-blue-50/80 border border-blue-200/80">
+                <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200/80">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] font-extrabold text-blue-800 uppercase tracking-wider">UPI / QR Code</span>
                     <Activity className="w-3.5 h-3.5 text-blue-600" />
                   </div>
-                  <h4 className="text-lg font-black text-blue-900">₹{todaysUPI.toLocaleString('en-IN')}</h4>
+                  <h4 className="text-xl font-black text-blue-900">₹{todaysUPI.toLocaleString('en-IN')}</h4>
                   <p className="text-[10px] text-blue-700 font-medium mt-0.5">Direct Bank Credit</p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">Avg Bill Value</span>
                     <Receipt className="w-3.5 h-3.5 text-slate-500" />
                   </div>
-                  <h4 className="text-lg font-black text-slate-900">
+                  <h4 className="text-xl font-black text-slate-900">
                     ₹{todaysBills.length > 0 ? (todaysSalesValue / todaysBills.length).toFixed(0) : '0'}
                   </h4>
                   <p className="text-[10px] text-slate-500 font-medium mt-0.5">Per Walk-in Patient</p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-violet-50/80 border border-violet-200/80">
+                <div className="p-3.5 rounded-2xl bg-violet-50/80 border border-violet-200/80">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] font-extrabold text-violet-800 uppercase tracking-wider">Est. Gross Profit</span>
                     <TrendingUp className="w-3.5 h-3.5 text-violet-600" />
                   </div>
-                  <h4 className="text-lg font-black text-violet-900">₹{todaysEstProfit.toLocaleString('en-IN')}</h4>
+                  <h4 className="text-xl font-black text-violet-900">₹{todaysEstProfit.toLocaleString('en-IN')}</h4>
                   <p className="text-[10px] text-violet-700 font-medium mt-0.5">~18% Retail Margin</p>
                 </div>
               </div>
 
               {/* Fast POS Shortcuts Bar */}
-              <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200/70 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-xs shadow-xs">
                     POS
                   </div>
                   <div>
                     <h5 className="text-xs font-extrabold text-slate-900">
                       Counter Status: {todaysBills.length} Receipts Generated Today
                     </h5>
-                    <p className="text-[10px] text-slate-500 font-medium">
+                    <p className="text-[11px] text-slate-500 font-medium">
                       Avg Basket Size: ₹{todaysBills.length > 0 ? (todaysSalesValue / todaysBills.length).toFixed(1) : '0'} per patient
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
                   <Link
                     to="/billing"
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
                     <span>New Bill</span>
                   </Link>
                   <Link
                     to="/reports"
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5 text-slate-500" />
                     <span>Daybook</span>
@@ -937,20 +725,167 @@ export default function Dashboard() {
           )}
         </motion.div>
 
-        {/* STAFF AUDIT */}
-        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center">
-              <UserCircle className="w-5 h-5 mr-2 text-slate-400" /> 
-              Staff Audit
-            </h3>
+
+        {/* ROW 4: CUSTOMERS (4 cols), BILLING SUMMARY (4 cols), STATION AUDIT (4 cols) */}
+        
+        {/* CUSTOMER BASE */}
+        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Customer Base</h3>
+                  <p className="text-xs text-slate-400">Directory & engagement</p>
+                </div>
+              </div>
+              <Link to="/customers" className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-colors">
+                <span>Manage</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-50/70 to-indigo-50/40 rounded-2xl p-4 border border-blue-100 flex items-center mb-4">
+              <div className="w-12 h-12 bg-white text-blue-600 rounded-2xl flex items-center justify-center mr-4 shadow-xs">
+                <UserCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-blue-700 text-xs font-bold uppercase tracking-wider">Total Registered</p>
+                <h4 className="text-2xl font-black text-blue-950 mt-0.5">{customers.length}</h4>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex flex-col justify-center">
+                <p className="text-slate-500 text-xs font-bold mb-0.5">New Today</p>
+                <h4 className="text-lg font-black text-slate-800">{newCustomersCount}</h4>
+                <span className="text-[10px] text-slate-400 font-medium">Added to database</span>
+              </div>
+              <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex flex-col justify-center">
+                <p className="text-slate-500 text-xs font-bold mb-0.5">Active</p>
+                <h4 className="text-lg font-black text-slate-800">{activeCustomersCount}</h4>
+                <span className="text-[10px] text-emerald-600 font-bold">In good standing</span>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/50">
-             <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3 text-slate-400 shadow-inner">
-               <ActivitySquare className="w-6 h-6" />
-             </div>
-             <p className="text-sm font-bold text-slate-700 mb-1">No Recent Activity</p>
-             <p className="text-xs text-slate-500">Staff actions and audit events will appear here.</p>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="font-semibold text-slate-500">Patient Directory</span>
+            <Link to="/customers" className="font-bold text-blue-600 hover:underline flex items-center gap-1">
+              View All Customers <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* BILLING SUMMARY */}
+        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-violet-50 text-violet-600 rounded-2xl">
+                  <FileBox className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Billing Summary</h3>
+                  <p className="text-xs text-slate-400">Total revenue & collection</p>
+                </div>
+              </div>
+              <Link to="/billing" className="inline-flex items-center gap-1 px-3 py-1 bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold rounded-xl transition-colors">
+                <span>Invoices</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="flex justify-between items-center p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
+                <div className="flex items-center">
+                  <FileText className="w-4 h-4 text-slate-400 mr-2.5" />
+                  <span className="text-xs font-bold text-slate-700">Total Lifetime Bills</span>
+                </div>
+                <span className="text-sm font-extrabold text-slate-900">{bills.length}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-emerald-50/70 rounded-2xl border border-emerald-100">
+                <div className="flex items-center">
+                  <CheckCircle className="w-4 h-4 text-emerald-500 mr-2.5" />
+                  <span className="text-xs font-bold text-emerald-800">Total Paid Amount</span>
+                </div>
+                <span className="text-sm font-extrabold text-emerald-700">₹{bills.filter(b => b.paymentStatus === 'PAID').reduce((sum, b) => sum + Number(b.total), 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-rose-50/70 rounded-2xl border border-rose-100">
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 text-rose-400 mr-2.5" />
+                  <span className="text-xs font-bold text-rose-800">Pending Amount</span>
+                </div>
+                <span className="text-sm font-extrabold text-rose-700">₹{pendingBillsAmount.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="font-semibold text-slate-500">POS Receipts</span>
+            <Link to="/reports" className="font-bold text-violet-600 hover:underline flex items-center gap-1">
+              Financial Breakdown <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* STATION & SECURITY AUDIT */}
+        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-4 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-slate-100 text-slate-700 rounded-2xl">
+                  <ActivitySquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Station & Security</h3>
+                  <p className="text-xs text-slate-400">Terminal & session audit</p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Online
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Logged In Role</span>
+                  <span className="text-xs font-bold text-slate-800">Pharmacy Administrator</span>
+                </div>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                  Primary POS
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Terminal Location</span>
+                  <span className="text-xs font-bold text-slate-800">{pharmacyName || 'Main Counter'}</span>
+                </div>
+                <span className="text-[11px] font-semibold text-slate-500 font-mono">
+                  v1.0.0
+                </span>
+              </div>
+
+              <div className="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/70 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-xs font-bold text-emerald-800">Offline Sync & DB Active</span>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700">Healthy</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="font-semibold text-slate-500">System Logs</span>
+            <Link to="/settings" className="font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+              Settings & Config <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </motion.div>
 
