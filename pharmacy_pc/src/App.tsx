@@ -16,7 +16,6 @@ import Inventory from './pages/Inventory';
 import Suppliers from './pages/Suppliers';
 import Purchases from './pages/Purchases';
 import Staff from './pages/Staff';
-import Marketing from './pages/Marketing';
 
 import { AuthProvider, useAuth } from './components/auth/AuthContext';
 
