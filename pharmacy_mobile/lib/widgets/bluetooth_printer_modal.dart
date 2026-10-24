@@ -139,22 +139,23 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
   Future<void> _testPrint() async {
     setState(() {
       _isTesting = true;
-      _statusMessage = 'Printing test slip...';
+      _statusMessage = 'Printing POS slip...';
       _statusIsError = false;
     });
 
     final ok = await _service.printTestSlip(
       storeName: widget.storeName,
+      liveBill: widget.autoPrintBill,
     );
 
     if (mounted) {
       setState(() {
         _isTesting = false;
         if (ok) {
-          _statusMessage = 'Test slip printed successfully!';
+          _statusMessage = 'POS slip printed successfully!';
           _statusIsError = false;
         } else {
-          _statusMessage = 'Test print failed. Tap a printer below to reconnect.';
+          _statusMessage = 'Print failed. Tap a printer below to reconnect.';
           _statusIsError = true;
         }
       });
@@ -477,7 +478,7 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
                     icon: _isTesting
                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.receipt_long_rounded, size: 16),
-                    label: const Text('Test Slip'),
+                    label: const Text('Print POS Slip'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

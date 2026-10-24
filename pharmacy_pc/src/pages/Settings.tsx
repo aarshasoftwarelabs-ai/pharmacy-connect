@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { PharmacyService } from '../services/pharmacyService';
 import { PaymentService } from '../services/paymentService';
+import { BillingService } from '../services/billingService';
 import { testPrintThermalReceipt } from '../utils/printUtils';
 import { 
   Bell, 
@@ -769,10 +770,10 @@ export default function Settings() {
                 </select>
               </div>
 
-              {/* Hardware Test Print Bar */}
+              {/* Hardware POS Thermal Printing Slip */}
               <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100">
                 <div className="text-xs text-slate-500">
-                  Test your thermal printer paper alignment, cut feed, and clarity with a sample receipt.
+                  Print an authentic counter receipt using your live pharmacy profile & recent bill data.
                 </div>
                 <div className="flex items-center gap-3">
                   {testPrintStatus && (
@@ -785,14 +786,30 @@ export default function Settings() {
                     disabled={isTestingPrint}
                     onClick={async () => {
                       setIsTestingPrint(true);
-                      setTestPrintStatus('Printing test slip...');
+                      setTestPrintStatus('Printing live receipt slip...');
                       try {
+                        let latestBill: any = null;
+                        try {
+                          let pId = 1;
+                          const localData = localStorage.getItem('pharmacy_profile_data');
+                          if (localData) {
+                            const p = JSON.parse(localData);
+                            if (p.id) pId = p.id;
+                          }
+                          const bills = await BillingService.getPharmacyBills(pId);
+                          if (bills && bills.length > 0) {
+                            latestBill = bills[0];
+                          }
+                        } catch (e) {
+                          console.warn('Could not fetch latest bill for print preview:', e);
+                        }
+
                         const fmt = printFormat === 'THERMAL_58MM' ? '58MM' : (printFormat === 'A4' ? 'A4' : '80MM');
-                        const res = await testPrintThermalReceipt(fmt);
+                        const res = await testPrintThermalReceipt(fmt, latestBill);
                         if (res?.success) {
-                          setTestPrintStatus(res.silent ? 'Receipt printed silently!' : 'Print sent!');
+                          setTestPrintStatus(res.silent ? 'Receipt printed silently!' : 'Receipt printed!');
                         } else {
-                          setTestPrintStatus('Print triggered');
+                          setTestPrintStatus('Print sent');
                         }
                       } catch (err: any) {
                         setTestPrintStatus('Print error: ' + (err?.message || 'Check printer'));
@@ -804,7 +821,7 @@ export default function Settings() {
                     className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50"
                   >
                     <Printer className={`w-3.5 h-3.5 ${isTestingPrint ? 'animate-pulse' : ''}`} />
-                    {isTestingPrint ? 'Printing...' : 'Test POS Thermal Print'}
+                    {isTestingPrint ? 'Printing...' : 'Print POS Thermal Slip'}
                   </button>
                 </div>
               </div>

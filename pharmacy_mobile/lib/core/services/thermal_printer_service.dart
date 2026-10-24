@@ -327,24 +327,28 @@ class ThermalPrinterService {
     }
   }
 
-  /// Print test slip to verify hardware connection
-  Future<bool> printTestSlip({String? targetMac, String storeName = 'DavaSetu Medicals'}) async {
-    final dummyBill = {
-      'bill_number': 'TEST-${DateTime.now().millisecondsSinceEpoch % 1000}',
+  /// Print authentic counter slip to verify hardware connection
+  Future<bool> printTestSlip({
+    String? targetMac,
+    String storeName = 'DavaSetu Medicals',
+    Map<String, dynamic>? liveBill,
+  }) async {
+    final billToPrint = liveBill ?? {
+      'bill_number': 'POS-${DateTime.now().millisecondsSinceEpoch % 10000}',
       'date': DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now()),
-      'customer_name': 'Hardware Test Slip',
-      'customer_phone': '9876543210',
+      'customer_name': 'Walk-in Patient',
+      'customer_phone': '',
       'items': [
-        {'name': 'Dolo 650mg Tab', 'qty': 2, 'price': 30.0, 'total': 60.0},
-        {'name': 'Azithral 500mg', 'qty': 1, 'price': 120.0, 'total': 120.0},
+        {'name': 'Paracetamol 650mg Tab', 'qty': 2, 'price': 30.0, 'total': 60.0},
+        {'name': 'Pantocid 40mg Tab', 'qty': 1, 'price': 95.0, 'total': 95.0},
       ],
       'discount': 0.0,
-      'total': 180.0,
+      'total': 155.0,
       'payment_mode': 'CASH',
     };
 
     return await printViaBluetooth(
-      billData: dummyBill,
+      billData: billToPrint,
       storeName: storeName,
       targetMac: targetMac,
     );

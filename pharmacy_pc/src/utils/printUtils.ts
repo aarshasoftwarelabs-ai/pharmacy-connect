@@ -628,17 +628,33 @@ export const printBill = async (
   return { success: true, silent: false };
 };
 
-export const testPrintThermalReceipt = async (format: '58MM' | '80MM' | 'A4' = '80MM') => {
-  const dummyBill: Bill = {
-    id: 'test-' + Date.now(),
-    billNumber: 'POS-TEST-' + Math.floor(100 + Math.random() * 900),
+export const testPrintThermalReceipt = async (
+  format: '58MM' | '80MM' | 'A4' = '80MM',
+  liveBill?: Bill
+) => {
+  let pharmacyName = 'DavaSetu Pharmacy';
+  let ownerName = 'Admin';
+  let contactPhone = '';
+  try {
+    const localData = localStorage.getItem('pharmacy_profile_data');
+    if (localData) {
+      const profile = JSON.parse(localData);
+      if (profile.name) pharmacyName = profile.name;
+      if (profile.ownerName) ownerName = profile.ownerName;
+      if (profile.phone) contactPhone = profile.phone;
+    }
+  } catch (e) {}
+
+  const targetBill: Bill = liveBill || {
+    id: 'live-' + Date.now(),
+    billNumber: 'INV-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000),
     billType: 'RETAIL',
-    customerName: 'Demo Customer (Hardware Test)',
-    customerPhone: '9876543210',
+    customerName: 'Walk-in Patient',
+    customerPhone: contactPhone || '9876543210',
     items: [
       {
         medicineId: 'dolo650',
-        medicineName: 'Dolo 650mg Strip',
+        medicineName: 'Paracetamol 650mg Strip',
         quantity: 2,
         unitPrice: 32.50,
         mrp: 35.00,
@@ -676,7 +692,7 @@ export const testPrintThermalReceipt = async (format: '58MM' | '80MM' | 'A4' = '
   };
 
   const chosenFmt = format === '58MM' ? 'THERMAL_58MM' : (format === '80MM' ? 'THERMAL_80MM' : 'A4');
-  return await printBill(dummyBill, chosenFmt);
+  return await printBill(targetBill, chosenFmt, pharmacyName, ownerName);
 };
 
 export const printReturnChallan = (challan: any, defaultPharmacyName = 'DavaSetu Pharmacy') => {
