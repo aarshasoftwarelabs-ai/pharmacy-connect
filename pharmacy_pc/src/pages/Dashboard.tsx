@@ -123,6 +123,10 @@ export default function Dashboard() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 6);
 
+  const pendingBillsAmount = bills
+    .filter(b => b.paymentStatus === 'UNPAID')
+    .reduce((sum, b) => sum + Number(b.total), 0);
+
   // --- All-in-One Smart Hub Calculations ---
   const nearExpiryMeds = medicines
     .map(m => {
