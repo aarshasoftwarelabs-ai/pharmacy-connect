@@ -5,7 +5,8 @@ import {
   PlusCircle, Users, Activity, FileBox, 
   ActivitySquare, Pill, 
   ArrowRight, Package, Loader2, AlertCircle, RefreshCw, 
-  UserCircle, CheckCircle2, Receipt, AlertTriangle, Boxes
+  UserCircle, CheckCircle2, Receipt, AlertTriangle, Boxes,
+  MessageCircle, Calendar, Wallet, TrendingUp, Sparkles, CreditCard
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -15,6 +16,7 @@ import { CustomerService, CustomerProfile } from '../services/customerService';
 import { getPharmacyId } from '../config/development';
 import { Medicine } from '../types/medicine';
 import { Bill } from '../types/billing';
+import { sendPaymentReminderWhatsApp } from '../utils/whatsappUtils';
 import SalesOverviewChart from '../components/dashboard/SalesOverviewChart';
 
 const containerVariants: Variants = {
@@ -45,6 +47,8 @@ export default function Dashboard() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
+  const [activeHubTab, setActiveHubTab] = useState<'alerts' | 'khata' | 'counter'>('alerts');
+  const [pharmacyName, setPharmacyName] = useState('K.Y Pharmacy');
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,6 +93,14 @@ export default function Dashboard() {
     const handleFocus = () => fetchDashboardData(true);
     window.addEventListener('focus', handleFocus);
 
+    try {
+      const localData = localStorage.getItem('pharmacy_profile_data');
+      if (localData) {
+        const p = JSON.parse(localData);
+        if (p.name) setPharmacyName(p.name);
+      }
+    } catch (_) {}
+
     return () => {
       clearInterval(intervalId);
       window.removeEventListener('focus', handleFocus);
@@ -118,6 +130,47 @@ export default function Dashboard() {
     .slice(0, 6);
 
   const pendingBillsAmount = bills.filter(b => b.paymentStatus === 'UNPAID').reduce((sum, b) => sum + Number(b.total), 0);
+
+  // --- All-in-One Smart Hub Calculations ---
+  const nearExpiryMeds = medicines
+    .map(m => {
+      const expStr = m.expiryDate || (m.batches && m.batches[0]?.expiryDate);
+      if (!expStr) return null;
+      const expDate = new Date(expStr);
+      if (isNaN(expDate.getTime())) return null;
+      const days = Math.ceil((expDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      return { 
+        ...m, 
+        daysUntilExpiry: days, 
+        expDateFormatted: expDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) 
+      };
+    })
+    .filter((m): m is NonNullable<typeof m> => m !== null && m.daysUntilExpiry <= 90)
+    .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+
+  const criticalStockList = [
+    ...outOfStockMedicines.map(m => ({ ...m, shortageType: 'OUT_OF_STOCK' as const, daysUntilExpiry: null, expDateFormatted: null })),
+    ...lowStockMedicines.map(m => ({ ...m, shortageType: 'LOW_STOCK' as const, daysUntilExpiry: null, expDateFormatted: null })),
+    ...nearExpiryMeds.map(m => ({ ...m, shortageType: 'NEAR_EXPIRY' as const }))
+  ];
+
+  const unpaidBills = bills
+    .filter(b => b.paymentStatus === 'UNPAID')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const todaysCash = todaysBills
+    .filter(b => b.paymentMode === 'CASH' || (!b.paymentMode && b.paymentStatus === 'PAID'))
+    .reduce((sum, b) => sum + Number(b.total), 0);
+
+  const todaysUPI = todaysBills
+    .filter(b => b.paymentMode === 'UPI' || b.paymentMode === 'ONLINE' || b.paymentMode === 'CARD')
+    .reduce((sum, b) => sum + Number(b.total), 0);
+
+  const todaysCredit = todaysBills
+    .filter(b => b.paymentStatus === 'UNPAID')
+    .reduce((sum, b) => sum + Number(b.total), 0);
+
+  const todaysEstProfit = Math.round(todaysSalesValue * 0.18);
 
   if (loading) {
     return (
@@ -626,39 +679,369 @@ export default function Dashboard() {
         </motion.div>
 
 
-        {/* ROW 4: QUICK ACTIONS (8) & STAFF AUDIT (4) */}
+        {/* ROW 4: ALL-IN-ONE SMART HUB (8) & STAFF AUDIT (4) */}
         
-        {/* QUICK ACTIONS */}
-        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-8 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col justify-center">
-           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-800">Quick Actions</h3>
+        {/* ALL-IN-ONE SMART OPERATIONS HUB */}
+        <motion.div variants={itemVariants} className="col-span-1 lg:col-span-8 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+          {/* Header & Segmented Tabs */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 pb-4 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-sm">
+                  <Sparkles className="w-4 h-4 text-emerald-100" />
+                </div>
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">Smart Operations Hub</h3>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                  Daily Priority
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Critical expiry alerts, customer khata recovery & daily counter cash
+              </p>
+            </div>
+
+            {/* Segmented Pill Tabs */}
+            <div className="flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 self-stretch sm:self-auto overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setActiveHubTab('alerts')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  activeHubTab === 'alerts'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <AlertTriangle className={`w-3.5 h-3.5 ${activeHubTab === 'alerts' ? 'text-amber-500' : 'text-slate-400'}`} />
+                <span>Expiry & Stock</span>
+                {criticalStockList.length > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    activeHubTab === 'alerts' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {criticalStockList.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveHubTab('khata')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  activeHubTab === 'khata'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <CreditCard className={`w-3.5 h-3.5 ${activeHubTab === 'khata' ? 'text-rose-500' : 'text-slate-400'}`} />
+                <span>Khata Dues</span>
+                {unpaidBills.length > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    activeHubTab === 'khata' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {unpaidBills.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveHubTab('counter')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  activeHubTab === 'counter'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Wallet className={`w-3.5 h-3.5 ${activeHubTab === 'counter' ? 'text-emerald-500' : 'text-slate-400'}`} />
+                <span>Counter Register</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Link to="/billing" className="bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 border border-slate-100 rounded-2xl p-4 flex flex-col items-center justify-center text-center group transition-all">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:shadow text-slate-400 group-hover:text-emerald-600 transition-all">
-                <PlusCircle className="w-6 h-6" />
+
+          {/* TAB 1: EXPIRY & CRITICAL STOCK RADAR */}
+          {activeHubTab === 'alerts' && (
+            <div className="space-y-3 flex-1 flex flex-col justify-between">
+              {/* Quick Summary Strip */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-700 uppercase">Near Expiry (&lt;90d)</span>
+                    <h5 className="text-base font-black text-amber-900">{nearExpiryMeds.length} Items</h5>
+                  </div>
+                  <Calendar className="w-4 h-4 text-amber-500" />
+                </div>
+                <div className="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200/60 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-rose-700 uppercase">Out of Stock</span>
+                    <h5 className="text-base font-black text-rose-900">{outOfStockMedicines.length} Items</h5>
+                  </div>
+                  <AlertCircle className="w-4 h-4 text-rose-500" />
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase">Low Threshold</span>
+                    <h5 className="text-base font-black text-slate-900">{lowStockMedicines.length} Items</h5>
+                  </div>
+                  <Package className="w-4 h-4 text-slate-400" />
+                </div>
               </div>
-              <span className="text-sm font-bold text-slate-700">New Bill</span>
-            </Link>
-            <Link to="/inventory" className="bg-slate-50 hover:bg-blue-50 hover:border-blue-200 border border-slate-100 rounded-2xl p-4 flex flex-col items-center justify-center text-center group transition-all">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:shadow text-slate-400 group-hover:text-blue-600 transition-all">
-                <Package className="w-6 h-6" />
+
+              {/* Items List */}
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                {criticalStockList.length > 0 ? (
+                  criticalStockList.slice(0, 4).map((med, idx) => (
+                    <div
+                      key={med.id || idx}
+                      onClick={() => navigate('/inventory')}
+                      className="group flex items-center justify-between p-3 rounded-xl bg-slate-50/80 hover:bg-white border border-slate-100 hover:border-slate-300 hover:shadow-xs transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          med.shortageType === 'OUT_OF_STOCK'
+                            ? 'bg-rose-100 text-rose-600'
+                            : med.shortageType === 'NEAR_EXPIRY'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-amber-50 text-amber-600'
+                        }`}>
+                          <Pill className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h5 className="text-xs font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                              {med.name}
+                            </h5>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {med.strength || med.category}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {med.shortageType === 'NEAR_EXPIRY' && med.daysUntilExpiry !== null ? (
+                              <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded ${
+                                med.daysUntilExpiry <= 30
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {med.daysUntilExpiry <= 0 ? 'Expired' : `Expires in ${med.daysUntilExpiry} days (${med.expDateFormatted})`}
+                              </span>
+                            ) : med.shortageType === 'OUT_OF_STOCK' ? (
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
+                                0 Units in Stock
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
+                                Low Stock: {med.currentStock} left (Min: {med.minimumStock || 10})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-xs font-black text-slate-800">₹{Number(med.sellingPrice || 0).toFixed(2)}</p>
+                          <p className="text-[10px] text-slate-400 font-medium">Selling MRP</p>
+                        </div>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-900 text-white hover:bg-emerald-600 transition-colors">
+                          Restock <ArrowRight className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center bg-emerald-50/50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-2" />
+                    <h5 className="text-sm font-bold text-emerald-900">All Stock is 100% Healthy!</h5>
+                    <p className="text-xs text-emerald-700 mt-0.5">Zero medicines expiring in the next 90 days and all critical medicines are well stocked.</p>
+                  </div>
+                )}
               </div>
-              <span className="text-sm font-bold text-slate-700">Inventory</span>
-            </Link>
-            <Link to="/customers" className="bg-slate-50 hover:bg-amber-50 hover:border-amber-200 border border-slate-100 rounded-2xl p-4 flex flex-col items-center justify-center text-center group transition-all">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:shadow text-slate-400 group-hover:text-amber-600 transition-all">
-                <Users className="w-6 h-6" />
+
+              {/* Bottom Direct Jump */}
+              <div className="pt-2 flex items-center justify-between text-xs font-semibold text-slate-500 border-t border-slate-100">
+                <span>Total Catalog: <strong>{medicines.length} Products</strong></span>
+                <Link to="/inventory" className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1">
+                  Open Smart Inventory <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
-              <span className="text-sm font-bold text-slate-700">Customers</span>
-            </Link>
-            <Link to="/reports" className="bg-slate-50 hover:bg-purple-50 hover:border-purple-200 border border-slate-100 rounded-2xl p-4 flex flex-col items-center justify-center text-center group transition-all">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:shadow text-slate-400 group-hover:text-purple-600 transition-all">
-                <FileBox className="w-6 h-6" />
+            </div>
+          )}
+
+          {/* TAB 2: KHATA / UNPAID DUES RECOVERY */}
+          {activeHubTab === 'khata' && (
+            <div className="space-y-3 flex-1 flex flex-col justify-between">
+              {/* Quick Summary Strip */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200/60 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-rose-700 uppercase">Total Khata Dues</span>
+                    <h5 className="text-base font-black text-rose-900">₹{pendingBillsAmount.toLocaleString('en-IN')}</h5>
+                  </div>
+                  <CreditCard className="w-4 h-4 text-rose-500" />
+                </div>
+                <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-700 uppercase">Pending Invoices</span>
+                    <h5 className="text-base font-black text-amber-900">{unpaidBills.length} Bills</h5>
+                  </div>
+                  <FileText className="w-4 h-4 text-amber-500" />
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/60 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase">Settled Today</span>
+                    <h5 className="text-base font-black text-emerald-900">₹{todaysBills.filter(b => b.paymentStatus === 'PAID').reduce((sum, b) => sum + Number(b.total), 0).toLocaleString('en-IN')}</h5>
+                  </div>
+                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                </div>
               </div>
-              <span className="text-sm font-bold text-slate-700">Reports</span>
-            </Link>
-          </div>
+
+              {/* Unpaid Bills List with 1-Click WhatsApp */}
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                {unpaidBills.length > 0 ? (
+                  unpaidBills.slice(0, 4).map((bill) => (
+                    <div
+                      key={bill.id}
+                      className="group flex items-center justify-between p-3 rounded-xl bg-slate-50/80 hover:bg-white border border-slate-100 hover:border-slate-300 hover:shadow-xs transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 font-black text-xs flex items-center justify-center shrink-0">
+                          {bill.customerName ? bill.customerName.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h5 className="text-xs font-bold text-slate-900">{bill.customerName}</h5>
+                            <span className="text-[10px] text-slate-400 font-mono">{bill.billNumber}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
+                            <span>📞 {bill.customerPhone || 'No Phone'}</span>
+                            <span>•</span>
+                            <span>{new Date(bill.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5">
+                        <div className="text-right mr-1">
+                          <p className="text-sm font-black text-rose-600">₹{Number(bill.total).toFixed(2)}</p>
+                          <span className="text-[10px] font-extrabold text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded">
+                            UNPAID
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => sendPaymentReminderWhatsApp(bill, bill.customerPhone, pharmacyName)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
+                          title="Send polite WhatsApp payment reminder"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 fill-white/20" />
+                          <span>Remind</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center bg-emerald-50/50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-2" />
+                    <h5 className="text-sm font-bold text-emerald-900">Zero Pending Udhar!</h5>
+                    <p className="text-xs text-emerald-700 mt-0.5">All customer accounts are settled and paid up in full.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Direct Jump */}
+              <div className="pt-2 flex items-center justify-between text-xs font-semibold text-slate-500 border-t border-slate-100">
+                <span>Pending Recovery: <strong className="text-rose-600">₹{pendingBillsAmount.toLocaleString('en-IN')}</strong></span>
+                <Link to="/billing" className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1">
+                  Manage Bills & Payments <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: TODAY'S CASHIER & REGISTER */}
+          {activeHubTab === 'counter' && (
+            <div className="space-y-3 flex-1 flex flex-col justify-between">
+              {/* 4 Register Metric Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200/80">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">Cash Drawer</span>
+                    <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
+                  <h4 className="text-lg font-black text-emerald-900">₹{todaysCash.toLocaleString('en-IN')}</h4>
+                  <p className="text-[10px] text-emerald-700 font-medium mt-0.5">Physical Cash In Hand</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-blue-50/80 border border-blue-200/80">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-extrabold text-blue-800 uppercase tracking-wider">UPI / QR Code</span>
+                    <Activity className="w-3.5 h-3.5 text-blue-600" />
+                  </div>
+                  <h4 className="text-lg font-black text-blue-900">₹{todaysUPI.toLocaleString('en-IN')}</h4>
+                  <p className="text-[10px] text-blue-700 font-medium mt-0.5">Direct Bank Credit</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">Today's Udhar</span>
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                  </div>
+                  <h4 className="text-lg font-black text-amber-900">₹{todaysCredit.toLocaleString('en-IN')}</h4>
+                  <p className="text-[10px] text-amber-700 font-medium mt-0.5">Pending Recovery</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-violet-50/80 border border-violet-200/80">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-extrabold text-violet-800 uppercase tracking-wider">Est. Gross Profit</span>
+                    <TrendingUp className="w-3.5 h-3.5 text-violet-600" />
+                  </div>
+                  <h4 className="text-lg font-black text-violet-900">₹{todaysEstProfit.toLocaleString('en-IN')}</h4>
+                  <p className="text-[10px] text-violet-700 font-medium mt-0.5">~18% Retail Margin</p>
+                </div>
+              </div>
+
+              {/* Fast POS Shortcuts Bar */}
+              <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                    POS
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-extrabold text-slate-900">
+                      Counter Status: {todaysBills.length} Receipts Generated Today
+                    </h5>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Avg Basket Size: ₹{todaysBills.length > 0 ? (todaysSalesValue / todaysBills.length).toFixed(1) : '0'} per patient
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Link
+                    to="/billing"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>New Bill</span>
+                  </Link>
+                  <Link
+                    to="/reports"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Daybook</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Bottom Direct Jump */}
+              <div className="pt-2 flex items-center justify-between text-xs font-semibold text-slate-500 border-t border-slate-100">
+                <span>Today's Net Total: <strong className="text-slate-900">₹{todaysSalesValue.toLocaleString('en-IN')}</strong></span>
+                <Link to="/reports" className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1">
+                  View Full Accounting Reports <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* STAFF AUDIT */}
