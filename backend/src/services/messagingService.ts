@@ -51,10 +51,62 @@ export class MessagingService {
     };
   }
 
+  private static tableEnsured = false;
+
+  /**
+   * Automatically ensure tables exist on demand to avoid table relation errors
+   */
+  static async ensureTable() {
+    if (this.tableEnsured) return;
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS pharmacy_messaging_settings (
+            id SERIAL PRIMARY KEY,
+            pharmacy_id INTEGER NOT NULL UNIQUE REFERENCES pharmacies(id) ON DELETE CASCADE,
+            auto_send_bill_sms BOOLEAN DEFAULT FALSE,
+            auto_send_bill_whatsapp BOOLEAN DEFAULT TRUE,
+            preferred_channel VARCHAR(30) DEFAULT 'WHATSAPP',
+            gateway_provider VARCHAR(50) DEFAULT 'SIMULATED',
+            sms_api_key TEXT DEFAULT '',
+            sms_sender_id VARCHAR(30) DEFAULT 'DAVAST',
+            whatsapp_phone_number_id VARCHAR(100) DEFAULT '',
+            whatsapp_access_token TEXT DEFAULT '',
+            whatsapp_template_name VARCHAR(100) DEFAULT 'bill_invoice',
+            custom_sms_template TEXT,
+            custom_whatsapp_template TEXT,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS bill_message_logs (
+            id SERIAL PRIMARY KEY,
+            pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+            bill_id INTEGER REFERENCES bills(id) ON DELETE SET NULL,
+            recipient_phone VARCHAR(30) NOT NULL,
+            channel VARCHAR(30) NOT NULL DEFAULT 'WHATSAPP',
+            gateway_provider VARCHAR(50) NOT NULL DEFAULT 'SIMULATED',
+            status VARCHAR(30) NOT NULL,
+            message_content TEXT,
+            gateway_response TEXT,
+            error_message TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_msg_settings_pharmacy ON pharmacy_messaging_settings(pharmacy_id);
+        CREATE INDEX IF NOT EXISTS idx_bill_msg_logs_pharmacy ON bill_message_logs(pharmacy_id);
+      `);
+      this.tableEnsured = true;
+    } catch (e) {
+      console.warn('[MessagingService] ensureTable note:', e);
+    }
+  }
+
   /**
    * Fetch WhatsApp messaging configuration for a pharmacy
    */
   static async getSettings(pharmacyId: number): Promise<MessagingSettings> {
+    await this.ensureTable();
     try {
       const res = await pool.query(
         `SELECT * FROM pharmacy_messaging_settings WHERE pharmacy_id = $1`,
@@ -66,23 +118,22 @@ export class MessagingService {
           pharmacyId,
           autoSendBillWhatsapp: true,
           gatewayProvider: 'SIMULATED',
-          whatsappPhoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID || '',
-          whatsappAccessToken: env.WHATSAPP_ACCESS_TOKEN || '',
+          whatsappPhoneNumberId: '',
+          whatsappAccessToken: '',
           isActive: true,
           isConfigured: true
         };
       }
 
       const row = res.rows[0];
-      const hasKey = !!(row.whatsapp_access_token || env.WHATSAPP_ACCESS_TOKEN);
 
       return {
         id: row.id,
         pharmacyId: row.pharmacy_id,
         autoSendBillWhatsapp: row.auto_send_bill_whatsapp ?? true,
-        gatewayProvider: (row.gateway_provider === 'WHATSAPP_CLOUD' && hasKey) ? 'WHATSAPP_CLOUD' : 'SIMULATED',
-        whatsappPhoneNumberId: row.whatsapp_phone_number_id || env.WHATSAPP_PHONE_NUMBER_ID || '',
-        whatsappAccessToken: row.whatsapp_access_token || env.WHATSAPP_ACCESS_TOKEN || '',
+        gatewayProvider: 'SIMULATED',
+        whatsappPhoneNumberId: row.whatsapp_phone_number_id || '',
+        whatsappAccessToken: row.whatsapp_access_token || '',
         whatsappTemplateName: row.whatsapp_template_name || 'bill_invoice',
         customWhatsappTemplate: row.custom_whatsapp_template,
         isActive: row.is_active ?? true,
@@ -104,6 +155,7 @@ export class MessagingService {
    * Save WhatsApp messaging configuration for a pharmacy
    */
   static async updateSettings(pharmacyId: number, data: Partial<MessagingSettings>): Promise<MessagingSettings> {
+    await this.ensureTable();
     const query = `
       INSERT INTO pharmacy_messaging_settings (
         pharmacy_id, auto_send_bill_whatsapp, preferred_channel,
@@ -126,7 +178,7 @@ export class MessagingService {
     const values = [
       pharmacyId,
       data.autoSendBillWhatsapp !== undefined ? data.autoSendBillWhatsapp : true,
-      data.gatewayProvider || 'WHATSAPP_CLOUD',
+      data.gatewayProvider || 'SIMULATED',
       data.whatsappPhoneNumberId || '',
       data.whatsappAccessToken || '',
       data.whatsappTemplateName || 'bill_invoice',
@@ -134,7 +186,18 @@ export class MessagingService {
       data.isActive !== undefined ? data.isActive : true
     ];
 
-    await pool.query(query, values);
+    try {
+      await pool.query(query, values);
+    } catch (err: any) {
+      // If table was missing, force re-creation and retry once
+      if (err.message && err.message.includes('does not exist')) {
+        this.tableEnsured = false;
+        await this.ensureTable();
+        await pool.query(query, values);
+      } else {
+        throw err;
+      }
+    }
     return this.getSettings(pharmacyId);
   }
 

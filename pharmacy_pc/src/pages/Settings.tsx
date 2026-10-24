@@ -6,7 +6,6 @@ import { BillingService } from '../services/billingService';
 import { testPrintThermalReceipt } from '../utils/printUtils';
 import { 
   Bell, 
-  Store, 
   Shield, 
   Smartphone, 
   Printer, 
@@ -24,11 +23,10 @@ import {
   Zap,
   RefreshCw,
   MessageSquare,
-  Send,
-  Eye,
-  EyeOff,
   History,
-  CheckCheck
+  Receipt,
+  ChevronDown,
+  FileText
 } from 'lucide-react';
 
 import StaffManagement from '../components/settings/StaffManagement';
@@ -58,7 +56,20 @@ const DEFAULT_SETTINGS: SettingsState = {
 };
 
 export default function Settings() {
-  const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<SettingsState>(() => {
+    let init = { ...DEFAULT_SETTINGS };
+    try {
+      const saved = localStorage.getItem('pharmacy_app_settings');
+      if (saved) {
+        init = { ...init, ...JSON.parse(saved) };
+      }
+    } catch (_) {}
+    const autoPrintSaved = localStorage.getItem('auto_print_receipt');
+    if (autoPrintSaved !== null) {
+      init.autoPrintReceipts = autoPrintSaved === 'true';
+    }
+    return init;
+  });
   const [isSaved, setIsSaved] = useState(false);
   const [paidCount, setPaidCount] = useState<number>(0);
   const [isEarlyAdopter, setIsEarlyAdopter] = useState<boolean>(true); // default true before load
@@ -105,26 +116,74 @@ export default function Settings() {
     fetchPrinters();
   }, []);
 
+  const handleTestPrint = async () => {
+    setIsTestingPrint(true);
+    setTestPrintStatus('Printing live receipt slip...');
+    try {
+      let latestBill: any = null;
+      try {
+        let pId = 1;
+        const localData = localStorage.getItem('pharmacy_profile_data');
+        if (localData) {
+          const p = JSON.parse(localData);
+          if (p.id) pId = p.id;
+        }
+        const bills = await BillingService.getPharmacyBills(pId);
+        if (bills && bills.length > 0) {
+          latestBill = bills[0];
+        }
+      } catch (e) {
+        console.warn('Could not fetch latest bill for print preview:', e);
+      }
+
+      const fmt = printFormat === 'THERMAL_58MM' ? '58MM' : (printFormat === 'A4' ? 'A4' : '80MM');
+      const res = await testPrintThermalReceipt(fmt, latestBill);
+      if (res?.success) {
+        setTestPrintStatus(res.silent ? 'Receipt printed silently!' : 'Receipt printed!');
+      } else {
+        setTestPrintStatus('Print sent');
+      }
+    } catch (err: any) {
+      setTestPrintStatus('Print error: ' + (err?.message || 'Check printer'));
+    } finally {
+      setIsTestingPrint(false);
+      setTimeout(() => setTestPrintStatus(null), 4000);
+    }
+  };
+
   // Automated WhatsApp & SMS Messaging Gateway states
   const [msgSettings, setMsgSettings] = useState<MessagingSettings | null>(null);
   const [isLoadingMsg, setIsLoadingMsg] = useState<boolean>(false);
-  const [isSavingMsg, setIsSavingMsg] = useState<boolean>(false);
-  const [msgSaveSuccess, setMsgSaveSuccess] = useState<boolean>(false);
-  const [testPhone, setTestPhone] = useState<string>('');
-  const [isTestingMsg, setIsTestingMsg] = useState<boolean>(false);
-  const [testMsgFeedback, setTestMsgFeedback] = useState<{ type: 'success' | 'error'; message: string; waUrl?: string } | null>(null);
-  const [showApiKey, setShowApiKey] = useState<boolean>(false);
   const [msgLogs, setMsgLogs] = useState<MessageLogItem[]>([]);
   const [showLogsModal, setShowLogsModal] = useState<boolean>(false);
   const [isLoadingLogs, setIsLoadingLogs] = useState<boolean>(false);
 
   const fetchMessagingSettings = async () => {
     setIsLoadingMsg(true);
+    // Initial populate from localStorage for instant display
+    const cached = localStorage.getItem('pharmacy_messaging_settings');
+    if (cached) {
+      try {
+        setMsgSettings(JSON.parse(cached));
+      } catch (_) {}
+    }
+
     try {
       const data = await MessagingService.getSettings();
-      setMsgSettings(data);
+      if (data) {
+        setMsgSettings(data);
+        localStorage.setItem('pharmacy_messaging_settings', JSON.stringify(data));
+      }
     } catch (err) {
-      console.warn('Could not fetch messaging settings:', err);
+      console.warn('Could not fetch remote messaging settings, using local cache:', err);
+      if (!cached) {
+        setMsgSettings({
+          pharmacyId: 1,
+          autoSendBillWhatsapp: true,
+          gatewayProvider: 'SIMULATED',
+          isActive: true
+        });
+      }
     } finally {
       setIsLoadingMsg(false);
     }
@@ -134,36 +193,23 @@ export default function Settings() {
     fetchMessagingSettings();
   }, []);
 
-  const handleSaveMessagingSettings = async () => {
-    if (!msgSettings) return;
-    setIsSavingMsg(true);
-    try {
-      const updated = await MessagingService.updateSettings(msgSettings);
-      setMsgSettings(updated);
-      setMsgSaveSuccess(true);
-      setTimeout(() => setMsgSaveSuccess(false), 3000);
-    } catch (err: any) {
-      alert('Error saving settings: ' + (err.message || 'Check network'));
-    } finally {
-      setIsSavingMsg(false);
-    }
-  };
+  const toggleAutoSendWhatsapp = async () => {
+    const nextState = !(msgSettings?.isActive ?? true);
+    const updated: MessagingSettings = {
+      ...(msgSettings || { pharmacyId: 1 }),
+      isActive: nextState,
+      autoSendBillWhatsapp: nextState,
+      gatewayProvider: 'SIMULATED'
+    };
+    setMsgSettings(updated);
+    localStorage.setItem('pharmacy_messaging_settings', JSON.stringify(updated));
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
 
-  const handleSendTestMessage = async () => {
-    if (!testPhone || testPhone.trim().length < 10) {
-      setTestMsgFeedback({ type: 'error', message: 'Enter a valid 10-digit WhatsApp number' });
-      return;
-    }
-    setIsTestingMsg(true);
-    setTestMsgFeedback(null);
     try {
-      const res = await MessagingService.sendTestMessage(testPhone.trim());
-      setTestMsgFeedback({ type: 'success', message: res.message, waUrl: res.waUrl });
-    } catch (err: any) {
-      setTestMsgFeedback({ type: 'error', message: err.message || 'WhatsApp dispatch failed' });
-    } finally {
-      setIsTestingMsg(false);
-      setTimeout(() => setTestMsgFeedback(null), 8000);
+      await MessagingService.updateSettings(updated);
+    } catch (e) {
+      console.warn('Note on auto-saving messaging toggle:', e);
     }
   };
 
@@ -183,12 +229,20 @@ export default function Settings() {
   // Load settings from localStorage on mount
   useEffect(() => {
     const savedSettings = localStorage.getItem('pharmacy_app_settings');
+    const autoPrintSaved = localStorage.getItem('auto_print_receipt');
     if (savedSettings) {
       try {
-        setSettings(JSON.parse(savedSettings));
+        const parsed = JSON.parse(savedSettings);
+        setSettings(prev => ({
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          autoPrintReceipts: autoPrintSaved !== null ? autoPrintSaved === 'true' : (parsed.autoPrintReceipts ?? prev.autoPrintReceipts)
+        }));
       } catch (e) {
         console.error('Failed to parse settings');
       }
+    } else if (autoPrintSaved !== null) {
+      setSettings(prev => ({ ...prev, autoPrintReceipts: autoPrintSaved === 'true' }));
     }
 
     const fetchStats = async () => {
@@ -230,6 +284,23 @@ export default function Settings() {
     localStorage.setItem('pharmacy_app_settings', JSON.stringify(newSettings));
     
     // Show saved indicator
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
+  };
+
+  // Dedicated robust toggle for auto print
+  const handleToggleAutoPrint = () => {
+    setSettings(prev => {
+      const nextVal = !prev.autoPrintReceipts;
+      const updated = { ...prev, autoPrintReceipts: nextVal };
+      try {
+        localStorage.setItem('pharmacy_app_settings', JSON.stringify(updated));
+        localStorage.setItem('auto_print_receipt', String(nextVal));
+      } catch (e) {
+        console.error('Failed to save auto print setting:', e);
+      }
+      return updated;
+    });
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
   };
@@ -343,10 +414,13 @@ export default function Settings() {
         </div>
       </div>
       <button 
+        type="button"
+        role="switch"
+        aria-checked={value}
         onClick={onChange}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-pharmacy-500 focus:ring-offset-2 ${value ? 'bg-pharmacy-600' : 'bg-slate-200'}`}
+        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-pharmacy-500 focus:ring-offset-2 ${value ? 'bg-pharmacy-600' : 'bg-slate-200'}`}
       >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ease-in-out ${value ? 'translate-x-6' : 'translate-x-1'}`} />
+        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${value ? 'translate-x-5' : 'translate-x-0'}`} />
       </button>
     </div>
   );
@@ -367,13 +441,54 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Staff & Distributor Settings (Owner Only) */}
-          {(JSON.parse(localStorage.getItem('user') || '{}').role || 'OWNER') === 'OWNER' && (
-            <>
-              <StaffManagement />
-              <DistributorSettings />
-            </>
-          )}
+          {/* 1. Our Transparency Promise (Trust & Value) */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50/70 via-white to-blue-50/60 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-emerald-100/90 p-6 md:p-8 backdrop-blur-sm">
+            <div className="text-center mb-8 relative z-10">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold mb-3 border border-emerald-200 shadow-xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                DavaSetu Trust & Value Commitment
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-2">
+                <HeartHandshake className="w-7 h-7 text-emerald-600" />
+                Our Transparency Promise
+              </h3>
+              <p className="text-sm text-slate-600 mt-2 max-w-xl mx-auto font-medium">
+                We believe in 100% transparency. No hidden fees, no surprise charges. Here is exactly why DavaSetu is the smartest choice for your pharmacy.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+              <div className="bg-white/95 p-6 rounded-2xl border border-amber-100/80 shadow-sm flex flex-col items-center text-center hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                  <Coffee className="w-6 h-6" />
+                </div>
+                <h4 className="font-extrabold text-slate-900 text-base mb-2">Cost Less Than Tea</h4>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  At just <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">₹16/day</span> (Yearly Plan), DavaSetu costs less than a daily cup of tea, while bringing you completely new online customers.
+                </p>
+              </div>
+
+              <div className="bg-white/95 p-6 rounded-2xl border border-emerald-100/80 shadow-sm flex flex-col items-center text-center hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <h4 className="font-extrabold text-slate-900 text-base mb-2">Zero Hidden Costs</h4>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  Other softwares charge ₹12,000 upfront + ₹5,000 yearly AMCs. We offer everything in a single, transparent, affordable package.
+                </p>
+              </div>
+
+              <div className="bg-white/95 p-6 rounded-2xl border border-blue-100/80 shadow-sm flex flex-col items-center text-center hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
+                <h4 className="font-extrabold text-slate-900 text-base mb-2">Guaranteed Growth</h4>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  Connect your pharmacy to our mobile app. The extra orders you receive will pay for this software multiple times over!
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Subscription & Plans Area */}
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
@@ -521,74 +636,385 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Transparency Section */}
-          <div className="bg-gradient-to-br from-pharmacy-50 to-blue-50 rounded-[2rem] shadow-sm border border-pharmacy-100 p-6 md:p-8">
-            <div className="text-center mb-8">
-              <h3 className="text-xl font-bold text-slate-800 flex items-center justify-center">
-                <HeartHandshake className="w-6 h-6 mr-2 text-pharmacy-600" />
-                Our Transparency Promise
-              </h3>
-              <p className="text-sm text-slate-600 mt-2 max-w-xl mx-auto">
-                We believe in 100% transparency. No hidden fees, no surprise charges. Here is exactly why DavaSetu is the smartest choice for your pharmacy.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-5 rounded-xl border border-pharmacy-50 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
-                  <Coffee className="w-6 h-6" />
+
+          {/* Unified Receipt & Bill Dispatch Suite */}
+          <div className="relative overflow-hidden bg-gradient-to-b from-white via-white to-slate-50/60 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-200/80 mb-8 backdrop-blur-xl transition-all">
+            {/* Ambient Decorative Background Glows */}
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-emerald-400/10 via-teal-300/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-gradient-to-tr from-sky-400/10 via-indigo-300/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+            {/* Suite Header Bar */}
+            <div className="px-7 py-5 border-b border-slate-100/90 bg-white/70 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 relative z-10">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 ring-4 ring-emerald-50 shrink-0">
+                  <Receipt className="w-6 h-6 stroke-[2.2]" />
                 </div>
-                <h4 className="font-bold text-slate-800 mb-2">Cost Less Than Tea</h4>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  At just <span className="font-bold text-pharmacy-600 bg-pharmacy-50 px-1 py-0.5 rounded">₹16/day</span> (Yearly Plan), DavaSetu costs less than a daily cup of tea, while bringing you completely new online customers.
-                </p>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                      Receipt & Bill Dispatch
+                    </h3>
+                    {(settings.autoPrintReceipts || (msgSettings?.isActive ?? true)) ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-xs">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                        </span>
+                        Auto-Dispatch Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200">
+                        <span className="w-2 h-2 rounded-full bg-slate-400" />
+                        Auto-Dispatch Paused
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Dual-Channel Checkout Engine • Instant thermal paper slips & free paperless WhatsApp tax bills
+                  </p>
+                </div>
               </div>
 
-              <div className="bg-white p-5 rounded-xl border border-pharmacy-50 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <h4 className="font-bold text-slate-800 mb-2">Zero Hidden Costs</h4>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Other softwares charge ₹12,000 upfront + ₹5,000 yearly AMCs. We offer everything in a single, transparent, affordable package.
-                </p>
-              </div>
-
-              <div className="bg-white p-5 rounded-xl border border-pharmacy-50 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <h4 className="font-bold text-slate-800 mb-2">Guaranteed Growth</h4>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Connect your pharmacy to our mobile app. The extra orders you receive will pay for this software multiple times over!
-                </p>
+              <div className="flex items-center gap-2.5">
+                {isElectron && (
+                  <button
+                    type="button"
+                    onClick={fetchPrinters}
+                    disabled={isRefreshingPrinters}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-xs hover:border-slate-300 hover:shadow transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                    title="Scan for USB thermal printers"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshingPrinters ? 'animate-spin' : ''}`} />
+                    Refresh Printers
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleOpenLogs}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-emerald-200/80 bg-emerald-50/50 hover:bg-emerald-50 text-xs font-bold text-emerald-800 shadow-xs hover:border-emerald-300 hover:shadow transition-all active:scale-95 cursor-pointer"
+                >
+                  <History className="w-3.5 h-3.5 text-emerald-600" />
+                  WhatsApp Logs
+                </button>
               </div>
             </div>
-          </div>
 
-          {/* Store Operations */}
-          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center">
-                <Store className="w-4 h-4 mr-2 text-pharmacy-600" />
-                Store Operations
-              </h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <SettingRow 
-                icon={Store}
-                title="Accepting Orders"
-                description="Temporarily pause incoming orders when busy"
-                value={settings.acceptingOrders}
-                onChange={() => toggleSetting('acceptingOrders')}
-              />
-              <SettingRow 
-                icon={CheckCircle2}
-                title="24/7 Service Enabled"
-                description="Show your pharmacy as always open"
-                value={settings.open24Hours}
-                onChange={() => toggleSetting('open24Hours')}
-              />
+            {/* Dual Engine Columns */}
+            <div className="p-7 relative z-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column: Physical Thermal Slip */}
+                <div className="group relative rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm hover:shadow-lg hover:border-slate-300 transition-all duration-300 flex flex-col justify-between space-y-5">
+                  <div className="space-y-4">
+                    {/* Header with Auto-Print Toggle */}
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white flex items-center justify-center shadow-md shadow-slate-900/15 shrink-0 group-hover:scale-105 transition-transform">
+                          <Printer className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Channel 01</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded-md">POS Hardware</span>
+                          </div>
+                          <h4 className="text-base font-extrabold text-slate-900">Thermal Slip Printing</h4>
+                          <p className="text-[11px] text-slate-500">Physical receipt for walk-in counter patients</p>
+                        </div>
+                      </div>
+
+                      {/* Polished Compact Toggle Switch */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={settings.autoPrintReceipts}
+                        onClick={handleToggleAutoPrint}
+                        className={`group/toggle inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border transition-all duration-200 cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30 active:scale-95 ${
+                          settings.autoPrintReceipts
+                            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-800 shadow-xs'
+                            : 'bg-slate-50 hover:bg-slate-100/90 border-slate-200 text-slate-500'
+                        }`}
+                        title={settings.autoPrintReceipts ? 'Auto-Print is ON (Click to turn OFF)' : 'Auto-Print is OFF (Click to turn ON)'}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                              settings.autoPrintReceipts ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'
+                            }`}
+                          />
+                          <span className={`text-[11px] font-bold tracking-tight transition-colors ${
+                            settings.autoPrintReceipts ? 'text-emerald-800' : 'text-slate-500 group-hover/toggle:text-slate-700'
+                          }`}>
+                            Auto-Print
+                          </span>
+                        </span>
+                        <span
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out ${
+                            settings.autoPrintReceipts ? 'bg-emerald-600' : 'bg-slate-300'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                              settings.autoPrintReceipts ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </span>
+                      </button>
+                    </div>
+
+                    {isElectron ? (
+                      <div className="space-y-4">
+                        {/* Printer Hardware Selection */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                              Selected POS Printer
+                            </label>
+                            {selectedPrinter ? (
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> USB Ready
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Default Spooler</span>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                              <Printer className="w-4 h-4 text-slate-500" />
+                            </div>
+                            <select
+                              value={selectedPrinter}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSelectedPrinter(val);
+                                localStorage.setItem('selected_printer_name', val);
+                                setIsSaved(true);
+                                setTimeout(() => setIsSaved(false), 2000);
+                              }}
+                              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none transition-all shadow-xs cursor-pointer"
+                            >
+                              <option value="">System Default Printer</option>
+                              {installedPrinters.map((p, idx) => (
+                                <option key={idx} value={p.name}>
+                                  {p.displayName || p.name} {p.isDefault ? '(Default)' : ''}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+                              <ChevronDown className="w-4 h-4" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Format & Silent Print Grid */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                              Paper Roll Format
+                            </label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <FileText className="w-3.5 h-3.5 text-slate-500" />
+                              </div>
+                              <select
+                                value={printFormat}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setPrintFormat(val);
+                                  localStorage.setItem('default_printer_format', val);
+                                  setIsSaved(true);
+                                  setTimeout(() => setIsSaved(false), 2000);
+                                }}
+                                className="w-full pl-8 pr-8 py-2.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none transition-all shadow-xs cursor-pointer"
+                              >
+                                <option value="THERMAL_80MM">Thermal 80mm (3")</option>
+                                <option value="THERMAL_58MM">Thermal 58mm (2")</option>
+                                <option value="A4">A4 Sheet / PDF</option>
+                              </select>
+                              <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                              Instant Silent Print
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextVal = !silentPrinting;
+                                setSilentPrinting(nextVal);
+                                localStorage.setItem('silent_printing_enabled', String(nextVal));
+                                setIsSaved(true);
+                                setTimeout(() => setIsSaved(false), 2000);
+                              }}
+                              className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-between transition-all shadow-xs cursor-pointer ${
+                                silentPrinting 
+                                  ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950 ring-1 ring-emerald-400/30 shadow-emerald-500/5' 
+                                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'
+                              }`}
+                            >
+                              <span className="flex items-center gap-1.5 truncate">
+                                <Zap className={`w-3.5 h-3.5 ${silentPrinting ? 'text-emerald-600 fill-emerald-500' : 'text-slate-400'}`} />
+                                {silentPrinting ? 'Fast 0.5s USB' : 'Dialog Mode'}
+                              </span>
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${silentPrinting ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs text-amber-900 leading-relaxed font-medium">
+                        <strong>Browser Mode:</strong> Printing opens via the standard system dialog. Launch from the Desktop App for 0.5s instant silent USB printing!
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Test Slip Action Bar */}
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <span className="text-xs text-slate-500 flex items-center gap-1.5 truncate">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="truncate">{testPrintStatus || 'Hardware spooler ready'}</span>
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isTestingPrint}
+                      onClick={handleTestPrint}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-black hover:to-slate-900 text-white text-xs font-bold rounded-xl shadow-md shadow-slate-900/15 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 shrink-0 cursor-pointer"
+                    >
+                      <Printer className={`w-3.5 h-3.5 ${isTestingPrint ? 'animate-pulse text-emerald-400' : 'text-slate-300'}`} />
+                      <span>{isTestingPrint ? 'Printing Slip...' : 'Print Test Slip'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Column: Digital WhatsApp Receipt */}
+                <div className="group relative rounded-2xl border border-emerald-200/90 bg-gradient-to-b from-emerald-50/40 via-white to-emerald-50/20 p-6 shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all duration-300 flex flex-col justify-between space-y-5">
+                  <div className="space-y-4">
+                    {/* Header with Auto-Send Toggle */}
+                    <div className="flex items-center justify-between pb-4 border-b border-emerald-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0 group-hover:scale-105 transition-transform">
+                          <MessageSquare className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Channel 02</span>
+                            <span className="text-emerald-300">•</span>
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.2 rounded-md">Cloud Paperless</span>
+                          </div>
+                          <h4 className="text-base font-extrabold text-slate-900">Digital WhatsApp Receipt</h4>
+                          <p className="text-[11px] text-slate-500">Paperless digital tax invoice sent to patient mobile</p>
+                        </div>
+                      </div>
+
+                      {/* Polished Compact Toggle Switch */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={msgSettings?.isActive ?? true}
+                        onClick={toggleAutoSendWhatsapp}
+                        className={`group/toggle inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border transition-all duration-200 cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30 active:scale-95 ${
+                          (msgSettings?.isActive ?? true)
+                            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-800 shadow-xs'
+                            : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-500'
+                        }`}
+                        title={(msgSettings?.isActive ?? true) ? 'Auto-Send WhatsApp is ON (Click to turn OFF)' : 'Auto-Send WhatsApp is OFF (Click to turn ON)'}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                              (msgSettings?.isActive ?? true) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'
+                            }`}
+                          />
+                          <span className={`text-[11px] font-bold tracking-tight transition-colors ${
+                            (msgSettings?.isActive ?? true) ? 'text-emerald-800' : 'text-slate-500 group-hover/toggle:text-slate-700'
+                          }`}>
+                            Auto-Send
+                          </span>
+                        </span>
+                        <span
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out ${
+                            (msgSettings?.isActive ?? true) ? 'bg-emerald-600' : 'bg-slate-300'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                              (msgSettings?.isActive ?? true) ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Features Showcase Card */}
+                    <div className="space-y-3">
+                      <div className="p-3.5 bg-white/95 rounded-xl border border-emerald-200/80 shadow-xs space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-emerald-600" />
+                            Direct WhatsApp Gateway
+                          </span>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-xs">
+                            100% Free Lifetime
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                          Automatically dispatches an itemized digital receipt with medicine names, batch & expiry, GST breakdown, and recovery greetings directly to patient WhatsApp upon billing checkout.
+                        </p>
+                      </div>
+
+                      {/* 4 Feature Badges in 2x2 Grid */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 flex items-center gap-2 font-bold text-slate-700 shadow-xs">
+                          <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </div>
+                          <span className="text-[11px] truncate">Zero Meta API Fees</span>
+                        </div>
+                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 flex items-center gap-2 font-bold text-slate-700 shadow-xs">
+                          <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </div>
+                          <span className="text-[11px] truncate">0 Cellular SMS Charges</span>
+                        </div>
+                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 flex items-center gap-2 font-bold text-slate-700 shadow-xs">
+                          <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </div>
+                          <span className="text-[11px] truncate">Automated Recovery Wish</span>
+                        </div>
+                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 flex items-center gap-2 font-bold text-slate-700 shadow-xs">
+                          <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </div>
+                          <span className="text-[11px] truncate">Itemized GST Breakdown</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status & Action Bar */}
+                  <div className="pt-4 border-t border-emerald-100 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600" />
+                      </span>
+                      <span>{(msgSettings?.isActive ?? true) ? 'Active on all checkout bills' : 'Auto-send paused'}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleOpenLogs}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 hover:shadow-lg transition-all active:scale-95 cursor-pointer"
+                    >
+                      <History className="w-3.5 h-3.5" />
+                      <span>View Logs</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -605,6 +1031,17 @@ export default function Settings() {
               </span>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SettingRow 
+                icon={Volume2}
+                title="Loud Order Ring Alert"
+                description="Loud bell/ring chime when customer orders or uploads prescription"
+                value={settings.soundEnabled}
+                onChange={() => {
+                  toggleSetting('soundEnabled');
+                  const nextVal = !settings.soundEnabled;
+                  localStorage.setItem('sound_alert_enabled', String(nextVal));
+                }}
+              />
               <SettingRow 
                 icon={Bell}
                 title="Push Notifications"
@@ -626,407 +1063,16 @@ export default function Settings() {
                 value={settings.emailAlerts}
                 onChange={() => toggleSetting('emailAlerts')}
               />
-              <SettingRow 
-                icon={Volume2}
-                title="Loud Order Ring Alert"
-                description="Loud bell/ring chime when customer orders or uploads prescription"
-                value={settings.soundEnabled}
-                onChange={() => {
-                  toggleSetting('soundEnabled');
-                  const nextVal = !settings.soundEnabled;
-                  localStorage.setItem('sound_alert_enabled', String(nextVal));
-                }}
-              />
             </div>
           </div>
 
-          {/* Hardware & POS Thermal Printing Suite */}
-          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-xl bg-pharmacy-50 flex items-center justify-center text-pharmacy-600 border border-pharmacy-100/60">
-                  <Printer className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    Thermal Hardware & Silent Printing
-                    {isElectron && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        <Zap className="w-3 h-3 mr-1 text-emerald-600" />
-                        POS Hardware Engine Active
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-xs text-slate-500">Configure 58mm / 80mm USB & thermal receipt printers</p>
-                </div>
-              </div>
-
-              {isElectron && (
-                <button
-                  type="button"
-                  onClick={fetchPrinters}
-                  disabled={isRefreshingPrinters}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition active:scale-95 disabled:opacity-50"
-                  title="Scan for newly plugged-in USB thermal printers"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshingPrinters ? 'animate-spin' : ''}`} />
-                  Refresh Printers
-                </button>
-              )}
+          {/* Staff & Distributor Settings (Owner Only) */}
+          {(JSON.parse(localStorage.getItem('user') || '{}').role || 'OWNER') === 'OWNER' && (
+            <div className="space-y-6">
+              <StaffManagement />
+              <DistributorSettings />
             </div>
-
-            <div className="p-6 space-y-4">
-              {/* Printer Hardware Selection (Electron) */}
-              {isElectron ? (
-                <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                      Selected POS Printer
-                      {selectedPrinter && <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Connected</span>}
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Choose your USB or thermal slip printer (e.g. TVS, POS-80, Epson, Everycom)</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={selectedPrinter}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setSelectedPrinter(val);
-                        localStorage.setItem('selected_printer_name', val);
-                        setIsSaved(true);
-                        setTimeout(() => setIsSaved(false), 2000);
-                      }}
-                      className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pharmacy-500 min-w-[200px]"
-                    >
-                      <option value="">System Default Printer</option>
-                      {installedPrinters.map((p, idx) => (
-                        <option key={idx} value={p.name}>
-                          {p.displayName || p.name} {p.isDefault ? '(Default)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3.5 border border-amber-100 bg-amber-50/60 rounded-2xl flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-                    <Printer className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs text-amber-900 leading-relaxed">
-                    <strong>Browser Mode:</strong> Printing opens via the standard system dialog. Launching from the DavaSetu Desktop App unlocks <strong>1-Click Instant Silent Printing</strong> directly to USB POS hardware!
-                  </div>
-                </div>
-              )}
-
-              {/* Silent Printing Toggle */}
-              {isElectron && (
-                <SettingRow 
-                  icon={Zap}
-                  title="Silent Instant Printing (Bypass Dialog)"
-                  description="Slip prints directly from the thermal printer in 0.5s without opening the Windows print popup"
-                  value={silentPrinting}
-                  onChange={() => {
-                    const nextVal = !silentPrinting;
-                    setSilentPrinting(nextVal);
-                    localStorage.setItem('silent_printing_enabled', String(nextVal));
-                    setIsSaved(true);
-                    setTimeout(() => setIsSaved(false), 2000);
-                  }}
-                />
-              )}
-
-              {/* Auto-Print on Bill Completion */}
-              <SettingRow 
-                icon={Printer}
-                title="Auto-Print POS Thermal Slip on Billing"
-                description="Automatically triggers receipt print the moment you click Save & Bill"
-                value={settings.autoPrintReceipts}
-                onChange={() => {
-                  toggleSetting('autoPrintReceipts');
-                  localStorage.setItem('auto_print_receipt', String(!settings.autoPrintReceipts));
-                }}
-              />
-
-              {/* Default Paper Format */}
-              <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-800">Thermal Roll Paper Size</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">Select your retail pharmacy counter printer roll format</p>
-                </div>
-                <select
-                  value={printFormat}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setPrintFormat(val);
-                    localStorage.setItem('default_printer_format', val);
-                    setIsSaved(true);
-                    setTimeout(() => setIsSaved(false), 2000);
-                  }}
-                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pharmacy-500"
-                >
-                  <option value="THERMAL_80MM">Thermal 80mm (3-Inch Standard POS Roll)</option>
-                  <option value="THERMAL_58MM">Thermal 58mm (2-Inch Mini Slip Roll)</option>
-                  <option value="A4">Standard A4 Sheet / PDF</option>
-                </select>
-              </div>
-
-              {/* Hardware POS Thermal Printing Slip */}
-              <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100">
-                <div className="text-xs text-slate-500">
-                  Print an authentic counter receipt using your live pharmacy profile & recent bill data.
-                </div>
-                <div className="flex items-center gap-3">
-                  {testPrintStatus && (
-                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                      {testPrintStatus}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    disabled={isTestingPrint}
-                    onClick={async () => {
-                      setIsTestingPrint(true);
-                      setTestPrintStatus('Printing live receipt slip...');
-                      try {
-                        let latestBill: any = null;
-                        try {
-                          let pId = 1;
-                          const localData = localStorage.getItem('pharmacy_profile_data');
-                          if (localData) {
-                            const p = JSON.parse(localData);
-                            if (p.id) pId = p.id;
-                          }
-                          const bills = await BillingService.getPharmacyBills(pId);
-                          if (bills && bills.length > 0) {
-                            latestBill = bills[0];
-                          }
-                        } catch (e) {
-                          console.warn('Could not fetch latest bill for print preview:', e);
-                        }
-
-                        const fmt = printFormat === 'THERMAL_58MM' ? '58MM' : (printFormat === 'A4' ? 'A4' : '80MM');
-                        const res = await testPrintThermalReceipt(fmt, latestBill);
-                        if (res?.success) {
-                          setTestPrintStatus(res.silent ? 'Receipt printed silently!' : 'Receipt printed!');
-                        } else {
-                          setTestPrintStatus('Print sent');
-                        }
-                      } catch (err: any) {
-                        setTestPrintStatus('Print error: ' + (err?.message || 'Check printer'));
-                      } finally {
-                        setIsTestingPrint(false);
-                        setTimeout(() => setTestPrintStatus(null), 4000);
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50"
-                  >
-                    <Printer className={`w-3.5 h-3.5 ${isTestingPrint ? 'animate-pulse' : ''}`} />
-                    {isTestingPrint ? 'Printing...' : 'Print POS Thermal Slip'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Automated WhatsApp Invoicing Gateway Suite */}
-          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100/60">
-                  <MessageSquare className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    Automated WhatsApp Gateway
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
-                      Auto-Dispatch Active
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-500">Auto-sends digital tax invoice directly to customer's WhatsApp upon checkout</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleOpenLogs}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition active:scale-95"
-                >
-                  <History className="w-3.5 h-3.5 text-slate-500" />
-                  WhatsApp Delivery Logs
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {/* Row 1: Auto-Dispatch Switch and WhatsApp Direct Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/60 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-800">Auto-Send on Checkout</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Dispatch receipt to customer WhatsApp when bill is created</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!msgSettings) return;
-                      setMsgSettings({
-                        ...msgSettings,
-                        isActive: !msgSettings.isActive,
-                        autoSendBillWhatsapp: !msgSettings.isActive
-                      });
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${msgSettings?.isActive ? 'bg-emerald-600' : 'bg-slate-200'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${msgSettings?.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                </div>
-
-                <div className="p-4 border border-emerald-100/70 rounded-2xl bg-emerald-50/40 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-emerald-900">Direct WhatsApp Digital Invoicing</h4>
-                    <p className="text-[11px] text-emerald-700">Delivers branded tax invoice & speedy recovery wishes. 100% free of cellular SMS charges.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Gateway Provider & Credentials */}
-              <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/40 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-800">WhatsApp Gateway Route</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Choose your preferred WhatsApp dispatch engine</p>
-                  </div>
-                  <select
-                    value={msgSettings?.gatewayProvider || 'SIMULATED'}
-                    onChange={(e) => {
-                      if (!msgSettings) return;
-                      setMsgSettings({ ...msgSettings, gatewayProvider: e.target.value as any });
-                    }}
-                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="SIMULATED">DavaSetu Direct Invoicing (Zero Config / 100% Free - Recommended)</option>
-                    <option value="WHATSAPP_CLOUD">WhatsApp Cloud API (Official Meta Graph API)</option>
-                  </select>
-                </div>
-
-                {/* WhatsApp Cloud API Credentials */}
-                {msgSettings?.gatewayProvider === 'WHATSAPP_CLOUD' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">Meta WhatsApp Phone Number ID</label>
-                      <input
-                        type="text"
-                        value={msgSettings.whatsappPhoneNumberId || ''}
-                        placeholder="e.g. 104829104812345"
-                        onChange={(e) => setMsgSettings({ ...msgSettings, whatsappPhoneNumberId: e.target.value })}
-                        className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">Meta System User Access Token</label>
-                      <div className="relative">
-                        <input
-                          type={showApiKey ? 'text' : 'password'}
-                          value={msgSettings.whatsappAccessToken || ''}
-                          placeholder="Bearer EAABw..."
-                          onChange={(e) => setMsgSettings({ ...msgSettings, whatsappAccessToken: e.target.value })}
-                          className="w-full px-3 py-2 pr-10 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowApiKey(!showApiKey)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                        >
-                          {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {msgSettings?.gatewayProvider === 'SIMULATED' && (
-                  <div className="p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl text-xs text-emerald-950 space-y-1.5 shadow-sm">
-                    <div className="font-bold flex items-center gap-1.5 text-emerald-800 text-sm">
-                      <Sparkles className="w-4 h-4 text-emerald-600" />
-                      Zero-Config Direct WhatsApp Active (100% Free & Unlimited)
-                    </div>
-                    <p className="text-xs text-emerald-700 leading-relaxed">
-                      All bills are automatically formatted into branded digital tax receipts. You can dispatch them instantly via 1-click WhatsApp to any patient without paying Meta API charges, developer tokens, or needing business verification.
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={handleSaveMessagingSettings}
-                    disabled={isSavingMsg}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50"
-                  >
-                    {msgSaveSuccess ? (
-                      <>
-                        <CheckCheck className="w-3.5 h-3.5" />
-                        Settings Saved!
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-3.5 h-3.5" />
-                        {isSavingMsg ? 'Saving...' : 'Save WhatsApp Configuration'}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Live Test WhatsApp Dispatch Bar */}
-              <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="text-xs text-slate-500 max-w-sm">
-                  Send a sample digital invoice to verify your WhatsApp gateway connectivity and delivery.
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="tel"
-                    placeholder="Enter 10-digit WhatsApp number..."
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 w-52 font-semibold"
-                  />
-                  <button
-                    type="button"
-                    disabled={isTestingMsg}
-                    onClick={() => handleSendTestMessage()}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50"
-                  >
-                    <Send className="w-3 h-3" />
-                    {isTestingMsg ? 'Sending...' : 'Test WhatsApp'}
-                  </button>
-                </div>
-              </div>
-
-              {testMsgFeedback && (
-                <div className={`p-3 rounded-xl text-xs font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${testMsgFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
-                  <span>{testMsgFeedback.message}</span>
-                  {testMsgFeedback.waUrl && (
-                    <a
-                      href={testMsgFeedback.waUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold transition shadow-sm shrink-0 text-center justify-center"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      Open Preview in WhatsApp
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Delivery Logs Modal */}
           {showLogsModal && (

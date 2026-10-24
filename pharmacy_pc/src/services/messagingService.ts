@@ -4,7 +4,7 @@ export interface MessagingSettings {
   id?: number;
   pharmacyId: number;
   autoSendBillWhatsapp: boolean;
-  gatewayProvider: 'WHATSAPP_CLOUD' | 'SIMULATED';
+  gatewayProvider?: 'SIMULATED' | string;
   whatsappPhoneNumberId?: string;
   whatsappAccessToken?: string;
   whatsappAccessTokenMasked?: string;

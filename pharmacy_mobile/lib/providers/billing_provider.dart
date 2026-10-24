@@ -156,32 +156,32 @@ class BillingProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    final pharmacyData = StorageService.getPharmacy();
+    final userData = StorageService.getUser();
+    final int effectivePharmacyId = int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
+        int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
+        int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
+        8;
+
+    final billPayload = {
+      'pharmacy_id': effectivePharmacyId,
+      'pharmacyId': effectivePharmacyId,
+      'customer_name': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
+      'customerName': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
+      'customer_phone': _customerPhone,
+      'customerPhone': _customerPhone,
+      'payment_method': _paymentMode,
+      'paymentMethod': _paymentMode,
+      'bill_type': 'OFFLINE',
+      'billType': 'OFFLINE',
+      'subtotal': subtotal,
+      'discount': totalDiscount,
+      'tax': taxAmount,
+      'total': grandTotal,
+      'items': _cartItems.map((item) => item.toJson()).toList(),
+    };
+
     try {
-      final pharmacyData = StorageService.getPharmacy();
-      final userData = StorageService.getUser();
-      final int effectivePharmacyId = int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
-          int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
-          int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
-          8;
-
-      final billPayload = {
-        'pharmacy_id': effectivePharmacyId,
-        'pharmacyId': effectivePharmacyId,
-        'customer_name': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
-        'customerName': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
-        'customer_phone': _customerPhone,
-        'customerPhone': _customerPhone,
-        'payment_method': _paymentMode,
-        'paymentMethod': _paymentMode,
-        'bill_type': 'OFFLINE',
-        'billType': 'OFFLINE',
-        'subtotal': subtotal,
-        'discount': totalDiscount,
-        'tax': taxAmount,
-        'total': grandTotal,
-        'items': _cartItems.map((item) => item.toJson()).toList(),
-      };
-
       final response = await ApiService.post(ApiEndpoints.createBill, billPayload);
       _isProcessing = false;
 

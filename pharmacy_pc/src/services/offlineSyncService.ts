@@ -150,7 +150,7 @@ class OfflineSyncService {
       createdAt: queuedItem.createdAt,
       // Flag for UI identification
       isOfflineQueued: true
-    } as any;
+    };
 
     return localBill;
   }

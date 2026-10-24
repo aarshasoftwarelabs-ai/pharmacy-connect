@@ -1,8 +1,10 @@
 export interface BillItem {
   id?: number;
+  medicineId?: string | number;
   medicineName: string;
   quantity: number;
   unitPrice: number;
+  mrp?: number;
   lineTotal?: number;
   hsnCode?: string;
   gstRate?: number;
@@ -13,17 +15,18 @@ export interface BillItem {
 }
 
 export interface Bill {
-  id: number;
+  id: number | string;
   billNumber: string;
-  medicineRequestId: number;
-  userId: number;
-  pharmacyId: number;
+  medicineRequestId?: number | null;
+  userId?: number | null;
+  pharmacyId?: number;
   customerName: string;
   customerPhone?: string;
-  billDate: string;
+  billDate?: string;
   subtotal: string | number;
   discount: string | number;
   total: string | number;
+  paymentMode?: string;
   paymentStatus: 'UNPAID' | 'PAID';
   billType?: 'ONLINE' | 'OFFLINE' | 'RETAIL' | 'WHOLESALE';
   b2bClientId?: number;
@@ -43,6 +46,7 @@ export interface Bill {
   assignedAt?: string;
   deliveredAt?: string;
   createdAt: string;
+  isOfflineQueued?: boolean;
   items?: BillItem[];
 }
 

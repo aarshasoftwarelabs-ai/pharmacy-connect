@@ -62,10 +62,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
         setState(() {
           _isActive = data['isActive'] ?? true;
           _autoSendWhatsapp = data['autoSendBillWhatsapp'] ?? true;
-          final token = data['whatsappAccessToken']?.toString() ?? '';
-          _gatewayProvider = data['gatewayProvider'] == 'WHATSAPP_CLOUD' && token.isNotEmpty ? 'WHATSAPP_CLOUD' : 'SIMULATED';
-          _phoneNumberIdController.text = data['whatsappPhoneNumberId'] ?? '';
-          _accessTokenController.text = token;
+          _gatewayProvider = 'SIMULATED';
         });
       }
     } catch (e) {
@@ -82,9 +79,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
         'isActive': _isActive,
         'autoSendBillWhatsapp': _autoSendWhatsapp,
         'preferredChannel': 'WHATSAPP',
-        'gatewayProvider': _gatewayProvider,
-        'whatsappPhoneNumberId': _phoneNumberIdController.text.trim(),
-        'whatsappAccessToken': _accessTokenController.text.trim(),
+        'gatewayProvider': 'SIMULATED',
       };
 
       final res = await ApiService.put(
@@ -277,90 +272,28 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Gateway Provider Selection
-                  const Text(
-                    'WhatsApp Gateway Route',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 8),
+                  // Direct WhatsApp Route
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFA7F3D0)),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _gatewayProvider,
-                        isExpanded: true,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary),
-                        items: const [
-                          DropdownMenuItem(value: 'SIMULATED', child: Text('Direct WhatsApp (Zero Config / Free)')),
-                          DropdownMenuItem(value: 'WHATSAPP_CLOUD', child: Text('WhatsApp Cloud API (Meta Graph)')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) setState(() => _gatewayProvider = val);
-                        },
-                      ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 18),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Direct WhatsApp Active (100% Free & Unlimited). All digital tax receipts format automatically with 0 setup.',
+                            style: TextStyle(fontSize: 11.5, color: Color(0xFF047857), fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 14),
-
-                  // Meta WhatsApp Credentials Input
-                  if (_gatewayProvider == 'WHATSAPP_CLOUD') ...[
-                    TextField(
-                      controller: _phoneNumberIdController,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number ID',
-                        hintText: 'e.g. 104829104812345',
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _accessTokenController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Meta Access Token',
-                        hintText: 'Bearer EAABw...',
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  if (_gatewayProvider == 'SIMULATED') ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFA7F3D0)),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 18),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Zero-Config Direct WhatsApp active. Digital receipts dispatch instantly with 0 setup.',
-                              style: TextStyle(fontSize: 11.5, color: Color(0xFF047857), fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                  ],
 
                   // Live Test WhatsApp Section
                   Container(
