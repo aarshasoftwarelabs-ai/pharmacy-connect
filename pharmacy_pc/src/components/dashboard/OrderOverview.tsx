@@ -47,8 +47,8 @@ export default function OrderOverview({ requests = [], bills = [] }: Props) {
       borderColor: 'border-indigo-200'
     },
     { 
-      label: 'Unpaid Bills', 
-      count: unpaidBills, 
+      label: 'Total Invoices', 
+      count: bills.length, 
       icon: IndianRupee,
       gradient: 'from-blue-400 to-cyan-500',
       bgLight: 'bg-blue-50',

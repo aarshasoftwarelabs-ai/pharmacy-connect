@@ -664,7 +664,7 @@ export default function Marketing() {
                     options={isWholesale ? [
                       { value: "ALL", label: "All Retail Clients" },
                       { value: "TOP_BUYERS", label: "Top Buyers (High Volume)" },
-                      { value: "OVERDUE_LEDGERS", label: "Clients with Overdue Ledgers" }
+                      { value: "FREQUENT_CLIENTS", label: "Frequent Retailers" }
                     ] : [
                       { value: "ALL", label: "All Customers" },
                       { value: "ACTIVE_30_DAYS", label: "Active in last 30 days" },

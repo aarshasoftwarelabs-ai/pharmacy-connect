@@ -101,46 +101,4 @@ export const sendWhatsAppBill = (
   return true;
 };
 
-export const sendPaymentReminderWhatsApp = (
-  bill: Bill,
-  recipientPhone?: string,
-  pharmacyName: string = 'K.Y Pharmacy'
-): boolean => {
-  let targetPhone = recipientPhone || bill.customerPhone || '';
-  targetPhone = sanitizeIndianPhoneNumber(targetPhone);
-
-  if (!targetPhone || targetPhone.length < 10) {
-    const inputPhone = window.prompt ? window.prompt('Enter customer WhatsApp Mobile Number (10 digits):', '') : null;
-    if (!inputPhone) return false;
-    targetPhone = sanitizeIndianPhoneNumber(inputPhone);
-  }
-
-  if (targetPhone.length < 10) {
-    alert('Please provide a valid 10-digit mobile number.');
-    return false;
-  }
-
-  const formattedDate = new Date(bill.createdAt || new Date()).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-
-  let text = `🙏 *Payment Reminder / નમસ્તે*\n`;
-  text += `🏥 *${pharmacyName}*\n`;
-  text += `------------------------------------\n`;
-  text += `નમસ્તે *${bill.customerName}*,\n`;
-  text += `આપનું મેડિકલ બિલ બાકી છે:\n`;
-  text += `📄 *Bill No:* ${bill.billNumber}\n`;
-  text += `📅 *Date:* ${formattedDate}\n`;
-  text += `💰 *Pending Amount:* ₹${Number(bill.total).toFixed(2)}\n`;
-  text += `------------------------------------\n`;
-  text += `કૃપા કરીને આપની અનુકૂળતા મુજબ રોકડ અથવા UPI દ્વારા ચુકવણી કરવા વિનંતી છે.\n`;
-  text += `આભાર! Wishing you good health.\n`;
-  text += `_Powered by DavaSetu_`;
-
-  const encodedMessage = encodeURIComponent(text);
-  const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodedMessage}`;
-  openExternalLink(waUrl);
-  return true;
 };
