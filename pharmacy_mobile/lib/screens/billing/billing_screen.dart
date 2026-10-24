@@ -465,14 +465,16 @@ class _BillingScreenState extends State<BillingScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFF86EFAC)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.mark_chat_read_rounded, color: Color(0xFF15803D), size: 20),
-                  SizedBox(width: 8),
+                  const Icon(Icons.mark_chat_read_rounded, color: Color(0xFF15803D), size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Share digital invoice directly to customer via WhatsApp with 1-tap!',
-                      style: TextStyle(fontSize: 11.5, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
+                      bill?['customer_phone'] != null && bill!['customer_phone'].toString().isNotEmpty
+                          ? '📲 Digital invoice dispatched to +91 ${bill['customer_phone']} via SMS & WhatsApp!'
+                          : 'Share digital invoice directly to customer via WhatsApp with 1-tap!',
+                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],

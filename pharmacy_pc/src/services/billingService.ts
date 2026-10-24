@@ -167,4 +167,22 @@ export class BillingService {
       });
     } catch {}
   }
+
+  /**
+   * Resend automated bill invoice via WhatsApp/SMS gateway
+   */
+  static async resendBillMessage(billId: number, phone?: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiFetch(`${API_BASE_URL}/billing/${billId}/send-message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+
+    const resData = await response.json();
+    if (!response.ok) {
+      throw new Error(resData.message || 'Failed to dispatch invoice message');
+    }
+
+    return resData;
+  }
 }

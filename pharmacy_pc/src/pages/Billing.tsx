@@ -110,6 +110,19 @@ export default function Billing() {
     }
   };
 
+  const handleDispatchGatewayMessage = async (bill: Bill, phone?: string) => {
+    try {
+      await BillingService.resendBillMessage(bill.id, phone);
+      alert('Digital invoice queued and dispatched via SMS & WhatsApp gateway!');
+      if (whatsAppModalBill) {
+        setWhatsAppModalBill(null);
+        setManualPhone('');
+      }
+    } catch (e: any) {
+      alert('Gateway dispatch note: ' + (e.message || 'Check connection'));
+    }
+  };
+
   const handleSendManualWhatsApp = (e: React.FormEvent) => {
     e.preventDefault();
     if (!whatsAppModalBill) return;
@@ -326,19 +339,31 @@ export default function Billing() {
                 onChange={(e) => setManualPhone(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none mb-4"
               />
-              <div className="flex gap-2">
-                <button 
-                  type="button" 
-                  onClick={() => setWhatsAppModalBill(null)} 
-                  className="flex-1 py-2 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setWhatsAppModalBill(null)} 
+                    className="flex-1 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm"
+                  >
+                    Open WhatsApp
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cleanPhone = manualPhone.trim().replace(/\D/g, '');
+                    handleDispatchGatewayMessage(whatsAppModalBill, cleanPhone);
+                  }}
+                  className="w-full py-2 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-all flex items-center justify-center gap-1.5"
                 >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm shadow-emerald-200"
-                >
-                  Send
+                  ⚡ Auto-Dispatch via Gateway (SMS + WhatsApp)
                 </button>
               </div>
             </form>

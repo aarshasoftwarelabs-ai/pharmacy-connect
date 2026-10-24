@@ -73,4 +73,10 @@ class ApiEndpoints {
   static String subscriptionPayments(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription-payments';
   static String get createPaymentOrder => '$baseUrl/payments/create-order';
   static String get verifyPayment => '$baseUrl/payments/verify';
+
+  // Messaging Gateway & Automated Invoicing
+  static String get messagingSettings => '$baseUrl/messaging/settings';
+  static String get sendTestMessage => '$baseUrl/messaging/test';
+  static String get messagingLogs => '$baseUrl/messaging/logs';
+  static String resendBillMessage(int billId) => '$baseUrl/billing/$billId/send-message';
 }

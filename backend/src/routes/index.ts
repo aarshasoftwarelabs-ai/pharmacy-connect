@@ -55,6 +55,7 @@ import refillRoutes from './refillRoutes';
 import prescriptionRoutes from './prescriptionRoutes';
 import reviewRoutes from './reviewRoutes';
 import promotionRoutes from './promotionRoutes';
+import messagingRoutes from './messagingRoutes';
 
 router.use('/staff', staffRoutes);
 router.use('/marketing', marketingRoutes);
@@ -63,5 +64,6 @@ router.use('/refills', refillRoutes);
 router.use('/prescriptions', prescriptionRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/promotions', promotionRoutes);
+router.use('/messaging', messagingRoutes);
 
 export default router;

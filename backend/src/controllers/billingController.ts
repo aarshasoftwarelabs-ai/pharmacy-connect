@@ -129,9 +129,49 @@ export class BillingController {
         });
       }
 
+      // Automated WhatsApp & SMS Invoicing Gateway Dispatch
+      if (resolvedCustomerPhone) {
+        try {
+          const { MessagingService } = require('../services/messagingService');
+          // Non-blocking background dispatch so counter checkout finishes immediately
+          MessagingService.dispatchAutoBillMessage(result).catch((msgErr: any) => {
+            console.warn('[Billing] Non-fatal auto-messaging dispatch note:', msgErr);
+          });
+        } catch (msgLoadErr) {
+          console.warn('[Billing] MessagingService note:', msgLoadErr);
+        }
+      }
+
       res.status(201).json({
         success: true,
         data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async resendBillMessage(req: Request, res: Response, next: NextFunction) {
+    try {
+      const billId = Number(req.params.billId);
+      const customPhone = req.body.phone;
+      const bill = await BillingService.getBillById(billId);
+
+      if (!bill) {
+        return res.status(404).json({ success: false, message: 'Bill not found' });
+      }
+
+      if (customPhone) {
+        bill.customerPhone = customPhone;
+      }
+
+      const { MessagingService } = require('../services/messagingService');
+      const results = await MessagingService.dispatchAutoBillMessage(bill);
+
+      res.status(200).json({
+        success: true,
+        data: results,
+        message: 'Bill invoice message dispatched'
       });
     } catch (error) {
       next(error);

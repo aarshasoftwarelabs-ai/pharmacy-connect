@@ -36,4 +36,7 @@ router.post('/scan-prescription', requirePermission('BILLING_CREATE'), upload.si
 // Update delivery assignment & cash collection
 router.patch('/:billId/delivery', BillingController.updateDelivery);
 
+// Resend automated bill invoice via WhatsApp/SMS gateway
+router.post('/:billId/send-message', BillingController.resendBillMessage);
+
 export default router;

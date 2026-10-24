@@ -15,6 +15,10 @@ interface EnvConfig {
   RAZORPAY_KEY_SECRET?: string;
   CORS_ORIGINS?: string;
   GEMINI_API_KEY?: string;
+  FAST2SMS_API_KEY?: string;
+  MSG91_AUTH_KEY?: string;
+  WHATSAPP_PHONE_NUMBER_ID?: string;
+  WHATSAPP_ACCESS_TOKEN?: string;
 }
 
 const getEnvConfig = (): EnvConfig => {
@@ -27,6 +31,10 @@ const getEnvConfig = (): EnvConfig => {
   const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
   const CORS_ORIGINS = process.env.CORS_ORIGINS;
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
+  const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY;
+  const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 
   if (!DATABASE_URL) {
     console.error('❌ FATAL ERROR: DATABASE_URL environment variable is missing.');
@@ -48,6 +56,10 @@ const getEnvConfig = (): EnvConfig => {
     RAZORPAY_KEY_SECRET,
     CORS_ORIGINS,
     GEMINI_API_KEY,
+    FAST2SMS_API_KEY,
+    MSG91_AUTH_KEY,
+    WHATSAPP_PHONE_NUMBER_ID,
+    WHATSAPP_ACCESS_TOKEN
   };
 };
 

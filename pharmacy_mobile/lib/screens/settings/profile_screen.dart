@@ -8,6 +8,7 @@ import '../../providers/billing_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/subscription_renewal_modal.dart';
 import '../../widgets/bluetooth_printer_modal.dart';
+import '../../widgets/messaging_gateway_modal.dart';
 import '../../core/services/thermal_printer_service.dart';
 import '../auth/login_screen.dart';
 
@@ -587,6 +588,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               },
+            ),
+
+            const SizedBox(height: 16),
+
+            // 4.6 Automated WhatsApp & SMS Gateway Card
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.cardBorder),
+                boxShadow: AppColors.softShadow,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () async {
+                    await MessagingGatewayModal.show(context, pharmacyName: auth.pharmacyName);
+                    setState(() {});
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                          ),
+                          child: const Icon(Icons.mark_chat_unread_rounded, color: Color(0xFF059669), size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Auto WhatsApp / SMS',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDCFCE7),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'ACTIVE',
+                                      style: TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF15803D),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              const Text(
+                                'Auto-sends digital receipts upon checkout',
+                                style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 22),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
 
             const SizedBox(height: 24),

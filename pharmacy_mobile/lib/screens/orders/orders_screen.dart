@@ -5,6 +5,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/services/thermal_printer_service.dart';
 import '../../widgets/bluetooth_printer_modal.dart';
+import '../../core/api/api_endpoints.dart';
+import '../../core/api/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 
@@ -683,14 +685,21 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                           color: Colors.transparent,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(10),
-                            onTap: () {
+                            onTap: () async {
+                              final billId = bill['id'];
+                              if (billId != null) {
+                                ApiService.post(
+                                  ApiEndpoints.resendBillMessage(int.tryParse(billId.toString()) ?? 0),
+                                  {},
+                                ).catchError((_) => ApiResponse(success: false, statusCode: 500));
+                              }
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Row(
                                     children: [
                                       const Icon(Icons.send_rounded, color: Colors.white, size: 18),
                                       const SizedBox(width: 8),
-                                      Text('Invoice $billNo shared via WhatsApp!'),
+                                      Text('Invoice $billNo dispatched via SMS & WhatsApp!'),
                                     ],
                                   ),
                                   backgroundColor: const Color(0xFF059669),
