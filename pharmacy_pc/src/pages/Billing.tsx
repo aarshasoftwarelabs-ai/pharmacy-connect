@@ -32,7 +32,7 @@ export default function Billing() {
   const [pharmacyName, setPharmacyName] = useState('K.Y Pharmacy');
   const [whatsAppModalBill, setWhatsAppModalBill] = useState<Bill | null>(null);
   const [manualPhone, setManualPhone] = useState('');
-  const previousBillIdsRef = useRef<Set<number>>(new Set());
+  const previousBillIdsRef = useRef<Set<string | number>>(new Set());
 
   const fetchBillingData = async (isBackground = false) => {
     try {
