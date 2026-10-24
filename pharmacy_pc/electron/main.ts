@@ -1,7 +1,13 @@
-import { app, BrowserWindow, dialog, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, shell, ipcMain, nativeImage } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, fork, ChildProcess } from 'node:child_process';
+import fs from 'node:fs';
+
+// Set Application User Model ID on Windows for custom taskbar icon & notifications
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.davasetu.pharmacypc');
+}
 
 // Disable hardware acceleration to prevent white screen and crashes on some Windows systems
 app.disableHardwareAcceleration();
@@ -108,27 +114,37 @@ process.on('unhandledRejection', (reason) => {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-process.env.APP_ROOT = path.join(__dirname, '..');
+const APP_ROOT = path.join(__dirname, '..');
+process.env.APP_ROOT = APP_ROOT;
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
-export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron');
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
+export const MAIN_DIST = path.join(APP_ROOT, 'dist-electron');
+export const RENDERER_DIST = path.join(APP_ROOT, 'dist');
 
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST;
+process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(APP_ROOT, 'public') : RENDERER_DIST;
 
 let win: BrowserWindow | null;
 function createWindow() {
   try {
+    const publicDir = process.env.VITE_PUBLIC || path.join(APP_ROOT, 'public');
+    const iconPath = path.join(publicDir, 'icon.png');
+    const appIcon = nativeImage.createFromPath(iconPath);
+
     win = new BrowserWindow({
       width: 1200,
       height: 800,
+      icon: appIcon.isEmpty() ? iconPath : appIcon,
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         nodeIntegration: false,
         contextIsolation: true,
       },
     });
+
+    if (!appIcon.isEmpty()) {
+      win.setIcon(appIcon);
+    }
 
     // Automatically grant media permissions (webcam) for barcode scanner in Electron
     win.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
