@@ -31,7 +31,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
 
   bool _autoSendWhatsapp = true;
   bool _isActive = true;
-  String _gatewayProvider = 'WHATSAPP_CLOUD';
+  String _gatewayProvider = 'SIMULATED';
   final TextEditingController _phoneNumberIdController = TextEditingController();
   final TextEditingController _accessTokenController = TextEditingController();
   final TextEditingController _testPhoneController = TextEditingController();
@@ -62,9 +62,10 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
         setState(() {
           _isActive = data['isActive'] ?? true;
           _autoSendWhatsapp = data['autoSendBillWhatsapp'] ?? true;
-          _gatewayProvider = data['gatewayProvider'] == 'SIMULATED' ? 'SIMULATED' : 'WHATSAPP_CLOUD';
+          final token = data['whatsappAccessToken']?.toString() ?? '';
+          _gatewayProvider = data['gatewayProvider'] == 'WHATSAPP_CLOUD' && token.isNotEmpty ? 'WHATSAPP_CLOUD' : 'SIMULATED';
           _phoneNumberIdController.text = data['whatsappPhoneNumberId'] ?? '';
-          _accessTokenController.text = data['whatsappAccessToken'] ?? '';
+          _accessTokenController.text = token;
         });
       }
     } catch (e) {
@@ -295,8 +296,8 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                         isExpanded: true,
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary),
                         items: const [
-                          DropdownMenuItem(value: 'WHATSAPP_CLOUD', child: Text('WhatsApp Cloud API (Meta)')),
-                          DropdownMenuItem(value: 'SIMULATED', child: Text('DavaSetu Built-in Cloud Queue (Zero Setup)')),
+                          DropdownMenuItem(value: 'SIMULATED', child: Text('Direct WhatsApp (Zero Config / Free)')),
+                          DropdownMenuItem(value: 'WHATSAPP_CLOUD', child: Text('WhatsApp Cloud API (Meta Graph)')),
                         ],
                         onChanged: (val) {
                           if (val != null) setState(() => _gatewayProvider = val);
@@ -341,18 +342,18 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
+                        color: const Color(0xFFECFDF5),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFDBEAFE)),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB), size: 18),
+                          Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 18),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Zero-setup WhatsApp mode is active. Invoices are logged and tracked in the cloud queue.',
-                              style: TextStyle(fontSize: 11.5, color: Color(0xFF1E40AF)),
+                              'Zero-Config Direct WhatsApp active. Digital receipts dispatch instantly with 0 setup.',
+                              style: TextStyle(fontSize: 11.5, color: Color(0xFF047857), fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],

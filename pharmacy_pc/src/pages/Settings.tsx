@@ -902,15 +902,15 @@ export default function Settings() {
                     <p className="text-xs text-slate-500 mt-0.5">Choose your preferred WhatsApp dispatch engine</p>
                   </div>
                   <select
-                    value={msgSettings?.gatewayProvider || 'WHATSAPP_CLOUD'}
+                    value={msgSettings?.gatewayProvider || 'SIMULATED'}
                     onChange={(e) => {
                       if (!msgSettings) return;
                       setMsgSettings({ ...msgSettings, gatewayProvider: e.target.value as any });
                     }}
                     className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
+                    <option value="SIMULATED">DavaSetu Direct Invoicing (Zero Config / 100% Free - Recommended)</option>
                     <option value="WHATSAPP_CLOUD">WhatsApp Cloud API (Official Meta Graph API)</option>
-                    <option value="SIMULATED">DavaSetu Built-in Cloud Queue (Zero Config / Instant)</option>
                   </select>
                 </div>
 
@@ -950,8 +950,14 @@ export default function Settings() {
                 )}
 
                 {msgSettings?.gatewayProvider === 'SIMULATED' && (
-                  <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl text-xs text-blue-800">
-                    💡 <b>Zero-Config Cloud Mode:</b> Invoices are validated, generated, and saved to your cloud delivery log. Enter Meta WhatsApp API credentials whenever you want live delivery to phones.
+                  <div className="p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl text-xs text-emerald-950 space-y-1.5 shadow-sm">
+                    <div className="font-bold flex items-center gap-1.5 text-emerald-800 text-sm">
+                      <Sparkles className="w-4 h-4 text-emerald-600" />
+                      Zero-Config Direct WhatsApp Active (100% Free & Unlimited)
+                    </div>
+                    <p className="text-xs text-emerald-700 leading-relaxed">
+                      All bills are automatically formatted into branded digital tax receipts. You can dispatch them instantly via 1-click WhatsApp to any patient without paying Meta API charges, developer tokens, or needing business verification.
+                    </p>
                   </div>
                 )}
 

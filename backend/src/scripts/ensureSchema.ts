@@ -332,7 +332,7 @@ export const ensureSchema = async () => {
             auto_send_bill_sms BOOLEAN DEFAULT FALSE,
             auto_send_bill_whatsapp BOOLEAN DEFAULT TRUE,
             preferred_channel VARCHAR(30) DEFAULT 'WHATSAPP',
-            gateway_provider VARCHAR(50) DEFAULT 'WHATSAPP_CLOUD',
+            gateway_provider VARCHAR(50) DEFAULT 'SIMULATED',
             sms_api_key TEXT DEFAULT '',
             sms_sender_id VARCHAR(30) DEFAULT 'DAVAST',
             whatsapp_phone_number_id VARCHAR(100) DEFAULT '',
@@ -345,13 +345,18 @@ export const ensureSchema = async () => {
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
 
+        -- Normalize any unconfigured pharmacies to Zero-Config direct mode
+        UPDATE pharmacy_messaging_settings 
+        SET gateway_provider = 'SIMULATED' 
+        WHERE (whatsapp_access_token IS NULL OR whatsapp_access_token = '') AND gateway_provider = 'WHATSAPP_CLOUD';
+
         CREATE TABLE IF NOT EXISTS bill_message_logs (
             id SERIAL PRIMARY KEY,
             pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
             bill_id INTEGER REFERENCES bills(id) ON DELETE SET NULL,
             recipient_phone VARCHAR(30) NOT NULL,
             channel VARCHAR(30) NOT NULL DEFAULT 'WHATSAPP',
-            gateway_provider VARCHAR(50) NOT NULL DEFAULT 'WHATSAPP_CLOUD',
+            gateway_provider VARCHAR(50) NOT NULL DEFAULT 'SIMULATED',
             status VARCHAR(30) NOT NULL,
             message_content TEXT,
             gateway_response TEXT,
