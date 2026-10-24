@@ -17,6 +17,7 @@ export interface Medicine {
   minWholesaleQty?: number;
   minimumStock: number;
   currentStock: number;
+  stock?: number;
   prescriptionRequired: boolean;
   status: 'Active' | 'Inactive';
   hsnCode?: string;

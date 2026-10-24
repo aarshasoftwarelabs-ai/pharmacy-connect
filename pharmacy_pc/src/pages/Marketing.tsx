@@ -146,9 +146,8 @@ export default function Marketing() {
     setIsScanningAI(true);
     setBroadcastNotice(null);
     try {
-      const pId = getActualPharmacyId();
       const [medicines, customers] = await Promise.all([
-        fetchMedicines(pId).catch(() => []),
+        fetchMedicines().catch(() => []),
         CustomerService.getCustomers().catch(() => [])
       ]);
 
@@ -180,8 +179,8 @@ export default function Marketing() {
       }
 
       // 2. Check for high-stock medicines
-      const sortedByStock = [...medicines].sort((a, b) => (Number(b.stock) || 0) - (Number(a.stock) || 0));
-      const topStockMed = sortedByStock.find(m => (Number(m.stock) || 0) > 10);
+      const sortedByStock = [...medicines].sort((a, b) => (Number(b.currentStock ?? b.stock) || 0) - (Number(a.currentStock ?? a.stock) || 0));
+      const topStockMed = sortedByStock.find(m => (Number(m.currentStock ?? m.stock) || 0) > 10);
       if (topStockMed) {
         promos.push({
           id: 'ai-high-stock',
