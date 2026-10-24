@@ -13,7 +13,6 @@ import '../reports/reports_screen.dart';
 import '../settings/profile_screen.dart';
 import '../staff/staff_scanner_screen.dart';
 import '../suppliers/suppliers_screen.dart';
-import '../../widgets/pharma_sponsored_banner_widget.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/subscription_renewal_modal.dart';
 
@@ -378,11 +377,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
 
               const SizedBox(height: 20),
 
-              // Pharma Sponsored Deals & Schemes Banner Carousel
-              const PharmaSponsoredBannerWidget(),
-
-              const SizedBox(height: 24),
-
               // 2. Smart Realtime KPI Metrics
               const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -709,7 +703,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   }
 
   Widget _buildLowStockCard(BuildContext context, MedicineModel med, BillingProvider billing) {
-    final alertThreshold = med.minStockAlert ?? 15;
+    final alertThreshold = med.minStockAlert > 0 ? med.minStockAlert : 15;
     final ratio = (med.stock / alertThreshold).clamp(0.0, 1.0);
 
     return Container(

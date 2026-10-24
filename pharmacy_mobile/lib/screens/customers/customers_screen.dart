@@ -17,7 +17,6 @@ class _CustomersScreenState extends State<CustomersScreen> {
   List<CustomerModel> _customers = [];
   bool _isLoading = true;
   String _searchQuery = '';
-  String _selectedFilter = 'All'; // 'All', 'Refill Due'
 
   @override
   void initState() {
@@ -33,57 +32,30 @@ class _CustomersScreenState extends State<CustomersScreen> {
         final list = (res.data is List)
             ? res.data as List
             : (res.data['customers'] as List? ?? []);
-        setState(() {
-          _customers = list.map((c) => CustomerModel.fromJson(c as Map<String, dynamic>)).toList();
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _customers = list.map((c) => CustomerModel.fromJson(c as Map<String, dynamic>)).toList();
+            _isLoading = false;
+          });
+        }
         return;
       }
     } catch (_) {}
 
-    // Fallback data for offline/seamless UX
-    setState(() {
-      _customers = [
-        CustomerModel(
-          id: 1,
-          displayName: 'Ramesh Patel',
-          phone: '9876543210',
-          totalBills: 14,
-          totalSpend: 4250.0,
-          lastPurchaseDate: '12 Oct 2026',
-          isRefillDue: true,
-        ),
-        CustomerModel(
-          id: 2,
-          displayName: 'Priya Shah',
-          phone: '9822334455',
-          totalBills: 8,
-          totalSpend: 2180.0,
-          lastPurchaseDate: '08 Oct 2026',
-          isRefillDue: false,
-        ),
-        CustomerModel(
-          id: 3,
-          displayName: 'Anil Lodaliya',
-          phone: '9909988776',
-          totalBills: 21,
-          totalSpend: 9840.0,
-          lastPurchaseDate: '14 Oct 2026',
-          isRefillDue: true,
-        ),
-      ];
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _customers = [];
+        _isLoading = false;
+      });
+    }
   }
 
   List<CustomerModel> get _filteredCustomers {
     return _customers.where((c) {
-      final matchesSearch = _searchQuery.isEmpty ||
-          c.displayName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (c.phone?.contains(_searchQuery) ?? false);
-      final matchesFilter = _selectedFilter == 'All' ||
-          (_selectedFilter == 'Refill Due' && c.isRefillDue);
-      return matchesSearch && matchesFilter;
+      final query = _searchQuery.toLowerCase().trim();
+      return query.isEmpty ||
+          c.displayName.toLowerCase().contains(query) ||
+          (c.phone?.contains(query) ?? false);
     }).toList();
   }
 
@@ -98,6 +70,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh Customers',
             onPressed: _fetchCustomers,
           ),
         ],
@@ -107,35 +80,12 @@ class _CustomersScreenState extends State<CustomersScreen> {
           Container(
             color: Colors.white,
             padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                TextField(
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  decoration: const InputDecoration(
-                    hintText: 'Search customer by name or phone...',
-                    prefixIcon: Icon(Icons.search_rounded, color: AppColors.textMuted),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: ['All', 'Refill Due'].map((filter) {
-                    final isSel = _selectedFilter == filter;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: FilterChip(
-                        label: Text(filter),
-                        selected: isSel,
-                        selectedColor: AppColors.primarySubtle,
-                        labelStyle: TextStyle(
-                          color: isSel ? AppColors.primaryDark : AppColors.textSecondary,
-                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                        ),
-                        onSelected: (_) => setState(() => _selectedFilter = filter),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
+            child: TextField(
+              onChanged: (val) => setState(() => _searchQuery = val),
+              decoration: const InputDecoration(
+                hintText: 'Search customer by name or phone...',
+                prefixIcon: Icon(Icons.search_rounded, color: AppColors.textMuted),
+              ),
             ),
           ),
           Expanded(
@@ -143,103 +93,110 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : list.isEmpty
                     ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.people_outline_rounded, size: 48, color: AppColors.textMuted),
-                            const SizedBox(height: 12),
-                            Text(
-                              _searchQuery.isEmpty ? 'No customers found' : 'No customers matching "$_searchQuery"',
-                              style: const TextStyle(color: AppColors.textSecondary),
-                            ),
-                          ],
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.people_outline_rounded, size: 52, color: AppColors.textMuted),
+                              const SizedBox(height: 12),
+                              Text(
+                                _searchQuery.isEmpty
+                                    ? 'No Customers Recorded Yet'
+                                    : 'No customers matching "$_searchQuery"',
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _searchQuery.isEmpty
+                                    ? 'Customers added during billing will appear here automatically.'
+                                    : 'Check spelling or search by phone number.',
+                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                              ),
+                            ],
+                          ),
                         ),
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: list.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, idx) {
-                          final c = list[idx];
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.cardBorder),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundColor: AppColors.primarySubtle,
-                                      child: Text(
-                                        c.displayName.isNotEmpty ? c.displayName[0].toUpperCase() : 'C',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                    : RefreshIndicator(
+                        onRefresh: _fetchCustomers,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: list.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          itemBuilder: (context, idx) {
+                            final c = list[idx];
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.cardBorder),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: AppColors.primarySubtle,
+                                        child: Text(
+                                          c.displayName.isNotEmpty ? c.displayName[0].toUpperCase() : 'C',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              c.displayName,
+                                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                            ),
+                                            if (c.phone != null)
+                                              Text(
+                                                c.phone!,
+                                                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Divider(height: 1),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            c.displayName,
-                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                                          ),
-                                          if (c.phone != null)
-                                            Text(
-                                              c.phone!,
-                                              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                                            ),
+                                          const Text('Total Invoices', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                                          Text('${c.totalBills} bills', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                         ],
                                       ),
-                                    ),
-                                    if (c.isRefillDue)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.warningBg,
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: const Text(
-                                          'Refill Due',
-                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.warning),
-                                        ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          const Text('Total Spend', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                                          Text(
+                                            _currency.format(c.totalSpend),
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
+                                          ),
+                                        ],
                                       ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                const Divider(height: 1),
-                                const SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Total Invoices', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                                        Text('${c.totalBills} bills', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                      ],
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        const Text('Total Spend', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                                        Text(
-                                          _currency.format(c.totalSpend),
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ),
           ),
         ],
