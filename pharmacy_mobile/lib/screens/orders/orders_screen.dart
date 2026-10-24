@@ -17,10 +17,23 @@ class OrdersScreen extends StatefulWidget {
   State<OrdersScreen> createState() => _OrdersScreenState();
 }
 
-class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _OrdersScreenState extends State<OrdersScreen> {
   final _currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
   String _searchQuery = '';
+  String _selectedPaymentFilter = 'All'; // 'All', 'CASH', 'UPI'
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshBills();
+    });
+  }
+
+  Future<void> _refreshBills() async {
+    final auth = context.read<AuthProvider>();
+    await context.read<BillingProvider>().fetchBills(auth.pharmacyId);
+  }
 
   Future<void> _handlePrintReceipt(Map<String, dynamic> bill) async {
     final pharmacy = StorageService.getPharmacy();
@@ -71,94 +84,29 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     }
   }
 
-  final List<Map<String, dynamic>> _refills = [
-    {
-      'id': 'RF-101',
-      'patient_name': 'Ramesh Patel',
-      'phone': '9898012345',
-      'medicine_name': 'Metformin 500mg',
-      'quantity': 60,
-      'status': 'Pending',
-      'date': 'Today, 09:30 AM',
-      'doctor': 'Dr. M. K. Shah',
-    },
-    {
-      'id': 'RF-102',
-      'patient_name': 'Priya Shah',
-      'phone': '9825098765',
-      'medicine_name': 'Thyronorm 50mcg',
-      'quantity': 100,
-      'status': 'Approved',
-      'date': 'Yesterday, 04:15 PM',
-      'doctor': 'Dr. R. J. Patel',
-    },
-    {
-      'id': 'RF-103',
-      'patient_name': 'Kiritbhai Dave',
-      'phone': '9426055512',
-      'medicine_name': 'Telmisartan 40mg',
-      'quantity': 30,
-      'status': 'Dispensed',
-      'date': '14 Oct, 11:20 AM',
-      'doctor': 'Dr. V. N. Joshi',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _prescriptions = [
-    {
-      'id': 'RX-501',
-      'patient_name': 'Ananya Mehta',
-      'doctor_name': 'Dr. K. S. Trivedi',
-      'status': 'Review Needed',
-      'items_count': 3,
-      'date': 'Today, 10:15 AM',
-      'medicines': ['Amoxicillin 500mg', 'Paracetamol 650mg', 'Pantoprazole 40mg'],
-    },
-    {
-      'id': 'RX-502',
-      'patient_name': 'Sanjay Varma',
-      'doctor_name': 'Dr. N. B. Joshi',
-      'status': 'Processed',
-      'items_count': 2,
-      'date': 'Yesterday, 06:40 PM',
-      'medicines': ['Amlodipine 5mg', 'Atorvastatin 10mg'],
-    },
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = context.read<AuthProvider>();
-      context.read<BillingProvider>().fetchBills(auth.pharmacyId);
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final billing = context.watch<BillingProvider>();
     final recentBills = billing.recentBills;
 
+    // Filter by search query and payment mode
     final filteredBills = recentBills.where((b) {
-      if (_searchQuery.trim().isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
       final billNo = (b['bill_number'] ?? '').toString().toLowerCase();
       final customer = (b['customer_name'] ?? '').toString().toLowerCase();
-      return billNo.contains(q) || customer.contains(q);
+      final paymentMode = (b['payment_mode'] ?? '').toString().toUpperCase();
+
+      final matchesSearch = _searchQuery.trim().isEmpty ||
+          billNo.contains(_searchQuery.toLowerCase().trim()) ||
+          customer.contains(_searchQuery.toLowerCase().trim());
+
+      final matchesPayment = _selectedPaymentFilter == 'All' ||
+          paymentMode.contains(_selectedPaymentFilter);
+
+      return matchesSearch && matchesPayment;
     }).toList();
 
     final totalSales = recentBills.fold(0.0, (sum, b) => sum + ((b['total'] as num?)?.toDouble() ?? 0.0));
-    final pendingRefills = _refills.where((r) => r['status'] == 'Pending').length;
+    final averageBill = recentBills.isNotEmpty ? totalSales / recentBills.length : 0.0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -170,9 +118,9 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Bills & Orders',
+              'Invoices & Sales History',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 19,
                 fontWeight: FontWeight.w900,
                 color: AppColors.textPrimary,
                 letterSpacing: -0.4,
@@ -181,8 +129,8 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             Row(
               children: [
                 Container(
-                  width: 6,
-                  height: 6,
+                  width: 7,
+                  height: 7,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: Color(0xFF10B981),
@@ -190,7 +138,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 ),
                 const SizedBox(width: 5),
                 const Text(
-                  'Live POS & Cloud Synced',
+                  'Live Cloud POS Invoices',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -201,16 +149,25 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.primary),
+            tooltip: 'Refresh Invoices',
+            onPressed: _refreshBills,
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: Column(
         children: [
-          // KPI Metric Summary Strip
+          // 1. High-Impact KPI Summary Strip (Real Sales Data Only)
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
             child: Row(
               children: [
                 Expanded(
+                  flex: 4,
                   child: _buildKpiBox(
                     title: 'Total Sales',
                     value: _currency.format(totalSales),
@@ -222,9 +179,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 ),
                 const SizedBox(width: 8),
                 Expanded(
+                  flex: 3,
                   child: _buildKpiBox(
-                    title: 'POS Invoices',
-                    value: '${recentBills.length} Paid',
+                    title: 'Total Invoices',
+                    value: '${recentBills.length} Bills',
                     icon: Icons.receipt_long_rounded,
                     color: const Color(0xFF2563EB),
                     bgColor: const Color(0xFFEFF6FF),
@@ -233,84 +191,89 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 ),
                 const SizedBox(width: 8),
                 Expanded(
+                  flex: 3,
                   child: _buildKpiBox(
-                    title: 'Refills & Rx',
-                    value: '$pendingRefills Pending',
-                    icon: Icons.medical_services_rounded,
-                    color: pendingRefills > 0 ? const Color(0xFFD97706) : AppColors.textMuted,
-                    bgColor: pendingRefills > 0 ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
-                    borderColor: pendingRefills > 0 ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+                    title: 'Average Bill',
+                    value: _currency.format(averageBill),
+                    icon: Icons.analytics_outlined,
+                    color: const Color(0xFF7C3AED),
+                    bgColor: const Color(0xFFF5F3FF),
+                    borderColor: const Color(0xFFEDE9FE),
                   ),
                 ),
               ],
             ),
           ),
 
-          // Modern Capsule Segmented Tab Bar
+          // 2. Search & Filter Bar
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  _buildSegmentTab(0, 'Invoices', recentBills.length, Icons.receipt_rounded),
-                  _buildSegmentTab(1, 'Refills', _refills.length, Icons.autorenew_rounded),
-                  _buildSegmentTab(2, 'Prescriptions', _prescriptions.length, Icons.description_rounded),
-                ],
-              ),
+            child: Column(
+              children: [
+                // Search Input Field
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: TextField(
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      hintText: 'Search bill number, customer name...',
+                      hintStyle: const TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.primary),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              onPressed: () => setState(() => _searchQuery = ''),
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Payment Filters (All / Cash / UPI)
+                Row(
+                  children: [
+                    const Text(
+                      'Filter:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('All', 'All (${recentBills.length})'),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('CASH', 'Cash'),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('UPI', 'UPI / Online'),
+                  ],
+                ),
+              ],
             ),
           ),
 
-          // Search Field (Only for Invoices tab)
-          if (_tabController.index == 0)
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: TextField(
-                  onChanged: (v) => setState(() => _searchQuery = v),
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  decoration: InputDecoration(
-                    hintText: 'Search by bill number or customer name...',
-                    hintStyle: const TextStyle(fontSize: 12.5, color: AppColors.textMuted),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.primary),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 16),
-                            onPressed: () => setState(() => _searchQuery = ''),
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                ),
-              ),
-            ),
-
-          // Tab Content Views
+          // 3. Invoices List with Pull-to-Refresh
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // 1. Modern POS Invoices Tab
-                _buildInvoicesTab(filteredBills),
-
-                // 2. Modern Medicine Refills Tab
-                _buildRefillsTab(),
-
-                // 3. Modern Rx Prescriptions Tab
-                _buildPrescriptionsTab(),
-              ],
+            child: RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: _refreshBills,
+              child: filteredBills.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                      itemCount: filteredBills.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final bill = filteredBills[index];
+                        return _buildInvoiceCard(bill);
+                      },
+                    ),
             ),
           ),
         ],
@@ -318,65 +281,25 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     );
   }
 
-  // Modern Segment Tab Item
-  Widget _buildSegmentTab(int index, String label, int count, IconData icon) {
-    final isSelected = _tabController.index == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          _tabController.animateTo(index);
-          setState(() {});
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
+  Widget _buildFilterChip(String filterKey, String label) {
+    final isSelected = _selectedPaymentFilter == filterKey;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPaymentFilter = filterKey),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryDark : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryDark : const Color(0xFFE2E8F0),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 14,
-                color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                  color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primarySubtle : const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$count',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? AppColors.primaryDark : AppColors.textMuted,
-                  ),
-                ),
-              ),
-            ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? Colors.white : AppColors.textSecondary,
           ),
         ),
       ),
@@ -418,8 +341,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
           const SizedBox(height: 4),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: FontWeight.w800,
               color: color == AppColors.textMuted ? AppColors.textPrimary : color,
               letterSpacing: -0.3,
@@ -430,10 +355,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     );
   }
 
-  // 1. INVOICES TAB
-  Widget _buildInvoicesTab(List<Map<String, dynamic>> bills) {
-    if (bills.isEmpty) {
-      return Center(
+  Widget _buildEmptyState() {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -447,35 +372,27 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
               child: const Icon(Icons.receipt_long_outlined, size: 36, color: AppColors.textMuted),
             ),
             const SizedBox(height: 14),
-            const Text(
-              'No Invoices Found',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            Text(
+              _searchQuery.isNotEmpty ? 'No Matching Invoices Found' : 'No Invoices Recorded Yet',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Completed POS transactions will appear here',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            Text(
+              _searchQuery.isNotEmpty
+                  ? 'Try searching with another bill number or customer name.'
+                  : 'Counter POS sales bills will automatically appear here.',
+              style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
             ),
           ],
         ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-      itemCount: bills.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final bill = bills[index];
-        return _buildInvoiceCard(bill);
-      },
+      ),
     );
   }
 
   Widget _buildInvoiceCard(Map<String, dynamic> bill) {
     final billNo = bill['bill_number'] ?? 'PC-2026-000001';
     final customer = bill['customer_name'] ?? 'Walk-in Customer';
-    final paymentMode = bill['payment_mode'] ?? 'POS';
+    final paymentMode = (bill['payment_mode'] ?? 'CASH').toString().toUpperCase();
     final itemsCount = bill['items_count'] ?? 1;
     final total = (bill['total'] as num?)?.toDouble() ?? 0.0;
     final date = bill['date'] ?? 'Today';
@@ -578,7 +495,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                         Text(
                           _currency.format(total),
                           style: const TextStyle(
-                            fontSize: 19,
+                            fontSize: 18,
                             fontWeight: FontWeight.w900,
                             color: AppColors.primaryDark,
                             letterSpacing: -0.4,
@@ -736,367 +653,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     );
   }
 
-  // 2. REFILLS TAB
-  Widget _buildRefillsTab() {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-      itemCount: _refills.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = _refills[index];
-        final isPending = item['status'] == 'Pending';
-        final isApproved = item['status'] == 'Approved';
-
-        final statusColor = isPending
-            ? const Color(0xFFD97706)
-            : isApproved
-                ? const Color(0xFF2563EB)
-                : const Color(0xFF059669);
-
-        final statusBg = isPending
-            ? const Color(0xFFFFFBEB)
-            : isApproved
-                ? const Color(0xFFEFF6FF)
-                : const Color(0xFFECFDF5);
-
-        final statusBorder = isPending
-            ? const Color(0xFFFDE68A)
-            : isApproved
-                ? const Color(0xFFBFDBFE)
-                : const Color(0xFFA7F3D0);
-
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: Refill ID & Status
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          item['id'],
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primaryDark),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        item['date'],
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: statusBg,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusBorder),
-                    ),
-                    child: Text(
-                      item['status'],
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusColor),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Patient Info Row
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.primarySubtle,
-                    child: Text(
-                      item['patient_name'].substring(0, 1),
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['patient_name'],
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-                        ),
-                        Text(
-                          '📞 ${item['phone']}  •  Prescribed by ${item['doctor']}',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Medicine Highlight Pill Container
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.medication_rounded, size: 20, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          item['medicine_name'],
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFCBD5E1)),
-                      ),
-                      child: Text(
-                        'Qty: ${item['quantity']}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: AppColors.primaryDark),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              if (isPending) ...[
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          setState(() => item['status'] = 'Rejected');
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: const BorderSide(color: Color(0xFFFECACA)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: const Text('Decline', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() => item['status'] = 'Approved');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Refill ${item['id']} Approved & Scheduled!'),
-                              backgroundColor: AppColors.primaryDark,
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.check_circle_rounded, size: 16),
-                        label: const Text('Approve Refill', style: TextStyle(fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // 3. PRESCRIPTIONS TAB
-  Widget _buildPrescriptionsTab() {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-      itemCount: _prescriptions.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = _prescriptions[index];
-        final medicines = (item['medicines'] as List<String>?) ?? [];
-
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F3FF),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          item['id'],
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF6D28D9)),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(item['date'], style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3E8FF),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFDDD6FE)),
-                    ),
-                    child: Text(
-                      item['status'],
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Patient & Doctor
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: const Color(0xFFEDE9FE),
-                    child: const Icon(Icons.description_rounded, color: Color(0xFF7C3AED), size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['patient_name'],
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-                        ),
-                        Text(
-                          'Prescribed by ${item['doctor_name']}',
-                          style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Medicines list preview
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${item['items_count']} Prescribed Medicines:',
-                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.textMuted),
-                    ),
-                    const SizedBox(height: 6),
-                    ...medicines.map(
-                      (m) => Padding(
-                        padding: const EdgeInsets.only(bottom: 3.0),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.check_circle_outline_rounded, size: 13, color: AppColors.primary),
-                            const SizedBox(width: 6),
-                            Text(m, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 14),
-              // Dispense Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Processing Rx ${item['id']} for Billing!'),
-                        backgroundColor: AppColors.primaryDark,
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.point_of_sale_rounded, size: 16),
-                  label: const Text('Dispense Rx & Create Bill', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   // Digital Thermal Receipt Modal
   void _showInvoiceDetailModal(Map<String, dynamic> bill) {
+    final pharmacy = StorageService.getPharmacy();
+    final pharmacyName = pharmacy?['name']?.toString() ?? 'DavaSetu Medicals';
     final billNo = bill['bill_number'] ?? 'PC-2026-000001';
     final customer = bill['customer_name'] ?? 'Walk-in Customer';
     final total = (bill['total'] as num?)?.toDouble() ?? 0.0;
@@ -1131,9 +691,9 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
               const SizedBox(height: 16),
 
               // Store Header
-              const Text(
-                'DavaSetu Pharmacy',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+              Text(
+                pharmacyName,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
               ),
               const Text(
                 'Mobile POS Digital Tax Invoice',
@@ -1202,8 +762,15 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
+                        final billId = bill['id'];
+                        if (billId != null) {
+                          ApiService.post(
+                            ApiEndpoints.resendBillMessage(int.tryParse(billId.toString()) ?? 0),
+                            {},
+                          ).catchError((_) => ApiResponse(success: false, statusCode: 500));
+                        }
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('WhatsApp receipt sent for $billNo!')),
+                          SnackBar(content: Text('WhatsApp receipt dispatched for $billNo!')),
                         );
                       },
                       icon: const Icon(Icons.share_rounded, size: 16),
