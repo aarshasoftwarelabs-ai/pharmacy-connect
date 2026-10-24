@@ -100,5 +100,3 @@ export const sendWhatsAppBill = (
   openExternalLink(waUrl);
   return true;
 };
-
-};

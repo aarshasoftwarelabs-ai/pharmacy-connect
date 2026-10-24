@@ -75,11 +75,11 @@ export class UserAuthController {
         const https = require('https');
         const senderEmail = process.env.SENDER_EMAIL || 'davasetu.otp@gmail.com'; 
         const data = JSON.stringify({
-          sender: { name: 'DavaSetu App', email: senderEmail },
+          sender: { name: 'PharmacyConnect App', email: senderEmail },
           to: [{ email: targetEmail }],
-          subject: 'Your DavaSetu App Login Code',
+          subject: 'Your PharmacyConnect App Login Code',
           htmlContent: `<div style="font-family: sans-serif; text-align: center; padding: 20px;">
-            <h1 style="color: #059669;">DavaSetu</h1>
+            <h1 style="color: #059669;">PharmacyConnect</h1>
             <h2>Your Verification Code</h2>
             <p>Please use the following 6-digit code to access your account.</p>
             <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; margin: 20px 0;">${generatedOtp}</div>
@@ -96,7 +96,7 @@ export class UserAuthController {
             'accept': 'application/json',
             'api-key': BREVO_API_KEY,
             'content-type': 'application/json',
-            'Content-Length': data.length
+            'Content-Length': Buffer.byteLength(data)
           }
         };
 

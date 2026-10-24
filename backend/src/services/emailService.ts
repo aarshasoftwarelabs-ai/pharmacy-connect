@@ -17,7 +17,7 @@ export const sendSecurityAlertEmail = async (ownerEmail: string, staffName: stri
         'content-type': 'application/json'
       },
       body: JSON.stringify({
-        sender: { name: 'DavaSetu Security', email: 'davasetu.security@gmail.com' },
+        sender: { name: 'PharmacyConnect Security', email: process.env.SENDER_EMAIL || 'davasetu.otp@gmail.com' },
         to: [{ email: ownerEmail }],
         subject: 'DavaSetu Security Alert - Unauthorized Access Attempt',
         htmlContent: `<div style="font-family: sans-serif; padding: 20px;">
