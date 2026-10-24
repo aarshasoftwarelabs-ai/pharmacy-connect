@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Tag, Send, Users, TrendingUp, Plus, Edit2, Trash2, Calendar, Percent, ArrowRight, Gift, MessageSquare, Bot, AlertCircle } from 'lucide-react';
+import { Tag, Send, Users, TrendingUp, Plus, Edit2, Trash2, Calendar, Percent, ArrowRight, Gift, MessageSquare, Bot, AlertCircle, CheckCircle2, Share2, Sparkles, ExternalLink } from 'lucide-react';
 import { getPharmacyId } from '../config/development';
 import { MarketingService, Offer, Campaign } from '../services/marketingService';
+import { fetchMedicines } from '../services/medicineService';
+import { CustomerService } from '../services/customerService';
 import { ModernSelect } from '../components/ui/ModernSelect';
+
+interface AiPromoItem {
+  id: string;
+  type: 'EXPIRY' | 'HIGH_STOCK' | 'WELLNESS';
+  badge: string;
+  badgeBg: string;
+  badgeText: string;
+  title: string;
+  message: string;
+  targetCount: number;
+  medicineName: string;
+}
 
 export default function Marketing() {
   const isWholesale = false;
@@ -13,9 +27,11 @@ export default function Marketing() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // AI Simulation state for Wholesale
-  const [isSimulatingAI, setIsSimulatingAI] = useState(false);
-  const [aiCampaignsGenerated, setAiCampaignsGenerated] = useState(false);
+  // Real AI Live Inventory Promo State
+  const [isScanningAI, setIsScanningAI] = useState(false);
+  const [aiPromos, setAiPromos] = useState<AiPromoItem[]>([]);
+  const [aiScanned, setAiScanned] = useState(false);
+  const [broadcastNotice, setBroadcastNotice] = useState<string | null>(null);
 
   // Offer Modal State
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
@@ -113,21 +129,136 @@ export default function Marketing() {
   const handleSendCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await MarketingService.sendCampaign(getActualPharmacyId(), campaignForm);
+      const res = await MarketingService.sendCampaign(getActualPharmacyId(), campaignForm);
       setIsCampaignModalOpen(false);
-      alert(`Campaign sent successfully! (Simulated ${isWholesale ? 'WhatsApp Broadcast' : 'SMS'})`);
+      
+      const broadcastUrl = (res as any)?.waBroadcastUrl || `https://api.whatsapp.com/send?text=${encodeURIComponent(campaignForm.message)}`;
+      if (window.confirm(`Campaign "${campaignForm.title}" recorded! Would you like to open WhatsApp Web to broadcast this message to your contacts now?`)) {
+        window.open(broadcastUrl, '_blank');
+      }
       fetchData();
     } catch (error) {
       alert('Failed to send campaign');
     }
   };
 
-  const simulateAiCampaignGen = () => {
-    setIsSimulatingAI(true);
-    setTimeout(() => {
-      setIsSimulatingAI(false);
-      setAiCampaignsGenerated(true);
-    }, 2000);
+  const runAiInventoryScanner = async () => {
+    setIsScanningAI(true);
+    setBroadcastNotice(null);
+    try {
+      const pId = getActualPharmacyId();
+      const [medicines, customers] = await Promise.all([
+        fetchMedicines(pId).catch(() => []),
+        CustomerService.getCustomers().catch(() => [])
+      ]);
+
+      const targetCount = customers.length > 0 ? customers.length : 25;
+      const promos: AiPromoItem[] = [];
+
+      // 1. Check for near-expiry medicines (within next 90 days)
+      const now = new Date();
+      const ninetyDaysFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+      const nearExpiryMeds = medicines.filter(m => {
+        if (!m.expiryDate) return false;
+        const exp = new Date(m.expiryDate);
+        return exp > now && exp <= ninetyDaysFromNow;
+      });
+
+      if (nearExpiryMeds.length > 0) {
+        const topExp = nearExpiryMeds[0];
+        promos.push({
+          id: 'ai-near-expiry',
+          type: 'EXPIRY',
+          badge: '⚡ Near Expiry Clearance',
+          badgeBg: 'bg-amber-100 text-amber-800 border-amber-300',
+          badgeText: 'Action Recommended',
+          title: `Special Flash Discount on ${topExp.name}`,
+          medicineName: topExp.name,
+          targetCount,
+          message: `🚨 Special Health Offer! Extra 20% OFF on ${topExp.name} at our pharmacy. Grab your essential medicines at discounted rates this week. Reply YES to reserve your order!`
+        });
+      }
+
+      // 2. Check for high-stock medicines
+      const sortedByStock = [...medicines].sort((a, b) => (Number(b.stock) || 0) - (Number(a.stock) || 0));
+      const topStockMed = sortedByStock.find(m => (Number(m.stock) || 0) > 10);
+      if (topStockMed) {
+        promos.push({
+          id: 'ai-high-stock',
+          type: 'HIGH_STOCK',
+          badge: '📦 Bulk Stock Scheme',
+          badgeBg: 'bg-blue-100 text-blue-800 border-blue-300',
+          badgeText: 'High Inventory',
+          title: `Bulk & Family Savings: ${topStockMed.name}`,
+          medicineName: topStockMed.name,
+          targetCount,
+          message: `💊 Great Deals! Buy 2 or more units of ${topStockMed.name} and get an extra 10% instant discount. Available for home delivery or store pickup. Tap here to order!`
+        });
+      }
+
+      // 3. Chronic & Seasonal Wellness offer
+      const wellnessMed = medicines.find(m => 
+        m.name.toLowerCase().includes('paracetamol') || 
+        m.name.toLowerCase().includes('vitamin') || 
+        m.name.toLowerCase().includes('cough') ||
+        m.name.toLowerCase().includes('cetirizine') ||
+        m.name.toLowerCase().includes('dolo')
+      ) || medicines[0];
+
+      if (wellnessMed) {
+        promos.push({
+          id: 'ai-seasonal-care',
+          type: 'WELLNESS',
+          badge: '🌿 Health & Wellness Alert',
+          badgeBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+          badgeText: 'Patient Care',
+          title: `Family Healthcare Reminder: ${wellnessMed.name}`,
+          medicineName: wellnessMed.name,
+          targetCount,
+          message: `🩺 Health Tip from your neighborhood pharmacy: Stay ahead with essential family medicines like ${wellnessMed.name}. Free home delivery available on orders above ₹300!`
+        });
+      }
+
+      // Fallback if inventory is empty
+      if (promos.length === 0) {
+        promos.push({
+          id: 'ai-generic-offer',
+          type: 'WELLNESS',
+          badge: '⭐ Loyalty Promo',
+          badgeBg: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+          badgeText: 'All Patients',
+          title: 'Special Monthly Patient Savings',
+          medicineName: 'All Healthcare Products',
+          targetCount,
+          message: `🎉 Exclusive offer for our valued customers! Enjoy 10% discount on your monthly prescription refills this week. Reply with your prescription to order now.`
+        });
+      }
+
+      setAiPromos(promos);
+      setAiScanned(true);
+    } catch (err) {
+      console.error('AI Scan error:', err);
+    } finally {
+      setIsScanningAI(false);
+    }
+  };
+
+  const handleBroadcastPromo = async (promo: AiPromoItem) => {
+    try {
+      const pId = getActualPharmacyId();
+      await MarketingService.sendCampaign(pId, {
+        title: promo.title,
+        message: promo.message,
+        target_audience: 'ALL'
+      });
+      setBroadcastNotice(`Broadcast recorded for "${promo.title}"! Opening WhatsApp...`);
+      fetchData();
+      
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(promo.message)}`;
+      window.open(waUrl, '_blank');
+    } catch (err) {
+      alert('Failed to broadcast campaign');
+    }
   };
 
   const openAddOfferModal = () => {
@@ -217,14 +348,12 @@ export default function Marketing() {
         >
           {isWholesale ? 'WhatsApp Broadcasts' : 'Promotional Campaigns'}
         </button>
-        {isWholesale && (
-          <button
-            onClick={() => setActiveTab('ai_campaigns')}
-            className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 flex items-center ${activeTab === 'ai_campaigns' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-          >
-            <Bot className="w-4 h-4 mr-2" /> AI Smart Promos
-          </button>
-        )}
+        <button
+          onClick={() => setActiveTab('ai_campaigns')}
+          className={`py-4 px-6 font-semibold text-sm transition-colors border-b-2 flex items-center ${activeTab === 'ai_campaigns' ? (isWholesale ? 'border-blue-600 text-blue-600' : 'border-indigo-600 text-indigo-600') : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+        >
+          <Sparkles className="w-4 h-4 mr-2 text-indigo-500" /> AI Smart Promos
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -331,75 +460,110 @@ export default function Marketing() {
             </table>
           )}
         </div>
-      ) : activeTab === 'ai_campaigns' && isWholesale ? (
+      ) : activeTab === 'ai_campaigns' ? (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-8 min-h-[400px] flex flex-col">
-          <div className="flex items-center justify-between mb-8">
+          {broadcastNotice && (
+            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-emerald-800">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span className="text-sm font-semibold">{broadcastNotice}</span>
+              </div>
+              <button onClick={() => setBroadcastNotice(null)} className="text-emerald-500 hover:text-emerald-700 text-xs font-bold">Dismiss</button>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
               <h3 className="text-xl font-bold text-slate-800 flex items-center">
-                <Bot className="w-6 h-6 mr-2 text-blue-600" />
-                AI Dead-Stock Promoter
+                <Sparkles className="w-6 h-6 mr-2 text-indigo-600" />
+                AI Smart Inventory Promoter
               </h3>
-              <p className="text-slate-500 mt-1">Let AI scan your inventory for slow-moving or near-expiry items and automatically create targeted WhatsApp campaigns.</p>
+              <p className="text-slate-500 mt-1">
+                Scans your real medicines, near-expiry batches, and stock levels to generate actionable, instant WhatsApp marketing broadcasts.
+              </p>
             </div>
-            {!aiCampaignsGenerated && (
-              <button 
-                onClick={simulateAiCampaignGen}
-                disabled={isSimulatingAI}
-                className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
-              >
-                {isSimulatingAI ? (
-                  <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div> Scanning Inventory...</>
-                ) : (
-                  <><Bot className="w-4 h-4 mr-2" /> Scan Inventory</>
-                )}
-              </button>
-            )}
+            <button 
+              onClick={runAiInventoryScanner}
+              disabled={isScanningAI}
+              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 flex items-center justify-center shrink-0"
+            >
+              {isScanningAI ? (
+                <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div> Scanning Real Stock...</>
+              ) : (
+                <><Sparkles className="w-4 h-4 mr-2" /> {aiScanned ? 'Re-scan Live Inventory' : 'Scan Live Inventory'}</>
+              )}
+            </button>
           </div>
 
-          {aiCampaignsGenerated ? (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start">
-                <AlertCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0 mt-0.5" />
+          {aiScanned ? (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-4 flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-indigo-600 mr-1 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-bold text-blue-900">AI Analysis Complete</h4>
-                  <p className="text-sm text-blue-700 mt-1">Found 2 categories of slow-moving stock. Generated 2 optimized campaigns ready to send.</p>
+                  <h4 className="font-bold text-indigo-950">Real Inventory Analysis Ready</h4>
+                  <p className="text-sm text-indigo-700 mt-0.5">
+                    Found {aiPromos.length} targeted promotional opportunities based on your active medicine inventory and registered customers.
+                  </p>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border border-slate-200 rounded-xl p-5 hover:border-blue-300 transition-colors">
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded">Near Expiry Alert</span>
-                    <span className="text-slate-400 text-xs font-semibold">Target: 45 Clients</span>
-                  </div>
-                  <h4 className="font-bold text-slate-800 mb-2">Cosmetics Clearance Sale</h4>
-                  <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 mb-4 border border-slate-100">
-                    "🚨 Clearance Sale! Extra 15% OFF on Nivea & Dove products. Stock up now before it runs out. Reply YES to order."
-                  </div>
-                  <button className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors">
-                    Send to 45 Clients via WhatsApp
-                  </button>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {aiPromos.map((promo) => (
+                  <div key={promo.id} className="border border-slate-200 rounded-2xl p-5 hover:border-indigo-300 hover:shadow-md transition-all flex flex-col bg-white">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${promo.badgeBg}`}>
+                        {promo.badge}
+                      </span>
+                      <span className="text-slate-400 text-xs font-semibold flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" /> {promo.targetCount} Patients
+                      </span>
+                    </div>
 
-                <div className="border border-slate-200 rounded-xl p-5 hover:border-blue-300 transition-colors">
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">Overstocked Items</span>
-                    <span className="text-slate-400 text-xs font-semibold">Target: 112 Clients</span>
+                    <h4 className="font-bold text-slate-800 text-base mb-2">{promo.title}</h4>
+                    
+                    <div className="bg-slate-50 p-3.5 rounded-xl text-sm text-slate-700 mb-4 border border-slate-100 flex-1 whitespace-pre-wrap leading-relaxed font-sans">
+                      {promo.message}
+                    </div>
+
+                    <div className="space-y-2 mt-auto">
+                      <button 
+                        onClick={() => handleBroadcastPromo(promo)}
+                        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Share2 className="w-4 h-4" /> Broadcast via WhatsApp
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setCampaignForm({
+                            title: promo.title,
+                            message: promo.message,
+                            target_audience: 'ALL'
+                          });
+                          setIsCampaignModalOpen(true);
+                        }}
+                        className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" /> Customize & Edit
+                      </button>
+                    </div>
                   </div>
-                  <h4 className="font-bold text-slate-800 mb-2">Generic Meds Bulk Offer</h4>
-                  <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 mb-4 border border-slate-100">
-                    "📦 Special Bulk Offer: Buy 50 boxes of Generic Paracetamol, get 5 boxes FREE! Valid only for today. Tap to claim."
-                  </div>
-                  <button className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors">
-                    Send to 112 Clients via WhatsApp
-                  </button>
-                </div>
+                ))}
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 pt-8 pb-16 border-2 border-dashed border-slate-200 rounded-xl">
-              <Bot className="w-16 h-16 mb-4 text-slate-200" />
-              <p>Click "Scan Inventory" to let AI find promotional opportunities.</p>
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 pt-8 pb-16 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+              <Bot className="w-16 h-16 mb-4 text-indigo-300 animate-pulse" />
+              <h4 className="text-slate-700 font-bold text-base mb-1">Live Stock & Expiry Opportunity Scanner</h4>
+              <p className="text-sm text-slate-500 max-w-md text-center mb-5">
+                Click "Scan Live Inventory" to inspect real medicine stock levels, catch nearing-expiry batches, and generate broadcast campaigns.
+              </p>
+              <button 
+                onClick={runAiInventoryScanner}
+                disabled={isScanningAI}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow transition-colors flex items-center gap-2 text-sm"
+              >
+                <Sparkles className="w-4 h-4" /> Start Live Scan
+              </button>
             </div>
           )}
         </div>

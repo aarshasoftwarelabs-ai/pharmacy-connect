@@ -126,12 +126,13 @@ export class MessagingService {
       }
 
       const row = res.rows[0];
+      const hasCloudCreds = !!(row.whatsapp_phone_number_id && row.whatsapp_access_token);
 
       return {
         id: row.id,
         pharmacyId: row.pharmacy_id,
         autoSendBillWhatsapp: row.auto_send_bill_whatsapp ?? true,
-        gatewayProvider: 'SIMULATED',
+        gatewayProvider: hasCloudCreds ? 'WHATSAPP_CLOUD' : (row.gateway_provider || 'SIMULATED'),
         whatsappPhoneNumberId: row.whatsapp_phone_number_id || '',
         whatsappAccessToken: row.whatsapp_access_token || '',
         whatsappTemplateName: row.whatsapp_template_name || 'bill_invoice',
@@ -175,10 +176,13 @@ export class MessagingService {
       RETURNING *
     `;
 
+    const isCloud = !!(data.whatsappAccessToken && data.whatsappPhoneNumberId);
+    const resolvedGateway = isCloud ? 'WHATSAPP_CLOUD' : (data.gatewayProvider || 'SIMULATED');
+
     const values = [
       pharmacyId,
       data.autoSendBillWhatsapp !== undefined ? data.autoSendBillWhatsapp : true,
-      data.gatewayProvider || 'SIMULATED',
+      resolvedGateway,
       data.whatsappPhoneNumberId || '',
       data.whatsappAccessToken || '',
       data.whatsappTemplateName || 'bill_invoice',

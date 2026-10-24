@@ -199,7 +199,7 @@ export default function Settings() {
       ...(msgSettings || { pharmacyId: 1 }),
       isActive: nextState,
       autoSendBillWhatsapp: nextState,
-      gatewayProvider: 'SIMULATED'
+      gatewayProvider: msgSettings?.gatewayProvider || 'SIMULATED'
     };
     setMsgSettings(updated);
     localStorage.setItem('pharmacy_messaging_settings', JSON.stringify(updated));

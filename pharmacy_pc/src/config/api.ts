@@ -22,6 +22,10 @@ export const apiFetch = async (url: string, options: RequestInit = {}) => {
       .replace('http://localhost:3000/api', CLOUD_API_URL)
       .replace('https://api.davasetu.com/api', CLOUD_API_URL);
   }
+  // Sanitize any accidental double /api/api
+  if (targetUrl.includes('/api/api/')) {
+    targetUrl = targetUrl.replace('/api/api/', '/api/');
+  }
 
   const response = await fetch(targetUrl, {
     ...options,

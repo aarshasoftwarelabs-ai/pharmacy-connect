@@ -28,7 +28,7 @@ export interface Campaign {
 export const MarketingService = {
   getOffers: async (pharmacyId: number): Promise<Offer[]> => {
     try {
-      const response = await fetch(`${API_URL}/api/marketing/offers/${pharmacyId}`);
+      const response = await fetch(`${API_URL}/marketing/offers/${pharmacyId}`);
       if (!response.ok) throw new Error('Failed to fetch offers');
       return await response.json();
     } catch (error) {
@@ -38,7 +38,7 @@ export const MarketingService = {
   },
 
   createOffer: async (pharmacyId: number, data: Partial<Offer>): Promise<Offer> => {
-    const response = await fetch(`${API_URL}/api/marketing/offers/${pharmacyId}`, {
+    const response = await fetch(`${API_URL}/marketing/offers/${pharmacyId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -48,7 +48,7 @@ export const MarketingService = {
   },
 
   updateOffer: async (id: number, data: Partial<Offer>): Promise<Offer> => {
-    const response = await fetch(`${API_URL}/api/marketing/offers/${id}`, {
+    const response = await fetch(`${API_URL}/marketing/offers/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -58,7 +58,7 @@ export const MarketingService = {
   },
 
   deleteOffer: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_URL}/api/marketing/offers/${id}`, {
+    const response = await fetch(`${API_URL}/marketing/offers/${id}`, {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete offer');
@@ -66,7 +66,7 @@ export const MarketingService = {
 
   getCampaigns: async (pharmacyId: number): Promise<Campaign[]> => {
     try {
-      const response = await fetch(`${API_URL}/api/marketing/campaigns/${pharmacyId}`);
+      const response = await fetch(`${API_URL}/marketing/campaigns/${pharmacyId}`);
       if (!response.ok) throw new Error('Failed to fetch campaigns');
       return await response.json();
     } catch (error) {
@@ -76,7 +76,7 @@ export const MarketingService = {
   },
 
   sendCampaign: async (pharmacyId: number, data: Partial<Campaign>): Promise<Campaign> => {
-    const response = await fetch(`${API_URL}/api/marketing/campaigns/${pharmacyId}`, {
+    const response = await fetch(`${API_URL}/marketing/campaigns/${pharmacyId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),

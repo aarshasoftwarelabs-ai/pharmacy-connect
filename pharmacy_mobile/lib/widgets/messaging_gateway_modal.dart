@@ -62,7 +62,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
         setState(() {
           _isActive = data['isActive'] ?? true;
           _autoSendWhatsapp = data['autoSendBillWhatsapp'] ?? true;
-          _gatewayProvider = 'SIMULATED';
+          _gatewayProvider = data['gatewayProvider'] ?? 'SIMULATED';
         });
       }
     } catch (e) {
@@ -79,7 +79,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
         'isActive': _isActive,
         'autoSendBillWhatsapp': _autoSendWhatsapp,
         'preferredChannel': 'WHATSAPP',
-        'gatewayProvider': 'SIMULATED',
+        'gatewayProvider': _gatewayProvider,
       };
 
       final res = await ApiService.put(

@@ -18,7 +18,7 @@ export interface Notification {
 export const NotificationService = {
   getNotifications: async (limit = 50, offset = 0): Promise<Notification[]> => {
     try {
-      const response = await fetch(`${API_URL}/api/notifications?limit=${limit}&offset=${offset}`);
+      const response = await fetch(`${API_URL}/notifications?limit=${limit}&offset=${offset}`);
       if (!response.ok) throw new Error('Failed to fetch notifications');
       return await response.json();
     } catch (error) {
@@ -29,7 +29,7 @@ export const NotificationService = {
 
   getUnreadCount: async (): Promise<number> => {
     try {
-      const response = await fetch(`${API_URL}/api/notifications/unread-count`);
+      const response = await fetch(`${API_URL}/notifications/unread-count`);
       if (!response.ok) throw new Error('Failed to fetch unread count');
       const data = await response.json();
       return data.count;
@@ -41,7 +41,7 @@ export const NotificationService = {
 
   markAsRead: async (id: number): Promise<void> => {
     try {
-      await fetch(`${API_URL}/api/notifications/${id}/read`, { method: 'POST' });
+      await fetch(`${API_URL}/notifications/${id}/read`, { method: 'POST' });
     } catch (error) {
       console.error('Error marking as read:', error);
     }
@@ -49,7 +49,7 @@ export const NotificationService = {
 
   markAllAsRead: async (): Promise<void> => {
     try {
-      await fetch(`${API_URL}/api/notifications/read-all`, { method: 'POST' });
+      await fetch(`${API_URL}/notifications/read-all`, { method: 'POST' });
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
