@@ -113,7 +113,7 @@ export default function Billing() {
   const handleDispatchGatewayMessage = async (bill: Bill, phone?: string) => {
     try {
       await BillingService.resendBillMessage(bill.id, phone);
-      alert('Digital invoice queued and dispatched via SMS & WhatsApp gateway!');
+      alert('Digital invoice queued and dispatched via WhatsApp gateway!');
       if (whatsAppModalBill) {
         setWhatsAppModalBill(null);
         setManualPhone('');
@@ -363,7 +363,7 @@ export default function Billing() {
                   }}
                   className="w-full py-2 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-all flex items-center justify-center gap-1.5"
                 >
-                  ⚡ Auto-Dispatch via Gateway (SMS + WhatsApp)
+                  ⚡ Auto-Dispatch via WhatsApp Gateway
                 </button>
               </div>
             </form>

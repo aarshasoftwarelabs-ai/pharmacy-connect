@@ -14,7 +14,6 @@ export class MessagingController {
       // Mask sensitive secret keys if returning to client
       const safeSettings = {
         ...settings,
-        smsApiKeyMasked: settings.smsApiKey ? `${settings.smsApiKey.slice(0, 4)}••••${settings.smsApiKey.slice(-4)}` : '',
         whatsappAccessTokenMasked: settings.whatsappAccessToken ? `${settings.whatsappAccessToken.slice(0, 6)}••••` : ''
       };
 
@@ -38,7 +37,7 @@ export class MessagingController {
       res.status(200).json({
         success: true,
         data: updated,
-        message: 'Messaging settings saved successfully'
+        message: 'WhatsApp messaging settings saved successfully'
       });
     } catch (error) {
       next(error);
@@ -46,21 +45,20 @@ export class MessagingController {
   }
 
   /**
-   * Send a test message (SMS or WhatsApp)
+   * Send a test WhatsApp message
    */
   static async sendTestMessage(req: Request, res: Response, next: NextFunction) {
     try {
       const pharmacyId = (req as any).user?.pharmacyId || Number(req.body.pharmacyId) || 1;
-      const { phone, channel } = req.body;
+      const { phone } = req.body;
 
       if (!phone) {
-        return res.status(400).json({ success: false, message: 'Recipient phone number is required' });
+        return res.status(400).json({ success: false, message: 'Recipient WhatsApp phone number is required' });
       }
 
       const result = await MessagingService.sendTestMessage(
         Number(pharmacyId),
-        String(phone),
-        channel === 'SMS' ? 'SMS' : 'WHATSAPP'
+        String(phone)
       );
 
       res.status(result.success ? 200 : 400).json({
@@ -71,7 +69,7 @@ export class MessagingController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message || 'Failed to send test message'
+        message: error.message || 'Failed to send WhatsApp test message'
       });
     }
   }
@@ -95,7 +93,7 @@ export class MessagingController {
   }
 
   /**
-   * Resend a bill invoice via SMS or WhatsApp gateway
+   * Resend a bill invoice via WhatsApp gateway
    */
   static async resendBill(req: Request, res: Response, next: NextFunction) {
     try {
@@ -116,7 +114,7 @@ export class MessagingController {
       res.status(200).json({
         success: true,
         data: results,
-        message: 'Bill invoice dispatched via gateway'
+        message: 'Bill invoice dispatched via WhatsApp gateway'
       });
     } catch (error) {
       next(error);

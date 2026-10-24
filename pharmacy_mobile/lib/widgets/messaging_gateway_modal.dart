@@ -29,13 +29,11 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
   bool _isSaving = false;
   bool _isTesting = false;
 
-  bool _autoSendSms = true;
   bool _autoSendWhatsapp = true;
   bool _isActive = true;
-  String _preferredChannel = 'WHATSAPP_AND_SMS';
-  String _gatewayProvider = 'FAST2SMS';
-  String _smsSenderId = 'DAVAST';
-  final TextEditingController _apiKeyController = TextEditingController();
+  String _gatewayProvider = 'WHATSAPP_CLOUD';
+  final TextEditingController _phoneNumberIdController = TextEditingController();
+  final TextEditingController _accessTokenController = TextEditingController();
   final TextEditingController _testPhoneController = TextEditingController();
 
   String? _testFeedbackMessage;
@@ -49,7 +47,8 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
 
   @override
   void dispose() {
-    _apiKeyController.dispose();
+    _phoneNumberIdController.dispose();
+    _accessTokenController.dispose();
     _testPhoneController.dispose();
     super.dispose();
   }
@@ -62,16 +61,14 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
         final data = res.data is Map ? res.data : (res.data['data'] ?? {});
         setState(() {
           _isActive = data['isActive'] ?? true;
-          _autoSendSms = data['autoSendBillSms'] ?? true;
           _autoSendWhatsapp = data['autoSendBillWhatsapp'] ?? true;
-          _preferredChannel = data['preferredChannel'] ?? 'WHATSAPP_AND_SMS';
-          _gatewayProvider = data['gatewayProvider'] ?? 'FAST2SMS';
-          _smsSenderId = data['smsSenderId'] ?? 'DAVAST';
-          _apiKeyController.text = data['smsApiKey'] ?? '';
+          _gatewayProvider = data['gatewayProvider'] == 'SIMULATED' ? 'SIMULATED' : 'WHATSAPP_CLOUD';
+          _phoneNumberIdController.text = data['whatsappPhoneNumberId'] ?? '';
+          _accessTokenController.text = data['whatsappAccessToken'] ?? '';
         });
       }
     } catch (e) {
-      debugPrint('Error loading messaging settings: $e');
+      debugPrint('Error loading WhatsApp messaging settings: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -82,12 +79,11 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
     try {
       final payload = {
         'isActive': _isActive,
-        'autoSendBillSms': _autoSendSms,
         'autoSendBillWhatsapp': _autoSendWhatsapp,
-        'preferredChannel': _preferredChannel,
+        'preferredChannel': 'WHATSAPP',
         'gatewayProvider': _gatewayProvider,
-        'smsSenderId': _smsSenderId,
-        'smsApiKey': _apiKeyController.text.trim(),
+        'whatsappPhoneNumberId': _phoneNumberIdController.text.trim(),
+        'whatsappAccessToken': _accessTokenController.text.trim(),
       };
 
       final res = await ApiService.put(
@@ -105,7 +101,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
               children: [
                 Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
                 SizedBox(width: 8),
-                Text('Messaging settings saved!'),
+                Text('WhatsApp settings saved!'),
               ],
             ),
           ),
@@ -130,11 +126,11 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
     }
   }
 
-  Future<void> _sendTestMessage(String channel) async {
+  Future<void> _sendTestMessage() async {
     final phone = _testPhoneController.text.trim().replaceAll(RegExp(r'\D'), '');
     if (phone.length < 10) {
       setState(() {
-        _testFeedbackMessage = 'Please enter a valid 10-digit mobile number';
+        _testFeedbackMessage = 'Please enter a valid 10-digit WhatsApp number';
         _isFeedbackSuccess = false;
       });
       return;
@@ -150,14 +146,13 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
         ApiEndpoints.sendTestMessage,
         {
           'phone': phone,
-          'channel': channel,
         },
       );
 
       if (!mounted) return;
       setState(() {
         _isFeedbackSuccess = res.success;
-        _testFeedbackMessage = res.message ?? (res.success ? 'Test message sent!' : 'Dispatch error');
+        _testFeedbackMessage = res.message ?? (res.success ? 'WhatsApp message dispatched!' : 'Dispatch error');
       });
     } catch (e) {
       if (!mounted) return;
@@ -223,12 +218,12 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Automated WhatsApp & SMS',
+                              'Automated WhatsApp Gateway',
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Auto-send receipts upon billing checkout',
+                              'Auto-send digital receipts to customer WhatsApp',
                               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                             ),
                           ],
@@ -261,7 +256,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
                             ),
                             Text(
-                              'Dispatch receipt automatically to customer',
+                              'Dispatch receipt automatically to customer WhatsApp',
                               style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                             ),
                           ],
@@ -272,7 +267,6 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                           onChanged: (val) {
                             setState(() {
                               _isActive = val;
-                              _autoSendSms = val;
                               _autoSendWhatsapp = val;
                             });
                           },
@@ -280,28 +274,11 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-
-                  // Preferred Channel Selector
-                  const Text(
-                    'Preferred Channels',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _buildChannelChip('WHATSAPP_AND_SMS', 'WhatsApp + SMS', Icons.all_inclusive_rounded),
-                      const SizedBox(width: 8),
-                      _buildChannelChip('WHATSAPP', 'WhatsApp', Icons.chat_rounded),
-                      const SizedBox(width: 8),
-                      _buildChannelChip('SMS', 'SMS Only', Icons.sms_rounded),
-                    ],
-                  ),
                   const SizedBox(height: 16),
 
                   // Gateway Provider Selection
                   const Text(
-                    'Gateway Provider',
+                    'WhatsApp Gateway Route',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 8),
@@ -318,7 +295,6 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                         isExpanded: true,
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary),
                         items: const [
-                          DropdownMenuItem(value: 'FAST2SMS', child: Text('Fast2SMS (Quick Indian SMS)')),
                           DropdownMenuItem(value: 'WHATSAPP_CLOUD', child: Text('WhatsApp Cloud API (Meta)')),
                           DropdownMenuItem(value: 'SIMULATED', child: Text('DavaSetu Built-in Cloud Queue (Zero Setup)')),
                         ],
@@ -328,16 +304,15 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
 
-                  // Fast2SMS API Key Input
-                  if (_gatewayProvider == 'FAST2SMS') ...[
+                  // Meta WhatsApp Credentials Input
+                  if (_gatewayProvider == 'WHATSAPP_CLOUD') ...[
                     TextField(
-                      controller: _apiKeyController,
+                      controller: _phoneNumberIdController,
                       decoration: InputDecoration(
-                        labelText: 'Fast2SMS API Key (Optional)',
-                        hintText: 'Enter API Key for live SMS dispatch',
-                        hintStyle: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                        labelText: 'Phone Number ID',
+                        hintText: 'e.g. 104829104812345',
                         filled: true,
                         fillColor: const Color(0xFFF8FAFC),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
@@ -345,10 +320,19 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                       ),
                       style: const TextStyle(fontSize: 13),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Leave empty to use zero-config cloud log mode.',
-                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _accessTokenController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Meta Access Token',
+                        hintText: 'Bearer EAABw...',
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      style: const TextStyle(fontSize: 13),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -367,7 +351,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Zero-setup mode is active. Invoices are logged and tracked in the cloud queue.',
+                              'Zero-setup WhatsApp mode is active. Invoices are logged and tracked in the cloud queue.',
                               style: TextStyle(fontSize: 11.5, color: Color(0xFF1E40AF)),
                             ),
                           ),
@@ -377,7 +361,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                     const SizedBox(height: 14),
                   ],
 
-                  // Live Test Section
+                  // Live Test WhatsApp Section
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -389,7 +373,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Test Message Dispatch',
+                          'Test WhatsApp Delivery',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppColors.textPrimary),
                         ),
                         const SizedBox(height: 8),
@@ -402,7 +386,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                                 maxLength: 10,
                                 decoration: InputDecoration(
                                   counterText: '',
-                                  hintText: '10-digit mobile...',
+                                  hintText: '10-digit WhatsApp number...',
                                   filled: true,
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
@@ -412,26 +396,16 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: _isTesting ? null : () => _sendTestMessage('WHATSAPP'),
+                            ElevatedButton.icon(
+                              onPressed: _isTesting ? null : _sendTestMessage,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF25D366),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              child: const Text('WhatsApp', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
-                            ),
-                            const SizedBox(width: 6),
-                            ElevatedButton(
-                              onPressed: _isTesting ? null : () => _sendTestMessage('SMS'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2563EB),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: const Text('SMS', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                              icon: const Icon(Icons.send_rounded, size: 14),
+                              label: Text(_isTesting ? 'Sending...' : 'Test WhatsApp', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
@@ -460,7 +434,7 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.check_rounded, size: 18),
                       label: Text(
-                        _isSaving ? 'Saving...' : 'Save Messaging Settings',
+                        _isSaving ? 'Saving...' : 'Save WhatsApp Configuration',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -474,47 +448,6 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _buildChannelChip(String value, String label, IconData icon) {
-    final isSelected = _preferredChannel == value;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _preferredChannel = value;
-            _autoSendWhatsapp = value == 'WHATSAPP' || value == 'WHATSAPP_AND_SMS';
-            _autoSendSms = value == 'SMS' || value == 'WHATSAPP_AND_SMS';
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? const Color(0xFF059669) : const Color(0xFFE2E8F0),
-              width: isSelected ? 1.5 : 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 18, color: isSelected ? const Color(0xFF059669) : Colors.grey.shade600),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF059669) : AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -323,16 +323,16 @@ export const ensureSchema = async () => {
       console.warn('⚠️ Subscription schema note:', subErr);
     }
 
-    // 8. Automated SMS & WhatsApp Gateway Configuration & Delivery Logs
+    // 8. Automated WhatsApp Gateway Configuration & Delivery Logs
     try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS pharmacy_messaging_settings (
             id SERIAL PRIMARY KEY,
             pharmacy_id INTEGER NOT NULL UNIQUE REFERENCES pharmacies(id) ON DELETE CASCADE,
-            auto_send_bill_sms BOOLEAN DEFAULT TRUE,
+            auto_send_bill_sms BOOLEAN DEFAULT FALSE,
             auto_send_bill_whatsapp BOOLEAN DEFAULT TRUE,
-            preferred_channel VARCHAR(30) DEFAULT 'WHATSAPP_AND_SMS',
-            gateway_provider VARCHAR(50) DEFAULT 'FAST2SMS',
+            preferred_channel VARCHAR(30) DEFAULT 'WHATSAPP',
+            gateway_provider VARCHAR(50) DEFAULT 'WHATSAPP_CLOUD',
             sms_api_key TEXT DEFAULT '',
             sms_sender_id VARCHAR(30) DEFAULT 'DAVAST',
             whatsapp_phone_number_id VARCHAR(100) DEFAULT '',
@@ -350,8 +350,8 @@ export const ensureSchema = async () => {
             pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
             bill_id INTEGER REFERENCES bills(id) ON DELETE SET NULL,
             recipient_phone VARCHAR(30) NOT NULL,
-            channel VARCHAR(30) NOT NULL,
-            gateway_provider VARCHAR(50) NOT NULL,
+            channel VARCHAR(30) NOT NULL DEFAULT 'WHATSAPP',
+            gateway_provider VARCHAR(50) NOT NULL DEFAULT 'WHATSAPP_CLOUD',
             status VARCHAR(30) NOT NULL,
             message_content TEXT,
             gateway_response TEXT,
@@ -363,7 +363,7 @@ export const ensureSchema = async () => {
         CREATE INDEX IF NOT EXISTS idx_bill_msg_logs_pharmacy ON bill_message_logs(pharmacy_id);
         CREATE INDEX IF NOT EXISTS idx_bill_msg_logs_bill ON bill_message_logs(bill_id);
       `);
-      console.log('📲 Verified Automated SMS & WhatsApp Messaging Gateway Schema.');
+      console.log('📲 Verified Automated WhatsApp Messaging Gateway Schema.');
     } catch (msgErr) {
       console.warn('⚠️ Messaging schema note:', msgErr);
     }

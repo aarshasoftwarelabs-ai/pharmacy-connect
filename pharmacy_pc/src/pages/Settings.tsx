@@ -111,7 +111,7 @@ export default function Settings() {
   const [msgSaveSuccess, setMsgSaveSuccess] = useState<boolean>(false);
   const [testPhone, setTestPhone] = useState<string>('');
   const [isTestingMsg, setIsTestingMsg] = useState<boolean>(false);
-  const [testMsgFeedback, setTestMsgFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [testMsgFeedback, setTestMsgFeedback] = useState<{ type: 'success' | 'error'; message: string; waUrl?: string } | null>(null);
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
   const [msgLogs, setMsgLogs] = useState<MessageLogItem[]>([]);
   const [showLogsModal, setShowLogsModal] = useState<boolean>(false);
@@ -148,21 +148,21 @@ export default function Settings() {
     }
   };
 
-  const handleSendTestMessage = async (channel: 'SMS' | 'WHATSAPP') => {
+  const handleSendTestMessage = async () => {
     if (!testPhone || testPhone.trim().length < 10) {
-      setTestMsgFeedback({ type: 'error', message: 'Enter a valid 10-digit mobile number' });
+      setTestMsgFeedback({ type: 'error', message: 'Enter a valid 10-digit WhatsApp number' });
       return;
     }
     setIsTestingMsg(true);
     setTestMsgFeedback(null);
     try {
-      const res = await MessagingService.sendTestMessage(testPhone.trim(), channel);
-      setTestMsgFeedback({ type: 'success', message: res.message });
+      const res = await MessagingService.sendTestMessage(testPhone.trim());
+      setTestMsgFeedback({ type: 'success', message: res.message, waUrl: res.waUrl });
     } catch (err: any) {
-      setTestMsgFeedback({ type: 'error', message: err.message || 'Dispatch failed' });
+      setTestMsgFeedback({ type: 'error', message: err.message || 'WhatsApp dispatch failed' });
     } finally {
       setIsTestingMsg(false);
-      setTimeout(() => setTestMsgFeedback(null), 5000);
+      setTimeout(() => setTestMsgFeedback(null), 8000);
     }
   };
 
@@ -811,7 +811,7 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Automated WhatsApp & SMS Invoicing Gateway Suite */}
+          {/* Automated WhatsApp Invoicing Gateway Suite */}
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden mb-8">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center space-x-2.5">
@@ -820,13 +820,13 @@ export default function Settings() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    Automated WhatsApp & SMS Gateway
+                    Automated WhatsApp Gateway
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
                       Auto-Dispatch Active
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-500">Auto-sends digital tax invoice to customer mobile immediately upon checkout</p>
+                  <p className="text-xs text-slate-500">Auto-sends digital tax invoice directly to customer's WhatsApp upon checkout</p>
                 </div>
               </div>
 
@@ -837,18 +837,18 @@ export default function Settings() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition active:scale-95"
                 >
                   <History className="w-3.5 h-3.5 text-slate-500" />
-                  Delivery Logs
+                  WhatsApp Delivery Logs
                 </button>
               </div>
             </div>
 
             <div className="p-6 space-y-5">
-              {/* Channel & Auto-Dispatch Switches */}
+              {/* Row 1: Auto-Dispatch Switch and WhatsApp Direct Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/60 flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-semibold text-slate-800">Auto-Send on Checkout</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Dispatch receipt automatically when bill is generated</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Dispatch receipt to customer WhatsApp when bill is created</p>
                   </div>
                   <button
                     type="button"
@@ -857,8 +857,7 @@ export default function Settings() {
                       setMsgSettings({
                         ...msgSettings,
                         isActive: !msgSettings.isActive,
-                        autoSendBillWhatsapp: !msgSettings.isActive,
-                        autoSendBillSms: !msgSettings.isActive
+                        autoSendBillWhatsapp: !msgSettings.isActive
                       });
                     }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${msgSettings?.isActive ? 'bg-emerald-600' : 'bg-slate-200'}`}
@@ -867,26 +866,14 @@ export default function Settings() {
                   </button>
                 </div>
 
-                <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/60 flex flex-col justify-center">
-                  <label className="text-sm font-semibold text-slate-800 mb-1">Dispatch Channels</label>
-                  <select
-                    value={msgSettings?.preferredChannel || 'WHATSAPP_AND_SMS'}
-                    onChange={(e) => {
-                      if (!msgSettings) return;
-                      const val = e.target.value as any;
-                      setMsgSettings({
-                        ...msgSettings,
-                        preferredChannel: val,
-                        autoSendBillWhatsapp: val === 'WHATSAPP' || val === 'WHATSAPP_AND_SMS',
-                        autoSendBillSms: val === 'SMS' || val === 'WHATSAPP_AND_SMS'
-                      });
-                    }}
-                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="WHATSAPP_AND_SMS">WhatsApp + SMS (Recommended)</option>
-                    <option value="WHATSAPP">WhatsApp Only (Zero SMS Cost)</option>
-                    <option value="SMS">SMS Only (Works on Any Feature Phone)</option>
-                  </select>
+                <div className="p-4 border border-emerald-100/70 rounded-2xl bg-emerald-50/40 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-emerald-900">Direct WhatsApp Digital Invoicing</h4>
+                    <p className="text-[11px] text-emerald-700">Delivers branded tax invoice & speedy recovery wishes. 100% free of cellular SMS charges.</p>
+                  </div>
                 </div>
               </div>
 
@@ -894,58 +881,23 @@ export default function Settings() {
               <div className="p-4 border border-slate-100 rounded-2xl bg-slate-50/40 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800">Gateway Provider</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Select your preferred Indian SMS or Meta WhatsApp Cloud route</p>
+                    <h4 className="text-sm font-semibold text-slate-800">WhatsApp Gateway Route</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Choose your preferred WhatsApp dispatch engine</p>
                   </div>
                   <select
-                    value={msgSettings?.gatewayProvider || 'FAST2SMS'}
+                    value={msgSettings?.gatewayProvider || 'WHATSAPP_CLOUD'}
                     onChange={(e) => {
                       if (!msgSettings) return;
                       setMsgSettings({ ...msgSettings, gatewayProvider: e.target.value as any });
                     }}
                     className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="FAST2SMS">Fast2SMS (Quick Indian SMS Gateway)</option>
-                    <option value="WHATSAPP_CLOUD">WhatsApp Cloud API (Official Meta)</option>
-                    <option value="MSG91">MSG91 (Enterprise Multi-Channel)</option>
-                    <option value="SIMULATED">DavaSetu Built-in Cloud Queue (Zero Config)</option>
+                    <option value="WHATSAPP_CLOUD">WhatsApp Cloud API (Official Meta Graph API)</option>
+                    <option value="SIMULATED">DavaSetu Built-in Cloud Queue (Zero Config / Instant)</option>
                   </select>
                 </div>
 
-                {/* Dynamic Credential Inputs */}
-                {msgSettings?.gatewayProvider === 'FAST2SMS' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
-                    <div className="sm:col-span-2">
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">Fast2SMS Authorization API Key</label>
-                      <div className="relative">
-                        <input
-                          type={showApiKey ? 'text' : 'password'}
-                          value={msgSettings.smsApiKey || ''}
-                          placeholder="Paste Fast2SMS authorization key..."
-                          onChange={(e) => setMsgSettings({ ...msgSettings, smsApiKey: e.target.value })}
-                          className="w-full px-3 py-2 pr-10 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowApiKey(!showApiKey)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                        >
-                          {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">SMS Sender ID</label>
-                      <input
-                        type="text"
-                        value={msgSettings.smsSenderId || 'DAVAST'}
-                        onChange={(e) => setMsgSettings({ ...msgSettings, smsSenderId: e.target.value })}
-                        className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase"
-                      />
-                    </div>
-                  </div>
-                )}
-
+                {/* WhatsApp Cloud API Credentials */}
                 {msgSettings?.gatewayProvider === 'WHATSAPP_CLOUD' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                     <div>
@@ -982,7 +934,7 @@ export default function Settings() {
 
                 {msgSettings?.gatewayProvider === 'SIMULATED' && (
                   <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl text-xs text-blue-800">
-                    💡 <b>Zero-Config Cloud Mode:</b> Invoices are generated, validated, and logged to your cloud delivery log. Connect Fast2SMS or Meta WhatsApp API whenever you wish to enable live cellular/SMS dispatch.
+                    💡 <b>Zero-Config Cloud Mode:</b> Invoices are validated, generated, and saved to your cloud delivery log. Enter Meta WhatsApp API credentials whenever you want live delivery to phones.
                   </div>
                 )}
 
@@ -1001,51 +953,53 @@ export default function Settings() {
                     ) : (
                       <>
                         <Save className="w-3.5 h-3.5" />
-                        {isSavingMsg ? 'Saving...' : 'Save Gateway Configuration'}
+                        {isSavingMsg ? 'Saving...' : 'Save WhatsApp Configuration'}
                       </>
                     )}
                   </button>
                 </div>
               </div>
 
-              {/* Live Test Dispatch Bar */}
+              {/* Live Test WhatsApp Dispatch Bar */}
               <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="text-xs text-slate-500 max-w-sm">
-                  Send a sample digital invoice to verify your gateway connectivity and message delivery.
+                  Send a sample digital invoice to verify your WhatsApp gateway connectivity and delivery.
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="tel"
-                    placeholder="Enter 10-digit mobile..."
+                    placeholder="Enter 10-digit WhatsApp number..."
                     value={testPhone}
                     onChange={(e) => setTestPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 w-44 font-semibold"
+                    className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 w-52 font-semibold"
                   />
                   <button
                     type="button"
                     disabled={isTestingMsg}
-                    onClick={() => handleSendTestMessage('WHATSAPP')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50"
+                    onClick={() => handleSendTestMessage()}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50"
                   >
                     <Send className="w-3 h-3" />
-                    Test WhatsApp
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isTestingMsg}
-                    onClick={() => handleSendTestMessage('SMS')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 disabled:opacity-50"
-                  >
-                    <Send className="w-3 h-3" />
-                    Test SMS
+                    {isTestingMsg ? 'Sending...' : 'Test WhatsApp'}
                   </button>
                 </div>
               </div>
 
               {testMsgFeedback && (
-                <div className={`p-3 rounded-xl text-xs font-medium ${testMsgFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
-                  {testMsgFeedback.message}
+                <div className={`p-3 rounded-xl text-xs font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${testMsgFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                  <span>{testMsgFeedback.message}</span>
+                  {testMsgFeedback.waUrl && (
+                    <a
+                      href={testMsgFeedback.waUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold transition shadow-sm shrink-0 text-center justify-center"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Open Preview in WhatsApp
+                    </a>
+                  )}
                 </div>
               )}
             </div>

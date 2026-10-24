@@ -169,7 +169,7 @@ export class BillingService {
   }
 
   /**
-   * Resend automated bill invoice via WhatsApp/SMS gateway
+   * Resend automated bill invoice via WhatsApp gateway
    */
   static async resendBillMessage(billId: number, phone?: string): Promise<{ success: boolean; message: string }> {
     const response = await apiFetch(`${API_BASE_URL}/billing/${billId}/send-message`, {

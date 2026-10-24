@@ -3,18 +3,12 @@ import { API_BASE_URL, apiFetch } from '../config/api';
 export interface MessagingSettings {
   id?: number;
   pharmacyId: number;
-  autoSendBillSms: boolean;
   autoSendBillWhatsapp: boolean;
-  preferredChannel: 'WHATSAPP' | 'SMS' | 'WHATSAPP_AND_SMS';
-  gatewayProvider: 'FAST2SMS' | 'MSG91' | 'WHATSAPP_CLOUD' | 'SIMULATED';
-  smsApiKey?: string;
-  smsApiKeyMasked?: string;
-  smsSenderId?: string;
+  gatewayProvider: 'WHATSAPP_CLOUD' | 'SIMULATED';
   whatsappPhoneNumberId?: string;
   whatsappAccessToken?: string;
   whatsappAccessTokenMasked?: string;
   whatsappTemplateName?: string;
-  customSmsTemplate?: string;
   customWhatsappTemplate?: string;
   isActive: boolean;
   isConfigured?: boolean;
@@ -25,7 +19,7 @@ export interface MessageLogItem {
   billId: number | null;
   billNumber?: string;
   recipientPhone: string;
-  channel: 'SMS' | 'WHATSAPP';
+  channel: 'WHATSAPP';
   gatewayProvider: string;
   status: 'SENT' | 'FAILED' | 'SIMULATED';
   messageContent: string;
@@ -35,7 +29,7 @@ export interface MessageLogItem {
 
 export class MessagingService {
   /**
-   * Get pharmacy messaging settings
+   * Get pharmacy WhatsApp messaging settings
    */
   static async getSettings(): Promise<MessagingSettings> {
     const res = await apiFetch(`${API_BASE_URL}/messaging/settings`);
@@ -47,7 +41,7 @@ export class MessagingService {
   }
 
   /**
-   * Update messaging settings
+   * Update WhatsApp messaging settings
    */
   static async updateSettings(settings: Partial<MessagingSettings>): Promise<MessagingSettings> {
     const res = await apiFetch(`${API_BASE_URL}/messaging/settings`, {
@@ -63,19 +57,25 @@ export class MessagingService {
   }
 
   /**
-   * Send a test message via SMS or WhatsApp gateway
+   * Send a test invoice via WhatsApp gateway
    */
-  static async sendTestMessage(phone: string, channel: 'SMS' | 'WHATSAPP'): Promise<{ success: boolean; message: string; gateway: string; status: string }> {
+  static async sendTestMessage(phone: string): Promise<{ success: boolean; message: string; gateway: string; status: string; waUrl?: string }> {
     const res = await apiFetch(`${API_BASE_URL}/messaging/test`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, channel }),
+      body: JSON.stringify({ phone }),
     });
     const json = await res.json();
     if (!res.ok) {
-      throw new Error(json.message || 'Test dispatch failed');
+      throw new Error(json.message || 'WhatsApp test dispatch failed');
     }
-    return json;
+    return {
+      success: json.success,
+      message: json.message,
+      gateway: json.data?.gateway,
+      status: json.data?.status,
+      waUrl: json.data?.waUrl,
+    };
   }
 
   /**

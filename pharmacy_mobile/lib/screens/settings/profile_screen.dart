@@ -629,7 +629,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Row(
                                 children: [
                                   const Text(
-                                    'Auto WhatsApp / SMS',
+                                    'Auto WhatsApp Invoicing',
                                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
                                   ),
                                   const SizedBox(width: 6),
@@ -652,7 +652,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 3),
                               const Text(
-                                'Auto-sends digital receipts upon checkout',
+                                'Auto-sends digital receipts to customer WhatsApp',
                                 style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
                               ),
                             ],
