@@ -499,7 +499,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                 children: [
                   _buildServicePill(
                     context,
-                    title: 'Khata / Customers',
+                    title: 'Customers',
                     icon: Icons.people_alt_rounded,
                     color: Colors.blue,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomersScreen())),

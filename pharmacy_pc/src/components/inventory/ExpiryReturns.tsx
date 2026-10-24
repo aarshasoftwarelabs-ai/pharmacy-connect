@@ -133,7 +133,7 @@ export default function ExpiryReturns() {
                   )}
                   {r.status === 'APPROVED' && (
                     <button onClick={() => handleAction(r.id, 'REFUND')} className="px-3 py-1.5 bg-emerald-500 text-white hover:bg-emerald-600 font-bold text-sm rounded-lg flex items-center shadow-md shadow-emerald-200">
-                      <ArrowRightLeft className="w-4 h-4 mr-1" /> Process Khata Refund
+                      <ArrowRightLeft className="w-4 h-4 mr-1" /> Process Refund
                     </button>
                   )}
                 </div>

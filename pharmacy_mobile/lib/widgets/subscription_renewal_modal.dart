@@ -518,7 +518,7 @@ Validity: 365 Days Extended
 
                           _buildFeatureBullet('Unlimited Smartphone Billing & Thermal Printing'),
                           const SizedBox(height: 6),
-                          _buildFeatureBullet('WhatsApp Invoice Sharing & Customer Khata'),
+                          _buildFeatureBullet('WhatsApp Invoice Sharing & Digital Invoices'),
                           const SizedBox(height: 6),
                           _buildFeatureBullet('Full Stock Inventory & Camera Barcode Scanner'),
 

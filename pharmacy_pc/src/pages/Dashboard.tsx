@@ -47,7 +47,7 @@ export default function Dashboard() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
-  const [activeHubTab, setActiveHubTab] = useState<'alerts' | 'khata' | 'counter'>('alerts');
+  const [activeHubTab, setActiveHubTab] = useState<'alerts' | 'counter'>('alerts');
   const [pharmacyName, setPharmacyName] = useState('K.Y Pharmacy');
   
   const [loading, setLoading] = useState(true);
@@ -696,7 +696,7 @@ export default function Dashboard() {
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Critical expiry alerts, customer khata recovery & daily counter cash
+                Critical expiry alerts, shortage restock & daily counter cash
               </p>
             </div>
 
@@ -718,26 +718,6 @@ export default function Dashboard() {
                     activeHubTab === 'alerts' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'
                   }`}>
                     {criticalStockList.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveHubTab('khata')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  activeHubTab === 'khata'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <CreditCard className={`w-3.5 h-3.5 ${activeHubTab === 'khata' ? 'text-rose-500' : 'text-slate-400'}`} />
-                <span>Khata Dues</span>
-                {unpaidBills.length > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                    activeHubTab === 'khata' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {unpaidBills.length}
                   </span>
                 )}
               </button>
@@ -866,96 +846,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* TAB 2: KHATA / UNPAID DUES RECOVERY */}
-          {activeHubTab === 'khata' && (
-            <div className="space-y-3 flex-1 flex flex-col justify-between">
-              {/* Quick Summary Strip */}
-              <div className="grid grid-cols-3 gap-2.5">
-                <div className="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200/60 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-bold text-rose-700 uppercase">Total Khata Dues</span>
-                    <h5 className="text-base font-black text-rose-900">₹{pendingBillsAmount.toLocaleString('en-IN')}</h5>
-                  </div>
-                  <CreditCard className="w-4 h-4 text-rose-500" />
-                </div>
-                <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-bold text-amber-700 uppercase">Pending Invoices</span>
-                    <h5 className="text-base font-black text-amber-900">{unpaidBills.length} Bills</h5>
-                  </div>
-                  <FileText className="w-4 h-4 text-amber-500" />
-                </div>
-                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/60 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase">Settled Today</span>
-                    <h5 className="text-base font-black text-emerald-900">₹{todaysBills.filter(b => b.paymentStatus === 'PAID').reduce((sum, b) => sum + Number(b.total), 0).toLocaleString('en-IN')}</h5>
-                  </div>
-                  <CheckCircle className="w-4 h-4 text-emerald-500" />
-                </div>
-              </div>
 
-              {/* Unpaid Bills List with 1-Click WhatsApp */}
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                {unpaidBills.length > 0 ? (
-                  unpaidBills.slice(0, 4).map((bill) => (
-                    <div
-                      key={bill.id}
-                      className="group flex items-center justify-between p-3 rounded-xl bg-slate-50/80 hover:bg-white border border-slate-100 hover:border-slate-300 hover:shadow-xs transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 font-black text-xs flex items-center justify-center shrink-0">
-                          {bill.customerName ? bill.customerName.charAt(0).toUpperCase() : 'U'}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h5 className="text-xs font-bold text-slate-900">{bill.customerName}</h5>
-                            <span className="text-[10px] text-slate-400 font-mono">{bill.billNumber}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
-                            <span>📞 {bill.customerPhone || 'No Phone'}</span>
-                            <span>•</span>
-                            <span>{new Date(bill.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2.5">
-                        <div className="text-right mr-1">
-                          <p className="text-sm font-black text-rose-600">₹{Number(bill.total).toFixed(2)}</p>
-                          <span className="text-[10px] font-extrabold text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded">
-                            UNPAID
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => sendPaymentReminderWhatsApp(bill, bill.customerPhone, pharmacyName)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
-                          title="Send polite WhatsApp payment reminder"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5 fill-white/20" />
-                          <span>Remind</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-6 text-center bg-emerald-50/50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-2" />
-                    <h5 className="text-sm font-bold text-emerald-900">Zero Pending Udhar!</h5>
-                    <p className="text-xs text-emerald-700 mt-0.5">All customer accounts are settled and paid up in full.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom Direct Jump */}
-              <div className="pt-2 flex items-center justify-between text-xs font-semibold text-slate-500 border-t border-slate-100">
-                <span>Pending Recovery: <strong className="text-rose-600">₹{pendingBillsAmount.toLocaleString('en-IN')}</strong></span>
-                <Link to="/billing" className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1">
-                  Manage Bills & Payments <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          )}
 
           {/* TAB 3: TODAY'S CASHIER & REGISTER */}
           {activeHubTab === 'counter' && (
@@ -980,13 +871,15 @@ export default function Dashboard() {
                   <p className="text-[10px] text-blue-700 font-medium mt-0.5">Direct Bank Credit</p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80">
+                <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">Today's Udhar</span>
-                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">Avg Bill Value</span>
+                    <Receipt className="w-3.5 h-3.5 text-slate-500" />
                   </div>
-                  <h4 className="text-lg font-black text-amber-900">₹{todaysCredit.toLocaleString('en-IN')}</h4>
-                  <p className="text-[10px] text-amber-700 font-medium mt-0.5">Pending Recovery</p>
+                  <h4 className="text-lg font-black text-slate-900">
+                    ₹{todaysBills.length > 0 ? (todaysSalesValue / todaysBills.length).toFixed(0) : '0'}
+                  </h4>
+                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">Per Walk-in Patient</p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-violet-50/80 border border-violet-200/80">
