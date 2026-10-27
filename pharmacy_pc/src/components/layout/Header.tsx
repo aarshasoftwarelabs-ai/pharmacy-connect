@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, UserCircle, ChevronDown, Menu, ShoppingCart, Pill, Info, CheckCircle2, PanelLeft, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Bell, UserCircle, ChevronDown, Menu, ShoppingCart, Pill, Info, CheckCircle2, PanelLeft, Wifi, WifiOff, RefreshCw, Globe } from 'lucide-react';
 import { PharmacyService } from '../../services/pharmacyService';
 import { NotificationService, Notification } from '../../services/notificationService';
 import { getPharmacyId } from '../../config/development';
@@ -190,6 +190,18 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
             <span>Cloud Synced</span>
           </div>
         )}
+
+        {/* Public Website Link */}
+        <a 
+          href="/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 text-slate-600 hover:text-emerald-700 text-xs font-bold transition shadow-sm"
+          title="Open Public Showcase Website"
+        >
+          <Globe className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Website</span>
+        </a>
         
         {/* Notification Bell */}
         <div 
