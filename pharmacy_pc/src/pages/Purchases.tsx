@@ -432,14 +432,68 @@ export default function Purchases() {
       setIsSeeding(true);
       setError('');
 
-      if (suppliers.length === 0) {
-        setError('Please load suppliers first in the Suppliers menu');
-        setIsSeeding(false);
-        return;
+      let currentSuppliers = suppliers;
+      if (currentSuppliers.length === 0) {
+        // Auto-create Gujarat pharma stockists if not already present
+        const sampleStockists = [
+          {
+            supplier_name: 'Shree Ganesh Medicine Distributors',
+            contact_person: 'Hasmukhbhai Shah (Managing Partner)',
+            mobile: '9825123456',
+            alternate_phone: '0261-2451234',
+            email: 'orders@shreeganeshpharma.in',
+            address: 'Shop No. 12-14, 1st Floor, Medicine Market, Ring Road',
+            city: 'Surat',
+            state: 'Gujarat',
+            pincode: '395002',
+            gstin: '24AAGCS1234F1Z8',
+            drug_license_number: '20B-GJ-SUR-142512, 21B-GJ-SUR-142513',
+            credit_period_days: 21,
+            opening_balance: 45200,
+            bank_name: 'HDFC Bank',
+            account_number: '50200012345678',
+            ifsc_code: 'HDFC0000084',
+            branch_name: 'Ring Road Branch, Surat',
+            deals_in_brands: 'Sun Pharma, Cipla, Torrent Pharma, Mankind, Zydus',
+            status: 'ACTIVE' as const
+          },
+          {
+            supplier_name: 'Aarav Healthcare & Surgical Agencies',
+            contact_person: 'Pratik V. Mehta (Sales Executive)',
+            mobile: '9879944556',
+            alternate_phone: '079-26581122',
+            email: 'supply@aaravhealth.com',
+            address: 'Plot No. 45, GIDC Industrial Estate, Naroda',
+            city: 'Ahmedabad',
+            state: 'Gujarat',
+            pincode: '382330',
+            gstin: '24AAFFA5678M1ZK',
+            drug_license_number: '20B-GJ-AHM-218901, 21B-GJ-AHM-218902',
+            credit_period_days: 30,
+            opening_balance: 18750,
+            bank_name: 'ICICI Bank',
+            account_number: '004705001234',
+            ifsc_code: 'ICIC0000047',
+            branch_name: 'Naroda GIDC Branch',
+            deals_in_brands: 'Abbott, Dr. Reddy\'s, Glenmark, Alkem, Intas',
+            status: 'ACTIVE' as const
+          }
+        ];
+
+        for (const s of sampleStockists) {
+          try {
+            await SupplierService.createSupplier(s);
+          } catch {
+            // ignore if exists
+          }
+        }
+        const fresh = await SupplierService.getSuppliers();
+        currentSuppliers = fresh.filter((s: any) => s.status === 'ACTIVE');
+        setSuppliers(currentSuppliers);
       }
 
-      const sg = suppliers.find(s => s.supplier_name.toLowerCase().includes('shree ganesh')) || suppliers[0];
-      const ah = suppliers.find(s => s.supplier_name.toLowerCase().includes('aarav')) || suppliers[1] || suppliers[0];
+      const sg = currentSuppliers.find(s => s.supplier_name.toLowerCase().includes('shree ganesh')) || currentSuppliers[0];
+      const ah = currentSuppliers.find(s => s.supplier_name.toLowerCase().includes('aarav')) || currentSuppliers[1] || currentSuppliers[0];
 
       // Sample Invoice 1 from Shree Ganesh
       await PurchaseService.createPurchase({
@@ -585,9 +639,9 @@ export default function Purchases() {
   return (
     <div className="space-y-6 pb-16 w-full max-w-7xl mx-auto px-2 sm:px-4">
       {/* 1. Top Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 md:p-8 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 md:p-8 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-12 -translate-y-8 w-72 h-72 bg-pharmacy-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-2">
+        <div className="relative z-10 space-y-2 flex-1 min-w-0 pr-0 lg:pr-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold uppercase tracking-wider">
             <ShieldCheck className="w-3.5 h-3.5" />
             DavaSetu Inward Engine • Purchase Tax Invoices
@@ -595,12 +649,12 @@ export default function Purchases() {
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
             Purchases & Stock Inward
           </h1>
-          <p className="text-slate-300 text-sm sm:text-base max-w-2xl font-light">
+          <p className="text-slate-300 text-xs sm:text-sm max-w-xl font-light">
             Record medicine purchase bills from stockists with automatic batch tracking, GST tax credits, and supplier ledger reconciliation.
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-3">
+        <div className="relative z-10 flex flex-row flex-nowrap items-center gap-2.5 sm:gap-3 shrink-0">
           <input 
             type="file" 
             accept="image/*" 
@@ -612,7 +666,7 @@ export default function Purchases() {
           <button 
             onClick={() => fileInputRef.current?.click()} 
             disabled={scanning}
-            className="flex items-center px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold backdrop-blur-md border border-white/10 transition-all hover:scale-[1.02] disabled:opacity-60"
+            className="flex items-center whitespace-nowrap px-3.5 sm:px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold backdrop-blur-md border border-white/10 transition-all hover:scale-[1.02] disabled:opacity-60 shrink-0"
             title="Scan physical invoice using OCR"
           >
             {scanning ? (
@@ -632,7 +686,7 @@ export default function Purchases() {
             onClick={handleSeedSamplePurchases}
             disabled={isSeeding}
             title="Load live sample purchase invoices"
-            className="flex items-center px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold backdrop-blur-md border border-white/10 transition-all hover:scale-[1.02] disabled:opacity-60"
+            className="flex items-center whitespace-nowrap px-3.5 sm:px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold backdrop-blur-md border border-white/10 transition-all hover:scale-[1.02] disabled:opacity-60 shrink-0"
           >
             {isSeeding ? (
               <>
@@ -649,9 +703,9 @@ export default function Purchases() {
 
           <button
             onClick={handleOpenAdd}
-            className="flex items-center px-5 py-2.5 bg-gradient-to-r from-pharmacy-500 to-emerald-500 hover:from-pharmacy-600 hover:to-emerald-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/30 transition-all hover:scale-[1.02]"
+            className="flex items-center whitespace-nowrap px-4 sm:px-5 py-2.5 bg-gradient-to-r from-pharmacy-500 to-emerald-500 hover:from-pharmacy-600 hover:to-emerald-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/30 transition-all hover:scale-[1.02] shrink-0"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-1.5 sm:mr-2" />
             Add Purchase
           </button>
         </div>
