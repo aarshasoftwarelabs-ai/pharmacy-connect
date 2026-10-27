@@ -1,19 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import electron from 'vite-plugin-electron/simple';
 // https://vitejs.dev/config/
 export default defineConfig({
-    base: './',
-    plugins: [
-        react(),
-        electron({
-            main: {
-                entry: 'electron/main.ts',
-            },
-            preload: {
-                input: 'electron/preload.ts',
-            },
-        }),
-    ],
+    base: '/',
+    plugins: [react()],
+    build: {
+        outDir: 'dist',
+    },
+    server: {
+        port: 5173,
+        host: true,
+    },
 });
-// Force restart to reload .env
