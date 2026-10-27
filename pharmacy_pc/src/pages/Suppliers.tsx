@@ -7,7 +7,7 @@ import {
   Landmark, ExternalLink, RefreshCw, Layers
 } from 'lucide-react';
 
-const REAL_MARG_SAMPLES: Partial<Supplier>[] = [
+const REAL_STOCKIST_SAMPLES: Partial<Supplier>[] = [
   {
     supplier_name: 'Shree Ganesh Medicine Distributors',
     contact_person: 'Hasmukhbhai Shah (Managing Partner)',
@@ -225,7 +225,7 @@ export default function Suppliers() {
   };
 
   const handleLoadSample = (sampleIndex = 0) => {
-    const sample = REAL_MARG_SAMPLES[sampleIndex % REAL_MARG_SAMPLES.length];
+    const sample = REAL_STOCKIST_SAMPLES[sampleIndex % REAL_STOCKIST_SAMPLES.length];
     setFormData({
       ...formData,
       ...sample,
@@ -273,12 +273,12 @@ export default function Suppliers() {
     }
   };
 
-  // Quick Seed All Marg Samples if table is empty
+  // Quick Seed All Stockist Samples if table is empty
   const handleSeedAllSamples = async () => {
     if (!confirm('This will load 4 real-world Gujarat pharma stockists (Sun Pharma, Abbott, Lupin, Serum distributors). Proceed?')) return;
     try {
       setLoading(true);
-      for (const sample of REAL_MARG_SAMPLES) {
+      for (const sample of REAL_STOCKIST_SAMPLES) {
         try {
           await SupplierService.createSupplier(sample);
         } catch {
@@ -340,7 +340,7 @@ export default function Suppliers() {
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold uppercase tracking-wider">
             <ShieldCheck className="w-3.5 h-3.5" />
-            Marg ERP Compatible • Wholesale Stockist Directory
+            DavaSetu Certified • Wholesale Stockist Directory
           </div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
             Suppliers & Distributors Master
@@ -495,7 +495,7 @@ export default function Suppliers() {
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center text-slate-400 space-y-3">
             <RefreshCw className="w-8 h-8 animate-spin text-pharmacy-500" />
-            <p className="text-sm font-medium">Fetching Marg ERP Distributor Records...</p>
+            <p className="text-sm font-medium">Fetching DavaSetu Distributor Records...</p>
           </div>
         ) : filteredSuppliers.length === 0 ? (
           <div className="py-20 text-center space-y-4">
@@ -676,7 +676,7 @@ export default function Suppliers() {
                           {/* View Dossier Button */}
                           <button
                             onClick={() => setSelectedSupplier(s)}
-                            title="View Complete Marg ERP Dossier"
+                            title="View Complete Stockist Dossier"
                             className="p-1.5 rounded-lg text-slate-500 hover:text-pharmacy-600 hover:bg-pharmacy-50 transition-colors"
                           >
                             <Eye className="w-4 h-4" />
@@ -719,7 +719,7 @@ export default function Suppliers() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-pharmacy-500/20 text-pharmacy-300 text-xs font-semibold uppercase">
-                    Marg ERP Master
+                    DavaSetu Master
                   </span>
                   <span className="text-xs text-slate-400">Distributor ID: {editingId ? `#${editingId}` : 'New Record'}</span>
                 </div>
@@ -732,9 +732,9 @@ export default function Suppliers() {
                 {!editingId && (
                   <button
                     type="button"
-                    onClick={() => handleLoadSample(Math.floor(Math.random() * REAL_MARG_SAMPLES.length))}
+                    onClick={() => handleLoadSample(Math.floor(Math.random() * REAL_STOCKIST_SAMPLES.length))}
                     className="flex items-center px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-semibold border border-white/10 transition-colors"
-                    title="Load sample Marg ERP distributor data"
+                    title="Load sample distributor data"
                   >
                     <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-300" />
                     Fill Sample Data
@@ -1018,7 +1018,7 @@ export default function Suppliers() {
                         >
                           <option value={7}>7 Days (Fast Moving)</option>
                           <option value={15}>15 Days (Bi-weekly)</option>
-                          <option value={21}>21 Days (Standard Marg Terms)</option>
+                          <option value={21}>21 Days (Standard Credit Terms)</option>
                           <option value={30}>30 Days (Monthly Cycle)</option>
                           <option value={45}>45 Days (Extended)</option>
                         </select>
@@ -1157,7 +1157,7 @@ export default function Suppliers() {
               <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>Real-time Marg ERP schema persistence</span>
+                  <span>Real-time DavaSetu Cloud Sync</span>
                 </div>
 
                 <div className="flex items-center gap-3">

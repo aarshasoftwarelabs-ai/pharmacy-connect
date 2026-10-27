@@ -373,7 +373,7 @@ export const ensureSchema = async () => {
       console.warn('⚠️ Messaging schema note:', msgErr);
     }
 
-    // 9. Comprehensive Marg ERP-Style Supplier & Distributor Master Schema
+    // 9. Comprehensive DavaSetu Supplier & Distributor Master Schema
     try {
       await pool.query(`
         ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS alternate_phone VARCHAR(50);
@@ -388,7 +388,7 @@ export const ensureSchema = async () => {
         ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS deals_in_brands TEXT;
       `);
 
-      // Seed real, authentic Marg-ERP style pharma distributor records for pharmacies
+      // Seed real, authentic DavaSetu pharma distributor records for pharmacies
       const pharmRes = await pool.query('SELECT id FROM pharmacies ORDER BY id ASC');
       for (const row of pharmRes.rows) {
         const pId = row.id;
@@ -533,7 +533,7 @@ export const ensureSchema = async () => {
           `, [pId]);
         }
       }
-      console.log('📦 Verified Marg ERP-Style Supplier & Distributor Master Schema & Seeded genuine stockists.');
+      console.log('📦 Verified DavaSetu Supplier & Distributor Master Schema & Seeded genuine stockists.');
     } catch (suppErr) {
       console.warn('⚠️ Supplier schema note:', suppErr);
     }
