@@ -8,11 +8,12 @@ export class PurchaseController {
     try {
       const pharmacyId = req.user!.pharmacyId;
       const result = await pool.query(
-        `SELECT p.*, s.supplier_name 
+        `SELECT p.*, s.supplier_name, s.gstin as supplier_gstin, s.drug_license_number as supplier_dl, 
+                s.mobile as supplier_mobile, s.city as supplier_city
          FROM purchase_invoices p
          JOIN suppliers s ON p.supplier_id = s.id
          WHERE p.pharmacy_id = $1 
-         ORDER BY p.created_at DESC`,
+         ORDER BY p.invoice_date DESC, p.created_at DESC`,
         [pharmacyId]
       );
       res.json({ success: true, data: result.rows });
@@ -28,7 +29,9 @@ export class PurchaseController {
       const purchaseId = parseInt(req.params.id);
       
       const result = await pool.query(
-        `SELECT p.*, s.supplier_name 
+        `SELECT p.*, s.supplier_name, s.gstin as supplier_gstin, s.drug_license_number as supplier_dl,
+                s.mobile as supplier_mobile, s.city as supplier_city, s.address as supplier_address,
+                s.bank_name as supplier_bank, s.account_number as supplier_account, s.ifsc_code as supplier_ifsc
          FROM purchase_invoices p
          JOIN suppliers s ON p.supplier_id = s.id
          WHERE p.id = $1 AND p.pharmacy_id = $2`,
@@ -58,10 +61,11 @@ export class PurchaseController {
       }
 
       const result = await pool.query(
-        `SELECT pi.*, m.name as medicine_name 
+        `SELECT pi.*, COALESCE(m.name, pi.batch_number) as medicine_name, m.hsn_code, m.unit
          FROM purchase_items pi
-         JOIN medicines m ON pi.medicine_id = m.id
-         WHERE pi.purchase_invoice_id = $1`,
+         LEFT JOIN medicines m ON pi.medicine_id = m.id
+         WHERE pi.purchase_invoice_id = $1
+         ORDER BY pi.id ASC`,
         [purchaseId]
       );
       
@@ -91,12 +95,27 @@ export class PurchaseController {
       }
 
       // Check supplier belongs to pharmacy
-      const suppResult = await client.query('SELECT id FROM suppliers WHERE id = $1 AND pharmacy_id = $2 AND status = $3', [supplier_id, pharmacyId, 'ACTIVE']);
+      const suppResult = await client.query('SELECT id, credit_period_days FROM suppliers WHERE id = $1 AND pharmacy_id = $2 AND status = $3', [supplier_id, pharmacyId, 'ACTIVE']);
       if (suppResult.rows.length === 0) {
         return res.status(400).json({ success: false, message: 'Invalid or inactive supplier' });
       }
 
+      // Compute calculated due_date if missing
+      const creditDays = suppResult.rows[0].credit_period_days || 21;
+      let finalDueDate = due_date;
+      if (!finalDueDate && invoice_date) {
+        const invD = new Date(invoice_date);
+        invD.setDate(invD.getDate() + creditDays);
+        finalDueDate = invD.toISOString().split('T')[0];
+      }
+
       await client.query('BEGIN');
+
+      const invSubtotal = parseFloat(subtotal) || 0;
+      const invGrandTotal = parseFloat(grand_total) || invSubtotal;
+      const invPaid = parseFloat(paid_amount) || 0;
+      const invBalance = balance_amount !== undefined ? parseFloat(balance_amount) : (invGrandTotal - invPaid);
+      const invStatus = payment_status || (invBalance <= 0 ? 'PAID' : (invPaid > 0 ? 'PARTIAL' : 'PENDING'));
 
       // Create purchase invoice
       const invResult = await client.query(
@@ -108,9 +127,9 @@ export class PurchaseController {
           notes, created_by
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
         [
-          pharmacyId, supplier_id, invoice_number, invoice_date, due_date,
-          subtotal, discount, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_tax,
-          round_off, grand_total, paid_amount, balance_amount, payment_status, notes, userId
+          pharmacyId, supplier_id, invoice_number, invoice_date || new Date().toISOString().split('T')[0], finalDueDate,
+          invSubtotal, discount || 0, taxable_amount || invSubtotal, cgst_amount || 0, sgst_amount || 0, igst_amount || 0, total_tax || 0,
+          round_off || 0, invGrandTotal, invPaid, invBalance, invStatus, notes || null, userId
         ]
       );
       
@@ -118,30 +137,55 @@ export class PurchaseController {
 
       // Process items
       for (const item of items) {
-        // Verify medicine belongs to pharmacy
-        const medCheck = await client.query('SELECT id FROM medicines WHERE id = $1 AND pharmacy_id = $2', [item.medicine_id, pharmacyId]);
-        if (medCheck.rows.length === 0) {
-          throw new Error(`Medicine ID ${item.medicine_id} is invalid for this pharmacy`);
+        let medicineId = item.medicine_id ? parseInt(item.medicine_id) : null;
+
+        // Auto find or create medicine if needed
+        if (!medicineId && item.medicine_name) {
+          const medFind = await client.query(
+            'SELECT id FROM medicines WHERE pharmacy_id = $1 AND LOWER(TRIM(name)) = LOWER(TRIM($2))',
+            [pharmacyId, item.medicine_name]
+          );
+          if (medFind.rows.length > 0) {
+            medicineId = medFind.rows[0].id;
+          } else {
+            const medInsert = await client.query(
+              `INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock)
+               VALUES ($1, $2, $3, $4, $5, 0) RETURNING id`,
+              [pharmacyId, item.medicine_name.trim(), item.manufacturer || 'Pharma Co.', item.hsn_code || '30049099', item.unit || 'Strip']
+            );
+            medicineId = medInsert.rows[0].id;
+          }
         }
 
-        if (item.quantity <= 0 && item.free_quantity <= 0) {
-          throw new Error('Quantity must be greater than 0');
+        if (!medicineId) {
+          throw new Error(`Medicine name or valid ID is required for each item`);
         }
+
+        const itemQty = parseInt(item.quantity) || 0;
+        const freeQty = parseInt(item.free_quantity) || 0;
+        const totalQty = itemQty + freeQty;
+
+        if (totalQty <= 0) {
+          throw new Error('Total quantity (Quantity + Free) must be greater than 0');
+        }
+
+        const batchNum = (item.batch_number || 'DEFAULT').toUpperCase().trim();
+        const expDate = item.expiry_date || new Date(Date.now() + 365*24*3600*1000).toISOString().split('T')[0];
+        const pPrice = parseFloat(item.purchase_price) || 0;
+        const pMrp = parseFloat(item.mrp) || pPrice;
+        const pSelling = parseFloat(item.selling_price) || pMrp;
 
         let previousQuantity = 0;
         let batchId;
         
         const batchCheck = await client.query(
           'SELECT id, quantity, available_quantity FROM medicine_batches WHERE medicine_id = $1 AND batch_number = $2 AND pharmacy_id = $3 FOR UPDATE',
-          [item.medicine_id, item.batch_number, pharmacyId]
+          [medicineId, batchNum, pharmacyId]
         );
-
-        const totalQty = item.quantity + item.free_quantity;
 
         if (batchCheck.rows.length > 0) {
           batchId = batchCheck.rows[0].id;
-          previousQuantity = batchCheck.rows[0].available_quantity;
-          // Update batch stock
+          previousQuantity = batchCheck.rows[0].available_quantity || 0;
           await client.query(
             `UPDATE medicine_batches 
              SET quantity = quantity + $1, 
@@ -151,18 +195,17 @@ export class PurchaseController {
                  selling_price = $4,
                  expiry_date = $5
              WHERE id = $6`,
-            [totalQty, item.purchase_price, item.mrp, item.selling_price, item.expiry_date, batchId]
+            [totalQty, pPrice, pMrp, pSelling, expDate, batchId]
           );
         } else {
-          // Create new batch
           const newBatch = await client.query(
             `INSERT INTO medicine_batches (
               medicine_id, pharmacy_id, batch_number, expiry_date,
               purchase_price, mrp, selling_price, quantity, available_quantity
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
             [
-              item.medicine_id, pharmacyId, item.batch_number, item.expiry_date,
-              item.purchase_price, item.mrp, item.selling_price, totalQty, totalQty
+              medicineId, pharmacyId, batchNum, expDate,
+              pPrice, pMrp, pSelling, totalQty, totalQty
             ]
           );
           batchId = newBatch.rows[0].id;
@@ -171,7 +214,7 @@ export class PurchaseController {
         // Update medicine current_stock
         await client.query(
           `UPDATE medicines SET current_stock = COALESCE(current_stock, 0) + $1 WHERE id = $2`,
-          [totalQty, item.medicine_id]
+          [totalQty, medicineId]
         );
 
         // Record stock movement
@@ -181,12 +224,13 @@ export class PurchaseController {
             reference_id, quantity, previous_quantity, new_quantity, created_by
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
-            pharmacyId, item.medicine_id, batchId, 'PURCHASE', 'PURCHASE_INVOICE',
+            pharmacyId, medicineId, batchId, 'PURCHASE', 'PURCHASE_INVOICE',
             invoiceId, totalQty, previousQuantity, previousQuantity + totalQty, userId
           ]
         );
 
         // Insert purchase item
+        const itemTotal = parseFloat(item.total_amount) || (pPrice * itemQty);
         await client.query(
           `INSERT INTO purchase_items (
             purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date,
@@ -194,10 +238,22 @@ export class PurchaseController {
             discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
           [
-            invoiceId, item.medicine_id, batchId, item.batch_number, item.expiry_date,
-            item.quantity, item.free_quantity, item.purchase_price, item.mrp, item.selling_price,
-            item.discount, item.taxable_amount, item.gst_rate, item.cgst_amount, item.sgst_amount, item.igst_amount, item.total_amount
+            invoiceId, medicineId, batchId, batchNum, expDate,
+            itemQty, freeQty, pPrice, pMrp, pSelling,
+            item.discount || 0, item.taxable_amount || itemTotal, item.gst_rate || 12,
+            item.cgst_amount || 0, item.sgst_amount || 0, item.igst_amount || 0, itemTotal
           ]
+        );
+      }
+
+      // Update supplier outstanding balance in real time
+      if (invBalance > 0) {
+        await client.query(
+          `UPDATE suppliers 
+           SET current_balance = COALESCE(current_balance, 0) + $1,
+               updated_at = NOW()
+           WHERE id = $2 AND pharmacy_id = $3`,
+          [invBalance, supplier_id, pharmacyId]
         );
       }
 

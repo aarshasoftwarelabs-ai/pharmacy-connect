@@ -538,6 +538,142 @@ export const ensureSchema = async () => {
       console.warn('⚠️ Supplier schema note:', suppErr);
     }
 
+    // 10. Seed Authentic Live Pharmaceutical Purchase Invoices
+    try {
+      const pharmRes = await pool.query('SELECT id FROM pharmacies ORDER BY id ASC');
+      for (const row of pharmRes.rows) {
+        const pId = row.id;
+        const pCountRes = await pool.query('SELECT COUNT(*) FROM purchase_invoices WHERE pharmacy_id = $1', [pId]);
+        if (parseInt(pCountRes.rows[0].count) === 0) {
+          // Find stockist 1: Shree Ganesh Medicine Distributors
+          const sgRes = await pool.query("SELECT id FROM suppliers WHERE pharmacy_id = $1 AND supplier_name LIKE '%Shree Ganesh%' LIMIT 1", [pId]);
+          // Find stockist 2: Aarav Healthcare
+          const ahRes = await pool.query("SELECT id FROM suppliers WHERE pharmacy_id = $1 AND supplier_name LIKE '%Aarav Healthcare%' LIMIT 1", [pId]);
+
+          if (sgRes.rows.length > 0) {
+            const sgId = sgRes.rows[0].id;
+            // Ensure medicines exist
+            const doloRes = await pool.query(
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Dolo 650mg Tablets', 'Micro Labs Ltd', '30049099', 'Strip (15 Tab)', 55) ON CONFLICT DO NOTHING RETURNING id",
+              [pId]
+            );
+            const augRes = await pool.query(
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Augmentin 625 Duo Tablet', 'GlaxoSmithKline (GSK)', '30042000', 'Strip (10 Tab)', 22) ON CONFLICT DO NOTHING RETURNING id",
+              [pId]
+            );
+            const panRes = await pool.query(
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Pan 40 Gastro-Resistant Tablet', 'Alkem Laboratories Ltd', '30049099', 'Strip (15 Tab)', 33) ON CONFLICT DO NOTHING RETURNING id",
+              [pId]
+            );
+
+            const doloId = (doloRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Dolo 650%' LIMIT 1", [pId])).rows[0]?.id;
+            const augId = (augRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Augmentin 625%' LIMIT 1", [pId])).rows[0]?.id;
+            const panId = (panRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Pan 40%' LIMIT 1", [pId])).rows[0]?.id;
+
+            if (doloId && augId && panId) {
+              // Create Purchase Invoice 1 (SG-2026-8812)
+              const inv1 = await pool.query(`
+                INSERT INTO purchase_invoices (
+                  pharmacy_id, supplier_id, invoice_number, invoice_date, due_date,
+                  subtotal, discount, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_tax,
+                  round_off, grand_total, paid_amount, balance_amount, payment_status, notes
+                ) VALUES (
+                  $1, $2, 'SG-2026-8812', CURRENT_DATE - INTERVAL '5 days', CURRENT_DATE + INTERVAL '16 days',
+                  6285.00, 125.70, 6159.30, 369.56, 369.56, 0.00, 739.12,
+                  -0.42, 6898.00, 2000.00, 4898.00, 'PARTIAL', 'Primary monthly antibiotics, antipyretics & gastro range stockist delivery.'
+                ) RETURNING id
+              `, [pId, sgId]);
+
+              const inv1Id = inv1.rows[0].id;
+
+              // Insert items & batches
+              // Item 1: Dolo 650
+              const b1 = await pool.query(`
+                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
+                VALUES ($1, $2, 'DL650B24', CURRENT_DATE + INTERVAL '18 months', 24.50, 34.00, 34.00, 55, 55) RETURNING id
+              `, [doloId, pId]);
+              await pool.query(`
+                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
+                VALUES ($1, $2, $3, 'DL650B24', CURRENT_DATE + INTERVAL '18 months', 50, 5, 24.50, 34.00, 34.00, 24.50, 1200.50, 12, 72.03, 72.03, 0, 1344.56)
+              `, [inv1Id, doloId, b1.rows[0].id]);
+
+              // Item 2: Augmentin 625 Duo
+              const b2 = await pool.query(`
+                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
+                VALUES ($1, $2, 'AUG2409', CURRENT_DATE + INTERVAL '14 months', 142.00, 205.00, 205.00, 22, 22) RETURNING id
+              `, [augId, pId]);
+              await pool.query(`
+                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
+                VALUES ($1, $2, $3, 'AUG2409', CURRENT_DATE + INTERVAL '14 months', 20, 2, 142.00, 205.00, 205.00, 56.80, 2783.20, 12, 166.99, 166.99, 0, 3117.18)
+              `, [inv1Id, augId, b2.rows[0].id]);
+
+              // Item 3: Pan 40
+              const b3 = await pool.query(`
+                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
+                VALUES ($1, $2, 'PAN2411', CURRENT_DATE + INTERVAL '20 months', 72.50, 155.00, 155.00, 33, 33) RETURNING id
+              `, [panId, pId]);
+              await pool.query(`
+                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
+                VALUES ($1, $2, $3, 'PAN2411', CURRENT_DATE + INTERVAL '20 months', 30, 3, 72.50, 155.00, 155.00, 43.50, 2131.50, 12, 127.89, 127.89, 0, 2387.28)
+              `, [inv1Id, panId, b3.rows[0].id]);
+            }
+          }
+
+          if (ahRes.rows.length > 0) {
+            const ahId = ahRes.rows[0].id;
+            const azRes = await pool.query(
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Azithral 500mg Tablet', 'Alembic Pharmaceuticals', '30042000', 'Strip (5 Tab)', 27) ON CONFLICT DO NOTHING RETURNING id",
+              [pId]
+            );
+            const telRes = await pool.query(
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Telma 40mg Tablet', 'Glenmark Pharmaceuticals', '30049099', 'Strip (15 Tab)', 44) ON CONFLICT DO NOTHING RETURNING id",
+              [pId]
+            );
+
+            const azId = (azRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Azithral 500%' LIMIT 1", [pId])).rows[0]?.id;
+            const telId = (telRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Telma 40%' LIMIT 1", [pId])).rows[0]?.id;
+
+            if (azId && telId) {
+              const inv2 = await pool.query(`
+                INSERT INTO purchase_invoices (
+                  pharmacy_id, supplier_id, invoice_number, invoice_date, due_date,
+                  subtotal, discount, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_tax,
+                  round_off, grand_total, paid_amount, balance_amount, payment_status, notes
+                ) VALUES (
+                  $1, $2, 'AH-2026-4401', CURRENT_DATE - INTERVAL '14 days', CURRENT_DATE + INTERVAL '16 days',
+                  8525.00, 170.50, 8354.50, 501.27, 501.27, 0.00, 1002.54,
+                  0.96, 9358.00, 9358.00, 0.00, 'PAID', 'Full payment cleared via ICICI NEFT on delivery.'
+                ) RETURNING id
+              `, [pId, ahId]);
+
+              const inv2Id = inv2.rows[0].id;
+
+              const b4 = await pool.query(`
+                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
+                VALUES ($1, $2, 'AZ500A1', CURRENT_DATE + INTERVAL '16 months', 85.00, 132.00, 132.00, 27, 27) RETURNING id
+              `, [azId, pId]);
+              await pool.query(`
+                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
+                VALUES ($1, $2, $3, 'AZ500A1', CURRENT_DATE + INTERVAL '16 months', 25, 2, 85.00, 132.00, 132.00, 42.50, 2082.50, 12, 124.95, 124.95, 0, 2332.40)
+              `, [inv2Id, azId, b4.rows[0].id]);
+
+              const b5 = await pool.query(`
+                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
+                VALUES ($1, $2, 'TEL40C2', CURRENT_DATE + INTERVAL '22 months', 160.00, 245.00, 245.00, 44, 44) RETURNING id
+              `, [telId, pId]);
+              await pool.query(`
+                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
+                VALUES ($1, $2, $3, 'TEL40C2', CURRENT_DATE + INTERVAL '22 months', 40, 4, 160.00, 245.00, 245.00, 128.00, 6272.00, 12, 376.32, 376.32, 0, 7024.64)
+              `, [inv2Id, telId, b5.rows[0].id]);
+            }
+          }
+        }
+      }
+      console.log('📦 Verified DavaSetu Purchase Invoices & Live Pharmaceutical Stock Batches.');
+    } catch (purchErr) {
+      console.warn('⚠️ Purchase seed note:', purchErr);
+    }
+
     console.log('✅ Database schema verified and updated successfully.');
   } catch (error) {
     console.error('⚠️ Note during schema check:', error);
