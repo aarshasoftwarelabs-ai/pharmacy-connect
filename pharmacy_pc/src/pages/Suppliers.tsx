@@ -144,6 +144,8 @@ export default function Suppliers() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isSeeding, setIsSeeding] = useState(false);
   
   // Modals & Drawers
   const [showModal, setShowModal] = useState(false);
@@ -237,59 +239,65 @@ export default function Suppliers() {
     e.preventDefault();
     try {
       if (!formData.supplier_name?.trim()) {
-        alert('Please enter Supplier / Firm Name');
+        setError('Please enter Supplier / Firm Name');
         return;
       }
 
       if (editingId) {
         await SupplierService.updateSupplier(editingId, formData);
+        setSuccessMsg('Supplier updated successfully');
       } else {
         await SupplierService.createSupplier(formData);
+        setSuccessMsg('Supplier added successfully');
       }
+      setTimeout(() => setSuccessMsg(''), 3500);
       setShowModal(false);
       setFormData(INITIAL_FORM_STATE);
       setEditingId(null);
       await fetchSuppliers();
     } catch (err: any) {
-      alert(err.message || 'Operation failed');
+      setError(err.message || 'Operation failed');
     }
   };
 
   const handleDeactivate = async (id: number, currentStatus?: string) => {
-    const action = currentStatus === 'INACTIVE' ? 'activate' : 'deactivate';
-    if (!confirm(`Are you sure you want to ${action} this supplier?`)) return;
     try {
       if (currentStatus === 'INACTIVE') {
         await SupplierService.updateSupplier(id, { status: 'ACTIVE' });
+        setSuccessMsg('Supplier activated successfully');
       } else {
         await SupplierService.deactivateSupplier(id);
+        setSuccessMsg('Supplier deactivated successfully');
       }
+      setTimeout(() => setSuccessMsg(''), 3500);
       await fetchSuppliers();
       if (selectedSupplier && selectedSupplier.id === id) {
         setSelectedSupplier(prev => prev ? { ...prev, status: currentStatus === 'INACTIVE' ? 'ACTIVE' : 'INACTIVE' } : null);
       }
     } catch (err: any) {
-      alert(err.message || 'Action failed');
+      setError(err.message || 'Action failed');
     }
   };
 
-  // Quick Seed All Stockist Samples if table is empty
+  // Quick Seed All Stockist Samples directly without browser confirm prompt
   const handleSeedAllSamples = async () => {
-    if (!confirm('This will load 4 real-world Gujarat pharma stockists (Sun Pharma, Abbott, Lupin, Serum distributors). Proceed?')) return;
     try {
-      setLoading(true);
+      setIsSeeding(true);
+      setError('');
       for (const sample of REAL_STOCKIST_SAMPLES) {
         try {
           await SupplierService.createSupplier(sample);
         } catch {
-          // ignore duplicate
+          // ignore duplicate if already added
         }
       }
       await fetchSuppliers();
+      setSuccessMsg('✅ 4 Gujarat wholesale medicine stockists loaded successfully!');
+      setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message);
+      setError(err.message || 'Failed to load stockists');
     } finally {
-      setLoading(false);
+      setIsSeeding(false);
     }
   };
 
@@ -353,11 +361,21 @@ export default function Suppliers() {
         <div className="relative z-10 flex flex-wrap items-center gap-3">
           <button
             onClick={handleSeedAllSamples}
+            disabled={isSeeding}
             title="Load live Gujarat stockists sample data"
-            className="flex items-center px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold backdrop-blur-md border border-white/10 transition-all hover:scale-[1.02]"
+            className="flex items-center px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold backdrop-blur-md border border-white/10 transition-all hover:scale-[1.02] disabled:opacity-60"
           >
-            <Sparkles className="w-4 h-4 mr-2 text-amber-300" />
-            Load Sample Stockists
+            {isSeeding ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin text-amber-300" />
+                Loading Stockists...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2 text-amber-300" />
+                Load Sample Stockists
+              </>
+            )}
           </button>
           
           <button
@@ -369,6 +387,16 @@ export default function Suppliers() {
           </button>
         </div>
       </div>
+
+      {successMsg && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <span className="text-sm font-semibold">{successMsg}</span>
+          </div>
+          <button onClick={() => setSuccessMsg('')} className="text-xs font-bold text-emerald-700 hover:underline">Dismiss</button>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-center justify-between">
@@ -508,10 +536,20 @@ export default function Suppliers() {
             </div>
             <button
               onClick={handleSeedAllSamples}
-              className="inline-flex items-center px-4 py-2 bg-pharmacy-600 text-white rounded-xl text-xs font-bold hover:bg-pharmacy-700 transition-colors shadow-sm"
+              disabled={isSeeding}
+              className="inline-flex items-center px-5 py-2.5 bg-pharmacy-600 hover:bg-pharmacy-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pharmacy-600/20 hover:scale-[1.02] disabled:opacity-60"
             >
-              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-              Load Real Gujarat Stockists
+              {isSeeding ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Loading Gujarat Stockists...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2 text-amber-300" />
+                  Load Real Gujarat Stockists
+                </>
+              )}
             </button>
           </div>
         ) : (
