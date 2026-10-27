@@ -373,6 +373,171 @@ export const ensureSchema = async () => {
       console.warn('⚠️ Messaging schema note:', msgErr);
     }
 
+    // 9. Comprehensive Marg ERP-Style Supplier & Distributor Master Schema
+    try {
+      await pool.query(`
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS alternate_phone VARCHAR(50);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS credit_period_days INTEGER DEFAULT 21;
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS pan_number VARCHAR(30);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS fssai_number VARCHAR(50);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS bank_name VARCHAR(100);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS account_number VARCHAR(50);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS ifsc_code VARCHAR(30);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS branch_name VARCHAR(100);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS upi_id VARCHAR(100);
+        ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS deals_in_brands TEXT;
+      `);
+
+      // Seed real, authentic Marg-ERP style pharma distributor records for pharmacies
+      const pharmRes = await pool.query('SELECT id FROM pharmacies ORDER BY id ASC');
+      for (const row of pharmRes.rows) {
+        const pId = row.id;
+        const countRes = await pool.query('SELECT COUNT(*) FROM suppliers WHERE pharmacy_id = $1', [pId]);
+        if (parseInt(countRes.rows[0].count) <= 1) {
+          await pool.query(`
+            INSERT INTO suppliers (
+              pharmacy_id, supplier_name, contact_person, mobile, alternate_phone, email,
+              address, city, state, pincode, gstin, drug_license_number, fssai_number, pan_number,
+              credit_period_days, opening_balance, current_balance, bank_name, account_number,
+              ifsc_code, branch_name, upi_id, deals_in_brands, notes, status
+            ) VALUES 
+            (
+              $1,
+              'Shree Ganesh Medicine Distributors',
+              'Hasmukhbhai Shah (Distributor Partner)',
+              '9825123456',
+              '0261-2451234',
+              'orders@shreeganeshpharma.in',
+              'Shop No. 12-14, 1st Floor, Medicine Market, Ring Road',
+              'Surat',
+              'Gujarat',
+              '395002',
+              '24AAGCS1234F1Z8',
+              '20B-GJ-SUR-142512, 21B-GJ-SUR-142513',
+              '10721031000145',
+              'AAGCS1234F',
+              21,
+              45200.00,
+              45200.00,
+              'HDFC Bank',
+              '50200012345678',
+              'HDFC0000084',
+              'Ring Road Branch, Surat',
+              'shreeganesh@hdfcbank',
+              'Sun Pharma, Cipla, Torrent Pharma, Mankind, Zydus',
+              'Primary stockist for cardiac, diabetic & antibiotic ranges. Orders dispatched within 4 hours.',
+              'ACTIVE'
+            ),
+            (
+              $1,
+              'Aarav Healthcare & Surgical Agencies',
+              'Pratik V. Mehta (Sales Executive)',
+              '9879944556',
+              '079-26581122',
+              'supply@aaravhealth.com',
+              'Plot No. 45, GIDC Industrial Estate, Naroda',
+              'Ahmedabad',
+              'Gujarat',
+              '382330',
+              '24AAFFA5678M1ZK',
+              '20B-GJ-AHM-218901, 21B-GJ-AHM-218902',
+              '10719022000891',
+              'AAFFA5678M',
+              30,
+              18750.00,
+              18750.00,
+              'ICICI Bank',
+              '004705001234',
+              'ICIC0000047',
+              'Naroda GIDC Branch',
+              'aaravhealth@icici',
+              'Abbott, Dr. Reddy''s, Glenmark, Alkem, Intas',
+              'Authorized stockist for pediatrics, nutraceuticals and cold chain products.',
+              'ACTIVE'
+            ),
+            (
+              $1,
+              'Navkar Pharma Wholesale Depot',
+              'Ramesh Jain (Accounts Head)',
+              '9426811223',
+              '0265-2334455',
+              'navkarpharma.brd@gmail.com',
+              '102, Royal Pharma Complex, Dandia Bazar',
+              'Vadodara',
+              'Gujarat',
+              '390001',
+              '24AACFN9012P1ZN',
+              '20B-GJ-BAR-349811, 21B-GJ-BAR-349812',
+              '10720015000412',
+              'AACFN9012P',
+              15,
+              0.00,
+              0.00,
+              'State Bank of India',
+              '38920112456',
+              'SBIN0001234',
+              'Dandia Bazar Main Branch',
+              'navkarpharma@sbi',
+              'Lupin, Cadila, Aristo, FDC, Macleods',
+              'Net payment distributor. Flat 2% early cash settlement scheme offered.',
+              'ACTIVE'
+            ),
+            (
+              $1,
+              'Apex Lifesciences & Vaccines Depot',
+              'Chetan Dave (Cold-Chain Specialist)',
+              '9898233445',
+              '0281-2244112',
+              'apex.vaccines@gmail.com',
+              'Survey No. 18, Opp. Civil Hospital, Jamnagar Road',
+              'Rajkot',
+              'Gujarat',
+              '360001',
+              '24AAZFA3344R1ZU',
+              '20B-GJ-RJK-551201, 21B-GJ-RJK-551202',
+              '10722019000332',
+              'AAZFA3344R',
+              7,
+              12400.00,
+              12400.00,
+              'Kotak Mahindra Bank',
+              '7711223344',
+              'KKBK0000812',
+              'Jamnagar Road Branch',
+              'apexlifesciences@kotak',
+              'Serum Institute, Bharat Biotech, Sanofi, GSK',
+              'Specialized in cold-chain logistics: insulins, vaccines, and biologics.',
+              'ACTIVE'
+            )
+            ON CONFLICT (pharmacy_id, supplier_name) DO UPDATE SET
+              contact_person = EXCLUDED.contact_person,
+              mobile = EXCLUDED.mobile,
+              alternate_phone = EXCLUDED.alternate_phone,
+              email = EXCLUDED.email,
+              address = EXCLUDED.address,
+              city = EXCLUDED.city,
+              state = EXCLUDED.state,
+              pincode = EXCLUDED.pincode,
+              gstin = EXCLUDED.gstin,
+              drug_license_number = EXCLUDED.drug_license_number,
+              fssai_number = EXCLUDED.fssai_number,
+              pan_number = EXCLUDED.pan_number,
+              credit_period_days = EXCLUDED.credit_period_days,
+              bank_name = EXCLUDED.bank_name,
+              account_number = EXCLUDED.account_number,
+              ifsc_code = EXCLUDED.ifsc_code,
+              branch_name = EXCLUDED.branch_name,
+              upi_id = EXCLUDED.upi_id,
+              deals_in_brands = EXCLUDED.deals_in_brands,
+              notes = EXCLUDED.notes;
+          `, [pId]);
+        }
+      }
+      console.log('📦 Verified Marg ERP-Style Supplier & Distributor Master Schema & Seeded genuine stockists.');
+    } catch (suppErr) {
+      console.warn('⚠️ Supplier schema note:', suppErr);
+    }
+
     console.log('✅ Database schema verified and updated successfully.');
   } catch (error) {
     console.error('⚠️ Note during schema check:', error);

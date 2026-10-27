@@ -43,9 +43,10 @@ export class SupplierController {
     try {
       const pharmacyId = req.user!.pharmacyId;
       const {
-        supplier_name, contact_person, mobile, email, address,
-        city, state, pincode, gstin, drug_license_number,
-        opening_balance, notes
+        supplier_name, contact_person, mobile, alternate_phone, email, address,
+        city, state, pincode, gstin, drug_license_number, fssai_number, pan_number,
+        credit_period_days, opening_balance, bank_name, account_number,
+        ifsc_code, branch_name, upi_id, deals_in_brands, notes
       } = req.body;
 
       if (!supplier_name) {
@@ -64,15 +65,41 @@ export class SupplierController {
 
       const result = await pool.query(
         `INSERT INTO suppliers (
-          pharmacy_id, supplier_name, contact_person, mobile, email,
-          address, city, state, pincode, gstin, drug_license_number,
-          opening_balance, current_balance, notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12, $13)
+          pharmacy_id, supplier_name, contact_person, mobile, alternate_phone, email,
+          address, city, state, pincode, gstin, drug_license_number, fssai_number, pan_number,
+          credit_period_days, opening_balance, current_balance, bank_name, account_number,
+          ifsc_code, branch_name, upi_id, deals_in_brands, notes, status
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6,
+          $7, $8, $9, $10, $11, $12, $13, $14,
+          $15, $16, $16, $17, $18,
+          $19, $20, $21, $22, $23, 'ACTIVE'
+        )
         RETURNING *`,
         [
-          pharmacyId, supplier_name, contact_person, mobile, email,
-          address, city, state, pincode, gstin, drug_license_number,
-          opening_balance || 0, notes
+          pharmacyId,
+          supplier_name,
+          contact_person || null,
+          mobile || null,
+          alternate_phone || null,
+          email || null,
+          address || null,
+          city || null,
+          state || 'Gujarat',
+          pincode || null,
+          gstin ? gstin.toUpperCase().trim() : null,
+          drug_license_number || null,
+          fssai_number || null,
+          pan_number ? pan_number.toUpperCase().trim() : null,
+          credit_period_days ? parseInt(credit_period_days) : 21,
+          opening_balance ? parseFloat(opening_balance) : 0,
+          bank_name || null,
+          account_number || null,
+          ifsc_code ? ifsc_code.toUpperCase().trim() : null,
+          branch_name || null,
+          upi_id || null,
+          deals_in_brands || null,
+          notes || null
         ]
       );
 
@@ -89,9 +116,10 @@ export class SupplierController {
       const supplierId = parseInt(req.params.id);
       
       const {
-        supplier_name, contact_person, mobile, email, address,
-        city, state, pincode, gstin, drug_license_number,
-        status, notes
+        supplier_name, contact_person, mobile, alternate_phone, email, address,
+        city, state, pincode, gstin, drug_license_number, fssai_number, pan_number,
+        credit_period_days, bank_name, account_number, ifsc_code, branch_name,
+        upi_id, deals_in_brands, status, notes
       } = req.body;
 
       // Ensure supplier belongs to pharmacy
@@ -109,21 +137,39 @@ export class SupplierController {
           supplier_name = COALESCE($1, supplier_name),
           contact_person = COALESCE($2, contact_person),
           mobile = COALESCE($3, mobile),
-          email = COALESCE($4, email),
-          address = COALESCE($5, address),
-          city = COALESCE($6, city),
-          state = COALESCE($7, state),
-          pincode = COALESCE($8, pincode),
-          gstin = COALESCE($9, gstin),
-          drug_license_number = COALESCE($10, drug_license_number),
-          status = COALESCE($11, status),
-          notes = COALESCE($12, notes),
+          alternate_phone = COALESCE($4, alternate_phone),
+          email = COALESCE($5, email),
+          address = COALESCE($6, address),
+          city = COALESCE($7, city),
+          state = COALESCE($8, state),
+          pincode = COALESCE($9, pincode),
+          gstin = COALESCE($10, gstin),
+          drug_license_number = COALESCE($11, drug_license_number),
+          fssai_number = COALESCE($12, fssai_number),
+          pan_number = COALESCE($13, pan_number),
+          credit_period_days = COALESCE($14, credit_period_days),
+          bank_name = COALESCE($15, bank_name),
+          account_number = COALESCE($16, account_number),
+          ifsc_code = COALESCE($17, ifsc_code),
+          branch_name = COALESCE($18, branch_name),
+          upi_id = COALESCE($19, upi_id),
+          deals_in_brands = COALESCE($20, deals_in_brands),
+          status = COALESCE($21, status),
+          notes = COALESCE($22, notes),
           updated_at = NOW()
-        WHERE id = $13 AND pharmacy_id = $14
+        WHERE id = $23 AND pharmacy_id = $24
         RETURNING *`,
         [
-          supplier_name, contact_person, mobile, email, address,
-          city, state, pincode, gstin, drug_license_number, status, notes,
+          supplier_name, contact_person, mobile, alternate_phone, email,
+          address, city, state, pincode,
+          gstin ? gstin.toUpperCase().trim() : null,
+          drug_license_number, fssai_number,
+          pan_number ? pan_number.toUpperCase().trim() : null,
+          credit_period_days !== undefined ? parseInt(credit_period_days) : null,
+          bank_name, account_number,
+          ifsc_code ? ifsc_code.toUpperCase().trim() : null,
+          branch_name, upi_id, deals_in_brands,
+          status, notes,
           supplierId, pharmacyId
         ]
       );
