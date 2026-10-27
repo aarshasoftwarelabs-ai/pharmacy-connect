@@ -30,7 +30,8 @@ import {
   ShoppingBag,
   ExternalLink,
   Laptop,
-  Layers
+  Layers,
+  Crown
 } from 'lucide-react';
 
 interface MedicineSample {
@@ -688,113 +689,220 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PRICING SECTION */}
+      {/* PRICING SECTION - REAL POS SOFTWARE PLANS */}
       <section id="pricing" className="relative z-10 py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold mb-3 border border-emerald-500/20">
-            <Star className="w-3.5 h-3.5" />
-            <span>Honest & Transparent Pricing</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold mb-3 border border-emerald-500/20">
+            <Crown className="w-4 h-4 text-amber-400" />
+            <span>Official POS Subscription & Licensing Plans</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white">
             Choose the Plan that Fits Your Pharmacy
           </h2>
           <p className="mt-3 text-slate-400 text-base">
-            No hidden setup fees. Unlimited medicines, unlimited customer accounts, and 24/7 priority support.
+            Upgrade to unlock Smart Inventory, Unlimited Billing, Expiry Shield & Real-Time Cloud Sync.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-          {/* STARTER */}
-          <div className="p-8 rounded-3xl bg-slate-800/40 border border-slate-700/80 flex flex-col justify-between">
+          
+          {/* PLAN 1: MONTHLY PRO */}
+          <div className="p-8 rounded-3xl bg-slate-800/40 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex flex-col justify-between backdrop-blur-sm">
             <div>
-              <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">Starter</span>
-              <h3 className="text-2xl font-bold text-white mt-1">Single Counter</h3>
-              <p className="text-xs text-slate-400 mt-2">Ideal for independent retail chemists starting out.</p>
+              <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">Monthly Pass</span>
+              <h3 className="text-2xl font-bold text-white mt-1">Monthly Pro</h3>
+              <p className="text-xs text-slate-400 mt-2">Essential cloud POS billing for independent retail counters.</p>
               
               <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">₹499</span>
-                <span className="text-sm text-slate-400">/month</span>
+                <span className="text-4xl font-extrabold text-white">₹799</span>
+                <span className="text-sm text-slate-400">/mo</span>
               </div>
 
-              <ul className="mt-8 space-y-3 text-xs text-slate-300">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> 1 POS Billing Terminal</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Unlimited Medicine Catalog</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Barcode & Thermal Receipt Printing</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Basic Expiry Tracking</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Daily Sales Reports</li>
+              <ul className="mt-8 space-y-3.5 text-xs text-slate-300">
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Unlimited Counter Billing</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Thermal Printer Support (2" & 3" ESC/POS)</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Basic Sales & Daily Register Reports</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Mobile App Access (1 Phone Terminal)</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Cloud Auto Sync & Secure Data Backup</span>
+                </li>
               </ul>
             </div>
 
             <button
-              onClick={() => navigate('/login')}
-              className="mt-8 w-full py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition"
+              onClick={() => navigate(isLoggedIn ? '/settings' : '/login')}
+              className="mt-8 w-full py-3.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm border border-slate-600 transition"
             >
-              Get Started
+              Select Monthly
             </button>
           </div>
 
-          {/* PRO PHARMACY (POPULAR) */}
-          <div className="p-8 rounded-3xl bg-gradient-to-b from-slate-800/90 to-slate-850/90 border-2 border-emerald-500 shadow-2xl shadow-emerald-500/20 flex flex-col justify-between relative scale-105 z-10">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-extrabold text-xs shadow-md">
-              MOST POPULAR FOR PHARMACIES
+          {/* PLAN 2: YEARLY PREMIUM (BEST VALUE) */}
+          <div className="p-8 rounded-3xl bg-gradient-to-b from-slate-800/90 via-slate-800/95 to-emerald-950/40 border-2 border-emerald-500 shadow-2xl shadow-emerald-500/25 flex flex-col justify-between relative scale-105 z-10 backdrop-blur-xl">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-extrabold text-xs shadow-md uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap">
+              <Star className="w-3.5 h-3.5 fill-white text-white" />
+              <span>Best Value • Just ₹16/Day</span>
             </div>
 
             <div>
-              <span className="text-xs uppercase font-bold text-emerald-400 tracking-wider">Professional</span>
-              <h3 className="text-2xl font-bold text-white mt-1">Smart Retailer</h3>
-              <p className="text-xs text-slate-400 mt-2">For busy medical stores needing automation & WhatsApp invoicing.</p>
+              <span className="text-xs uppercase font-bold text-emerald-400 tracking-wider">Annual Pass</span>
+              <h3 className="text-2xl font-bold text-white mt-1">Yearly Premium</h3>
+              <p className="text-xs text-slate-300 mt-2">Complete AI-powered pharmacy ERP for busy medical stores.</p>
               
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">₹999</span>
-                <span className="text-sm text-slate-400">/month</span>
+              <div className="mt-6 flex flex-col">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold text-white">₹5,999</span>
+                  <span className="text-sm text-slate-400">/yr</span>
+                </div>
+                <div className="mt-1.5">
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Just ₹16/day • Save over ₹3,500/yr
+                  </span>
+                </div>
               </div>
 
-              <ul className="mt-8 space-y-3 text-xs text-slate-300">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Up to 3 Multi-Counter Logins</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Automated WhatsApp Digital Invoicing</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Smart Expiry Shield (30-60-90 days alert)</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Supplier Purchase Orders & Ledgers</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> 1-Click GSTR-1 & GSTR-3B Tax Exports</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Customer Khata & Refill Reminders</li>
+              <ul className="mt-8 space-y-3.5 text-xs text-slate-200">
+                <li className="flex items-center gap-2.5 font-semibold text-white">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Everything in Monthly Pro</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Smart Inventory (AI) & Expiry Shield (30-60-90 days)</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>7-Day Advanced Trends & Sales Analytics</span>
+                </li>
+                <li className="flex items-center gap-2.5 font-medium text-emerald-300">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Mobile App + Multi-Device Real-Time Cloud Sync</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Staff Phone Barcode Scanners</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Supplier Purchases & Inward Ledgers</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Priority 24/7 Phone & WhatsApp Support</span>
+                </li>
               </ul>
             </div>
 
             <button
-              onClick={() => navigate('/login')}
-              className="mt-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-[1.02] transition"
+              onClick={() => navigate(isLoggedIn ? '/settings' : '/login')}
+              className="mt-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-[1.02] transition"
             >
-              Start 14-Day Free Trial
+              Upgrade to Yearly
             </button>
           </div>
 
-          {/* ENTERPRISE */}
-          <div className="p-8 rounded-3xl bg-slate-800/40 border border-slate-700/80 flex flex-col justify-between">
-            <div>
-              <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">Enterprise</span>
-              <h3 className="text-2xl font-bold text-white mt-1">Chain & Wholesale</h3>
-              <p className="text-xs text-slate-400 mt-2">For multi-branch pharmacies and pharmaceutical distributors.</p>
+          {/* PLAN 3: FOUNDER'S LIFETIME */}
+          <div className="p-8 rounded-3xl bg-slate-900 border-2 border-amber-500/50 hover:border-amber-400 shadow-xl shadow-amber-500/10 flex flex-col justify-between relative overflow-hidden">
+            <div className="absolute -right-6 -top-6 bg-amber-500/20 w-32 h-32 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="relative z-10">
+              <span className="text-xs uppercase font-bold text-amber-400 tracking-wider">Lifetime Deal</span>
+              <h3 className="text-2xl font-bold text-white mt-1">Founder's Lifetime</h3>
+              <p className="text-xs text-slate-400 mt-2">Pay once, own forever. No monthly or yearly renewals.</p>
               
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">₹2,499</span>
-                <span className="text-sm text-slate-400">/month</span>
+              <div className="mt-6 flex flex-col">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold text-white">₹24,999</span>
+                  <span className="text-sm text-amber-400 font-bold"> once</span>
+                </div>
+                <div className="mt-1.5">
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                    👑 Zero Recurring Renewal Fees
+                  </span>
+                </div>
               </div>
 
-              <ul className="mt-8 space-y-3 text-xs text-slate-300">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Unlimited Branch & Multi-Counter Sync</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Centralized Warehouse Inventory Transfer</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Custom API & ERP Integrations</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Dedicated Account Manager & SLA</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Automated On-Premise / Cloud Hybrid Sync</li>
+              <ul className="mt-8 space-y-3.5 text-xs text-slate-300">
+                <li className="flex items-center gap-2.5 font-bold text-amber-300">
+                  <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Lifetime Full Software & Cloud Access</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>No Recurring Subscription Fees</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Lifetime Mobile App & Real-Time Sync</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Unlimited Staff Mobile Scanner Seats</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>All Future AI & ERP Updates Included</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>VIP 24/7 Dedicated Support</span>
+                </li>
               </ul>
             </div>
 
             <button
-              onClick={() => navigate('/login')}
-              className="mt-8 w-full py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition"
+              onClick={() => navigate(isLoggedIn ? '/settings' : '/login')}
+              className="mt-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/25 transition relative z-10"
             >
-              Contact Sales
+              Get Lifetime Deal
             </button>
           </div>
+
+        </div>
+
+        {/* MOBILE-ONLY PASS COMPANION BANNER */}
+        <div className="mt-10 max-w-6xl mx-auto p-5 sm:p-6 rounded-2xl bg-amber-950/30 border border-amber-500/40 text-amber-100 flex flex-col sm:flex-row items-center justify-between gap-5 backdrop-blur-md">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 shrink-0 border border-amber-500/30">
+              <Smartphone className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-extrabold text-base text-white">Mobile-Only Pro Pass — ₹1,499 / Year</span>
+                <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                  📱 Mobile Phone Only
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                ખાસ એવા કેમિસ્ટ મિત્રો માટે જેમના સ્ટોર પર PC કે લેપટોપ નથી અને માત્ર એન્ડ્રોઇડ સ્માર્ટફોન કે ટેબ્લેટથી દુકાન ચલાવે છે. Full Mobile Billing, Barcode Camera Scan, Inventory & WhatsApp Invoicing.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate(isLoggedIn ? '/settings' : '/login')}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs whitespace-nowrap transition shrink-0"
+          >
+            Explore Mobile Pass
+          </button>
+        </div>
+
+        {/* SECURE PAYMENT NOTE */}
+        <div className="mt-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span>Payments are securely processed via Razorpay. Instant activation, no setup fees.</span>
         </div>
       </section>
 
