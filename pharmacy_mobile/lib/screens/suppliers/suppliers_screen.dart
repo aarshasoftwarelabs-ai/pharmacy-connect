@@ -128,7 +128,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
               const Divider(),
               const SizedBox(height: 12),
               const Text(
-                'COMPLIANCE & DRUG LICENSES (DAVASETU)',
+                'COMPLIANCE & DRUG LICENSES',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
