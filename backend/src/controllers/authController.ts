@@ -15,8 +15,14 @@ export class AuthController {
   static async checkMobile(req: Request, res: Response) {
     try {
       const { phone, businessType } = req.body;
-      if (!phone) {
-        return res.status(400).json({ success: false, message: 'Phone number is required' });
+      const email = (req.body.email || '').trim();
+
+      if (!phone || !phone.toString().trim()) {
+        return res.status(400).json({ success: false, message: 'Please enter your mobile number' });
+      }
+
+      if (!email) {
+        return res.status(400).json({ success: false, message: 'Please enter your email address' });
       }
 
       // Check user
@@ -45,11 +51,24 @@ export class AuthController {
         
         if (pharmacyResult.rows.length > 0) {
             const pharmacyName = pharmacyResult.rows[0].name;
+
+            // Generate OTP so existing store owners can also login via OTP seamlessly
+            const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            otpStore[phone] = generatedOtp;
+            setTimeout(() => {
+              if (otpStore[phone] === generatedOtp) delete otpStore[phone];
+            }, 60000);
+
+            console.log(`\n========================================`);
+            console.log(`[DEV MODE - Pharmacy Login] OTP for ${phone} (${email}) is: ${generatedOtp} (Master OTP: 123456)`);
+            console.log(`========================================\n`);
+
             return res.json({
                 success: true,
                 exists: true,
                 pharmacyName: pharmacyName,
-                userName: user.name
+                userName: user.name,
+                message: 'OTP sent successfully (Development Mode: use 123456)'
             });
         }
         
@@ -62,10 +81,9 @@ export class AuthController {
       }
 
       // User does not exist, send OTP for registration
-      const { email } = req.body;
-        if (!email) {
-          return res.status(400).json({ success: false, message: 'Email address is required for new registration' });
-        }
+      if (!email) {
+        return res.status(400).json({ success: false, message: 'Please enter your email address' });
+      }
 
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
         otpStore[phone] = generatedOtp;
@@ -177,7 +195,49 @@ export class AuthController {
 
       if (otpStore[phone] === otp || otp === '123456') { // Kept 123456 as master password for easy dev
         delete otpStore[phone];
-        return res.json({ success: true, message: 'OTP verified successfully' });
+
+        // Check if user already exists with an active pharmacy
+        const userQuery = `
+          SELECT u.id, u.name, u.phone, u.email,
+                 p.id as pharmacy_id, p.name as pharmacy_name, p.address as pharmacy_address
+          FROM users u
+          LEFT JOIN pharmacies p ON p.owner_id = u.id
+          WHERE u.phone = $1
+          ORDER BY (p.id IS NOT NULL) DESC, p.id ASC
+          LIMIT 1
+        `;
+        const userRes = await pool.query(userQuery, [phone]);
+
+        if (userRes.rows.length > 0 && userRes.rows[0].pharmacy_id) {
+          const u = userRes.rows[0];
+          const token = jwt.sign(
+            { id: u.id, email: u.email, role: 'PHARMACIST', pharmacyId: u.pharmacy_id },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+          );
+          return res.json({
+            success: true,
+            exists: true,
+            message: 'OTP verified successfully',
+            token,
+            user: {
+              id: u.id,
+              name: u.name,
+              email: u.email,
+              phone: u.phone,
+              role: 'PHARMACIST',
+              pharmacyId: u.pharmacy_id,
+              pharmacyName: u.pharmacy_name
+            },
+            pharmacy: {
+              id: u.pharmacy_id,
+              name: u.pharmacy_name,
+              address: u.pharmacy_address
+            }
+          });
+        }
+
+        return res.json({ success: true, exists: false, message: 'OTP verified successfully' });
       } else {
         return res.status(400).json({ success: false, message: 'Invalid OTP' });
       }

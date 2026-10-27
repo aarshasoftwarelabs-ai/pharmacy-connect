@@ -87,6 +87,87 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>?> checkMobile(String phone, String email) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.post(ApiEndpoints.checkMobile, {
+        'phone': phone.trim(),
+        'email': email.trim(),
+        'businessType': 'RETAIL',
+      });
+
+      _isLoading = false;
+
+      if (response.success && response.data != null) {
+        notifyListeners();
+        return Map<String, dynamic>.from(response.data as Map<String, dynamic>);
+      } else {
+        _errorMessage = response.message ?? 'Verification failed';
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Connection error: $e';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> verifyOtp({required String phone, required String otp}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.post(ApiEndpoints.verifyOtp, {
+        'phone': phone.trim(),
+        'otp': otp.trim(),
+      });
+
+      _isLoading = false;
+
+      if (response.success && response.data != null) {
+        final data = response.data as Map<String, dynamic>;
+        final token = data['token']?.toString() ?? '';
+        final userMap = data['user'] != null ? Map<String, dynamic>.from(data['user'] as Map<String, dynamic>) : null;
+        final pharmacyMap = data['pharmacy'] as Map<String, dynamic>?;
+
+        if (token.isNotEmpty) {
+          await StorageService.setToken(token);
+        }
+        if (pharmacyMap != null) {
+          await StorageService.setPharmacy(pharmacyMap);
+          if (pharmacyMap['name'] != null && userMap != null) {
+            userMap['pharmacyName'] = pharmacyMap['name'];
+          }
+          if (pharmacyMap['id'] != null && userMap != null) {
+            userMap['pharmacyId'] = pharmacyMap['id'].toString();
+          }
+        }
+        if (userMap != null) {
+          _user = UserModel.fromJson(userMap);
+          await StorageService.setUser(_user!.toJson());
+        }
+
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = response.message ?? 'Invalid OTP';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'OTP verification error: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> register({
     required String ownerName,
     required String pharmacyName,

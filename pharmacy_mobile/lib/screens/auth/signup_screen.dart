@@ -6,7 +6,14 @@ import '../../providers/inventory_provider.dart';
 import '../navigation/main_nav_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+  final String? prefilledPhone;
+  final String? prefilledEmail;
+
+  const SignUpScreen({
+    super.key,
+    this.prefilledPhone,
+    this.prefilledEmail,
+  });
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -23,7 +30,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
-  String _businessType = 'RETAIL'; // 'RETAIL' or 'WHOLESALE'
+  final String _businessType = 'RETAIL'; // 'RETAIL' or 'WHOLESALE'
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.prefilledPhone != null && widget.prefilledPhone!.isNotEmpty) {
+      _phoneController.text = widget.prefilledPhone!;
+    }
+    if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
+      _emailController.text = widget.prefilledEmail!;
+    }
+  }
 
   @override
   void dispose() {
@@ -293,8 +311,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Email Address (Optional)
-                      _buildFieldLabel('Email Address (ઈમેલ - વૈકલ્પિક)'),
+                      // Email Address (Required)
+                      _buildFieldLabel('Email Address (ઈમેઈલ એડ્રેસ)', required: true),
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: _emailController,
@@ -303,6 +321,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           hint: 'e.g. store@gmail.com',
                           icon: Icons.alternate_email_rounded,
                         ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'કૃપા કરીને તમારું ઈમેઈલ એડ્રેસ દાખલ કરો';
+                          }
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          if (!emailRegex.hasMatch(val.trim())) {
+                            return 'કૃપા કરીને માન્ય ઈમેઈલ એડ્રેસ દાખલ કરો';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
 

@@ -24,6 +24,8 @@ class ApiEndpoints {
   }
 
   // Auth
+  static String get checkMobile => '$baseUrl/auth/check-mobile';
+  static String get verifyOtp => '$baseUrl/auth/verify-otp';
   static String get login => '$baseUrl/auth/login';
   static String get register => '$baseUrl/auth/register';
   static String get staffLogin => '$baseUrl/auth/staff-login';

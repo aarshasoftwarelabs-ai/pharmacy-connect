@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../navigation/main_nav_screen.dart';
 import '../staff/staff_scanner_screen.dart';
+import 'otp_verification_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,9 +18,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _isStaffLogin = false; // Default to Store Owner mode
 
-  // Owner controllers
-  final _identifierController = TextEditingController(text: 'deeplodaliya007@gmail.com');
-  final _passwordController = TextEditingController(text: 'Jenish009@@@');
+  // Store Owner controllers (Mobile + Email OTP flow)
+  final _ownerPhoneController = TextEditingController();
+  final _ownerEmailController = TextEditingController();
+  bool _usePasswordLogin = false;
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   // Counter Scanner controllers
@@ -75,19 +78,127 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _staffPhoneController.removeListener(_onStaffPhoneChanged);
-    _identifierController.dispose();
+    _ownerPhoneController.dispose();
+    _ownerEmailController.dispose();
     _passwordController.dispose();
     _staffPhoneController.dispose();
     _staffPinController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleOwnerLogin() async {
+  Future<void> _handleOwnerContinue() async {
+    final digits = _ownerPhoneController.text.trim().replaceAll(RegExp(r'\D'), '');
+    final email = _ownerEmailController.text.trim();
+
+    // 1. Mobile Number Check
+    if (digits.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          content: Text('કૃપા કરીને તમારો મોબાઈલ નંબર દાખલ કરો (Please enter your mobile number)'),
+        ),
+      );
+      return;
+    }
+
+    if (digits.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          content: Text('કૃપા કરીને માન્ય 10 અંકનો મોબાઈલ નંબર દાખલ કરો (Please enter a valid 10-digit mobile number)'),
+        ),
+      );
+      return;
+    }
+
+    // 2. Email Address Check
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          content: Text('કૃપા કરીને તમારું ઈમેઈલ એડ્રેસ દાખલ કરો (Please enter your email address)'),
+        ),
+      );
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          content: Text('કૃપા કરીને માન્ય ઈમેઈલ દાખલ કરો (Please enter a valid email address)'),
+        ),
+      );
+      return;
+    }
+
+    // 3. Both are entered and valid! Call checkMobile & proceed to OTP page
     final auth = context.read<AuthProvider>();
-    final success = await auth.login(
-      _identifierController.text,
-      _passwordController.text,
-    );
+    final result = await auth.checkMobile(digits, email);
+
+    if (!mounted) return;
+
+    if (result != null) {
+      final isExisting = result['exists'] == true;
+      final pharmacyName = result['pharmacyName']?.toString();
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpVerificationScreen(
+            phone: digits,
+            email: email,
+            isExisting: isExisting,
+            pharmacyName: pharmacyName,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          content: Text(auth.errorMessage ?? 'ચકાસણી નિષ્ફળ રહી. ફરી પ્રયાસ કરો.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleOwnerPasswordLogin() async {
+    final phone = _ownerPhoneController.text.trim();
+    final email = _ownerEmailController.text.trim();
+    final id = email.isNotEmpty ? email : phone;
+    final password = _passwordController.text.trim();
+
+    if (id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          content: Text('કૃપા કરીને મોબાઈલ અથવા ઈમેઈલ દાખલ કરો'),
+        ),
+      );
+      return;
+    }
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          content: Text('કૃપા કરીને પાસવર્ડ દાખલ કરો'),
+        ),
+      );
+      return;
+    }
+
+    final auth = context.read<AuthProvider>();
+    final success = await auth.login(id, password);
 
     if (!mounted) return;
 
@@ -101,6 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
           content: Text(auth.errorMessage ?? 'Login failed. Please check credentials.'),
         ),
       );
@@ -540,48 +652,72 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ] else ...[
-                  // Owner Email/Phone
+                  // Mobile Number Field
                   const Text(
-                    'Owner Email or Phone',
+                    'Mobile Number (મોબાઈલ નંબર)',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 8),
                   TextField(
-                    controller: _identifierController,
-                    keyboardType: TextInputType.emailAddress,
+                    controller: _ownerPhoneController,
+                    keyboardType: TextInputType.phone,
+                    maxLength: 10,
                     decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.textMuted),
-                      hintText: 'admin@davasetu.com',
+                      prefixIcon: Icon(Icons.phone_android_rounded, color: AppColors.textMuted),
+                      prefixText: '+91 ',
+                      hintText: 'Enter 10-digit mobile number',
+                      counterText: '',
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Owner Password
+                  // Email Address Field
                   const Text(
-                    'Password',
+                    'Email Address (ઈમેઈલ એડ્રેસ)',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 8),
                   TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textMuted),
-                      hintText: 'Enter password',
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                          color: AppColors.textMuted,
-                        ),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      ),
+                    controller: _ownerEmailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.alternate_email_rounded, color: AppColors.textMuted),
+                      hintText: 'e.g. owner@davasetu.com',
                     ),
                   ),
+                  
+                  // Optional Password field if user toggles "Sign in with password"
+                  if (_usePasswordLogin) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Password (ગુપ્ત પાસવર્ડ)',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textMuted),
+                        hintText: 'Enter your password',
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: AppColors.textMuted,
+                          ),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 24),
 
-                  // Owner Login Button
+                  // Action Button: Continue (or Sign in with Password)
                   ElevatedButton(
-                    onPressed: auth.isLoading ? null : _handleOwnerLogin,
+                    onPressed: auth.isLoading
+                        ? null
+                        : (_usePasswordLogin ? _handleOwnerPasswordLogin : _handleOwnerContinue),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: AppColors.primary,
@@ -596,10 +732,30 @@ class _LoginScreenState extends State<LoginScreen> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Text(
-                            'Sign In to Dashboard',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        : Text(
+                            _usePasswordLogin ? 'Sign In with Password (લોગિન)' : 'Continue (આગળ વધો)',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Toggle between OTP and Password
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _usePasswordLogin = !_usePasswordLogin),
+                      icon: Icon(
+                        _usePasswordLogin ? Icons.mark_email_read_rounded : Icons.lock_outline_rounded,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                      label: Text(
+                        _usePasswordLogin
+                            ? 'Switch to Mobile & Email OTP (ઓટીપીથી આગળ વધો)'
+                            : 'Or Sign In with Password (પાસવર્ડથી લોગિન કરો)',
+                        style: const TextStyle(fontSize: 12.5, color: AppColors.primary, fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 20),

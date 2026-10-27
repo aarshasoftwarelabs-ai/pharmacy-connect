@@ -59,10 +59,27 @@ export default function Login() {
 
   const handleCheckMobile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.length < 10) {
-      setError('Please enter a valid 10-digit mobile number');
+    const cleanPhone = phone.trim().replace(/\D/g, '');
+    const cleanEmail = email.trim();
+
+    if (!cleanPhone) {
+      setError('Please enter your mobile number (કૃપા કરીને તમારો મોબાઈલ નંબર દાખલ કરો)');
       return;
     }
+    if (cleanPhone.length < 10) {
+      setError('Please enter a valid 10-digit mobile number (કૃપા કરીને માન્ય 10 અંકનો મોબાઈલ નંબર દાખલ કરો)');
+      return;
+    }
+    if (!cleanEmail) {
+      setError('Please enter your email address (કૃપા કરીને તમારું ઈમેઈલ એડ્રેસ દાખલ કરો)');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setError('Please enter a valid email address (કૃપા કરીને માન્ય ઈમેઈલ એડ્રેસ દાખલ કરો)');
+      return;
+    }
+
     setLoading(true);
     setError('');
     
@@ -70,13 +87,23 @@ export default function Login() {
       const response = await fetch(`${API_BASE}/auth/check-mobile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, email: email || `${phone}@davasetu.com`, businessType })
+        body: JSON.stringify({ phone: cleanPhone, email: cleanEmail, businessType })
       });
       const data = await response.json();
+
+      if (!response.ok && !data.success) {
+        setError(data.message || 'Verification failed. Please try again.');
+        return;
+      }
       
+      setTimer(60); // Reset timer
+      setOtp(['', '', '', '', '', '']); // Clear old OTP
+
       if (data.exists) {
         setPharmacyName(data.pharmacyName);
-        transitionToStep(2); // Go to login
+        setIsExistingUser(true);
+        // Navigate directly to OTP page per user request
+        transitionToStep(3); // Go to OTP verification
       } else {
         if (data.userExists) {
             setIsExistingUser(true);
@@ -91,8 +118,6 @@ export default function Login() {
             setAddress('');
             setPassword('');
         }
-        setTimer(60); // Reset timer
-        setOtp(['', '', '', '', '', '']); // Clear old OTP on new request or resend
         transitionToStep(3); // Go to OTP verification
       }
     } catch (err: any) {
@@ -208,8 +233,23 @@ export default function Login() {
         setTimeout(() => {
           setOtpVerificationStatus('idle');
           setLoading(false);
-          transitionToStep(4);
-        }, 2000);
+          if (data.exists && data.token) {
+            localStorage.setItem('token', data.token);
+            if (data.user) {
+              localStorage.setItem('user', JSON.stringify(data.user));
+            }
+            if (data.pharmacy) {
+              localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
+            }
+            localStorage.setItem('business_type', businessType);
+            setIsRedirecting(true);
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 1200);
+          } else {
+            transitionToStep(4);
+          }
+        }, 1500);
       } else {
         setOtpVerificationStatus('idle');
         setLoading(false);
@@ -384,9 +424,9 @@ export default function Login() {
               </div>
             )}
 
-            {/* STEP 1: MOBILE */}
+            {/* STEP 1: MOBILE & EMAIL */}
             {step === 1 && (
-              <form className="space-y-4" onSubmit={handleCheckMobile}>
+              <form noValidate className="space-y-4" onSubmit={handleCheckMobile}>
 
                 <div className="flex rounded-xl shadow-sm border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-pharmacy-500 focus-within:border-transparent transition-all relative">
                   
@@ -429,12 +469,11 @@ export default function Login() {
 
                   <input 
                     type="tel" 
-                    required 
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                     maxLength={10}
                     className="block w-full pl-3 pr-4 py-3.5 bg-transparent text-lg font-bold text-slate-800 placeholder-slate-400 focus:outline-none" 
-                    placeholder="Mobile Number" 
+                    placeholder="Mobile Number (મોબાઈલ નંબર)" 
                   />
                 </div>
                 
@@ -447,7 +486,7 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent transition-all shadow-sm" 
-                    placeholder="Email (for new registration OTP)" 
+                    placeholder="Email Address (ઈમેઈલ દાખલ કરો)" 
                   />
                 </div>
                 <button
@@ -493,8 +532,8 @@ export default function Login() {
                   <button type="button" onClick={() => transitionToStep(1)} className="text-sm font-semibold text-slate-500 hover:text-slate-800 flex items-center">
                     <ArrowLeft className="w-4 h-4 mr-1" /> Back
                   </button>
-                  <button type="button" className="text-sm font-semibold text-pharmacy-600 hover:text-pharmacy-800">
-                    Forgot password?
+                  <button type="button" onClick={() => transitionToStep(3)} className="text-sm font-semibold text-pharmacy-600 hover:text-pharmacy-800">
+                    Login with OTP instead
                   </button>
                 </div>
               </form>
@@ -548,9 +587,16 @@ export default function Login() {
                           </button>
                         )}
                       </div>
-                      <button type="button" onClick={() => transitionToStep(1)} className="text-sm font-semibold text-slate-500 hover:text-slate-800 flex items-center justify-center w-full">
-                        <ArrowLeft className="w-4 h-4 mr-1" /> Change Details
-                      </button>
+                      <div className="flex flex-col gap-2 pt-1">
+                        {pharmacyName && (
+                          <button type="button" onClick={() => transitionToStep(2)} className="text-sm font-semibold text-pharmacy-600 hover:text-pharmacy-800">
+                            Prefer password? Sign in with Password
+                          </button>
+                        )}
+                        <button type="button" onClick={() => transitionToStep(1)} className="text-sm font-semibold text-slate-500 hover:text-slate-800 flex items-center justify-center w-full">
+                          <ArrowLeft className="w-4 h-4 mr-1" /> Change Details
+                        </button>
+                      </div>
                     </div>
                   </>
                 ) : (
