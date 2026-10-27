@@ -37,9 +37,13 @@ import {
   Award, 
   CheckCircle, 
   RefreshCw,
-  SlidersHorizontal,
-  FileCheck,
-  Send
+  Send,
+  Play,
+  ArrowUpRight,
+  ShieldAlert,
+  Percent,
+  Cpu,
+  BadgeCheck
 } from 'lucide-react';
 
 interface MedicineSample {
@@ -68,12 +72,12 @@ export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [cart, setCart] = useState<MedicineSample[]>([SAMPLE_MEDS[0], SAMPLE_MEDS[1]]);
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
-  const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI' | 'CREDIT'>('UPI');
+  const [paymentMode, setPaymentMode] = useState<'UPI' | 'CASH' | 'CREDIT'>('UPI');
   const [receiptSimulated, setReceiptSimulated] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
-  const [customerPhone, setCustomerPhone] = useState('9876543210');
-  const [customerName, setCustomerName] = useState('Rajesh Patel');
-  const [activeTab, setActiveTab] = useState<'retail' | 'expiry' | 'purchase' | 'khata'>('retail');
+  const [customerPhone] = useState('9876543210');
+  const [customerName] = useState('Rajesh Patel');
+  const [activeStudioTab, setActiveStudioTab] = useState<'billing' | 'expiry' | 'purchases' | 'khata' | 'mobile'>('billing');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -115,66 +119,67 @@ export default function LandingPage() {
 
   const faqs = [
     {
-      q: 'જૂના સોફ્ટવેર (Marg, RedCross, Tally) માંથી ડેટા શિફ્ટ થઈ જશે?',
-      a: 'હા, બિલકુલ! તમારી જૂની એક્સેલ ફાઈલ કે દવાઓની યાદી સીધી જ ૫ મિનિટમાં DavaSetu માં ઇમ્પોર્ટ (Import) થઈ જાય છે. તમારો એકપણ રેકોર્ડ કે ગ્રાહકનો હિસાબ ખોવાશે નહીં.'
+      q: 'Can I easily import my existing medicine inventory from Marg or Excel?',
+      a: 'Yes, absolutely! DavaSetu includes an instant 1-click Excel/CSV inventory migration tool. Upload your existing medicine catalog, batches, purchase rates, and supplier lists in under 5 minutes without interrupting your daily counter sales.'
     },
     {
-      q: 'દુકાને ન હોવ ત્યારે શું હું ઘરેથી કે બહારથી વેચાણ અને ગલ્લો જોઈ શકું?',
-      a: 'હા! DavaSetu ૧૦૦% ક્લાઉડ-બેઝ્ડ છે. તમે તમારા મોબાઇલ કે લેપટોપથી ગમે ત્યાં બેઠા લાઈવ જોઈ શકો છો કે આજે કેટલા બિલ બન્યા, કેશ કેટલા આવ્યા, UPI કેટલા થયા અને સ્ટોક કેટલો બચ્યો છે.'
+      q: 'Can I monitor store sales and inventory from home on my mobile phone?',
+      a: 'Yes! DavaSetu is 100% cloud-powered. Whether you are at home, travelling, or managing multiple medical stores, you can view live real-time counter sales, cash registers, low-stock warnings, and staff activity directly on your smartphone.'
     },
     {
-      q: 'શું મારા હાલના બારકોડ સ્કેનર અને થર્મલ પ્રિન્ટર સાથે ચાલશે?',
-      a: 'હા, ૧૦૦%! ટીવીએસ (TVS), એપ્સન (Epson), NGX કે કોઈપણ ૨-ઇંચ/૩-ઇંચ થર્મલ પ્રિન્ટર અને USB/વાયરલેસ બારકોડ સ્કેનર પ્લગ-એન્ડ-પ્લે તરીકે તરત જ કનેક્ટ થઈ જાય છે.'
+      q: 'Does it work with my existing USB barcode scanner and thermal receipt printer?',
+      a: 'Yes, 100%! DavaSetu supports all standard 1D/2D USB, Bluetooth, and wireless barcode scanners, as well as 2-inch (58mm) and 3-inch (80mm) thermal printers (TVS, Epson, NGX, Posiflex) and regular A4/A5 laser invoice printers.'
     },
     {
-      q: 'દવાઓ એક્સપાયર (Expiry) થવાથી નુકસાન કેવી રીતે બચશે?',
-      a: 'આપણું સ્માર્ટ એક્સપાયરી શિલ્ડ ૩૦, ૬૦ અને ૯૦ દિવસ પહેલા જ તમને કલર-કોડેડ એલર્ટ આપી દે છે, જેથી એક્સપાયરી ડેટ પહેલા જ તમે સપ્લાયર/ડિસ્ટ્રીબ્યુટરને માલ પરત મોકલી ક્રેડિટ નોટ મેળવી શકો.'
+      q: 'How does the Smart Expiry Shield save me money?',
+      a: 'Our automated FIFO tracking flags medicines nearing expiration at 30, 60, and 90-day intervals with intelligent color-coded badges. It automatically generates supplier debit return notes so you can return medicines before expiry and claim full credit.'
     },
     {
-      q: 'શું ઇન્ટરનેટ ધીમું હોય કે થોડીવાર બંધ થાય તો બિલિંગ અટકી જશે?',
-      a: 'ના! DavaSetu માં ઓફલાઇન બિલિંગ સપોર્ટ છે. નેટ સ્લો હોય તો પણ કાઉન્ટર બિલિંગ અટકતું નથી, અને જેવું નેટ આવે એટલે બધો ડેટા આપોઆપ ક્લાઉડમાં સેવ થઈ જાય છે.'
+      q: 'What happens if our internet connection is temporarily slow or down?',
+      a: 'DavaSetu has built-in offline resiliency. Counter billing continues uninterrupted even during internet fluctuations. Once your connection restores, all bills, receipts, and inventory deductions automatically sync to the secure cloud.'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-emerald-600 selection:text-white antialiased">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-600 selection:text-white antialiased">
       
-      {/* 1. TOP BRAND TRUST BAR */}
-      <div className="bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 text-white text-xs sm:text-sm font-medium py-2 px-4 shadow-inner">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      {/* 1. TOP ANNOUNCEMENT BAR */}
+      <div className="bg-slate-900 text-white text-xs sm:text-sm font-medium py-2.5 px-4 border-b border-slate-800">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-emerald-500 text-white text-[10px] font-black tracking-wide uppercase">
-              NEW 3.0
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black tracking-wider uppercase">
+              VERSION 3.0 LIVE
             </span>
-            <span className="truncate">
-              ⚡ ભારતભરના ૧,૨૦૦+ મેડિકલ સ્ટોર્સનો વિશ્વસનીય ફાર્મસી ક્લાઉડ POS & ERP સોફ્ટવેર
+            <span className="text-slate-300">
+              Trusted by 1,200+ Retail Chemists & Pharmacies across India
             </span>
           </div>
-          <div className="flex items-center gap-4 text-emerald-200">
-            <span className="hidden md:inline-flex items-center gap-1">
-              <Phone className="w-3.5 h-3.5" /> હેલ્પલાઇન: +91 98765 43210
+          <div className="flex items-center gap-5 text-slate-300 text-xs">
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
+              <Phone className="w-3.5 h-3.5" /> Support: +91 98765 43210
             </span>
             <button 
               onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')}
-              className="text-white font-bold underline hover:text-emerald-100 transition flex items-center gap-1"
+              className="text-white hover:text-emerald-400 font-bold flex items-center gap-1 transition"
             >
-              <span>{isLoggedIn ? 'Go to Dashboard →' : 'Launch Free Demo →'}</span>
+              <span>{isLoggedIn ? 'Go to Dashboard' : 'Chemist Sign In'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. STICKY GLASS HEALTHCARE NAVBAR */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-sm transition-all">
+      {/* 2. MODERN FLOATING GLASS HEADER */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
-          {/* LOGO */}
+          {/* BRAND LOGO */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="relative flex items-center justify-center p-1.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/60 shadow-sm">
+            <div className="p-1.5 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-sm">
               <img 
                 src="/davasetu_logo.png" 
                 alt="DavaSetu Pharmacy POS" 
-                className="h-10 sm:h-12 w-auto object-contain group-hover:scale-105 transition-transform"
+                className="h-10 sm:h-11 w-auto object-contain group-hover:scale-105 transition-transform"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
@@ -185,53 +190,54 @@ export default function LandingPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-slate-900">
+                <span className="font-black text-2xl tracking-tight text-slate-900">
                   Dava<span className="text-emerald-600">Setu</span>
                 </span>
-                <span className="inline-flex text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                  Pharmacy Cloud
+                <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  POS 3.0
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-semibold tracking-tight">Smart Medical Store POS & Billing</p>
+              <p className="text-[11px] text-slate-500 font-semibold tracking-tight">Smart Cloud Pharmacy & Retail ERP</p>
             </div>
           </Link>
 
-          {/* DESKTOP NAV LINKS */}
-          <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
-            <a href="#why-davasetu" className="hover:text-emerald-600 transition-colors">શા માટે DavaSetu?</a>
+          {/* DESKTOP NAVIGATION PILLS */}
+          <nav className="hidden lg:flex items-center gap-7 text-sm font-bold text-slate-600">
+            <a href="#solutions" className="hover:text-emerald-600 transition-colors">Solutions</a>
             <a href="#interactive-simulator" className="hover:text-emerald-600 transition-colors flex items-center gap-1.5">
-              <span>લાઈવ કાઉન્ટર ડેમો</span>
-              <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-800 rounded-full font-bold animate-pulse">Try Live</span>
+              <span>Live POS Simulator</span>
+              <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-800 rounded-full font-black animate-pulse">Try Free</span>
             </a>
-            <a href="#features" className="hover:text-emerald-600 transition-colors">ફીચર્સ</a>
-            <a href="#pricing" className="hover:text-emerald-600 transition-colors">પ્લાન & કિંમત</a>
+            <a href="#comparison" className="hover:text-emerald-600 transition-colors">Why DavaSetu?</a>
+            <a href="#features" className="hover:text-emerald-600 transition-colors">Modules</a>
+            <a href="#pricing" className="hover:text-emerald-600 transition-colors">Pricing & Plans</a>
             <a href="#faq" className="hover:text-emerald-600 transition-colors">FAQ</a>
           </nav>
 
-          {/* HEADER ACTION BUTTONS */}
+          {/* RIGHT ACTION BUTTONS */}
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-md shadow-emerald-600/20 hover:shadow-lg hover:from-emerald-700 hover:to-teal-700 hover:scale-[1.02] active:scale-[0.98] transition flex items-center gap-2"
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/25 transition flex items-center gap-2"
               >
-                <span>ઓપન POS ડેશબોર્ડ</span>
+                <span>Launch POS Terminal</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <>
                 <button
                   onClick={() => navigate('/login')}
-                  className="hidden sm:inline-flex px-4 py-2 text-sm font-bold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition border border-slate-200"
+                  className="hidden sm:inline-flex px-4 py-2 text-sm font-bold text-slate-700 hover:text-emerald-700 hover:bg-slate-100 rounded-xl transition"
                 >
                   Chemist Login
                 </button>
                 <button
                   onClick={() => navigate('/login')}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 text-white font-bold text-sm shadow-md shadow-emerald-600/25 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/25 hover:scale-[1.02] active:scale-[0.98] transition flex items-center gap-2"
                 >
                   <Sparkles className="w-4 h-4 text-emerald-200" />
-                  <span>Launch Web POS</span>
+                  <span>Launch Free Web POS</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </>
@@ -240,233 +246,203 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* 3. HERO SECTION - HIGH CONVERTING HEALTHCARE SAAS */}
-      <section className="relative overflow-hidden pt-12 pb-20 lg:pt-16 lg:pb-28 bg-gradient-to-b from-white via-emerald-50/20 to-slate-50 border-b border-slate-200/70">
+      {/* 3. HERO SECTION - ASYMMETRIC 2-COLUMN SPLIT LAYOUT (NOT CENTERED TEXT!) */}
+      <section className="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden bg-gradient-to-b from-white via-slate-50 to-emerald-50/20 border-b border-slate-200">
         
-        {/* Soft Background Radial Rings */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-emerald-100/40 via-teal-50/20 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
+        {/* Subtle decorative background mesh */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-emerald-100/60 via-teal-100/30 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
-            {/* Pharmacy Trust Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-300 text-emerald-900 text-xs sm:text-sm font-bold mb-6 shadow-sm">
-              <ShieldCheck className="w-4 h-4 text-emerald-700" />
-              <span>૧૦૦% ભારતીય ફાર્મસી અને મેડિકલ સ્ટોર માટે ખાસ ડિઝાઈન કરેલું</span>
-            </div>
-
-            {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.18]">
-              જૂના, ધીમા સોફ્ટવેરને કહો અલવિદા!{' '}
-              <br className="hidden sm:inline" />
-              મેડિકલ બિલિંગ હવે થશે{' '}
-              <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 bg-clip-text text-transparent">
-                ૩ ગણું ઝડપી & ઝીરો એક્સપાયરી લોસ
-              </span>
-            </h1>
-
-            {/* Subtitle */}
-            <p className="mt-6 text-base sm:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed font-normal">
-              સાંજે ગ્રાહકોની ભીડમાં ઝડપી બારકોડ સ્કેનિંગ, ગ્રાહકના વોટ્સએપ પર સીધું જીએસટી બિલ, ડિસ્ટ્રીબ્યુટર પર્ચેઝ ઈન્વર્ડ અને મોબાઈલ પર લાઈવ સેલ્સ ટ્રેકિંગ—બધું જ ૧ ક્લિકમાં.
-            </p>
-
-            {/* Hero CTAs */}
-            <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-base shadow-xl shadow-emerald-700/25 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-              >
-                <Zap className="w-5 h-5 text-yellow-300" />
-                <span>{isLoggedIn ? 'ઓપન POS ટર્મિનલ' : 'ફ્રી ડેમો શરૂ કરો (Launch Web POS)'}</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
-
-              <a
-                href="#interactive-simulator"
-                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-base border-2 border-slate-200 hover:border-slate-300 shadow-sm transition flex items-center justify-center gap-2"
-              >
-                <span>નીચે લાઈવ બિલ બનાવી જુઓ</span>
-                <ChevronDown className="w-4 h-4 text-slate-500" />
-              </a>
-            </div>
-
-            {/* Quick Benefits Bullet Strip */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-y-2 gap-x-6 text-xs sm:text-sm font-semibold text-slate-600">
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> ૧૫ દિવસ ફ્રી ટ્રાયલ</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> કોઈ ક્રેડિટ કાર્ડની જરૂર નથી</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> જૂના સોફ્ટવેરથી ફ્રી ડેટા ટ્રાન્સફર</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> ૨૪/૭ ગુજરાતી & હિન્દી સપોર્ટ</span>
-            </div>
-          </div>
-
-          {/* 4. REALISTIC LIVE POS INTERFACE MOCKUP (HERO VISUAL SHOWCASE) */}
-          <div className="mt-14 relative max-w-5xl mx-auto">
-            
-            {/* Glowing Backdrop Frame */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-3xl blur-xl opacity-20 transform -rotate-1" />
-
-            <div className="relative rounded-3xl bg-white border border-slate-200/90 shadow-2xl shadow-slate-300/60 overflow-hidden">
+            {/* LEFT COLUMN: PUNCHY COPY & VALUE PROPS (7 COLS) */}
+            <div className="lg:col-span-7">
               
-              {/* Fake Browser/OS Chrome Header */}
-              <div className="bg-slate-100/90 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-rose-400" />
-                    <span className="w-3 h-3 rounded-full bg-amber-400" />
-                    <span className="w-3 h-3 rounded-full bg-emerald-400" />
+              {/* Category Pill */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-black mb-6 shadow-sm">
+                <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                <span>Next-Gen Pharmacy Cloud ERP & Counter POS</span>
+              </div>
+
+              {/* Main Headline */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.12]">
+                The Modern POS Built Exclusively for{' '}
+                <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 bg-clip-text text-transparent">
+                  Retail Pharmacies.
+                </span>
+              </h1>
+
+              {/* Subtext */}
+              <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl leading-relaxed font-medium">
+                Speed up checkouts during evening rush, eliminate expired medicine losses with automated return alerts, and track daily sales from your phone anywhere.
+              </p>
+
+              {/* Metric Highlights Strip */}
+              <div className="mt-8 grid grid-cols-3 gap-3 max-w-lg">
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-emerald-600 font-black text-xl">
+                    <Zap className="w-4 h-4" /> 3 Sec
                   </div>
-                  <div className="px-3 py-1 rounded-md bg-white border border-slate-200 text-xs font-mono text-slate-600 flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">https://</span>davasetu.com/billing
-                  </div>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5">Counter Checkout</p>
                 </div>
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                    લાઈવ કાઉન્ટર ૦૧
-                  </span>
+
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-teal-600 font-black text-xl">
+                    <ShieldCheck className="w-4 h-4" /> 0%
+                  </div>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5">Expiry Deadstock</p>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-cyan-600 font-black text-xl">
+                    <CheckCircle className="w-4 h-4" /> 100%
+                  </div>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5">GST & Cloud Auto-Sync</p>
                 </div>
               </div>
 
-              {/* Realistic POS Screen Mock Content */}
-              <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6 bg-slate-50/50">
+              {/* CTA Action Buttons */}
+              <div className="mt-9 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <button
+                  onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')}
+                  className="px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-xl shadow-emerald-700/20 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-3"
+                >
+                  <Zap className="w-5 h-5 text-yellow-300" />
+                  <span>{isLoggedIn ? 'Go to POS Terminal' : 'Start 15-Day Free Trial'}</span>
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+
+                <a
+                  href="#interactive-simulator"
+                  className="px-7 py-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-base border-2 border-slate-200 shadow-sm transition flex items-center justify-center gap-2"
+                >
+                  <Play className="w-4 h-4 text-emerald-600 fill-emerald-600" />
+                  <span>Try Interactive Demo</span>
+                </a>
+              </div>
+
+              {/* Trust Badges Footer */}
+              <div className="mt-8 flex items-center gap-4 text-xs font-bold text-slate-500">
+                <div className="flex -space-x-2">
+                  <span className="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-[10px] text-white font-black">JP</span>
+                  <span className="w-7 h-7 rounded-full bg-teal-500 border-2 border-white flex items-center justify-center text-[10px] text-white font-black">BS</span>
+                  <span className="w-7 h-7 rounded-full bg-cyan-500 border-2 border-white flex items-center justify-center text-[10px] text-white font-black">RM</span>
+                </div>
+                <span>Rated 4.9/5 by 1,200+ Pharmacists • No Credit Card Required</span>
+              </div>
+
+            </div>
+
+            {/* RIGHT COLUMN: LIVE INTERACTIVE WORKSTATION WIDGET (5 COLS) */}
+            <div className="lg:col-span-5 relative">
+              
+              {/* Decorative Glow */}
+              <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-3xl blur-xl opacity-20 transform rotate-1" />
+
+              <div className="relative rounded-3xl bg-white border border-slate-200/90 shadow-2xl shadow-slate-300/60 p-6 flex flex-col justify-between">
                 
-                {/* Left Side: Medicine Cart & Billing */}
-                <div className="md:col-span-8 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div>
-                    {/* Patient / Customer Bar */}
-                    <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ગ્રાહક (Customer)</span>
-                        <p className="font-bold text-slate-800 text-sm">Rajeshbhai Patel • Mob: +91 98251-XXXXX</p>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 text-xs font-bold border border-teal-200">
-                        Dr. N. K. Shah (Civil Hospital)
-                      </span>
+                {/* Header Strip */}
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
+                    <div>
+                      <span className="font-black text-sm text-slate-900 block">Live Counter POS Terminal</span>
+                      <span className="text-[11px] text-slate-400 font-medium">Counter 01 • Instant Billing</span>
                     </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
+                    Active Session
+                  </span>
+                </div>
 
-                    {/* Table of Medicines in Bill */}
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-12 text-[11px] font-bold text-slate-400 uppercase pb-1 px-2">
-                        <span className="col-span-5">દવાનું નામ (Medicine)</span>
-                        <span className="col-span-2 text-center">બેચ / એક્સપાયરી</span>
-                        <span className="col-span-2 text-center">જથ્થો (Qty)</span>
-                        <span className="col-span-3 text-right">રકમ (MRP)</span>
-                      </div>
+                {/* Patient / Doctor Tag */}
+                <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-150 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Customer</span>
+                    <p className="font-bold text-slate-800">Rajesh Patel (+91 98251-XXXXX)</p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-white text-slate-600 font-mono text-[11px] border">
+                    Dr. N. K. Shah
+                  </span>
+                </div>
 
-                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150 grid grid-cols-12 items-center text-xs">
-                        <div className="col-span-5">
-                          <p className="font-bold text-slate-800">Augmentin 625 Duo Tab</p>
-                          <span className="text-[10px] text-slate-500">GSK • Amoxycillin + Clav</span>
-                        </div>
-                        <span className="col-span-2 text-center font-mono text-[11px] text-slate-600">AUG-41 (08/26)</span>
-                        <span className="col-span-2 text-center font-bold text-slate-800">2 Strips</span>
-                        <span className="col-span-3 text-right font-extrabold text-slate-900">₹402.40</span>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150 grid grid-cols-12 items-center text-xs">
-                        <div className="col-span-5">
-                          <p className="font-bold text-slate-800">Pan-D Capsule</p>
-                          <span className="text-[10px] text-slate-500">Alkem • Pantoprazole + Dom</span>
-                        </div>
-                        <span className="col-span-2 text-center font-mono text-[11px] text-slate-600">PND-90 (05/27)</span>
-                        <span className="col-span-2 text-center font-bold text-slate-800">1 Strip</span>
-                        <span className="col-span-3 text-right font-extrabold text-slate-900">₹189.00</span>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150 grid grid-cols-12 items-center text-xs">
-                        <div className="col-span-5">
-                          <p className="font-bold text-slate-800">Dolo 650mg Tab</p>
-                          <span className="text-[10px] text-slate-500">Micro Labs • Paracetamol</span>
-                        </div>
-                        <span className="col-span-2 text-center font-mono text-[11px] text-slate-600">DL-221 (11/27)</span>
-                        <span className="col-span-2 text-center font-bold text-slate-800">1 Strip</span>
-                        <span className="col-span-3 text-right font-extrabold text-slate-900">₹31.50</span>
-                      </div>
+                {/* Scanned Items Mock List */}
+                <div className="mt-4 space-y-2.5">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-black text-slate-900">Augmentin 625 Duo Tab</p>
+                      <p className="text-[10px] text-slate-500 font-mono">Batch: AUG-41 • Exp: 08/26 • GSK</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-slate-900 text-sm">₹201.20</span>
+                      <span className="block text-[10px] text-emerald-600 font-bold">Qty: 1 (12% Disc)</span>
                     </div>
                   </div>
 
-                  {/* Hotkeys strip */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                    <span className="font-bold text-slate-700">કીબોર્ડ શોર્ટકટ્સ:</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-100 border text-slate-700 font-mono">F1 દવા શોધો</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-100 border text-slate-700 font-mono">F2 પ્રિન્ટ બિલ</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-100 border text-slate-700 font-mono">F4 ડિસ્કાઉન્ટ</span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-100 border border-emerald-200 text-emerald-800 font-mono font-bold">F8 વોટ્સએપ બિલ</span>
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-black text-slate-900">Pantocid DSR Capsule</p>
+                      <p className="text-[10px] text-slate-500 font-mono">Batch: PAN-109 • Exp: 05/27 • Sun Pharma</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-slate-900 text-sm">₹189.00</span>
+                      <span className="block text-[10px] text-emerald-600 font-bold">Qty: 1 (15% Disc)</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-black text-slate-900">Dolo 650mg Paracetamol</p>
+                      <p className="text-[10px] text-slate-500 font-mono">Batch: DL-221 • Exp: 11/27 • Micro</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-slate-900 text-sm">₹31.50</span>
+                      <span className="block text-[10px] text-emerald-600 font-bold">Qty: 1 (10% Disc)</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Right Side: Totals & Instant Pay Summary */}
-                <div className="md:col-span-4 bg-gradient-to-b from-emerald-900 to-slate-900 text-white p-5 rounded-2xl flex flex-col justify-between shadow-md">
-                  <div>
-                    <div className="flex items-center justify-between pb-3 border-b border-emerald-800/60">
-                      <span className="text-xs text-emerald-300 font-bold uppercase tracking-wider">ઇનવોઇસ સમરી</span>
-                      <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono">#DS-10842</span>
+                {/* Live Checkout Summary Box */}
+                <div className="mt-5 p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white">
+                  <div className="flex justify-between text-xs text-slate-400 mb-1">
+                    <span>Subtotal: ₹421.70</span>
+                    <span className="text-emerald-400 font-bold">Savings: -₹55.70</span>
+                  </div>
+                  <div className="flex justify-between items-baseline pt-2 border-t border-slate-800">
+                    <div>
+                      <span className="text-xs text-slate-300 font-bold block">Net Invoice Total:</span>
+                      <span className="text-[10px] text-slate-400">Incl. CGST + SGST (12%)</span>
                     </div>
-
-                    <div className="mt-4 space-y-2 text-xs">
-                      <div className="flex justify-between text-slate-300">
-                        <span>કુલ રકમ (Gross MRP):</span>
-                        <span>₹622.90</span>
-                      </div>
-                      <div className="flex justify-between text-emerald-300">
-                        <span>ડિસ્કાઉન્ટ (૧૨% બચત):</span>
-                        <span>- ₹74.75</span>
-                      </div>
-                      <div className="flex justify-between text-slate-300">
-                        <span>જીએસટી (CGST+SGST 12%):</span>
-                        <span>+ ₹65.78</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 pt-3 border-t border-emerald-800 flex items-baseline justify-between">
-                      <span className="text-sm font-bold text-white">નેટ બિલ રકમ:</span>
-                      <span className="text-2xl font-black text-emerald-400">₹613.93</span>
-                    </div>
+                    <span className="text-2xl font-black text-emerald-400">₹409.92</span>
                   </div>
 
-                  {/* Payment Buttons */}
-                  <div className="mt-6 space-y-2">
-                    <div className="grid grid-cols-2 gap-2 text-xs font-bold">
-                      <span className="py-2 text-center bg-emerald-500 text-slate-950 rounded-xl flex items-center justify-center gap-1 shadow-sm">
-                        <QrCode className="w-3.5 h-3.5" /> UPI QR પે
-                      </span>
-                      <span className="py-2 text-center bg-slate-800 text-slate-200 border border-slate-700 rounded-xl">
-                        રોકડા (Cash)
-                      </span>
-                    </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                     <button 
                       onClick={() => navigate('/login')}
-                      className="w-full py-2.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-950 font-black text-xs transition flex items-center justify-center gap-1.5 shadow"
+                      className="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black transition flex items-center justify-center gap-1.5 shadow"
                     >
-                      <Printer className="w-4 h-4 text-emerald-700" />
-                      <span>૩ સેકન્ડમાં બિલ પ્રિન્ટ કરો</span>
+                      <Printer className="w-4 h-4" />
+                      <span>Print Thermal Bill</span>
+                    </button>
+                    <button 
+                      onClick={() => navigate('/login')}
+                      className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition flex items-center justify-center gap-1.5 border border-slate-700"
+                    >
+                      <MessageSquare className="w-4 h-4 text-emerald-400" />
+                      <span>WhatsApp Bill</span>
                     </button>
                   </div>
                 </div>
 
-              </div>
+                {/* Floating Revenue Pill */}
+                <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                  <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                    <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    Today's Store Total: ₹48,250
+                  </span>
+                  <span className="font-bold text-emerald-700">142 Invoices</span>
+                </div>
 
-            </div>
-
-            {/* Floating KPI Pill 1 (Top Right) */}
-            <div className="absolute -top-5 -right-2 sm:-right-6 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xl shadow-slate-300/50 flex items-center gap-3 animate-bounce" style={{ animationDuration: '4s' }}>
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase">આજનું કાઉન્ટર વેચાણ</p>
-                <p className="font-extrabold text-slate-900 text-base">₹48,250 <span className="text-xs text-emerald-600 font-bold">(142 બિલ્સ)</span></p>
-              </div>
-            </div>
-
-            {/* Floating KPI Pill 2 (Bottom Left) */}
-            <div className="hidden sm:flex absolute -bottom-5 -left-6 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xl shadow-slate-300/50 items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center">
-                <Zap className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase">બારકોડ સ્કેનિંગ સ્પીડ</p>
-                <p className="font-extrabold text-slate-900 text-base">૦.૮ સેકન્ડ <span className="text-xs text-teal-600 font-bold">Fastest</span></p>
               </div>
             </div>
 
@@ -474,101 +450,296 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 5. PAIN VS SOLUTION: WHY PHARMACY OWNERS SWITCH TO DAVALETU */}
-      <section id="why-davasetu" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
+      {/* 4. HARDWARE & COMPATIBILITY TRUST STRIP */}
+      <section className="py-8 bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-6 text-slate-500 text-xs font-bold uppercase tracking-wider">
+            <span className="text-slate-400">Seamless Integration:</span>
+            <span className="flex items-center gap-2"><QrCode className="w-4 h-4 text-emerald-600" /> All USB & Wireless Barcode Scanners</span>
+            <span className="flex items-center gap-2"><Printer className="w-4 h-4 text-emerald-600" /> 2" & 3" Thermal Receipt Printers</span>
+            <span className="flex items-center gap-2"><FileText className="w-4 h-4 text-emerald-600" /> A4 & A5 Laser GST Invoices</span>
+            <span className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-emerald-600" /> Android Tablet & Mobile Phones</span>
+            <span className="flex items-center gap-2"><Database className="w-4 h-4 text-emerald-600" /> Auto Cloud Backup</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. INTERACTIVE FEATURE STUDIO (TABBED WORKFLOW LAYOUT) */}
+      <section id="solutions" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto mb-14">
           <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-1 rounded-full">
-            વાસ્તવિક સમસ્યાઓ vs સ્માર્ટ સોલ્યુશન
+            Interactive Workflow Studio
           </span>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3">
-            તમારા જૂના સોફ્ટવેર અને DavaSetu માં શું ફરક છે?
+            Engineered for Every Corner of Your Pharmacy
           </h2>
-          <p className="mt-3 text-slate-600 text-sm sm:text-base">
-            જો તમે વર્ષો જૂના ડેસ્કટોપ સોફ્ટવેરથી કંટાળી ગયા હોવ, તો આ સરખામણી ખાસ જુઓ.
+          <p className="mt-2 text-slate-600 text-sm sm:text-base">
+            Click on any module below to inspect how DavaSetu automates your daily medical store routine.
+          </p>
+        </div>
+
+        {/* Tab Selector Buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
+          {[
+            { id: 'billing', label: '1. Ultra-Fast Billing', icon: Receipt },
+            { id: 'expiry', label: '2. Smart Expiry Shield', icon: ShieldCheck },
+            { id: 'purchases', label: '3. Supplier Inward & PO', icon: Truck },
+            { id: 'khata', label: '4. Patient Khata & Reminders', icon: Users },
+            { id: 'mobile', label: '5. Mobile Phone Live Sync', icon: Smartphone }
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeStudioTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveStudioTab(tab.id as any)}
+                className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition flex items-center gap-2 ${
+                  isActive 
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 scale-105' 
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Showcase Card */}
+        <div className="p-8 sm:p-12 rounded-3xl bg-white border border-slate-200 shadow-xl max-w-5xl mx-auto">
+          {activeStudioTab === 'billing' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div>
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Checkout Automation</span>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">3-Second Barcode & Hotkey Counter Billing</h3>
+                <p className="text-slate-600 text-sm mt-3 leading-relaxed">
+                  Type just 2 letters of any medicine name or zap with your barcode scanner. Pull batch number, expiry date, MRP, and shelf location instantly. Handles loose strips, cut blister packs, and multi-mode payment splits with zero lag.
+                </p>
+                <ul className="mt-6 space-y-2.5 text-xs font-bold text-slate-700">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Fast hotkeys (F1 Search, F2 Tender, F8 Print)</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Instant GST calculation with HSN auto-fill</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> WhatsApp invoice dispatch directly to customer mobile</li>
+                </ul>
+              </div>
+              <div className="p-6 rounded-2xl bg-slate-900 text-white font-mono text-xs space-y-3">
+                <div className="text-emerald-400 font-bold border-b border-slate-800 pb-2">SCANNER FEED: ACTIVE</div>
+                <p>➔ Scanned: 8901117254012 (Dolo 650)</p>
+                <p>➔ Batch: BT-9421 • Exp: 11/27 • Rack: A-04</p>
+                <p>➔ In Stock: 84 Strips • MRP: ₹31.50</p>
+                <div className="p-2.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-emerald-300">
+                  Bill #10842 generated in 2.1 seconds.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeStudioTab === 'expiry' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div>
+                <span className="text-xs font-bold text-teal-600 uppercase tracking-wider">Zero Stock Loss</span>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">Automated 30-60-90 Day Expiry Shield</h3>
+                <p className="text-slate-600 text-sm mt-3 leading-relaxed">
+                  Stop throwing away thousands of rupees in expired medicines every month. DavaSetu automatically groups near-expiry medicines by distributor and generates ready-to-dispatch debit return notes before return deadlines close.
+                </p>
+                <ul className="mt-6 space-y-2.5 text-xs font-bold text-slate-700">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-600" /> Color-coded expiry alerts right during counter billing</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-600" /> FIFO (First-In First-Out) stock rotation algorithm</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-600" /> 1-Click distributor return voucher generation</li>
+                </ul>
+              </div>
+              <div className="p-6 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs space-y-3">
+                <div className="font-bold flex items-center justify-between border-b border-amber-200 pb-2">
+                  <span>EXPIRY ACTION LIST</span>
+                  <span className="px-2 py-0.5 rounded bg-rose-500 text-white font-black text-[10px]">60 DAYS WARNING</span>
+                </div>
+                <div className="p-2 bg-white rounded border border-amber-200 flex justify-between font-bold">
+                  <span>Augmentin 625 Duo (AUG-441)</span>
+                  <span className="text-rose-600">12 Strips • Return to Apex Pharma</span>
+                </div>
+                <div className="p-2 bg-white rounded border border-amber-200 flex justify-between font-bold">
+                  <span>Azithral 500mg (AZ-772)</span>
+                  <span className="text-amber-700">8 Strips • Return to Sun Dist.</span>
+                </div>
+                <p className="text-[11px] text-amber-800 font-semibold">Total Recoverable Supplier Credit: ₹4,180.00</p>
+              </div>
+            </div>
+          )}
+
+          {activeStudioTab === 'purchases' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div>
+                <span className="text-xs font-bold text-cyan-600 uppercase tracking-wider">Procurement & Schemes</span>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">Supplier Purchase Orders & Free Schemes</h3>
+                <p className="text-slate-600 text-sm mt-3 leading-relaxed">
+                  Fast inward entries for complex pharma distributor purchase invoices. Automatically applies free schemes (10+1, 10+2, 20+3), tracks trade discounts, and reconciles input tax credit (ITC) for stress-free GST compliance.
+                </p>
+                <ul className="mt-6 space-y-2.5 text-xs font-bold text-slate-700">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-600" /> Supplier ledger with payment due date alerts</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-600" /> Automatic cost price & selling MRP margin calculation</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-600" /> Purchase return debit note tracking</li>
+                </ul>
+              </div>
+              <div className="p-6 rounded-2xl bg-cyan-50 border border-cyan-200 text-cyan-950 text-xs space-y-3 font-mono">
+                <div className="font-bold border-b border-cyan-200 pb-2">PURCHASE INWARD: #PO-9402</div>
+                <p>Distributor: Apex Pharma Distributors</p>
+                <p>Scheme: 10 Boxes + 1 Free Box Applied</p>
+                <p>Trade Discount: 4.5% • Margin: 28.4%</p>
+                <div className="p-2 bg-white rounded border border-cyan-300 font-bold text-cyan-900">
+                  Stock quantity updated in inventory automatically.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeStudioTab === 'khata' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div>
+                <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Patient Care & Credit Book</span>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">Digital Customer Khata & Refill Reminders</h3>
+                <p className="text-slate-600 text-sm mt-3 leading-relaxed">
+                  Replace messy paper khata diaries with a secure digital credit book. Send automated WhatsApp payment reminders with UPI payment links. Chronic disease patients (Diabetes, BP) receive timely medicine refill alerts before their pills run out.
+                </p>
+                <ul className="mt-6 space-y-2.5 text-xs font-bold text-slate-700">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600" /> WhatsApp payment link reminders in 1 click</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600" /> Monthly chronic patient medicine refill scheduler</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600" /> Patient prescription photo archive</li>
+                </ul>
+              </div>
+              <div className="p-6 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-950 text-xs space-y-3">
+                <div className="font-bold border-b border-indigo-200 pb-2">PATIENT REFILL RADAR</div>
+                <div className="p-2.5 bg-white rounded-xl border border-indigo-200 space-y-1">
+                  <p className="font-bold text-slate-900">Kiritbhai Shah (BP & Diabetes Patient)</p>
+                  <p className="text-slate-500 text-[11px]">Telma 40mg (30 Tabs) • Last purchase 28 days ago</p>
+                  <span className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                    Auto WhatsApp Refill Sent
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeStudioTab === 'mobile' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div>
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Remote Store Freedom</span>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">Live Sales & Stock on Your Smartphone</h3>
+                <p className="text-slate-600 text-sm mt-3 leading-relaxed">
+                  Never remain in the dark when away from the counter. Check real-time gross revenue, cash drawer balances, stock availability, and employee activities on your phone without installing bulky software or remote desktop tools.
+                </p>
+                <ul className="mt-6 space-y-2.5 text-xs font-bold text-slate-700">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Real-time mobile dashboard synced with counter</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Staff security locks (cashiers cannot edit purchase rates)</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Camera barcode scan for instant stock checking on phone</li>
+                </ul>
+              </div>
+              <div className="p-6 rounded-2xl bg-slate-900 text-white text-xs space-y-3">
+                <div className="font-bold text-emerald-400 border-b border-slate-800 pb-2 flex justify-between">
+                  <span>MOBILE APP LIVE RADAR</span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">SYNCED</span>
+                </div>
+                <p>🏪 Today's Gross Revenue: ₹48,250.00</p>
+                <p>💵 Cash in Drawer: ₹18,400.00 • UPI: ₹29,850.00</p>
+                <p>📦 Current Low Stock Alerts: 4 Items</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 6. COMPARISON MATRIX: LEGACY DESKTOP SOFTWARE VS DAVASETU */}
+      <section id="comparison" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-slate-100/70 rounded-3xl my-10 border border-slate-200">
+        <div className="text-center max-w-3xl mx-auto mb-14">
+          <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-1 rounded-full">
+            Real Comparison
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3">
+            Why Hundreds of Chemists Are Replacing Legacy Software
+          </h2>
+          <p className="mt-2 text-slate-600 text-sm sm:text-base">
+            See the difference between old desktop software and DavaSetu Cloud POS.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           
-          {/* OLD SOFTWARE (PAIN) */}
-          <div className="p-8 rounded-3xl bg-rose-50/60 border-2 border-rose-200 flex flex-col justify-between">
+          {/* LEGACY SOFTWARE */}
+          <div className="p-8 rounded-3xl bg-white border-2 border-rose-200 shadow-sm flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="w-8 h-8 rounded-full bg-rose-200 text-rose-800 font-bold flex items-center justify-center text-sm">✕</span>
-                <h3 className="font-black text-xl text-rose-950">જૂના ડેસ્કટોપ સોફ્ટવેર (Marg / Tally / Offline)</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 font-black flex items-center justify-center text-sm">✕</span>
+                <h3 className="font-black text-xl text-slate-900">Legacy Desktop Software (Marg / Tally / Offline)</h3>
               </div>
-              
-              <ul className="space-y-4 text-sm text-rose-900">
+              <ul className="space-y-4 text-sm text-slate-600 font-medium">
                 <li className="flex items-start gap-2.5">
-                  <X className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                  <span><strong>હાર્ડડિસ્ક ક્રેશ તો બધો ડેટા ખતમ:</strong> કોમ્પ્યુટર બગડે એટલે વર્ષોનો સેલ્સ અને ગ્રાહકોનો હિસાબ જતો રહે છે.</span>
+                  <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <span><strong>Hard drive crash = All data lost:</strong> If the shop computer crashes, months of sales records and customer ledgers vanish forever.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <X className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                  <span><strong>નવા સ્ટાફને શીખવતા ૨ મહિના લાગે:</strong> એટલા બધા જટિલ શોર્ટકટ્સ કે નવો છોકરો કાઉન્ટર પર બેસી જ ન શકે.</span>
+                  <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <span><strong>Takes 2 months to train staff:</strong> Complex F-key shortcuts mean you cannot leave a new operator alone at the billing counter.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <X className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                  <span><strong>દુકાન બહાર હોવ ત્યારે અંધારામાં:</strong> ઘરે કે બહારગામ હોવ તો ખબર જ ન પડે કે દુકાને શું વેચાયું અને ગલ્લામાં કેટલા પૈસા છે.</span>
+                  <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <span><strong>Zero remote access:</strong> When away from the shop, you have no visibility into daily cash collections or staff activities.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <X className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                  <span><strong>હજારો રૂપિયાની દવા એક્સપાયર થઈ જાય:</strong> સમયસર જાણ ન થવાથી ડિસ્ટ્રીબ્યુટર એક્સપાયરી પરત લેવાની ના પાડી દે છે.</span>
+                  <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <span><strong>Expensive expired medicine deadstock:</strong> Without automated expiry alerts, stock sits on shelves until distributors refuse returns.</span>
                 </li>
               </ul>
             </div>
-            <div className="mt-6 pt-4 border-t border-rose-200 text-xs font-bold text-rose-800">
-              પરિણામ: માથાનો દુખાવો, સમયનો બગાડ અને દર મહિને ₹૧૫,૦૦૦+ નું એક્સપાયરી નુકસાન.
+            <div className="mt-6 pt-4 border-t border-rose-100 text-xs font-bold text-rose-700">
+              Result: Constant anxiety, wasted time, and ₹15,000+ monthly loss from expired stock.
             </div>
           </div>
 
-          {/* DAVALETU (SOLUTION) */}
-          <div className="p-8 rounded-3xl bg-emerald-50/70 border-2 border-emerald-400 shadow-xl shadow-emerald-500/10 flex flex-col justify-between">
+          {/* DAVASETU */}
+          <div className="p-8 rounded-3xl bg-gradient-to-b from-white to-emerald-50/50 border-2 border-emerald-500 shadow-xl shadow-emerald-500/10 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="w-8 h-8 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-sm">✓</span>
-                <h3 className="font-black text-xl text-emerald-950">DavaSetu સ્માર્ટ ક્લાઉડ POS</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-8 h-8 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center text-sm">✓</span>
+                <h3 className="font-black text-xl text-slate-900">DavaSetu Cloud POS</h3>
               </div>
-              
-              <ul className="space-y-4 text-sm text-emerald-900">
+              <ul className="space-y-4 text-sm text-slate-800 font-semibold">
                 <li className="flex items-start gap-2.5">
-                  <Check className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-                  <span><strong>૧૦૦% ઓટો ક્લાઉડ બેકઅપ:</strong> PC બગડે કે નવું લેપટોપ લાવો, માત્ર લોગિન કરો અને ૧ સેકન્ડમાં બધો ડેટા હાજર!</span>
+                  <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>100% Automated Cloud Backup:</strong> Never worry about hardware failures. Login from any laptop or PC and resume billing in seconds.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <Check className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-                  <span><strong>કોઈપણ વ્યક્તિ ૫ મિનિટમાં બિલિંગ શીખી જાય:</strong> સ્માર્ટ સર્ચ અને સિમ્પલ ટચ/બારકોડ જેથી સ્ટાફ પર નિર્ભર ન રહેવું પડે.</span>
+                  <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Anyone learns in 5 minutes:</strong> Intuitive touchscreen, fast search, and barcode scanning empower any junior staff member immediately.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <Check className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-                  <span><strong>મોબાઈલમાં લાઈવ સેલ્સ & સ્ટોક:</strong> તમે દુનિયામાં ગમે ત્યાં હોવ, તમારા ફોન પર લાઈવ કાઉન્ટર ગલ્લો દેખાશે.</span>
+                  <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Live mobile store tracking:</strong> Monitor live counter sales, cash registers, and stock numbers from anywhere on your smartphone.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <Check className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-                  <span><strong>૯૦ દિવસ પહેલા એક્સપાયરી એલર્ટ:</strong> દવા એક્સપાયર થાય એ પહેલાં જ સપ્લાયરને રિટર્ન આપીને પૂરા પૈસા વસૂલ કરો!</span>
+                  <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Automated 30-60-90 Day Expiry Alerts:</strong> Return near-expiry medicines to distributors on time and recover 100% of your supplier credits.</span>
                 </li>
               </ul>
             </div>
-            <div className="mt-6 pt-4 border-t border-emerald-300 text-xs font-bold text-emerald-800">
-              પરિણામ: શાંતિપૂર્ણ વેપાર, ૩ ગણી સ્પીડ અને ૧૦૦% સેવિંગ્સ.
+            <div className="mt-6 pt-4 border-t border-emerald-200 text-xs font-bold text-emerald-800">
+              Result: 3x faster billing, zero expiry waste, and complete peace of mind.
             </div>
           </div>
 
         </div>
       </section>
 
-      {/* 6. INTERACTIVE LIVE COUNTER SIMULATOR SECTION */}
+      {/* 7. INTERACTIVE LIVE COUNTER SIMULATOR */}
       <section id="interactive-simulator" className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl my-10">
         <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-3 border border-emerald-200">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black mb-3 border border-emerald-300">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>લાઈવ ટેસ્ટ ડ્રાઈવ (Live Interactive Simulator)</span>
+            <span>Interactive Live Counter Simulator</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900">
-            અહીં જાતે દવા ઉમેરીને બિલિંગની સ્પીડ ચેક કરો
+            Test Counter Billing Speed Right Now
           </h2>
-          <p className="mt-2 text-slate-600 text-sm sm:text-base">
-            નીચે આપેલી દવાઓ પર ક્લિક કરો અને જુઓ કે કેવી રીતે ૧ સેકન્ડમાં બારકોડ સ્કેન થાય છે અને ગણતરી થાય છે!
+          <p className="mt-2 text-slate-600 text-sm sm:text-base font-medium">
+            Click on medicines below to simulate barcode scan, automated discounts, and instant receipt generation!
           </p>
         </div>
 
@@ -596,9 +767,9 @@ export default function LandingPage() {
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-sm text-white flex items-center gap-2">
                     <Package className="w-4 h-4 text-emerald-400" />
-                    <span>ક્લિક કરીને દવા બિલમાં ઉમેરો (Simulate Scan):</span>
+                    <span>Click any medicine to simulate barcode scan:</span>
                   </h3>
-                  <span className="text-xs text-slate-400 font-mono">૬ દવા ઉપલબ્ધ</span>
+                  <span className="text-xs text-slate-400 font-mono">6 Demo Items</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -637,23 +808,23 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Patient info input in simulator */}
+              {/* Patient info in simulator */}
               <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
                     <Users className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">વોટ્સએપ બિલ ગ્રાહક:</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Customer WhatsApp:</span>
                     <p className="font-bold text-xs text-white">{customerName} ({customerPhone})</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowWhatsAppModal(true)}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>ટેસ્ટ WhatsApp મોકલો</span>
+                  <span>Preview WhatsApp Receipt</span>
                 </button>
               </div>
             </div>
@@ -664,15 +835,15 @@ export default function LandingPage() {
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                   <span className="font-bold text-white text-sm flex items-center gap-2">
                     <Receipt className="w-4 h-4 text-emerald-400" />
-                    <span>કાઉન્ટર ઇનવોઇસ સમરી</span>
+                    <span>Counter Bill Summary</span>
                   </span>
-                  <span className="text-xs text-slate-400 font-mono">{cart.length} દવા ઉમેરી</span>
+                  <span className="text-xs text-slate-400 font-mono">{cart.length} item(s)</span>
                 </div>
 
                 <div className="mt-3 space-y-2 max-h-52 overflow-y-auto pr-1">
                   {cart.length === 0 ? (
                     <div className="text-center py-10 text-slate-500 text-xs">
-                      ડાબી બાજુની કોઈપણ દવા પર ક્લિક કરો!
+                      Click any medicine on the left to add to bill!
                     </div>
                   ) : (
                     cart.map((item) => (
@@ -699,19 +870,19 @@ export default function LandingPage() {
               {/* Totals & Quick Actions */}
               <div className="mt-4 pt-3 border-t border-slate-800 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-400">
-                  <span>કુલ રકમ (Subtotal):</span>
+                  <span>Gross MRP Subtotal:</span>
                   <span>₹{calculateSubtotal().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-teal-400">
-                  <span>ડિસ્કાઉન્ટ બચત:</span>
+                  <span>Discount Savings:</span>
                   <span>- ₹{calculateDiscount().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-slate-400">
-                  <span>જીએસટી ટેક્સ (GST 12%):</span>
+                  <span>GST Tax (CGST+SGST 12%):</span>
                   <span>+ ₹{calculateGST().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-base font-black text-white pt-2 border-t border-slate-800">
-                  <span>નેટ ચૂકવવાપાત્ર:</span>
+                  <span>Net Payable Amount:</span>
                   <span className="text-emerald-400 text-xl font-black">₹{calculateTotal()}</span>
                 </div>
 
@@ -727,7 +898,7 @@ export default function LandingPage() {
                           : 'bg-slate-900 text-slate-400 border-slate-800'
                       }`}
                     >
-                      {mode === 'UPI' ? '⚡ UPI QR' : mode === 'CASH' ? '💵 રોકડા' : '📒 ખાતું (Udhar)'}
+                      {mode === 'UPI' ? '⚡ UPI QR' : mode === 'CASH' ? '💵 Cash' : '📒 Khata'}
                     </button>
                   ))}
                 </div>
@@ -741,7 +912,7 @@ export default function LandingPage() {
                   className="w-full mt-3 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>{receiptSimulated ? '✓ પ્રિન્ટ થઈ ગયું & WhatsApp મોકલાઈ ગયું!' : 'બિલ પ્રિન્ટ કરો (Test Print)'}</span>
+                  <span>{receiptSimulated ? '✓ Bill Printed & WhatsApp Receipt Dispatched!' : 'Simulate 3-Sec Print & WhatsApp Bill'}</span>
                 </button>
               </div>
 
@@ -767,182 +938,42 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <h4 className="font-bold text-slate-900">WhatsApp Invoicing</h4>
-                  <p className="text-xs text-slate-500">સીધું ગ્રાહકના ફોનમાં બિલ પહોંચશે</p>
+                  <p className="text-xs text-slate-500">Delivered directly to patient's mobile</p>
                 </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-xs text-slate-800 space-y-2 font-mono">
-                <p className="font-bold text-emerald-900">🏥 શ્રીજી મેડિકલ સ્ટોર</p>
-                <p>નમસ્તે {customerName}જી,</p>
-                <p>તમારું બિલ #{Math.floor(Math.random() * 9000 + 1000)} જનરેટ થઈ ગયું છે.</p>
-                <p>કુલ રકમ: <strong>₹{calculateTotal()}</strong></p>
-                <p className="text-emerald-700 underline">👉 ક્લિક કરી PDF ડાઉનલોડ કરો</p>
-                <p className="text-[10px] text-slate-500 pt-2 border-t border-emerald-200">DavaSetu Cloud POS દ્વારા મોકલેલ</p>
+                <p className="font-bold text-emerald-900">🏥 DavaSetu Pharmacy</p>
+                <p>Hello {customerName},</p>
+                <p>Your medicine invoice #{Math.floor(Math.random() * 9000 + 1000)} is ready.</p>
+                <p>Net Total: <strong>₹{calculateTotal()}</strong></p>
+                <p className="text-emerald-700 underline">👉 Click here to download your GST PDF Bill</p>
+                <p className="text-[10px] text-slate-500 pt-2 border-t border-emerald-200">Sent via DavaSetu Cloud POS</p>
               </div>
 
               <button
                 onClick={() => setShowWhatsAppModal(false)}
                 className="w-full mt-5 py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition"
               >
-                સમજાઈ ગયું (Close)
+                Close Preview
               </button>
             </div>
           </div>
         )}
       </section>
 
-      {/* 7. PHARMACY FEATURES (TABBED & INTUITIVE FOR CHEMISTS) */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-1 rounded-full">
-            બધા જ ફીચર્સ ૧ સોફ્ટવેરમાં
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3">
-            તમારા મેડિકલ સ્ટોર માટે જરૂરી દરેક સુવિધા
-          </h2>
-          <p className="mt-2 text-slate-600 text-sm sm:text-base">
-            કાઉન્ટર બિલિંગથી લઈને ડિસ્ટ્રીબ્યુટર હિસાબ અને જીએસટી રીપોર્ટ સુધી.
-          </p>
-        </div>
-
-        {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* 1. FAST BILLING */}
-          <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:border-emerald-500 transition-all group flex flex-col justify-between">
-            <div>
-              <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Receipt className="w-7 h-7" />
-              </div>
-              <h3 className="font-extrabold text-xl text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors">
-                ૩ સેકન્ડ સુપરફાસ્ટ બિલિંગ
-              </h3>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                દવાના માત્ર ૨ અક્ષર ટાઈપ કરો અથવા બારકોડ સ્કેન કરો. બેચ નંબર, એક્સપાયરી ડેટ, એમઆરપી અને રેક લોકેશન તરત જ સ્ક્રીન પર આવી જશે.
-              </p>
-            </div>
-            <ul className="space-y-2.5 text-xs text-slate-700 font-semibold border-t border-slate-100 pt-4">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> ફાસ્ટ કીબોર્ડ શોર્ટકટ્સ (F1-F12)</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> છૂટક ગોળીઓ (Loose strip) બિલિંગ</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> સ્પ્લિટ પેમેન્ટ (રોકડા + UPI QR)</li>
-            </ul>
-          </div>
-
-          {/* 2. EXPIRY SHIELD */}
-          <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:border-teal-500 transition-all group flex flex-col justify-between">
-            <div>
-              <div className="w-14 h-14 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <ShieldCheck className="w-7 h-7" />
-              </div>
-              <h3 className="font-extrabold text-xl text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
-                સ્માર્ટ બેચ & એક્સપાયરી શિલ્ડ
-              </h3>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                દવા એક્સપાયર થઈને ફેંકવી ન પડે તે માટે FIFO (પહેલા આવેલો માલ પહેલા વેચો) સિસ્ટમ. એક્સપાયરી પહેલા ડિસ્ટ્રીબ્યુટરને રિટર્ન મોકલવાની યાદી આપોઆપ બને છે.
-              </p>
-            </div>
-            <ul className="space-y-2.5 text-xs text-slate-700 font-semibold border-t border-slate-100 pt-4">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" /> ૩૦, ૬૦, ૯૦ દિવસ પહેલા કલર એલર્ટ</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" /> ડિસ્ટ્રીબ્યુટર એક્સપાયરી રિટર્ન વાઉચર</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" /> લો-સ્ટોક રીઓર્ડર વોર્નિંગ</li>
-            </ul>
-          </div>
-
-          {/* 3. PURCHASES & SUPPLIER */}
-          <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:border-cyan-500 transition-all group flex flex-col justify-between">
-            <div>
-              <div className="w-14 h-14 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Truck className="w-7 h-7" />
-              </div>
-              <h3 className="font-extrabold text-xl text-slate-900 mb-2 group-hover:text-cyan-600 transition-colors">
-                ડિસ્ટ્રીબ્યુટર પર્ચેઝ & લેજર
-              </h3>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                સપ્લાયર્સ પાસેથી આવેલી પર્ચેઝ બીલની સીધી એન્ટ્રી. સ્કીમ (10+1, 10+2 ફ્રી), ક્રેડિટ પિરિયડની મુદત અને પેમેન્ટ બાકી હોય તેની કમ્પ્લીટ ખાતાવહી.
-              </p>
-            </div>
-            <ul className="space-y-2.5 text-xs text-slate-700 font-semibold border-t border-slate-100 pt-4">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-600 shrink-0" /> ફાસ્ટ પર્ચેઝ ઇન્વર્ડ (Free scheme સહિત)</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-600 shrink-0" /> સપ્લાયર પેમેન્ટ ડ્યુ એલર્ટ્સ</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-600 shrink-0" /> ખરીદી પર ઇનપુટ ટેક્સ ક્રેડિટ (ITC) ટ્રેકિંગ</li>
-            </ul>
-          </div>
-
-          {/* 4. PATIENT KHATA */}
-          <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-500 transition-all group flex flex-col justify-between">
-            <div>
-              <div className="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Users className="w-7 h-7" />
-              </div>
-              <h3 className="font-extrabold text-xl text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">
-                પેશન્ટ ડિજિટલ ખાતાવહી (Udhar Khata)
-              </h3>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                નિયમિત ગ્રાહકોનું ઉધાર ખાતું ડિજિટલી સાચવો. પેમેન્ટ રીમાઇન્ડર વોટ્સએપ પર ૧-ક્લિકમાં મોકલો. બીપી, ડાયાબિટીસના દર્દીઓની દવા પૂરી થવા આવે ત્યારે ઓટો એલર્ટ.
-              </p>
-            </div>
-            <ul className="space-y-2.5 text-xs text-slate-700 font-semibold border-t border-slate-100 pt-4">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" /> વોટ્સએપ પેમેન્ટ પે લિંક સાથે રીમાઇન્ડર</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" /> ક્રોનિક પેશન્ટ માસિક દવા રીફિલ લિસ્ટ</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" /> પ્રિસ્ક્રિપ્શન ફોટો સ્ટોરેજ</li>
-            </ul>
-          </div>
-
-          {/* 5. GST REPORTS */}
-          <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:border-rose-500 transition-all group flex flex-col justify-between">
-            <div>
-              <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <BarChart3 className="w-7 h-7" />
-              </div>
-              <h3 className="font-extrabold text-xl text-slate-900 mb-2 group-hover:text-rose-600 transition-colors">
-                ૧-ક્લિક GSTR-1 & નફાનો હિસાબ
-              </h3>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                તમારા CA ને જીએસટી ફાઈલિંગ માટે એક્સેલ ફાઈલ ૧ સેકન્ડમાં એક્સપોર્ટ કરી આપો. દરરોજ સાંજે કેટલો ચોખ્ખો નફો થયો તેની સાચી ગણતરી.
-              </p>
-            </div>
-            <ul className="space-y-2.5 text-xs text-slate-700 font-semibold border-t border-slate-100 pt-4">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-rose-600 shrink-0" /> GSTR-1 અને GSTR-3B રેડી રિપોર્ટ્સ</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-rose-600 shrink-0" /> ડેઇલી કાઉન્ટર કેશ & UPI રિકન્સિલેશન</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-rose-600 shrink-0" /> કંપની વાઇઝ નફાનું માર્જિન એનાલિટિક્સ</li>
-            </ul>
-          </div>
-
-          {/* 6. MULTI-DEVICE & STAFF PERMISSIONS */}
-          <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:border-amber-500 transition-all group flex flex-col justify-between">
-            <div>
-              <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Smartphone className="w-7 h-7" />
-              </div>
-              <h3 className="font-extrabold text-xl text-slate-900 mb-2 group-hover:text-amber-600 transition-colors">
-                મોબાઈલ એપ & સ્ટાફ લોગિન સિક્યોરિટી
-              </h3>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                દુકાનમાં છોકરાઓ હોય તો પણ સુરક્ષિત! સ્ટાફ જૂનું બિલ ડિલીટ કે એડિટ ન કરી શકે અને તમારી ખરીદીની કિંમત કે નફો માત્ર તમારા જ ફોનમાં દેખાય.
-              </p>
-            </div>
-            <ul className="space-y-2.5 text-xs text-slate-700 font-semibold border-t border-slate-100 pt-4">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" /> સ્ટાફ માટે કેશિયર લિમિટેડ એક્સેસ</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" /> માલિક માટે ઓનર પાસવર્ડ સિક્યોરિટી</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" /> એન્ડ્રોઇડ ફોનથી બારકોડ સ્કેનિંગ</li>
-            </ul>
-          </div>
-
-        </div>
-      </section>
-
-      {/* 8. OFFICIAL POS SUBSCRIPTION PRICING SECTION (EXACT TO SETTINGS) */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-gradient-to-b from-slate-100/80 to-white rounded-3xl border border-slate-200/90 shadow-sm my-10">
+      {/* 8. OFFICIAL POS SUBSCRIPTION PLANS (EXACT TO SETTINGS - 100% ENGLISH) */}
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-gradient-to-b from-slate-100/90 via-white to-slate-50 rounded-3xl border border-slate-200 shadow-sm my-10">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-3 border border-emerald-300">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black mb-3 border border-emerald-300">
             <Crown className="w-4 h-4 text-amber-600" />
-            <span>DavaSetu POS સત્તાવાર લાયસન્સ પ્લાન્સ</span>
+            <span>Official POS Subscription & Licensing Plans</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-black text-slate-900">
-            તમારા મેડિકલ સ્ટોર માટે શ્રેષ્ઠ પ્લાન પસંદ કરો
+            Choose the Right Plan for Your Pharmacy
           </h2>
-          <p className="mt-3 text-slate-600 text-base">
-            કોઈ છૂપી ફી નહીં. અનલિમિટેડ દવાઓ, ગ્રાહક રેકોર્ડ અને ૨૪/૭ પ્રાયોરિટી સપોર્ટ.
+          <p className="mt-3 text-slate-600 text-base font-medium">
+            Unlock Smart Inventory, Unlimited Counter Billing, Expiry Shield & Real-Time Cloud Sync.
           </p>
         </div>
 
@@ -951,35 +982,35 @@ export default function LandingPage() {
           {/* PLAN 1: MONTHLY PRO */}
           <div className="p-8 rounded-3xl bg-white border-2 border-slate-200 hover:border-emerald-500 transition-all flex flex-col justify-between shadow-sm">
             <div>
-              <span className="text-xs uppercase font-extrabold text-slate-400 tracking-wider">માસિક પ્લાન</span>
+              <span className="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Monthly Pass</span>
               <h3 className="text-2xl font-black text-slate-900 mt-1">Monthly Pro</h3>
-              <p className="text-xs text-slate-500 mt-2 font-medium">સ્વતંત્ર રિટેલ કાઉન્ટર્સ માટે બેઝિક ક્લાઉડ POS પ્લાન.</p>
+              <p className="text-xs text-slate-500 mt-2 font-medium">Essential cloud POS billing for independent retail counters.</p>
               
               <div className="mt-6 flex items-baseline gap-1">
                 <span className="text-4xl font-black text-slate-900">₹799</span>
-                <span className="text-sm font-bold text-slate-500">/ મહિનો</span>
+                <span className="text-sm font-bold text-slate-500">/ month</span>
               </div>
 
               <ul className="mt-8 space-y-3.5 text-xs text-slate-700 font-semibold">
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>અનલિમિટેડ કાઉન્ટર બિલિંગ</span>
+                  <span>Unlimited Counter Billing</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>થર્મલ પ્રિન્ટર સપોર્ટ (2" & 3" ESC/POS)</span>
+                  <span>Thermal Printer Support (2" & 3" ESC/POS)</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>બેઝિક સેલ્સ & ડેઇલી કેશ રિપોર્ટ્સ</span>
+                  <span>Basic Sales & Daily Register Reports</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>મોબાઇલ એપ એક્સેસ (૧ ફોન ટર્મિનલ)</span>
+                  <span>Mobile App Access (1 Phone Terminal)</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>ક્લાઉડ ઓટો સિંક & સુરક્ષિત બેકઅપ</span>
+                  <span>Cloud Auto Sync & Secure Data Backup</span>
                 </li>
               </ul>
             </div>
@@ -988,30 +1019,30 @@ export default function LandingPage() {
               onClick={() => navigate(isLoggedIn ? '/settings' : '/login')}
               className="mt-8 w-full py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm border border-slate-300 transition"
             >
-              મંથલી પ્લાન પસંદ કરો
+              Select Monthly
             </button>
           </div>
 
           {/* PLAN 2: YEARLY PREMIUM (BEST VALUE) */}
-          <div className="p-8 rounded-3xl bg-gradient-to-b from-emerald-50 via-white to-emerald-50/40 border-2 border-emerald-600 shadow-2xl shadow-emerald-600/15 flex flex-col justify-between relative scale-105 z-10">
+          <div className="p-8 rounded-3xl bg-gradient-to-b from-emerald-50 via-white to-emerald-50/50 border-2 border-emerald-600 shadow-2xl shadow-emerald-600/15 flex flex-col justify-between relative scale-105 z-10">
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs shadow-md uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap">
               <Star className="w-3.5 h-3.5 fill-white text-white" />
-              <span>સૌથી લોકપ્રિય • માત્ર ₹16/દિવસ</span>
+              <span>Best Value • Just ₹16/Day</span>
             </div>
 
             <div>
-              <span className="text-xs uppercase font-extrabold text-emerald-700 tracking-wider">વાર્ષિક પ્લાન (Best Value)</span>
+              <span className="text-xs uppercase font-extrabold text-emerald-700 tracking-wider">Annual Pass</span>
               <h3 className="text-2xl font-black text-slate-900 mt-1">Yearly Premium</h3>
-              <p className="text-xs text-slate-600 mt-2 font-medium">સંપૂર્ણ AI-પાવર્ડ ફાર્મસી ERP વ્યસ્ત મેડિકલ સ્ટોર માટે.</p>
+              <p className="text-xs text-slate-600 mt-2 font-medium">Complete AI-powered pharmacy ERP for high-volume stores.</p>
               
               <div className="mt-6 flex flex-col">
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-black text-emerald-800">₹5,999</span>
-                  <span className="text-sm font-bold text-slate-500">/ વર્ષ</span>
+                  <span className="text-sm font-bold text-slate-500">/ year</span>
                 </div>
                 <div className="mt-1.5">
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 inline-block">
-                    માત્ર ₹16/દિવસ • વાર્ષિક ₹3,500+ ની બચત!
+                    Just ₹16/day • Save over ₹3,500/year!
                   </span>
                 </div>
               </div>
@@ -1019,31 +1050,31 @@ export default function LandingPage() {
               <ul className="mt-8 space-y-3.5 text-xs text-slate-800 font-bold">
                 <li className="flex items-center gap-2.5 text-emerald-900">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Monthly Pro ના તમામ ફીચર્સ શામેલ</span>
+                  <span>Everything in Monthly Pro</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>સ્માર્ટ ઇન્વેન્ટરી (AI) & ૩૦-૬૦-૯૦ દિવસ એક્સપાયરી શિલ્ડ</span>
+                  <span>Smart Inventory (AI) & 30-60-90 Day Expiry Shield</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>૭-દિવસ એડવાન્સ્ડ સેલ્સ ટ્રેન્ડ્સ & એનાલિટિક્સ</span>
+                  <span>7-Day Advanced Sales Trends & Analytics</span>
                 </li>
                 <li className="flex items-center gap-2.5 text-emerald-700">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>મોબાઇલ એપ + મલ્ટી-ડિવાઇસ રીઅલ-ટાઇમ ક્લાઉડ સિંક</span>
+                  <span>Mobile App + Multi-Device Real-Time Cloud Sync</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>સ્ટાફ ફોન બારકોડ સ્કેનર સપોર્ટ</span>
+                  <span>Staff Phone Barcode Scanners</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>ડિસ્ટ્રીબ્યુટર પર્ચેઝ ઈન્વર્ડ & લેજર</span>
+                  <span>Supplier Purchases & Inward Ledgers</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>૨૪/૭ ફોન & વોટ્સએપ પ્રાયોરિટી સપોર્ટ</span>
+                  <span>Priority 24/7 Phone & WhatsApp Support</span>
                 </li>
               </ul>
             </div>
@@ -1052,7 +1083,7 @@ export default function LandingPage() {
               onClick={() => navigate(isLoggedIn ? '/settings' : '/login')}
               className="mt-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm shadow-lg shadow-emerald-600/30 hover:scale-[1.02] transition"
             >
-              વાર્ષિક પ્લાન પર અપગ્રેડ કરો
+              Upgrade to Yearly
             </button>
           </div>
 
@@ -1061,18 +1092,18 @@ export default function LandingPage() {
             <div className="absolute -right-6 -top-6 bg-amber-400/10 w-32 h-32 rounded-full blur-2xl pointer-events-none" />
             
             <div className="relative z-10">
-              <span className="text-xs uppercase font-extrabold text-amber-400 tracking-wider">આજીવન પ્લાન (Lifetime)</span>
+              <span className="text-xs uppercase font-extrabold text-amber-400 tracking-wider">Lifetime Deal</span>
               <h3 className="text-2xl font-black text-white mt-1">Founder's Lifetime</h3>
-              <p className="text-xs text-slate-300 mt-2 font-medium">એક જ વાર ચૂકવો, આજીવન ચલાવો. ક્યારેય કોઈ રિન્યુઅલ નહીં.</p>
+              <p className="text-xs text-slate-300 mt-2 font-medium">Pay once, own forever. Zero recurring monthly or yearly fees.</p>
               
               <div className="mt-6 flex flex-col">
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-black text-white">₹24,999</span>
-                  <span className="text-sm text-amber-400 font-bold"> એક જ વાર</span>
+                  <span className="text-sm text-amber-400 font-bold"> one-time</span>
                 </div>
                 <div className="mt-1.5">
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/30 inline-block">
-                    👑 ઝીરો રિન્યુઅલ ફી — લાઈફટાઈમ ફ્રી
+                    👑 Zero Renewal Fees Forever
                   </span>
                 </div>
               </div>
@@ -1080,27 +1111,27 @@ export default function LandingPage() {
               <ul className="mt-8 space-y-3.5 text-xs text-slate-200 font-medium">
                 <li className="flex items-center gap-2.5 font-bold text-amber-300">
                   <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>આજીવન સંપૂર્ણ સોફ્ટવેર & ક્લાઉડ એક્સેસ</span>
+                  <span>Lifetime Full Software & Cloud Access</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>કોઈ માસિક કે વાર્ષિક રિન્યુઅલ ચાર્જ નહીં</span>
+                  <span>No Recurring Subscription Fees</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>લાઈફટાઈમ મોબાઈલ એપ & રીઅલ-ટાઇમ સિંક</span>
+                  <span>Lifetime Mobile App & Real-Time Sync</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>અનલિમિટેડ સ્ટાફ મોબાઈલ સ્કેનર સીટ્સ</span>
+                  <span>Unlimited Staff Mobile Scanner Seats</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>ભવિષ્યના તમામ AI & ERP અપડેટ્સ ફ્રી</span>
+                  <span>All Future AI & ERP Updates Included</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>VIP ૨૪/૭ ડેડિકેટેડ એકાઉન્ટ મેનેજર</span>
+                  <span>VIP 24/7 Dedicated Support</span>
                 </li>
               </ul>
             </div>
@@ -1109,7 +1140,7 @@ export default function LandingPage() {
               onClick={() => navigate(isLoggedIn ? '/settings' : '/login')}
               className="mt-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/20 transition relative z-10"
             >
-              લાઈફટાઈમ ડીલ મેળવો
+              Get Lifetime Deal
             </button>
           </div>
 
@@ -1123,13 +1154,13 @@ export default function LandingPage() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-black text-base text-amber-950">Mobile-Only Pro Pass — ₹1,499 / વર્ષ</span>
+                <span className="font-black text-base text-amber-950">Mobile-Only Pro Pass — ₹1,499 / Year</span>
                 <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
                   📱 Mobile Phone Only
                 </span>
               </div>
               <p className="text-xs text-amber-900 mt-1 max-w-2xl leading-relaxed font-medium">
-                ખાસ એવા કેમિસ્ટ મિત્રો માટે જેમના સ્ટોર પર PC કે લેપટોપ નથી અને માત્ર એન્ડ્રોઇડ સ્માર્ટફોન કે ટેબ્લેટથી દુકાન ચલાવે છે. Full Mobile Billing, Barcode Camera Scan, Inventory & WhatsApp Invoicing.
+                Designed for retail chemists who operate purely on Android smartphones or tablets without a PC. Includes full mobile billing, camera barcode scanning, inventory, and WhatsApp invoicing.
               </p>
             </div>
           </div>
@@ -1137,28 +1168,28 @@ export default function LandingPage() {
             onClick={() => navigate(isLoggedIn ? '/settings' : '/login')}
             className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs whitespace-nowrap transition shrink-0 shadow-sm"
           >
-            મોબાઈલ પાસ જુઓ
+            Explore Mobile Pass
           </button>
         </div>
 
         {/* Razorpay badge */}
         <div className="mt-8 text-center text-xs text-slate-500 flex items-center justify-center gap-2 font-medium">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>પેમેન્ટ ૧૦૦% સુરક્ષિત Razorpay દ્વારા પ્રોસેસ થાય છે. ત્વરિત એક્ટિવેશન, કોઈ એક્સ્ટ્રા ચાર્જ નહીં.</span>
+          <span>Payments are securely processed via Razorpay. Instant activation, no hidden setup fees.</span>
         </div>
       </section>
 
-      {/* 9. CHEMIST TESTIMONIALS (REAL GUJARAT & INDIA PHARMACY STORIES) */}
+      {/* 9. TESTIMONIALS */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-14">
           <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-1 rounded-full">
-            કેમિસ્ટ મિત્રોનો અનુભવ
+            Customer Stories
           </span>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3">
-            મેડિકલ સ્ટોર ઓનર્સ શું કહે છે?
+            What Medical Store Owners Say About DavaSetu
           </h2>
-          <p className="mt-2 text-slate-600 text-sm">
-            ગુજરાતના ૫૦૦+ સફળ કેમિસ્ટ સ્ટોર્સ DavaSetu થી પોતાનો વેપાર વધારી રહ્યા છે.
+          <p className="mt-2 text-slate-600 text-sm font-medium">
+            Join hundreds of thriving retail chemists modernizing their counter operations.
           </p>
         </div>
 
@@ -1170,7 +1201,7 @@ export default function LandingPage() {
                 {[...Array(5)].map((_, i) => (<Star key={i} className="w-4 h-4 fill-amber-400" />))}
               </div>
               <p className="text-sm text-slate-700 leading-relaxed italic">
-                "પહેલા સાંજે ગ્રાહકોની લાંબી લાઇન લાગતી અને જૂના સોફ્ટવેરમાં બિલ બનતા ૩ મિનિટ થતી. DavaSetu થી હવે ૩ સેકન્ડમાં બારકોડ સ્કેન થઈને બિલ નીકળી જાય છે!"
+                "Our evening counter rush used to cause long patient queues with our old desktop software. With DavaSetu, barcode scanning takes 2 seconds and receipts print instantly. Huge relief!"
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-3">
@@ -1178,8 +1209,8 @@ export default function LandingPage() {
                 JP
               </div>
               <div>
-                <p className="font-bold text-sm text-slate-900">જયેશભાઈ પટેલ</p>
-                <p className="text-xs text-slate-500">શ્રીજી મેડિકલ, અમદાવાદ</p>
+                <p className="font-bold text-sm text-slate-900">Jayesh Patel</p>
+                <p className="text-xs text-slate-500">Shreeji Medical, Ahmedabad</p>
               </div>
             </div>
           </div>
@@ -1190,7 +1221,7 @@ export default function LandingPage() {
                 {[...Array(5)].map((_, i) => (<Star key={i} className="w-4 h-4 fill-amber-400" />))}
               </div>
               <p className="text-sm text-slate-700 leading-relaxed italic">
-                "મારા સ્ટોર પર દર મહિને ₹૧૫,૦૦૦ થી ૨૦,૦૦૦ ની દવા એક્સપાયર થઈને ફેંકી દેવી પડતી. DavaSetu ના એક્સપાયરી એલર્ટથી ૯૦ દિવસ પહેલા જ ડિસ્ટ્રીબ્યુટરને માલ પાછો આપી દીધો. આખો પ્લાન પહેલા મહિને જ વસૂલ થઈ ગયો!"
+                "We used to lose ₹15,000–20,000 every month in expired medicines. DavaSetu's 90-day expiry shield allows us to return stock to distributors on time. The software paid for itself in month one!"
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-3">
@@ -1198,8 +1229,8 @@ export default function LandingPage() {
                 BS
               </div>
               <div>
-                <p className="font-bold text-sm text-slate-900">ભાવિન શાહ</p>
-                <p className="text-xs text-slate-500">લાઈફકેર કેમિસ્ટ, સુરત</p>
+                <p className="font-bold text-sm text-slate-900">Bhavin Shah</p>
+                <p className="text-xs text-slate-500">Lifecare Chemists, Surat</p>
               </div>
             </div>
           </div>
@@ -1210,7 +1241,7 @@ export default function LandingPage() {
                 {[...Array(5)].map((_, i) => (<Star key={i} className="w-4 h-4 fill-amber-400" />))}
               </div>
               <p className="text-sm text-slate-700 leading-relaxed italic">
-                "હું બહારગામ હોઉં તો પણ મારા ફોનમાં લાઈવ દેખાય છે કે સ્ટોર પર કેટલો ગલ્લો થયો. જૂના સોફ્ટવેર કરતા ઘણું આસાન છે, નવો સ્ટાફ પણ ૨ જ દિવસમાં શીખી ગયો."
+                "I can monitor my daily cash registers and inventory from my phone even when I am travelling. My junior staff learned billing in just 2 days. Truly fantastic cloud POS."
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-3">
@@ -1218,8 +1249,8 @@ export default function LandingPage() {
                 RM
               </div>
               <div>
-                <p className="font-bold text-sm text-slate-900">રાહુલ મહેતા</p>
-                <p className="text-xs text-slate-500">મહેતા ફાર્મા, વડોદરા</p>
+                <p className="font-bold text-sm text-slate-900">Rahul Mehta</p>
+                <p className="text-xs text-slate-500">Mehta Pharma, Vadodara</p>
               </div>
             </div>
           </div>
@@ -1230,8 +1261,8 @@ export default function LandingPage() {
       {/* 10. FAQ SECTION */}
       <section id="faq" className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-black text-slate-900">વારંવાર પૂછાતા પ્રશ્નો (FAQ)</h2>
-          <p className="mt-2 text-slate-600 text-sm">DavaSetu સ્વીચ કરતા પહેલા તમારા મનમાં થતા પ્રશ્નોના જવાબો.</p>
+          <h2 className="text-3xl font-black text-slate-900">Frequently Asked Questions</h2>
+          <p className="mt-2 text-slate-600 text-sm font-medium">Common questions answered before switching to DavaSetu.</p>
         </div>
 
         <div className="space-y-4">
@@ -1260,32 +1291,32 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 11. BOTTOM HIGH-CONVERSION BANNER */}
+      {/* 11. BOTTOM CALL TO ACTION BANNER */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
         <div className="rounded-3xl bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 p-8 sm:p-14 text-center text-white relative overflow-hidden shadow-2xl">
           <div className="relative z-10 max-w-3xl mx-auto">
-            <span className="px-3.5 py-1 rounded-full bg-white/20 text-white font-bold text-xs uppercase tracking-wider">
-              ૧૫ દિવસ ફ્રી ટ્રાયલ • ઝીરો રિસ્ક
+            <span className="px-3.5 py-1 rounded-full bg-white/20 text-white font-black text-xs uppercase tracking-wider">
+              15-Day Free Trial • Zero Risk
             </span>
             <h2 className="text-3xl sm:text-5xl font-black tracking-tight mt-4">
-              આજે જ તમારા ફાર્મસી સ્ટોરને સ્માર્ટ બનાવો
+              Upgrade Your Pharmacy Counter Today
             </h2>
             <p className="mt-4 text-emerald-100 text-sm sm:text-base leading-relaxed">
-              હમણાં જ શરૂ કરો. માત્ર ૨ મિનિટમાં તમારું એકાઉન્ટ સેટઅપ થઈ જશે અને તમે કાઉન્ટર બિલિંગ શરૂ કરી શકશો.
+              Experience fast barcode checkouts, zero expiry stock loss, and cloud inventory in minutes.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')}
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white text-slate-900 font-black text-sm shadow-xl hover:bg-emerald-50 hover:scale-105 active:scale-95 transition flex items-center justify-center gap-2"
               >
-                <span>{isLoggedIn ? 'Go to POS Dashboard' : 'Open Web POS (ફ્રી ટ્રાયલ)'}</span>
+                <span>{isLoggedIn ? 'Go to POS Dashboard' : 'Open Web POS (Free Trial)'}</span>
                 <ArrowRight className="w-4 h-4 text-emerald-700" />
               </button>
               <button
                 onClick={() => navigate('/login')}
                 className="w-full sm:w-auto px-6 py-4 rounded-xl bg-emerald-800/40 hover:bg-emerald-800/60 text-white font-bold text-sm border border-emerald-400/30 transition"
               >
-                કેમિસ્ટ લોગિન
+                Chemist Login
               </button>
             </div>
           </div>
@@ -1303,42 +1334,42 @@ export default function LandingPage() {
               <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">POS</span>
             </div>
             <p className="text-slate-500 leading-relaxed font-medium">
-              ભારતભરના રિટેલ કેમિસ્ટ અને ફાર્મા ડિસ્ટ્રીબ્યુટર્સ માટે આધુનિક ક્લાઉડ બિલિંગ, ઇન્વેન્ટરી અને જીએસટી મેનેજમેન્ટ સોફ્ટવેર.
+              Next-generation cloud pharmacy management, barcode counter billing, batch tracking, and pharmaceutical inventory software.
             </p>
           </div>
 
           <div>
-            <h4 className="font-bold text-slate-900 text-sm mb-3">POS મોડ્યુલ્સ</h4>
+            <h4 className="font-bold text-slate-900 text-sm mb-3">POS Modules</h4>
             <ul className="space-y-2">
-              <li><button onClick={() => navigate(isLoggedIn ? '/billing' : '/login')} className="hover:text-emerald-600">કાઉન્ટર બિલિંગ (POS)</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600">સ્માર્ટ બેચ & એક્સપાયરી</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/purchases' : '/login')} className="hover:text-emerald-600">ડિસ્ટ્રીબ્યુટર પર્ચેઝ ઈન્વર્ડ</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/customers' : '/login')} className="hover:text-emerald-600">ગ્રાહક ખાતાવહી (Khata)</button></li>
+              <li><button onClick={() => navigate(isLoggedIn ? '/billing' : '/login')} className="hover:text-emerald-600">Counter Billing (POS)</button></li>
+              <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600">Smart Batch & Expiry</button></li>
+              <li><button onClick={() => navigate(isLoggedIn ? '/purchases' : '/login')} className="hover:text-emerald-600">Supplier Purchases (PO)</button></li>
+              <li><button onClick={() => navigate(isLoggedIn ? '/customers' : '/login')} className="hover:text-emerald-600">Patient Khata Ledger</button></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold text-slate-900 text-sm mb-3">હાર્ડવેર સપોર્ટ</h4>
+            <h4 className="font-bold text-slate-900 text-sm mb-3">Hardware Compatibility</h4>
             <ul className="space-y-2">
-              <li>TVS & NGX બારકોડ સ્કેનર્સ</li>
-              <li>2" & 3" થર્મલ પ્રિન્ટર્સ (Epson, TVS)</li>
-              <li>લેસર જીએસટી A4/A5 ઇનવોઇસ</li>
-              <li>એન્ડ્રોઇડ સ્માર્ટફોન & ટેબ્લેટ</li>
+              <li>TVS & NGX Barcode Scanners</li>
+              <li>2" & 3" Thermal Printers (Epson, TVS)</li>
+              <li>Laser GST A4/A5 Invoices</li>
+              <li>Android Smartphones & Tablets</li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold text-slate-900 text-sm mb-3">સપોર્ટ & હેલ્પલાઇન</h4>
+            <h4 className="font-bold text-slate-900 text-sm mb-3">Support & Helpline</h4>
             <ul className="space-y-2 font-medium">
-              <li className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-emerald-600" /> હેલ્પલાઇન: +91 98765 43210</li>
+              <li className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-emerald-600" /> Helpline: +91 98765 43210</li>
               <li className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-emerald-600" /> support@davasetu.com</li>
-              <li className="flex items-center gap-2"><Globe className="w-3.5 h-3.5 text-emerald-600" /> સુરક્ષિત ક્લાઉડ ડેટાબેઝ</li>
+              <li className="flex items-center gap-2"><Globe className="w-3.5 h-3.5 text-emerald-600" /> 100% Hosted in Secure Cloud</li>
             </ul>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 font-medium">
-          <p>© {new Date().getFullYear()} DavaSetu Pharmacy Cloud POS. સર્વાધિકાર સુરક્ષિત.</p>
+          <p>© {new Date().getFullYear()} DavaSetu Cloud POS. All rights reserved.</p>
           <div className="flex gap-4">
             <button onClick={() => navigate('/login')} className="hover:text-emerald-600">Chemist Login</button>
             <span>•</span>
