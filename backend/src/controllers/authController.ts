@@ -68,7 +68,8 @@ export class AuthController {
                 exists: true,
                 pharmacyName: pharmacyName,
                 userName: user.name,
-                message: 'OTP sent successfully (Development Mode: use 123456)'
+                message: 'OTP sent successfully (Development Mode: use 123456)',
+                otp: generatedOtp
             });
         }
         
@@ -104,7 +105,8 @@ export class AuthController {
             exists: false,
             userExists: userExists,
             userData: userData,
-            message: 'OTP sent successfully (Development Mode: use 123456)' 
+            message: 'OTP sent successfully (Development Mode: use 123456)',
+            otp: generatedOtp
           });
         }
 
@@ -165,7 +167,8 @@ export class AuthController {
             exists: false,
             userExists: userExists,
             userData: userData,
-            message: 'OTP initiated. (Email service pending: Master OTP 123456 active)'
+            message: 'OTP initiated. (Email service pending: Master OTP 123456 active)',
+            otp: generatedOtp
           });
         }
 
@@ -173,7 +176,8 @@ export class AuthController {
           success: true,
           exists: false,
           userExists: userExists,
-          userData: userData
+          userData: userData,
+          otp: generatedOtp
         });
     } catch (error) {
       console.error('Check mobile error:', error);

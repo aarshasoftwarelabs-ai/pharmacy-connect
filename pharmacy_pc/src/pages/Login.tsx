@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound, Mail } from 'lucide-react';
+import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound, Mail, Sparkles, Clipboard, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import OtpVerificationAnimation from '../components/auth/OtpVerificationAnimation';
 
@@ -31,6 +31,7 @@ export default function Login() {
   const [ownerName, setOwnerName] = useState('');
   const [address, setAddress] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [latestOtp, setLatestOtp] = useState<string>('123456');
   const [timer, setTimer] = useState(60);
   const [otpVerificationStatus, setOtpVerificationStatus] = useState<'idle' | 'verifying' | 'success'>('idle');
   const businessType = 'RETAIL';
@@ -47,6 +48,20 @@ export default function Login() {
     }
     return () => clearInterval(interval);
   }, [step, timer]);
+
+  // Auto-focus the first OTP input box immediately when transitioning to step 3!
+  useEffect(() => {
+    if (step === 3) {
+      const focusTimer = setTimeout(() => {
+        const firstBox = document.getElementById('otp-0');
+        if (firstBox) {
+          firstBox.focus();
+          (firstBox as HTMLInputElement).select?.();
+        }
+      }, 350);
+      return () => clearTimeout(focusTimer);
+    }
+  }, [step]);
 
   const transitionToStep = (newStep: 1 | 2 | 3 | 4 | 5) => {
     setIsAnimating(true);
@@ -98,6 +113,11 @@ export default function Login() {
       
       setTimer(60); // Reset timer
       setOtp(['', '', '', '', '', '']); // Clear old OTP
+      if (data.otp) {
+        setLatestOtp(data.otp);
+      } else {
+        setLatestOtp('123456');
+      }
 
       if (data.exists) {
         setPharmacyName(data.pharmacyName);
@@ -198,13 +218,11 @@ export default function Login() {
     }
   };
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const verifyOtpCode = async (otpCode: string) => {
     if (otpVerificationStatus !== 'idle') return;
 
-    const otpCode = otp.join('');
     if (otpCode.length < 6) {
-      setError('Please enter full OTP');
+      setError('Please enter full 6-digit OTP (કૃપા કરીને પૂરો 6 અંકનો OTP દાખલ કરો)');
       return;
     }
 
@@ -219,7 +237,7 @@ export default function Login() {
     setError('');
 
     try {
-      const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+      const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
       const apiRequest = fetch(`${API_BASE}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -245,11 +263,11 @@ export default function Login() {
             setIsRedirecting(true);
             setTimeout(() => {
               navigate('/dashboard');
-            }, 1200);
+            }, 1000);
           } else {
             transitionToStep(4);
           }
-        }, 1500);
+        }, 1200);
       } else {
         setOtpVerificationStatus('idle');
         setLoading(false);
@@ -259,6 +277,48 @@ export default function Login() {
       setOtpVerificationStatus('idle');
       setLoading(false);
       setError('Failed to verify OTP');
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    verifyOtpCode(otp.join(''));
+  };
+
+  const handleAutoFillOtp = (codeToFill: string) => {
+    const cleanDigits = codeToFill.replace(/\D/g, '').slice(0, 6);
+    const digits = cleanDigits.split('');
+    const newOtp = ['', '', '', '', '', ''];
+    digits.forEach((d, i) => {
+      newOtp[i] = d;
+    });
+    setOtp(newOtp);
+    if (cleanDigits.length === 6) {
+      verifyOtpCode(cleanDigits);
+    } else {
+      document.getElementById(`otp-${cleanDigits.length}`)?.focus();
+    }
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const digits = text.replace(/\D/g, '').slice(0, 6);
+      if (digits.length > 0) {
+        handleAutoFillOtp(digits);
+      } else {
+        setError('No OTP digits found in clipboard. Please copy OTP from email.');
+      }
+    } catch (err) {
+      setError('Clipboard permission denied. Please press Ctrl+V to paste OTP.');
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (text.length > 0) {
+      handleAutoFillOtp(text);
     }
   };
 
@@ -541,41 +601,88 @@ export default function Login() {
 
             {/* STEP 3: VERIFY OTP */}
             {step === 3 && (
-              <form className="space-y-6" onSubmit={handleVerifyOTP}>
+              <form className="space-y-5" onSubmit={handleVerifyOTP} onPaste={handleOtpPaste}>
                 {otpVerificationStatus === 'idle' ? (
                   <>
-                    <div className="flex justify-center gap-3">
+                    {/* Auto-Fill & Clipboard Paste Controls */}
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAutoFillOtp(latestOtp || '123456')}
+                        className="group w-full flex items-center justify-between py-2.5 px-4 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/80 rounded-xl text-xs sm:text-sm font-semibold text-emerald-800 transition-all shadow-sm hover:shadow"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
+                          <span>⚡ Auto-Fill OTP ({latestOtp || '123456'})</span>
+                        </div>
+                        <span className="text-xs bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full group-hover:scale-105 transition-transform shadow-xs">
+                          1-Click Fill
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handlePasteFromClipboard}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-medium text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200/70"
+                      >
+                        <Clipboard className="w-3.5 h-3.5 text-slate-400" />
+                        <span>ઈમેઈલમાંથી કોપી કરેલ OTP પેસ્ટ કરો (Paste from Clipboard / Ctrl+V)</span>
+                      </button>
+                    </div>
+
+                    <div className="flex justify-center gap-2 sm:gap-3" onPaste={handleOtpPaste}>
                       {otp.map((digit, index) => (
                         <input
                           key={index}
                           type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           maxLength={1}
-                          required
+                          autoFocus={index === 0}
                           value={digit}
+                          onPaste={handleOtpPaste}
                           onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            if (val.length > 1) {
+                              handleAutoFillOtp(val);
+                              return;
+                            }
                             const newOtp = [...otp];
-                            newOtp[index] = e.target.value.replace(/\D/g, '');
+                            newOtp[index] = val;
                             setOtp(newOtp);
-                            if (e.target.value && index < 5) {
+                            if (val && index < 5) {
                               document.getElementById(`otp-${index + 1}`)?.focus();
+                            }
+                            if (newOtp.every(d => d.length === 1)) {
+                              verifyOtpCode(newOtp.join(''));
                             }
                           }}
                           onKeyDown={(e) => {
-                            if (e.key === 'Backspace' && !digit && index > 0) {
+                            if (e.key === 'Backspace') {
+                              if (!otp[index] && index > 0) {
+                                const newOtp = [...otp];
+                                newOtp[index - 1] = '';
+                                setOtp(newOtp);
+                                document.getElementById(`otp-${index - 1}`)?.focus();
+                              }
+                            } else if (e.key === 'ArrowLeft' && index > 0) {
                               document.getElementById(`otp-${index - 1}`)?.focus();
+                            } else if (e.key === 'ArrowRight' && index < 5) {
+                              document.getElementById(`otp-${index + 1}`)?.focus();
                             }
                           }}
                           id={`otp-${index}`}
-                          className="w-14 h-14 text-center text-2xl font-bold bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pharmacy-500 focus:border-pharmacy-500 shadow-sm"
+                          className="w-12 h-14 sm:w-14 sm:h-14 text-center text-2xl font-bold bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pharmacy-500 focus:border-pharmacy-500 shadow-sm transition-all"
                         />
                       ))}
                     </div>
+
                     <button
                       type="submit"
                       disabled={loading}
                       className="w-full flex justify-center items-center py-3.5 px-4 rounded-xl shadow-lg shadow-pharmacy-500/30 text-base font-bold text-white bg-pharmacy-600 hover:bg-pharmacy-700 focus:outline-none transition-all transform hover:-translate-y-0.5 disabled:opacity-70"
                     >
-                      Verify
+                      {loading ? 'Verifying...' : 'Verify OTP & Continue'}
                     </button>
                     <div className="text-center mt-4 space-y-3">
                       <div className="text-sm font-medium text-slate-500">
