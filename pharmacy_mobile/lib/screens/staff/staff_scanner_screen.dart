@@ -207,6 +207,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
           unitPrice: medicine.sellingPrice,
           quantity: 1,
           genericName: medicine.genericName,
+          scannedBy: '${auth.userName} (${auth.role})',
         );
 
         HapticFeedback.heavyImpact();
@@ -2351,8 +2352,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         Text(
-                          'Staff: ${auth.userName} (${auth.role})',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          '${auth.userName} • ${auth.role}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),

@@ -590,17 +590,30 @@ export class AuthController {
       }
 
       // Ensure staff has basic fields
+      let ownerInfo: any = null;
+      try {
+        if (pharmacy?.owner_id) {
+          const ownerQuery = await pool.query(
+            `SELECT u.id, u.name, u.phone FROM users u WHERE u.id = $1 AND (u.phone = $2 OR (LENGTH($3) >= 10 AND u.phone LIKE '%' || $3)) LIMIT 1`,
+            [pharmacy.owner_id, rawPhone, last10 || rawPhone]
+          );
+          if (ownerQuery.rows.length > 0) {
+            ownerInfo = ownerQuery.rows[0];
+          }
+        }
+      } catch (e) {}
+
       const staffMember = {
-        id: staff?.id || 1,
-        name: staff?.name || 'Counter Staff',
-        phone: staff?.phone || rawPhone,
-        role: staff?.role || 'BILLER',
-        isStaff: true
+        id: ownerInfo ? ownerInfo.id : (staff?.id || 1),
+        name: ownerInfo ? ownerInfo.name : (staff?.name || 'Counter Staff'),
+        phone: ownerInfo ? ownerInfo.phone : (staff?.phone || rawPhone),
+        role: ownerInfo ? 'OWNER' : (staff?.role || 'BILLER'),
+        isStaff: !ownerInfo
       };
 
       // Create Token
       const token = jwt.sign(
-        { userId: staffMember.id, phone: staffMember.phone, pharmacyId: pharmacy.id, role: staffMember.role, isStaff: true },
+        { userId: staffMember.id, phone: staffMember.phone, pharmacyId: pharmacy.id, role: staffMember.role, isStaff: staffMember.isStaff },
         JWT_SECRET,
         { expiresIn: '30d' }
       );
@@ -613,6 +626,123 @@ export class AuthController {
       });
     } catch (error) {
       console.error('Staff Login error:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  }
+
+  // 5. Lookup Counter User (Check if mobile belongs to Staff, Manager, or Owner)
+  static async lookupCounterUser(req: Request, res: Response) {
+    try {
+      const { phone } = req.body;
+      if (!phone) {
+        return res.status(400).json({ success: false, message: 'Phone number is required' });
+      }
+
+      const rawPhone = String(phone).trim();
+      const digitsOnly = rawPhone.replace(/\D/g, '');
+      const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+
+      // 1. Search in staff_members first (Active staff)
+      try {
+        const staffRes = await pool.query(`
+          SELECT sm.id, sm.name, sm.role, sm.phone, sm.pharmacy_id, p.name as pharmacy_name
+          FROM staff_members sm
+          JOIN pharmacies p ON sm.pharmacy_id = p.id
+          WHERE (sm.phone = $1 OR (LENGTH($2) >= 10 AND sm.phone LIKE '%' || $2))
+            AND sm.is_active = true
+          ORDER BY sm.id ASC
+          LIMIT 1
+        `, [rawPhone, last10 || rawPhone]);
+
+        if (staffRes.rows.length > 0) {
+          const s = staffRes.rows[0];
+          return res.json({
+            success: true,
+            found: true,
+            user: {
+              id: s.id,
+              name: s.name,
+              role: s.role || 'STAFF',
+              phone: s.phone,
+              pharmacyId: s.pharmacy_id,
+              pharmacyName: s.pharmacy_name,
+              isStaff: true
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Staff lookup query warning:', err);
+      }
+
+      // 2. Search in users + pharmacies (Store Owner)
+      try {
+        const ownerRes = await pool.query(`
+          SELECT u.id, u.name, u.phone, p.id as pharmacy_id, p.name as pharmacy_name
+          FROM users u
+          JOIN pharmacies p ON p.owner_id = u.id
+          WHERE (u.phone = $1 OR (LENGTH($2) >= 10 AND u.phone LIKE '%' || $2))
+          ORDER BY p.id ASC
+          LIMIT 1
+        `, [rawPhone, last10 || rawPhone]);
+
+        if (ownerRes.rows.length > 0) {
+          const o = ownerRes.rows[0];
+          return res.json({
+            success: true,
+            found: true,
+            user: {
+              id: o.id,
+              name: o.name,
+              role: 'OWNER',
+              phone: o.phone,
+              pharmacyId: o.pharmacy_id,
+              pharmacyName: o.pharmacy_name,
+              isStaff: false
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Owner lookup query warning:', err);
+      }
+
+      // 3. Search in pharmacies directly (by store phone)
+      try {
+        const pharmRes = await pool.query(`
+          SELECT p.id as pharmacy_id, p.name as pharmacy_name, p.phone, u.name as owner_name
+          FROM pharmacies p
+          LEFT JOIN users u ON p.owner_id = u.id
+          WHERE (p.phone = $1 OR (LENGTH($2) >= 10 AND p.phone LIKE '%' || $2))
+          ORDER BY p.id ASC
+          LIMIT 1
+        `, [rawPhone, last10 || rawPhone]);
+
+        if (pharmRes.rows.length > 0) {
+          const p = pharmRes.rows[0];
+          return res.json({
+            success: true,
+            found: true,
+            user: {
+              id: 1,
+              name: p.owner_name ? `${p.owner_name}'s Counter` : 'Store Counter',
+              role: 'COUNTER_STAFF',
+              phone: p.phone,
+              pharmacyId: p.pharmacy_id,
+              pharmacyName: p.pharmacy_name,
+              isStaff: true
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Pharmacy direct lookup query warning:', err);
+      }
+
+      return res.json({
+        success: true,
+        found: false,
+        message: 'No registered staff or pharmacy owner found for this number.'
+      });
+    } catch (error) {
+      console.error('lookupCounterUser error:', error);
       res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }

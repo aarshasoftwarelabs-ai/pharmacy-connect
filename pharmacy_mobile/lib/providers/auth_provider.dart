@@ -203,6 +203,26 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>?> lookupCounterUser(String phone) async {
+    try {
+      final cleanPhone = phone.trim();
+      final response = await ApiService.post(ApiEndpoints.lookupCounterUser, {
+        'phone': cleanPhone,
+      });
+
+      if (response.success && response.data != null) {
+        final data = response.data as Map<String, dynamic>;
+        if (data['found'] == true && data['user'] != null) {
+          return Map<String, dynamic>.from(data['user'] as Map<String, dynamic>);
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('lookupCounterUser error: $e');
+      return null;
+    }
+  }
+
   Future<void> logout() async {
     _user = null;
     await StorageService.clearAll();

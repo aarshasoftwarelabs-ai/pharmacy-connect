@@ -378,6 +378,7 @@ class MedicineBoxOcrService {
     int quantity = 1,
     String? genericName,
     String? packSize,
+    String scannedBy = 'Mobile Staff/Owner',
   }) async {
     try {
       final response = await http.post(
@@ -395,7 +396,7 @@ class MedicineBoxOcrService {
           'quantity': quantity,
           'genericName': genericName,
           'isOcrScan': true,
-          'scannedBy': 'Mobile Box Scanner',
+          'scannedBy': scannedBy,
         }),
       ).timeout(const Duration(seconds: 10));
       return response.statusCode == 200 || response.statusCode == 201;

@@ -96,7 +96,9 @@ class BillingProvider extends ChangeNotifier {
           int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
           8;
 
-      final String userName = userData?['name']?.toString() ?? 'Mobile Staff';
+      final String rawName = userData?['name']?.toString() ?? 'Counter Staff';
+      final String rawRole = userData?['role']?.toString() ?? 'STAFF';
+      final String scannedBy = '$rawName ($rawRole)';
 
       final payload = {
         'pharmacy_id': effectivePharmacyId,
@@ -108,7 +110,7 @@ class BillingProvider extends ChangeNotifier {
         'hsnCode': '30049099',
         'gstRate': 5.0,
         'mrp': medicine.mrp,
-        'scannedBy': userName,
+        'scannedBy': scannedBy,
       };
 
       final response = await ApiService.post(ApiEndpoints.liveScanItem, payload);

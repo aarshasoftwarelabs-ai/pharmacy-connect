@@ -15,20 +15,66 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool _isStaffLogin = false; // Default to Store Owner (Pocket Pharmacy ERP) mode!
+  bool _isStaffLogin = false; // Default to Store Owner mode
 
   // Owner controllers
   final _identifierController = TextEditingController(text: 'deeplodaliya007@gmail.com');
   final _passwordController = TextEditingController(text: 'Jenish009@@@');
   bool _obscurePassword = true;
 
-  // Staff controllers
-  final _staffPhoneController = TextEditingController(text: '9876543210');
-  final _staffPinController = TextEditingController(text: '1234');
+  // Counter Scanner controllers
+  final _staffPhoneController = TextEditingController(text: '');
+  final _staffPinController = TextEditingController(text: '');
   bool _obscurePin = true;
+
+  // Real-time Phone Lookup State
+  bool _isCheckingPhone = false;
+  Map<String, dynamic>? _matchedUser;
+  String? _lastCheckedPhone;
+
+  @override
+  void initState() {
+    super.initState();
+    _staffPhoneController.addListener(_onStaffPhoneChanged);
+  }
+
+  void _onStaffPhoneChanged() {
+    final digits = _staffPhoneController.text.trim().replaceAll(RegExp(r'\D'), '');
+    if (digits.length >= 10) {
+      final last10 = digits.substring(digits.length - 10);
+      if (last10 != _lastCheckedPhone) {
+        _lookupUser(last10);
+      }
+    } else {
+      if (_matchedUser != null || _lastCheckedPhone != null) {
+        setState(() {
+          _matchedUser = null;
+          _lastCheckedPhone = null;
+          _isCheckingPhone = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _lookupUser(String phone10) async {
+    _lastCheckedPhone = phone10;
+    setState(() {
+      _isCheckingPhone = true;
+    });
+
+    final auth = context.read<AuthProvider>();
+    final result = await auth.lookupCounterUser(phone10);
+
+    if (!mounted) return;
+    setState(() {
+      _isCheckingPhone = false;
+      _matchedUser = result;
+    });
+  }
 
   @override
   void dispose() {
+    _staffPhoneController.removeListener(_onStaffPhoneChanged);
     _identifierController.dispose();
     _passwordController.dispose();
     _staffPhoneController.dispose();
@@ -161,6 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 24),
 
                 // Role Toggle Selector (Owner first, Staff second)
+                // Role Toggle Selector (Store Owner first, Counter Scanner second)
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
@@ -198,10 +245,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'Store Owner (માલિક)',
+                                  'Store Owner',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: !_isStaffLogin ? FontWeight.bold : FontWeight.normal,
+                                    fontWeight: !_isStaffLogin ? FontWeight.bold : FontWeight.w600,
                                     color: !_isStaffLogin ? AppColors.primary : AppColors.textMuted,
                                   ),
                                 ),
@@ -210,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      // 2. Staff Scanner
+                      // 2. Counter Scanner
                       Expanded(
                         child: GestureDetector(
                           onTap: () => setState(() => _isStaffLogin = true),
@@ -239,10 +286,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'Staff Scanner (સ્ટાફ)',
+                                  'Counter Scanner',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: _isStaffLogin ? FontWeight.bold : FontWeight.normal,
+                                    fontWeight: _isStaffLogin ? FontWeight.bold : FontWeight.w600,
                                     color: _isStaffLogin ? AppColors.primary : AppColors.textMuted,
                                   ),
                                 ),
@@ -258,25 +305,169 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Form based on selected mode
                 if (_isStaffLogin) ...[
-                  // Staff Phone
-                  const Text(
-                    'Store Mobile Number (દુકાનનો નંબર)',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  // Mobile Number Field
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Mobile Number (મોબાઈલ નંબર)',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                      ),
+                      if (_isCheckingPhone)
+                        Row(
+                          children: const [
+                            SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'તપાસી રહ્યા છીએ...',
+                              style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _staffPhoneController,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.storefront_rounded, color: AppColors.textMuted),
-                      hintText: 'e.g. 9876543210',
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.phone_android_rounded, color: AppColors.textMuted),
+                      hintText: 'Enter 10-digit mobile number',
+                      suffixIcon: _matchedUser != null
+                          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A))
+                          : null,
                     ),
                   ),
+
+                  // Matched User Profile Badge Card
+                  if (_matchedUser != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            _getRoleColor(_matchedUser!['role']).withValues(alpha: 0.08),
+                            Colors.white,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _getRoleColor(_matchedUser!['role']).withValues(alpha: 0.35),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: _getRoleColor(_matchedUser!['role']).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              _getRoleIcon(_matchedUser!['role']),
+                              color: _getRoleColor(_matchedUser!['role']),
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _matchedUser!['name']?.toString() ?? 'Counter Staff',
+                                        style: const TextStyle(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: _getRoleColor(_matchedUser!['role']),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        _formatRoleLabel(_matchedUser!['role']),
+                                        style: const TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.storefront_rounded, size: 13, color: AppColors.textMuted),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        _matchedUser!['pharmacyName']?.toString() ?? 'DavaSetu Pharmacy',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (!_isCheckingPhone && _staffPhoneController.text.trim().replaceAll(RegExp(r'\D'), '').length >= 10) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF64748B)),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'નંબર લુકઅપ: સામાન્ય કાઉન્ટર સ્કેનર માટે ડિફોલ્ટ PIN 1234 વાપરો.',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 16),
 
-                  // Staff PIN
+                  // Counter 4-Digit PIN
                   const Text(
-                    'Staff 4-Digit PIN (તમારો પિન)',
+                    'Counter 4-Digit PIN (કાઉન્ટર પિન)',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 8),
@@ -341,7 +532,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'સ્ટાફ મોડમાં ફક્ત બારકોડ સ્કેનિંગ અને કાઉન્ટર POS ઉપલબ્ધ રહેશે. ફાર્મસીના બધા નાણાકીય રિપોર્ટ્સ અને સેટિંગ્સ માલિક માટે 100% સુરક્ષિત રહે છે.',
+                            'કાઉન્ટર સ્કેનર મોડમાં ફક્ત બારકોડ સ્કેનિંગ અને કાઉન્ટર POS ઉપલબ્ધ રહેશે. ફાર્મસીના બધા નાણાકીય રિપોર્ટ્સ અને સેટિંગ્સ Store Owner માટે 100% સુરક્ષિત રહે છે.',
                             style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B), height: 1.35),
                           ),
                         ),
@@ -463,5 +654,29 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  Color _getRoleColor(dynamic role) {
+    final r = role?.toString().toUpperCase() ?? '';
+    if (r.contains('OWNER')) return const Color(0xFFD97706); // Amber/Gold
+    if (r.contains('MANAGE')) return const Color(0xFF7C3AED); // Purple
+    if (r.contains('PHARM')) return const Color(0xFF059669); // Emerald
+    return const Color(0xFF0284C7); // Sky Blue
+  }
+
+  IconData _getRoleIcon(dynamic role) {
+    final r = role?.toString().toUpperCase() ?? '';
+    if (r.contains('OWNER')) return Icons.verified_user_rounded;
+    if (r.contains('MANAGE')) return Icons.manage_accounts_rounded;
+    if (r.contains('PHARM')) return Icons.medication_rounded;
+    return Icons.person_rounded;
+  }
+
+  String _formatRoleLabel(dynamic role) {
+    final r = role?.toString().toUpperCase() ?? '';
+    if (r.contains('OWNER')) return 'OWNER';
+    if (r.contains('MANAGE')) return 'MANAGER';
+    if (r.contains('PHARM')) return 'PHARMACIST';
+    return 'STAFF';
   }
 }

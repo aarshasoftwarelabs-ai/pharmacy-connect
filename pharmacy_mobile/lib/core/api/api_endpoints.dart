@@ -27,6 +27,7 @@ class ApiEndpoints {
   static String get login => '$baseUrl/auth/login';
   static String get register => '$baseUrl/auth/register';
   static String get staffLogin => '$baseUrl/auth/staff-login';
+  static String get lookupCounterUser => '$baseUrl/auth/lookup-counter-user';
   static String get me => '$baseUrl/auth/me';
 
   // Medicines / Inventory

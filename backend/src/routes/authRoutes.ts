@@ -8,5 +8,6 @@ router.post('/verify-otp', AuthController.verifyOtp);
 router.post('/login', AuthController.login);
 router.post('/register', AuthController.register);
 router.post('/staff-login', AuthController.staffLogin);
+router.post('/lookup-counter-user', AuthController.lookupCounterUser);
 
 export default router;
