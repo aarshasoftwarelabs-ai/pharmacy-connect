@@ -1157,7 +1157,7 @@ export default function Suppliers() {
               <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>Real-time DavaSetu Cloud Sync</span>
+                  <span>COMPLIANCE & DRUG LICENSES</span>
                 </div>
 
                 <div className="flex items-center gap-3">
