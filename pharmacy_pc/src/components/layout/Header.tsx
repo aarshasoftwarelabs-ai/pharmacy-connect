@@ -139,10 +139,15 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
           <PanelLeft className="h-5 w-5" />
         </button>
 
-        {/* Mobile App Mini Brand Badge */}
-        <div className="flex md:hidden items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-pharmacy-500 to-emerald-600 text-white shadow-sm flex-shrink-0">
-          <Pill className="w-4 h-4" />
-        </div>
+        {/* Mobile Hamburger / Navigation Menu Toggle */}
+        <button 
+          onClick={() => window.dispatchEvent(new CustomEvent('davasetu_open_mobile_menu'))}
+          aria-label="Open Navigation Menu"
+          title="Open Menu"
+          className="flex md:hidden items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-pharmacy-50 to-emerald-100 text-pharmacy-700 hover:bg-pharmacy-200 border border-pharmacy-200/80 shadow-xs active:scale-95 transition-all flex-shrink-0 focus:outline-none"
+        >
+          <Menu className="w-5 h-5 text-pharmacy-700" />
+        </button>
 
         <div className="min-w-0">
           <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-tight truncate">{pageTitle}</h1>
@@ -206,7 +211,7 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
           {/* Notification Dropdown */}
           {showNotifications && (
             <div className="absolute right-0 top-full pt-2 z-50">
-              <div className="w-80 bg-white rounded-xl shadow-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+              <div className="w-[calc(100vw-24px)] sm:w-80 max-w-sm bg-white rounded-xl shadow-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                   <h3 className="font-bold text-slate-800">Notifications</h3>
                 {unreadCount > 0 && (

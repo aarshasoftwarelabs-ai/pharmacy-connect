@@ -167,7 +167,7 @@ export default function DashboardLayout() {
   const showLockScreen = isTrialLocked && isRestrictedRoute;
 
   return (
-    <div className="h-screen bg-slate-50 flex overflow-hidden relative">
+    <div className="h-screen h-[100dvh] bg-slate-50 flex overflow-hidden relative">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header pageTitle={title} subtitle={subtitle} />

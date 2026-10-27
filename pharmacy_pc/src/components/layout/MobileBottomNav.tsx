@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -30,6 +30,12 @@ export default function MobileBottomNav() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const currentPath = location.pathname;
+
+  useEffect(() => {
+    const handleOpenMenu = () => setIsMoreOpen(true);
+    window.addEventListener('davasetu_open_mobile_menu', handleOpenMenu);
+    return () => window.removeEventListener('davasetu_open_mobile_menu', handleOpenMenu);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');

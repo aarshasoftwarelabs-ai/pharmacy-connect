@@ -51,11 +51,12 @@ export default function Sidebar() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { hasPermission } = useAuth();
 
-  // Collapsed state - persists across reloads
+  // Collapsed state - persists across reloads, defaults to collapsed on tablets (< 1024px)
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('davasetu_sidebar_collapsed');
-      return saved === 'true';
+      if (saved !== null) return saved === 'true';
+      return typeof window !== 'undefined' && window.innerWidth < 1024;
     } catch {
       return false;
     }
