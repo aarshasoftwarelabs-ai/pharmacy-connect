@@ -38,7 +38,7 @@ export const apiFetch = async (url: string, options: RequestInit = {}) => {
     localStorage.removeItem('user');
     localStorage.removeItem('pharmacy_profile_data');
     if (window.location.pathname !== '/login') {
-      window.location.hash = '/login'; // Changed from .href to .hash since it's HashRouter
+      window.location.href = '/login';
     }
   }
 

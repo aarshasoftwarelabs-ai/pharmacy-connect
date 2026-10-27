@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -41,7 +41,7 @@ const PermissionRoute = ({ permissionKey, children }: { permissionKey: string, c
 function App() {
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
@@ -67,7 +67,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
