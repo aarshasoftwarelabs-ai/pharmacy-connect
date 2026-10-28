@@ -162,27 +162,58 @@ export default function LandingPage() {
               15-Day Free Trial • Instant POS Access
             </span>
           </div>
-          <div className="flex items-center gap-5 text-slate-300 text-xs">
+          <div className="flex items-center gap-3 sm:gap-4 text-slate-300 text-xs whitespace-nowrap">
             <a 
               href="tel:+919664781007" 
-              className="hidden sm:inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition"
+              className="hidden lg:inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition whitespace-nowrap"
             >
               <Phone className="w-3.5 h-3.5" /> Support: +91 96647 81007
             </a>
-            <button 
-              onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login?mode=login')}
-              className="text-white hover:text-emerald-400 font-bold flex items-center gap-1 transition"
-            >
-              <span>{isLoggedIn ? 'Go to Dashboard' : 'Chemist Sign In'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              {isLoggedIn ? (
+                <button 
+                  onClick={() => navigate('/dashboard')}
+                  className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1.5 transition text-xs shadow-xs"
+                >
+                  <span>Go to POS Dashboard</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <>
+                  {/* CHEMIST SIGN IN */}
+                  <button 
+                    onClick={() => navigate('/login?mode=login')}
+                    className="px-2.5 py-1 text-slate-200 hover:text-white font-bold flex items-center gap-1.5 hover:bg-slate-800 rounded-lg transition text-xs"
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Chemist Sign In</span>
+                  </button>
+
+                  <span className="text-slate-700">|</span>
+
+                  {/* CHEMIST SIGN UP */}
+                  <button 
+                    onClick={() => navigate('/login?mode=signup')}
+                    className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1.5 transition text-xs shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                    <span>Chemist Sign Up</span>
+                    <span className="hidden sm:inline-flex text-[9px] bg-emerald-800 text-emerald-100 px-1.5 py-0.2 rounded font-black">
+                      15 Days Free
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-slate-950" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* 2. MODERN FLOATING GLASS HEADER */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
-        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between">
           
           {/* BRAND LOGO */}
           <Link to="/" className="flex items-center gap-3 shrink-0 select-none">
@@ -198,8 +229,8 @@ export default function LandingPage() {
             </div>
           </Link>
 
-          {/* DESKTOP NAVIGATION PILLS */}
-          <nav className="hidden lg:flex items-center gap-3 xl:gap-5 2xl:gap-7 text-xs xl:text-sm font-bold text-slate-600 whitespace-nowrap">
+          {/* DESKTOP NAVIGATION PILLS - CLEAN & SPACIOUS */}
+          <nav className="hidden md:flex items-center gap-5 lg:gap-7 xl:gap-8 text-xs sm:text-sm font-bold text-slate-600 whitespace-nowrap">
             <a href="#solutions" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Solutions</a>
             <a href="#interactive-simulator" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap">
               <span>Live Demo</span>
@@ -210,47 +241,10 @@ export default function LandingPage() {
               <span>Smart Migration</span>
               <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[9px] font-black border border-amber-200 leading-none shrink-0">2 Min</span>
             </a>
-            <a href="#features" className="hidden 2xl:inline-block hover:text-emerald-600 transition-colors whitespace-nowrap">Modules</a>
+            <a href="#features" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Modules</a>
             <a href="#pricing" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Pricing</a>
             <a href="#faq" className="hover:text-emerald-600 transition-colors whitespace-nowrap">FAQ</a>
           </nav>
-
-          {/* RIGHT ACTION BUTTONS: CHEMIST LOGIN & SIGN UP FREE */}
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            {isLoggedIn ? (
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="h-10 px-4 sm:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition flex items-center gap-2 whitespace-nowrap shrink-0"
-              >
-                <span>Open POS Dashboard</span>
-                <ArrowRight className="w-4 h-4 shrink-0" />
-              </button>
-            ) : (
-              <>
-                {/* 1. CHEMIST LOGIN BUTTON */}
-                <button
-                  onClick={() => navigate('/login?mode=login')}
-                  className="h-10 px-3 sm:px-4 text-xs sm:text-sm font-bold text-slate-700 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-500 rounded-xl shadow-xs transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                >
-                  <LogIn className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-slate-500 shrink-0" />
-                  <span>Chemist Login</span>
-                </button>
-
-                {/* 2. SIGN UP FREE (15-DAY TRIAL) BUTTON */}
-                <button
-                  onClick={() => navigate('/login?mode=signup')}
-                  className="group h-10 px-3.5 sm:px-4.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0"
-                >
-                  <Sparkles className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-200 shrink-0" />
-                  <span>Sign Up Free</span>
-                  <span className="hidden md:inline-flex text-[9px] uppercase font-black tracking-wide px-1.5 py-0.5 rounded bg-emerald-800/40 border border-emerald-400/25 text-emerald-100 leading-none shrink-0">
-                    15 Days
-                  </span>
-                  <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                </button>
-              </>
-            )}
-          </div>
         </div>
       </header>
 
