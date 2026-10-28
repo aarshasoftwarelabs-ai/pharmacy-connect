@@ -185,75 +185,66 @@ export default function LandingPage() {
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
           {/* BRAND LOGO */}
-          <Link to="/" className="flex items-center gap-3.5 group select-none">
+          <Link to="/" className="flex items-center gap-3 shrink-0 select-none">
             <img 
               src="/davasetu_logo.png" 
               alt="DavaSetu Pharmacy POS" 
-              className="h-10 sm:h-12 w-auto object-contain group-hover:scale-[1.02] transition-transform duration-200"
+              className="h-9 sm:h-10 w-auto object-contain"
             />
-            <div className="hidden sm:flex flex-col justify-center border-l border-slate-200 pl-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  POS 3.0
-                </span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Cloud ERP
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 font-semibold tracking-tight mt-0.5">
-                Smart Cloud Pharmacy & Retail ERP
-              </p>
+            <div className="hidden 2xl:flex items-center gap-1.5 border-l border-slate-200 pl-3">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 whitespace-nowrap">
+                POS 3.0 Cloud ERP
+              </span>
             </div>
           </Link>
 
           {/* DESKTOP NAVIGATION PILLS */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-7 text-sm font-bold text-slate-600">
-            <a href="#solutions" className="hover:text-emerald-600 transition-colors">Solutions</a>
-            <a href="#interactive-simulator" className="hover:text-emerald-600 transition-colors flex items-center gap-1.5">
-              <span>Live POS Simulator</span>
-              <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-800 rounded-full font-black animate-pulse">Try Free</span>
+          <nav className="hidden lg:flex items-center gap-3 xl:gap-5 2xl:gap-7 text-xs xl:text-sm font-bold text-slate-600 whitespace-nowrap">
+            <a href="#solutions" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Solutions</a>
+            <a href="#interactive-simulator" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap">
+              <span>Live Demo</span>
+              <span className="px-1.5 py-0.5 text-[9px] bg-emerald-100 text-emerald-800 rounded-full font-black uppercase tracking-wide leading-none shrink-0">Try</span>
             </a>
-            <a href="#comparison" className="hover:text-emerald-600 transition-colors">Why DavaSetu?</a>
-            <a href="#migration" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
+            <a href="#comparison" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Why DavaSetu?</a>
+            <a href="#migration" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap">
               <span>Marg Migration</span>
-              <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 text-[10px] font-black">2 Min</span>
+              <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[9px] font-black border border-amber-200 leading-none shrink-0">2 Min</span>
             </a>
-            <a href="#features" className="hover:text-emerald-600 transition-colors">Modules</a>
-            <a href="#pricing" className="hover:text-emerald-600 transition-colors">Pricing & Plans</a>
-            <a href="#faq" className="hover:text-emerald-600 transition-colors">FAQ</a>
+            <a href="#features" className="hidden 2xl:inline-block hover:text-emerald-600 transition-colors whitespace-nowrap">Modules</a>
+            <a href="#pricing" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Pricing</a>
+            <a href="#faq" className="hover:text-emerald-600 transition-colors whitespace-nowrap">FAQ</a>
           </nav>
 
           {/* RIGHT ACTION BUTTONS: CHEMIST LOGIN & SIGN UP FREE */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {isLoggedIn ? (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/25 transition flex items-center gap-2"
+                className="h-10 px-4 sm:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition flex items-center gap-2 whitespace-nowrap shrink-0"
               >
                 <span>Open POS Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 shrink-0" />
               </button>
             ) : (
               <>
                 {/* 1. CHEMIST LOGIN BUTTON */}
                 <button
                   onClick={() => navigate('/login?mode=login')}
-                  className="px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-slate-700 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-500 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                  className="h-10 px-3 sm:px-4 text-xs sm:text-sm font-bold text-slate-700 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-500 rounded-xl shadow-xs transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0"
                 >
-                  <LogIn className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-slate-500 group-hover:text-emerald-600 shrink-0" />
+                  <LogIn className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-slate-500 shrink-0" />
                   <span>Chemist Login</span>
                 </button>
 
                 {/* 2. SIGN UP FREE (15-DAY TRIAL) BUTTON */}
                 <button
                   onClick={() => navigate('/login?mode=signup')}
-                  className="group px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-600/25 hover:shadow-lg hover:shadow-emerald-600/35 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2"
+                  className="group h-10 px-3.5 sm:px-4.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0"
                 >
-                  <Sparkles className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-200 animate-pulse shrink-0" />
+                  <Sparkles className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-200 shrink-0" />
                   <span>Sign Up Free</span>
-                  <span className="hidden sm:inline-flex text-[10px] uppercase font-black tracking-wide px-1.5 py-0.5 rounded bg-emerald-800/40 border border-emerald-400/30 text-emerald-100">
-                    15 Days Free
+                  <span className="hidden md:inline-flex text-[9px] uppercase font-black tracking-wide px-1.5 py-0.5 rounded bg-emerald-800/40 border border-emerald-400/25 text-emerald-100 leading-none shrink-0">
+                    15 Days
                   </span>
                   <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 group-hover:translate-x-0.5 transition-transform shrink-0" />
                 </button>
@@ -264,25 +255,25 @@ export default function LandingPage() {
       </header>
 
       {/* 3. HERO SECTION - ASYMMETRIC 2-COLUMN SPLIT LAYOUT (NOT CENTERED TEXT!) */}
-      <section className="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden bg-gradient-to-b from-white via-slate-50 to-emerald-50/20 border-b border-slate-200">
+      <section className="relative pt-6 pb-14 lg:pt-8 lg:pb-20 overflow-hidden bg-gradient-to-b from-white via-slate-50 to-emerald-50/20 border-b border-slate-200">
         
         {/* Subtle decorative background mesh */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-emerald-100/60 via-teal-100/30 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
 
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
             
             {/* LEFT COLUMN: PUNCHY COPY & VALUE PROPS (7 COLS) */}
-            <div className="lg:col-span-7">
+            <div className="lg:col-span-7 pt-1 lg:pt-2">
               
               {/* Category Pill */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-black mb-6 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-black mb-4 shadow-xs">
                 <ShieldCheck className="w-4 h-4 text-emerald-700" />
                 <span>Next-Gen Pharmacy Cloud ERP & Counter POS</span>
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.12]">
+              <h1 className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl font-black tracking-tight text-slate-900 leading-[1.12]">
                 The Modern POS Built Exclusively for{' '}
                 <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 bg-clip-text text-transparent">
                   Retail Pharmacies.
@@ -290,28 +281,28 @@ export default function LandingPage() {
               </h1>
 
               {/* Subtext */}
-              <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl leading-relaxed font-medium">
+              <p className="mt-4 sm:mt-5 text-base sm:text-lg lg:text-xl text-slate-600 max-w-2xl leading-relaxed font-medium">
                 Speed up checkouts during evening rush, eliminate expired medicine losses with automated return alerts, and track daily sales from your phone anywhere.
               </p>
 
               {/* Metric Highlights Strip */}
-              <div className="mt-8 grid grid-cols-3 gap-3 max-w-lg">
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-emerald-600 font-black text-xl">
+              <div className="mt-6 grid grid-cols-3 gap-3 max-w-lg">
+                <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-emerald-600 font-black text-lg sm:text-xl">
                     <Zap className="w-4 h-4" /> 3 Sec
                   </div>
                   <p className="text-xs text-slate-500 font-semibold mt-0.5">Counter Checkout</p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-teal-600 font-black text-xl">
+                <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-teal-600 font-black text-lg sm:text-xl">
                     <ShieldCheck className="w-4 h-4" /> 0%
                   </div>
                   <p className="text-xs text-slate-500 font-semibold mt-0.5">Expiry Deadstock</p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-cyan-600 font-black text-xl">
+                <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-cyan-600 font-black text-lg sm:text-xl">
                     <CheckCircle className="w-4 h-4" /> 100%
                   </div>
                   <p className="text-xs text-slate-500 font-semibold mt-0.5">GST & Cloud Auto-Sync</p>
@@ -319,10 +310,10 @@ export default function LandingPage() {
               </div>
 
               {/* CTA Action Buttons */}
-              <div className="mt-9 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <div className="mt-7 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
                 <button
                   onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')}
-                  className="px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-xl shadow-emerald-700/20 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-3"
+                  className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-xl shadow-emerald-700/20 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-3"
                 >
                   <Zap className="w-5 h-5 text-yellow-300" />
                   <span>{isLoggedIn ? 'Go to POS Terminal' : 'Start 15-Day Free Trial'}</span>
@@ -331,7 +322,7 @@ export default function LandingPage() {
 
                 <a
                   href="#interactive-simulator"
-                  className="px-7 py-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-base border-2 border-slate-200 shadow-sm transition flex items-center justify-center gap-2"
+                  className="px-6 py-3.5 sm:px-7 sm:py-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-base border-2 border-slate-200 shadow-sm transition flex items-center justify-center gap-2"
                 >
                   <Play className="w-4 h-4 text-emerald-600 fill-emerald-600" />
                   <span>Try Interactive Demo</span>
@@ -339,7 +330,7 @@ export default function LandingPage() {
               </div>
 
               {/* Trust Badges Footer */}
-              <div className="mt-8 flex items-center gap-4 text-xs font-bold text-slate-500">
+              <div className="mt-6 flex items-center gap-3 sm:gap-4 text-xs font-bold text-slate-500">
                 <div className="flex -space-x-2">
                   <span className="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-[10px] text-white font-black">JP</span>
                   <span className="w-7 h-7 rounded-full bg-teal-500 border-2 border-white flex items-center justify-center text-[10px] text-white font-black">BS</span>
