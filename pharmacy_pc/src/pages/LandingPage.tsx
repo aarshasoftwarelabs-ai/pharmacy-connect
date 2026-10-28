@@ -43,7 +43,9 @@ import {
   ShieldAlert,
   Percent,
   Cpu,
-  BadgeCheck
+  BadgeCheck,
+  Pill,
+  FileCheck
 } from 'lucide-react';
 
 interface MedicineSample {
@@ -72,12 +74,12 @@ export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [cart, setCart] = useState<MedicineSample[]>([SAMPLE_MEDS[0], SAMPLE_MEDS[1]]);
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
-  const [paymentMode, setPaymentMode] = useState<'UPI' | 'CASH' | 'CREDIT'>('UPI');
+  const [paymentMode, setPaymentMode] = useState<'UPI' | 'CASH' | 'CARD'>('UPI');
   const [receiptSimulated, setReceiptSimulated] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [customerPhone] = useState('9876543210');
   const [customerName] = useState('Rajesh Patel');
-  const [activeStudioTab, setActiveStudioTab] = useState<'billing' | 'expiry' | 'purchases' | 'khata' | 'mobile'>('billing');
+  const [activeStudioTab, setActiveStudioTab] = useState<'billing' | 'generic' | 'expiry' | 'purchases' | 'compliance' | 'mobile'>('billing');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -477,10 +479,11 @@ export default function LandingPage() {
         <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
           {[
             { id: 'billing', label: '1. Ultra-Fast Billing', icon: Receipt },
-            { id: 'expiry', label: '2. Smart Expiry Shield', icon: ShieldCheck },
-            { id: 'purchases', label: '3. Supplier Inward & PO', icon: Truck },
-            { id: 'khata', label: '4. Patient Khata & Reminders', icon: Users },
-            { id: 'mobile', label: '5. Mobile Phone Live Sync', icon: Smartphone }
+            { id: 'generic', label: '2. Smart Generic & Salt Finder', icon: Pill },
+            { id: 'expiry', label: '3. Smart Expiry Shield', icon: ShieldCheck },
+            { id: 'purchases', label: '4. Supplier Inward & PO', icon: Truck },
+            { id: 'compliance', label: '5. Schedule H1 & Drug Register', icon: FileCheck },
+            { id: 'mobile', label: '6. Mobile Phone Live Sync', icon: Smartphone }
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeStudioTab === tab.id;
@@ -524,6 +527,66 @@ export default function LandingPage() {
                 <p>➔ In Stock: 84 Strips • MRP: ₹31.50</p>
                 <div className="p-2.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-emerald-300">
                   Bill #10842 generated in 2.1 seconds.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeStudioTab === 'generic' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div>
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">High-Margin Substitution</span>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">Smart Generic & Salt Composition Finder</h3>
+                <p className="text-slate-600 text-sm mt-3 leading-relaxed">
+                  When a customer requests an expensive branded medicine or when an item is out of stock, DavaSetu instantly reveals equivalent generic alternatives with the exact same chemical salt composition (e.g. Amoxicillin + Clavulanic Acid). Pass on savings to your patients while boosting your pharmacy's gross profit margin by 30% to 45%!
+                </p>
+                <ul className="mt-6 space-y-2.5 text-xs font-bold text-slate-700">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Instant 1-second salt & chemical molecule database matching</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Compare live stock, packaging, and manufacturer quality</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Earn 30%–45% higher retail margin on equivalent ethical generics</li>
+                </ul>
+              </div>
+              <div className="p-6 rounded-2xl bg-emerald-950 text-white text-xs space-y-3 shadow-lg">
+                <div className="font-bold text-emerald-400 border-b border-emerald-800/80 pb-2 flex justify-between items-center">
+                  <span>SMART SALT COMPOSITION RADAR</span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono">MATCH: 100%</span>
+                </div>
+                <p className="text-slate-300 font-mono text-[11px]">Active Salt: Amoxicillin (500mg) + Clavulanic Acid (125mg)</p>
+                
+                <div className="space-y-2 pt-1 font-mono">
+                  <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-700 flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-white">Augmentin 625 Duo (GSK)</p>
+                      <span className="text-[10px] text-slate-400">Branded • Margin: 16%</span>
+                    </div>
+                    <span className="font-bold text-slate-300">₹201.20</span>
+                  </div>
+
+                  <div className="p-2.5 bg-emerald-900/70 rounded-xl border-2 border-emerald-400 flex justify-between items-center text-white">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-black text-emerald-200">Moxikind-CV 625 (Mankind)</p>
+                        <span className="text-[9px] bg-emerald-500 text-slate-950 font-black px-1.5 py-0.2 rounded">RECOMMENDED</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-300">Generic Substitute • Margin: 38% (+22% Profit)</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-emerald-300">₹178.50</span>
+                      <span className="block text-[9px] text-emerald-400 font-bold">Patient saves ₹22.70</span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-700 flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-white">Novamox-CV 625 (Cipla)</p>
+                      <span className="text-[10px] text-slate-400">Ethical Generic • Margin: 32%</span>
+                    </div>
+                    <span className="font-bold text-slate-300">₹182.00</span>
+                  </div>
+                </div>
+
+                <div className="p-2 bg-emerald-900/40 rounded-lg border border-emerald-500/30 text-[11px] text-emerald-300 text-center font-bold">
+                  💡 Suggesting Moxikind-CV saves patient money & increases chemist profit by +22%!
                 </div>
               </div>
             </div>
@@ -587,28 +650,41 @@ export default function LandingPage() {
             </div>
           )}
 
-          {activeStudioTab === 'khata' && (
+          {activeStudioTab === 'compliance' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div>
-                <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Patient Care & Credit Book</span>
-                <h3 className="text-2xl font-black text-slate-900 mt-1">Digital Customer Khata & Refill Reminders</h3>
+                <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">Drug Inspector Ready</span>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">Schedule H, H1 & Narcotic Compliance Register</h3>
                 <p className="text-slate-600 text-sm mt-3 leading-relaxed">
-                  Replace messy paper khata diaries with a secure digital credit book. Send automated WhatsApp payment reminders with UPI payment links. Chronic disease patients (Diabetes, BP) receive timely medicine refill alerts before their pills run out.
+                  Never stress about surprise FDA Drug Inspector audits. DavaSetu automatically logs doctor registration numbers, patient contact details, batch numbers, and dispensed dates during counter checkout. Generates government-mandated Schedule H1 & Narcotic registers in 1 click.
                 </p>
                 <ul className="mt-6 space-y-2.5 text-xs font-bold text-slate-700">
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600" /> WhatsApp payment link reminders in 1 click</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600" /> Monthly chronic patient medicine refill scheduler</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600" /> Patient prescription photo archive</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-rose-600" /> Mandatory Schedule H1 antibiotic & narcotic auto-logging</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-rose-600" /> Doctor registration number & patient address auto-linking</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-rose-600" /> Instant 1-click export for FDA & Drug Inspector audits</li>
                 </ul>
               </div>
-              <div className="p-6 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-950 text-xs space-y-3">
-                <div className="font-bold border-b border-indigo-200 pb-2">PATIENT REFILL RADAR</div>
-                <div className="p-2.5 bg-white rounded-xl border border-indigo-200 space-y-1">
-                  <p className="font-bold text-slate-900">Kiritbhai Shah (BP & Diabetes Patient)</p>
-                  <p className="text-slate-500 text-[11px]">Telma 40mg (30 Tabs) • Last purchase 28 days ago</p>
-                  <span className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                    Auto WhatsApp Refill Sent
-                  </span>
+              <div className="p-6 rounded-2xl bg-rose-50 border-2 border-rose-200 text-rose-950 text-xs space-y-3 font-mono shadow-sm">
+                <div className="font-bold border-b border-rose-200 pb-2 flex justify-between items-center text-rose-900">
+                  <span>SCHEDULE H1 DRUG AUDIT REGISTER</span>
+                  <span className="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px]">100% FDA COMPLIANT</span>
+                </div>
+                
+                <div className="p-3 bg-white rounded-xl border border-rose-200 space-y-1.5">
+                  <div className="flex justify-between font-bold text-slate-900">
+                    <span>Patient: Rajesh Patel (+91 98251-XXXXX)</span>
+                    <span className="text-rose-700">Bill #10842</span>
+                  </div>
+                  <p className="text-slate-600 text-[11px]">Doctor: Dr. N. K. Shah (Reg No: G-39420 • Civil Hospital)</p>
+                  <p className="text-slate-800 font-bold">Dispensed: Alprazolam 0.5mg Tab (Batch: AL-902)</p>
+                  <div className="flex justify-between items-center pt-1 border-t border-slate-100 text-[10px] text-emerald-700 font-bold">
+                    <span>Qty: 10 Tablets</span>
+                    <span>✓ Auto-Logged to H1 Register</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-rose-100/70 rounded-lg border border-rose-300 text-[11px] text-rose-900 text-center font-bold">
+                  🛡️ Zero penalty risk: Ready-to-print inspection log for Drug Inspectors!
                 </div>
               </div>
             </div>
@@ -883,7 +959,7 @@ export default function LandingPage() {
 
                 {/* Payment Selector */}
                 <div className="pt-2 grid grid-cols-3 gap-2">
-                  {(['UPI', 'CASH', 'CREDIT'] as const).map(mode => (
+                  {(['UPI', 'CASH', 'CARD'] as const).map(mode => (
                     <button
                       key={mode}
                       onClick={() => setPaymentMode(mode)}
@@ -893,7 +969,7 @@ export default function LandingPage() {
                           : 'bg-slate-900 text-slate-400 border-slate-800'
                       }`}
                     >
-                      {mode === 'UPI' ? '⚡ UPI QR' : mode === 'CASH' ? '💵 Cash' : '📒 Khata'}
+                      {mode === 'UPI' ? '⚡ UPI QR' : mode === 'CASH' ? '💵 Cash' : '💳 Card'}
                     </button>
                   ))}
                 </div>
@@ -1337,9 +1413,10 @@ export default function LandingPage() {
             <h4 className="font-bold text-slate-900 text-sm mb-3">POS Modules</h4>
             <ul className="space-y-2">
               <li><button onClick={() => navigate(isLoggedIn ? '/billing' : '/login')} className="hover:text-emerald-600">Counter Billing (POS)</button></li>
+              <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600">Generic & Salt Finder</button></li>
               <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600">Smart Batch & Expiry</button></li>
               <li><button onClick={() => navigate(isLoggedIn ? '/purchases' : '/login')} className="hover:text-emerald-600">Supplier Purchases (PO)</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/customers' : '/login')} className="hover:text-emerald-600">Patient Khata Ledger</button></li>
+              <li><button onClick={() => navigate(isLoggedIn ? '/reports' : '/login')} className="hover:text-emerald-600">Schedule H1 Compliance</button></li>
             </ul>
           </div>
 
