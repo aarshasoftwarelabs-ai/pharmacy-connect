@@ -1596,81 +1596,81 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 12. PREMIUM ENTERPRISE FOOTER */}
-      <footer className="bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-400 border-t border-slate-800/80 pt-16 pb-12 relative overflow-hidden">
+      {/* 12. COMPACT PREMIUM ENTERPRISE FOOTER */}
+      <footer className="bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-400 border-t border-slate-800/80 pt-8 pb-6 sm:pt-10 sm:pb-7 relative overflow-hidden text-xs">
         
         {/* Subtle decorative background glow */}
-        <div className="absolute top-0 left-1/4 w-[600px] h-[300px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-10 w-[400px] h-[250px] bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-[500px] h-[200px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-10 w-[300px] h-[150px] bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           
-          {/* Top Trust & Value Pre-Footer Strip */}
-          <div className="pb-12 mb-12 border-b border-slate-800/80 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-            <div className="flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-semibold text-slate-300">
-              <span className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>100% 256-Bit Encrypted Cloud Backups</span>
+          {/* Top Trust & Value Pre-Footer Strip - Compact */}
+          <div className="pb-4 mb-6 border-b border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] sm:text-xs">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 font-semibold text-slate-300">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>100% 256-Bit Encrypted Backups</span>
               </span>
-              <span className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-400 shrink-0" />
-                <span>3-Second Counter Billing</span>
+              <span className="flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                <span>3-Sec Counter Billing</span>
               </span>
-              <span className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>GST & Schedule H1 Compliant</span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>GST & Schedule H1 Ready</span>
               </span>
-              <span className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span className="flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                 <span>Live Phone Sales Tracking</span>
               </span>
             </div>
 
-            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-300 text-xs font-bold shrink-0">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold shrink-0">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               <span>All Systems Operational • 99.98% Uptime</span>
             </div>
           </div>
 
-          {/* Main 4-Column Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8 mb-12">
+          {/* Main 4-Column Grid - Compact Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-8 mb-6">
             
             {/* Column 1: Brand & Pharmacy Mission (5 cols) */}
             <div className="lg:col-span-5">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-2.5 mb-2.5">
                 <img 
                   src="/davasetu_logo.png" 
                   alt="DavaSetu Pharmacy POS" 
-                  className="h-9 w-auto bg-white rounded-xl p-1.5 shadow-md shadow-emerald-950/40" 
+                  className="h-8 w-auto bg-white rounded-lg p-1 shadow-sm" 
                 />
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 whitespace-nowrap">
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 whitespace-nowrap">
                   Cloud POS 3.0
                 </span>
               </div>
 
-              <p className="text-slate-400 text-sm leading-relaxed font-medium max-w-sm">
+              <p className="text-slate-400 text-xs leading-relaxed font-medium max-w-sm">
                 India's next-generation cloud pharmacy platform built exclusively for retail chemists, medical counters, and pharmacy chains. Eliminates expired medicine deadstock, accelerates evening rush checkouts, and delivers real-time phone tracking.
               </p>
 
-              {/* Chemist Trust Rating Card */}
-              <div className="mt-6 p-4 rounded-2xl bg-white/5 border border-white/10 max-w-sm">
-                <div className="flex items-center gap-3">
-                  <div className="flex -space-x-2 shrink-0">
-                    <span className="w-7 h-7 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center text-[10px] font-black border border-slate-900">1.2k+</span>
-                    <span className="w-7 h-7 rounded-full bg-teal-500 text-slate-950 flex items-center justify-center text-[10px] font-black border border-slate-900">★</span>
+              {/* Chemist Trust Rating Card - Compact */}
+              <div className="mt-3.5 p-2.5 rounded-xl bg-white/5 border border-white/10 max-w-sm">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex -space-x-1.5 shrink-0">
+                    <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center text-[9px] font-black border border-slate-900">1.2k+</span>
+                    <span className="w-6 h-6 rounded-full bg-teal-500 text-slate-950 flex items-center justify-center text-[9px] font-black border border-slate-900">★</span>
                   </div>
                   <div>
-                    <div className="flex items-center gap-1.5 font-bold text-white text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-white text-[11px]">
                       <span>Rated 4.9/5 by Indian Chemists</span>
                       <div className="flex text-amber-400">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                       </div>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Gujarat • Maharashtra • Rajasthan • Pan India</p>
+                    <p className="text-[10px] text-slate-400">Gujarat • Maharashtra • Rajasthan • Pan India</p>
                   </div>
                 </div>
               </div>
@@ -1678,78 +1678,78 @@ export default function LandingPage() {
 
             {/* Column 2: POS Modules (2 cols) */}
             <div className="lg:col-span-2">
-              <h4 className="font-black text-white text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <h4 className="font-black text-white text-[11px] uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <span>POS Modules</span>
               </h4>
-              <ul className="space-y-2.5 text-xs font-semibold">
+              <ul className="space-y-1.5 text-xs font-semibold">
                 <li><button onClick={() => navigate(isLoggedIn ? '/billing' : '/login')} className="hover:text-emerald-400 transition text-left">Counter Billing (POS)</button></li>
-                <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-400 transition text-left">50k+ Generic & Salt Finder</button></li>
-                <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-400 transition text-left">Smart Batch & Expiry Shield</button></li>
+                <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-400 transition text-left">50k+ Generic Finder</button></li>
+                <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-400 transition text-left">Smart Expiry Shield</button></li>
                 <li><button onClick={() => navigate(isLoggedIn ? '/purchases' : '/login')} className="hover:text-emerald-400 transition text-left">Supplier Purchases (PO)</button></li>
-                <li><button onClick={() => navigate(isLoggedIn ? '/reports' : '/login')} className="hover:text-emerald-400 transition text-left">Schedule H1 Compliance Log</button></li>
+                <li><button onClick={() => navigate(isLoggedIn ? '/reports' : '/login')} className="hover:text-emerald-400 transition text-left">Schedule H1 Log</button></li>
                 <li>
-                  <button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-400 transition text-left flex items-center gap-1.5 text-emerald-300 font-bold">
-                    <span>1-Click Smart Migration</span>
-                    <span className="text-[9px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1 py-0.2 rounded font-black">2 Min</span>
+                  <button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-400 transition text-left flex items-center gap-1 text-emerald-300 font-bold">
+                    <span>Smart Migration</span>
+                    <span className="text-[8px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1 py-0.2 rounded font-black">2 Min</span>
                   </button>
                 </li>
-                <li><button onClick={() => navigate(isLoggedIn ? '/billing' : '/login')} className="hover:text-emerald-400 transition text-left">WhatsApp Digital Receipts</button></li>
+                <li><button onClick={() => navigate(isLoggedIn ? '/billing' : '/login')} className="hover:text-emerald-400 transition text-left">WhatsApp Receipts</button></li>
               </ul>
             </div>
 
             {/* Column 3: Hardware & Device Support (2 cols) */}
             <div className="lg:col-span-2">
-              <h4 className="font-black text-white text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-teal-400" />
+              <h4 className="font-black text-white text-[11px] uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
                 <span>Hardware</span>
               </h4>
-              <ul className="space-y-2.5 text-xs text-slate-400 font-medium">
-                <li className="flex items-center gap-2">
+              <ul className="space-y-1.5 text-xs text-slate-400 font-medium">
+                <li className="flex items-center gap-1.5">
                   <Printer className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span>2" & 3" Thermal Printers</span>
                 </li>
-                <li className="flex items-center gap-2">
+                <li className="flex items-center gap-1.5">
                   <QrCode className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span>1D & 2D Barcode Scanners</span>
+                  <span>1D & 2D Scanners</span>
                 </li>
-                <li className="flex items-center gap-2">
+                <li className="flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span>Laser GST A4/A5 Invoices</span>
+                  <span>Laser GST A4/A5 Bills</span>
                 </li>
-                <li className="flex items-center gap-2">
+                <li className="flex items-center gap-1.5">
                   <Laptop className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span>Windows PC & Laptops</span>
                 </li>
-                <li className="flex items-center gap-2">
+                <li className="flex items-center gap-1.5">
                   <Smartphone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span>Android Phones & Tablets</span>
+                  <span>Phones & Tablets</span>
                 </li>
-                <li className="flex items-center gap-2">
+                <li className="flex items-center gap-1.5">
                   <Database className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span>Offline Billing Cache Engine</span>
+                  <span>Offline Billing Cache</span>
                 </li>
               </ul>
             </div>
 
-            {/* Column 4: Dedicated VIP Chemist Helpdesk Card (3 cols) */}
+            {/* Column 4: Dedicated VIP Chemist Helpdesk Card (3 cols) - Compact */}
             <div className="lg:col-span-3">
-              <h4 className="font-black text-white text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+              <h4 className="font-black text-white text-[11px] uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                 <span>Chemist Helpline</span>
               </h4>
 
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
+              <div className="rounded-xl bg-white/5 border border-white/10 p-3 space-y-2">
                 <a 
                   href="tel:+919664781007" 
-                  className="flex items-center gap-3 p-2.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-200 transition group"
+                  className="flex items-center gap-2.5 p-2 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-200 transition group"
                 >
-                  <div className="p-2 rounded-lg bg-emerald-500 text-slate-950 shrink-0">
-                    <Phone className="w-4 h-4" />
+                  <div className="p-1.5 rounded-md bg-emerald-500 text-slate-950 shrink-0">
+                    <Phone className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">Call Chemist Support</span>
-                    <span className="text-sm font-black text-white group-hover:text-emerald-300">+91 96647 81007</span>
+                    <span className="text-[9px] text-emerald-300 font-bold uppercase tracking-wider block">Call Chemist Support</span>
+                    <span className="text-xs font-black text-white group-hover:text-emerald-300">+91 96647 81007</span>
                   </div>
                 </a>
 
@@ -1757,27 +1757,27 @@ export default function LandingPage() {
                   href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Team%2C%20I%20need%20assistance%20with%20my%20pharmacy%20software." 
                   target="_blank" 
                   rel="noreferrer"
-                  className="flex items-center gap-3 p-2.5 rounded-xl bg-teal-950/60 hover:bg-teal-900/60 border border-teal-500/30 text-teal-200 transition group"
+                  className="flex items-center gap-2.5 p-2 rounded-lg bg-teal-950/60 hover:bg-teal-900/60 border border-teal-500/30 text-teal-200 transition group"
                 >
-                  <div className="p-2 rounded-lg bg-teal-500 text-slate-950 shrink-0">
-                    <MessageSquare className="w-4 h-4" />
+                  <div className="p-1.5 rounded-md bg-teal-500 text-slate-950 shrink-0">
+                    <MessageSquare className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-teal-300 font-bold uppercase tracking-wider block">WhatsApp VIP Desk</span>
-                    <span className="text-sm font-black text-white group-hover:text-teal-300">+91 96647 81007</span>
+                    <span className="text-[9px] text-teal-300 font-bold uppercase tracking-wider block">WhatsApp VIP Desk</span>
+                    <span className="text-xs font-black text-white group-hover:text-teal-300">+91 96647 81007</span>
                   </div>
                 </a>
 
                 <a 
                   href="mailto:davasetu.otp@gmail.com" 
-                  className="flex items-center gap-2.5 text-xs text-slate-300 hover:text-emerald-300 transition pt-1 px-1"
+                  className="flex items-center gap-2 text-xs text-slate-300 hover:text-emerald-300 transition px-0.5"
                 >
-                  <Mail className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="truncate font-semibold">davasetu.otp@gmail.com</span>
+                  <Mail className="w-3 h-3 text-emerald-400 shrink-0" />
+                  <span className="truncate font-semibold text-[11px]">davasetu.otp@gmail.com</span>
                 </a>
 
-                <div className="text-[11px] text-slate-400 flex items-center gap-2 pt-1 border-t border-white/5 px-1 font-medium">
-                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <div className="text-[10px] text-slate-400 flex items-center gap-1.5 pt-1 border-t border-white/5 px-0.5 font-medium">
+                  <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
                   <span>Mon – Sat: 9 AM – 9 PM • Sunday Emergency</span>
                 </div>
               </div>
@@ -1785,16 +1785,16 @@ export default function LandingPage() {
 
           </div>
 
-          {/* Bottom Bar: Copyright, Host Info, & Quick Actions */}
-          <div className="pt-8 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-500">
+          {/* Bottom Bar: Copyright, Host Info, & Quick Actions - Compact */}
+          <div className="pt-4 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-3 text-[11px] font-medium text-slate-500">
             <p>© {new Date().getFullYear()} DavaSetu Cloud POS (Aarsha Software Labs). All rights reserved.</p>
             
-            <div className="flex items-center gap-2 text-slate-400">
+            <div className="flex items-center gap-1.5 text-slate-400">
               <Globe className="w-3.5 h-3.5 text-emerald-400" />
               <span>Hosted on AWS & Cloudflare Secure Edge (Mumbai, India)</span>
             </div>
 
-            <div className="flex items-center gap-4 text-slate-300 font-semibold">
+            <div className="flex items-center gap-3 text-slate-300 font-semibold">
               <button onClick={() => navigate('/login?mode=login')} className="hover:text-emerald-400 transition">Chemist Login</button>
               <span>•</span>
               <button onClick={() => navigate('/login?mode=signup')} className="hover:text-emerald-400 transition">Sign Up Free</button>
