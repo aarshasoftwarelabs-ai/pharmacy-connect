@@ -45,7 +45,8 @@ import {
   Cpu,
   BadgeCheck,
   Pill,
-  FileCheck
+  FileCheck,
+  LogIn
 } from 'lucide-react';
 
 interface MedicineSample {
@@ -155,13 +156,17 @@ export default function LandingPage() {
             <span className="text-slate-300">
               Trusted by 1,200+ Retail Chemists & Pharmacies across India
             </span>
+            <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/70 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+              <Sparkles className="w-3 h-3 text-emerald-400" />
+              15-Day Free Trial • Instant POS Access
+            </span>
           </div>
           <div className="flex items-center gap-5 text-slate-300 text-xs">
             <span className="hidden sm:inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
               <Phone className="w-3.5 h-3.5" /> Support: +91 98765 43210
             </span>
             <button 
-              onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')}
+              onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login?mode=login')}
               className="text-white hover:text-emerald-400 font-bold flex items-center gap-1 transition"
             >
               <span>{isLoggedIn ? 'Go to Dashboard' : 'Chemist Sign In'}</span>
@@ -211,31 +216,38 @@ export default function LandingPage() {
             <a href="#faq" className="hover:text-emerald-600 transition-colors">FAQ</a>
           </nav>
 
-          {/* RIGHT ACTION BUTTONS */}
-          <div className="flex items-center gap-3">
+          {/* RIGHT ACTION BUTTONS: CHEMIST LOGIN & SIGN UP FREE */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {isLoggedIn ? (
               <button
                 onClick={() => navigate('/dashboard')}
                 className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/25 transition flex items-center gap-2"
               >
-                <span>Launch POS Terminal</span>
+                <span>Open POS Dashboard</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <>
+                {/* 1. CHEMIST LOGIN BUTTON */}
                 <button
-                  onClick={() => navigate('/login')}
-                  className="hidden sm:inline-flex px-4 py-2 text-sm font-bold text-slate-700 hover:text-emerald-700 hover:bg-slate-100 rounded-xl transition"
+                  onClick={() => navigate('/login?mode=login')}
+                  className="px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-slate-700 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-500 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
                 >
-                  Chemist Login
+                  <LogIn className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-slate-500 group-hover:text-emerald-600 shrink-0" />
+                  <span>Chemist Login</span>
                 </button>
+
+                {/* 2. SIGN UP FREE (15-DAY TRIAL) BUTTON */}
                 <button
-                  onClick={() => navigate('/login')}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/25 hover:scale-[1.02] active:scale-[0.98] transition flex items-center gap-2"
+                  onClick={() => navigate('/login?mode=signup')}
+                  className="group px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-600/25 hover:shadow-lg hover:shadow-emerald-600/35 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2"
                 >
-                  <Sparkles className="w-4 h-4 text-emerald-200" />
-                  <span>Launch Free Web POS</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <Sparkles className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-200 animate-pulse shrink-0" />
+                  <span>Sign Up Free</span>
+                  <span className="hidden sm:inline-flex text-[10px] uppercase font-black tracking-wide px-1.5 py-0.5 rounded bg-emerald-800/40 border border-emerald-400/30 text-emerald-100">
+                    15 Days Free
+                  </span>
+                  <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 group-hover:translate-x-0.5 transition-transform shrink-0" />
                 </button>
               </>
             )}
@@ -1044,8 +1056,31 @@ export default function LandingPage() {
             Choose the Right Plan for Your Pharmacy
           </h2>
           <p className="mt-3 text-slate-600 text-base font-medium">
-            Unlock Smart Inventory, Unlimited Counter Billing, Expiry Shield & Real-Time Cloud Sync.
+            Start with our <strong>15-Day Free Trial</strong> (no credit card required). Continue seamlessly by choosing the subscription plan that best fits your pharmacy.
           </p>
+        </div>
+
+        {/* 15-DAY FREE TRIAL HIGHLIGHT BANNER */}
+        <div className="max-w-4xl mx-auto mb-10 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Sparkles className="w-5 h-5 text-emerald-100" />
+            </div>
+            <div>
+              <h4 className="text-sm sm:text-base font-black text-emerald-950">
+                15-Day Risk-Free Full Access Trial
+              </h4>
+              <p className="text-xs text-emerald-800 font-medium mt-0.5">
+                Test unlimited counter billing, thermal printing, generic finder & expiry alerts 100% free. When you want to continue after 15 days, choose any plan below to keep using without interruption.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login?mode=signup')}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm whitespace-nowrap shadow-sm transition shrink-0"
+          >
+            Start Free 15-Day Trial →
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">

@@ -1,12 +1,24 @@
 import { useState, useEffect } from 'react';
 import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound, Mail, Sparkles, Clipboard, Copy } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import OtpVerificationAnimation from '../components/auth/OtpVerificationAnimation';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://pharmacy-backend-e210.onrender.com/api';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>(() => {
+    return searchParams.get('mode') === 'signup' ? 'signup' : 'login';
+  });
+
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'signup' || mode === 'login') {
+      setAuthMode(mode);
+    }
+  }, [searchParams]);
+
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -431,12 +443,56 @@ export default function Login() {
             </div>
             {step === 1 && (
               <>
+                {/* Mode Selector Tabs: Chemist Login vs Sign Up Free */}
+                <div className="flex p-1 bg-slate-100 rounded-2xl mb-5 border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('login');
+                      setSearchParams({ mode: 'login' });
+                    }}
+                    className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                      authMode === 'login'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Chemist Login</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signup');
+                      setSearchParams({ mode: 'signup' });
+                    }}
+                    className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                      authMode === 'signup'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
+                    <span>Sign Up (15 Days Free)</span>
+                  </button>
+                </div>
+
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                  Sign in or Join
+                  {authMode === 'signup' ? 'Create Pharmacy Account' : 'Chemist Sign In'}
                 </h2>
-                <p className="mt-2 text-slate-500 font-medium text-sm">
-                  Enter your mobile number to get started
+                <p className="mt-1 text-slate-500 font-medium text-xs sm:text-sm">
+                  {authMode === 'signup' 
+                    ? 'Start your 15-Day Free Trial • Instant access to POS billing & inventory'
+                    : 'Enter your registered mobile & email to launch your POS terminal'}
                 </p>
+
+                {/* 15-Day Free Trial Alert Callout */}
+                <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center gap-2.5 text-left">
+                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    <strong>15-Day Free Trial:</strong> All POS features fully unlocked! No credit card needed. Upgrade anytime in Settings to continue.
+                  </span>
+                </div>
               </>
             )}
             {step === 2 && (
@@ -458,9 +514,13 @@ export default function Login() {
             )}
             {step === 4 && (
               <>
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Complete Profile</h2>
-                <p className="mt-2 text-slate-500 font-medium text-sm">
-                  Just a few more details to create your pharmacy
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black mb-2 border border-emerald-300">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>15-Day Free Trial Included</span>
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Register Pharmacy</h2>
+                <p className="mt-1 text-slate-500 font-medium text-sm">
+                  Complete store details to launch your live counter POS immediately
                 </p>
               </>
             )}
@@ -554,7 +614,11 @@ export default function Login() {
                   disabled={loading}
                   className="group w-full flex justify-center items-center py-3.5 px-4 rounded-xl shadow-lg shadow-pharmacy-500/30 text-base font-bold text-white bg-pharmacy-600 hover:bg-pharmacy-700 focus:outline-none transition-all transform hover:-translate-y-0.5 disabled:opacity-70"
                 >
-                  {loading ? 'Checking...' : 'Continue'}
+                  {loading 
+                    ? 'Checking...' 
+                    : authMode === 'signup' 
+                      ? 'Continue to Free Trial' 
+                      : 'Continue to POS Login'}
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
                 <div className="pt-2">
@@ -760,7 +824,8 @@ export default function Login() {
                   disabled={loading}
                   className="mt-4 w-full flex justify-center items-center py-3.5 px-4 rounded-xl shadow-lg shadow-pharmacy-500/30 text-base font-bold text-white bg-pharmacy-600 hover:bg-pharmacy-700 focus:outline-none transition-all transform hover:-translate-y-0.5 disabled:opacity-70"
                 >
-                  {loading ? 'Creating Account...' : 'Complete Registration'}
+                  {loading ? 'Activating 15-Day Free Trial...' : 'Activate 15-Day Free Trial & Open POS'}
+                  <ArrowRight className="ml-2 w-5 h-5" />
                 </button>
               </form>
             )}
