@@ -414,7 +414,7 @@ export default function Inventory() {
           }`}
         >
           <FolderSync className="w-4 h-4 mr-2 text-emerald-500" />
-          Marg & Excel Smart Migration
+          1-Click Smart Migration
         </button>
 
         <button

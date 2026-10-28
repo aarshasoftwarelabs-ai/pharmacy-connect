@@ -123,7 +123,7 @@ export default function LandingPage() {
 
   const faqs = [
     {
-      q: 'Can I easily import my existing medicine inventory from Marg or Excel?',
+      q: 'Can I easily import my existing medicine inventory from my old software or Excel?',
       a: 'Yes, absolutely! DavaSetu includes an instant 1-click Excel/CSV inventory migration tool. Upload your existing medicine catalog, batches, purchase rates, and supplier lists in under 5 minutes without interrupting your daily counter sales.'
     },
     {
@@ -207,7 +207,7 @@ export default function LandingPage() {
             </a>
             <a href="#comparison" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Why DavaSetu?</a>
             <a href="#migration" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap">
-              <span>Marg Migration</span>
+              <span>Smart Migration</span>
               <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[9px] font-black border border-amber-200 leading-none shrink-0">2 Min</span>
             </a>
             <a href="#features" className="hidden 2xl:inline-block hover:text-emerald-600 transition-colors whitespace-nowrap">Modules</a>
@@ -749,30 +749,46 @@ export default function LandingPage() {
           <div className="p-8 rounded-3xl bg-white border-2 border-rose-200 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <span className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 font-black flex items-center justify-center text-sm">✕</span>
-                <h3 className="font-black text-xl text-slate-900">Legacy Desktop Software (Marg / Tally / Offline)</h3>
+                <span className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 font-black flex items-center justify-center text-sm shrink-0">✕</span>
+                <h3 className="font-black text-xl text-slate-900">Legacy Offline Pharmacy Software</h3>
               </div>
-              <ul className="space-y-4 text-sm text-slate-600 font-medium">
+              <ul className="space-y-3.5 text-sm text-slate-600 font-medium">
                 <li className="flex items-start gap-2.5">
                   <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                  <span><strong>Hard drive crash = All data lost:</strong> If the shop computer crashes, months of sales records and customer ledgers vanish forever.</span>
+                  <span><strong>Hard drive crash = All data lost:</strong> If the shop computer crashes or gets infected with a virus, months of sales records and customer ledgers vanish forever.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                  <span><strong>Takes 2 months to train staff:</strong> Complex F-key shortcuts mean you cannot leave a new operator alone at the billing counter.</span>
+                  <span><strong>Painful manual re-entry to switch:</strong> Moving away from old software requires typing thousands of medicines, batches, and purchase rates one by one.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                  <span><strong>Zero remote access:</strong> When away from the shop, you have no visibility into daily cash collections or staff activities.</span>
+                  <span><strong>Hours wasted on purchase entries:</strong> Manually typing 10-page distributor bills every evening causes fatigue, batch typos, and delayed shop closing.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                  <span><strong>Expensive expired medicine deadstock:</strong> Without automated expiry alerts, stock sits on shelves until distributors refuse returns.</span>
+                  <span><strong>Takes 2 months to train staff:</strong> Complex F-key shortcuts and DOS-style menus mean you cannot leave a new operator alone at the billing counter.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <span><strong>Zero remote access from mobile:</strong> When away from the store, you have zero visibility into daily cash collections, sales, or staff activities.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <span><strong>Expensive expired medicine deadstock:</strong> Without automated expiry alerts, expired medicines sit on shelves until distributors refuse returns.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <span><strong>Paper slips lost, no WhatsApp bills:</strong> Customers lose printed thermal slips; no digital prescription history or patient contact logs.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <X className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <span><strong>Heavy annual AMC charges:</strong> Forced to pay ₹5,000–₹10,000 every year for basic renewal, paid version updates, and technician visits.</span>
                 </li>
               </ul>
             </div>
             <div className="mt-6 pt-4 border-t border-rose-100 text-xs font-bold text-rose-700">
-              Result: Constant anxiety, wasted time, and ₹15,000+ monthly loss from expired stock.
+              Result: Hardware crashes, manual purchase fatigue, heavy AMC fees, and ₹15,000+ monthly loss from expired stock.
             </div>
           </div>
 
@@ -780,37 +796,53 @@ export default function LandingPage() {
           <div className="p-8 rounded-3xl bg-gradient-to-b from-white to-emerald-50/50 border-2 border-emerald-500 shadow-xl shadow-emerald-500/10 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <span className="w-8 h-8 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center text-sm">✓</span>
+                <span className="w-8 h-8 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center text-sm shrink-0">✓</span>
                 <h3 className="font-black text-xl text-slate-900">DavaSetu Cloud POS</h3>
               </div>
-              <ul className="space-y-4 text-sm text-slate-800 font-semibold">
+              <ul className="space-y-3.5 text-sm text-slate-800 font-semibold">
                 <li className="flex items-start gap-2.5">
                   <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>100% Automated Cloud Backup:</strong> Never worry about hardware failures. Login from any laptop or PC and resume billing in seconds.</span>
+                  <span><strong>100% Automated Cloud Backup:</strong> Never worry about hardware crashes. Login from any laptop, tablet, or PC and resume billing in seconds.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Anyone learns in 5 minutes:</strong> Intuitive touchscreen, fast search, and barcode scanning empower any junior staff member immediately.</span>
+                  <span><strong>1-Click Instant Data Migration:</strong> Upload your existing software backup or Excel file (or send on WhatsApp); your entire stock is live in 2 minutes.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Live mobile store tracking:</strong> Monitor live counter sales, cash registers, and stock numbers from anywhere on your smartphone.</span>
+                  <span><strong>10-Second Distributor CSV/Invoice Import:</strong> Directly import distributor purchase files with automated batch creation, expiry matching, and GST sync.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Automated 30-60-90 Day Expiry Alerts:</strong> Return near-expiry medicines to distributors on time and recover 100% of your supplier credits.</span>
+                  <span><strong>Anyone learns in 5 minutes:</strong> Intuitive touchscreen, instant generic salt finder, and barcode scanning empower any junior staff member immediately.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Live mobile store tracking:</strong> Monitor real-time counter sales, cash registers, low-stock warnings, and profit margins from anywhere on your phone.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Automated 30-60-90 Day Expiry Alerts:</strong> Return near-expiry medicines to distributors on time with auto-generated debit notes to recover 100% credit.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>1-Click WhatsApp Invoices & Patient Ledger:</strong> Send elegant GST digital bills directly to customer's WhatsApp; maintain full patient credit logs.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Zero AMC & Lifetime Free Cloud Updates:</strong> Continuous new features, GST compliance updates, and unlimited cloud storage with zero renewal fees.</span>
                 </li>
               </ul>
             </div>
             <div className="mt-6 pt-4 border-t border-emerald-200 text-xs font-bold text-emerald-800">
-              Result: 3x faster billing, zero expiry waste, and complete peace of mind.
+              Result: 3-second counter billing, 1-click migration, WhatsApp invoices, zero expiry waste, and 100% peace of mind.
             </div>
           </div>
 
         </div>
       </section>
 
-      {/* 6.5 SMART MIGRATION SECTION: SHIFT FROM MARG / BUSY / EXCEL */}
+      {/* 6.5 SMART MIGRATION SECTION: SHIFT FROM OLD SOFTWARE / EXCEL */}
       <section id="migration" className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto my-10">
         <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 text-white rounded-3xl p-8 sm:p-12 border border-emerald-500/30 shadow-2xl relative overflow-hidden">
           
@@ -827,11 +859,11 @@ export default function LandingPage() {
               </div>
 
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-                Switch from <span className="text-emerald-400">Marg ERP, Busy or Excel</span> in Under 2 Minutes.
+                Switch from <span className="text-emerald-400">Any Old Software or Excel</span> in Under 2 Minutes.
               </h2>
 
               <p className="mt-4 text-slate-300 text-base leading-relaxed font-medium">
-                Already using an old desktop software? Don't type a single medicine manually. DavaSetu automatically imports your entire catalog, live batches, expiry dates, purchase rates, and MRPs with 100% data fidelity.
+                Already using an older desktop software? Don't type a single medicine manually. DavaSetu automatically imports your entire catalog, live batches, expiry dates, purchase rates, and MRPs with 100% data fidelity.
               </p>
 
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -840,8 +872,8 @@ export default function LandingPage() {
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">1-Click Marg & Excel Import</h4>
-                    <p className="text-xs text-slate-400 mt-0.5">Auto-matches Marg columns and date formats seamlessly.</p>
+                    <h4 className="font-bold text-white text-sm">1-Click Universal Stock Import</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">Auto-matches Excel/CSV stock columns and batch date formats seamlessly.</p>
                   </div>
                 </div>
 
@@ -904,7 +936,7 @@ export default function LandingPage() {
                       <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded">Fastest</span>
                     </div>
                     <p className="text-xs text-slate-300">
-                      Upload your exported Marg, Busy, or Excel stock file directly inside the DavaSetu software inventory wizard.
+                      Upload your exported stock or inventory Excel/CSV file directly inside the DavaSetu software inventory wizard.
                     </p>
                     <button
                       onClick={() => navigate(isLoggedIn ? '/inventory' : '/login?mode=signup')}
@@ -925,10 +957,10 @@ export default function LandingPage() {
                       <span className="text-[10px] uppercase font-black text-slate-900 bg-emerald-400 px-2 py-0.5 rounded">VIP Support</span>
                     </div>
                     <p className="text-xs text-emerald-100/90 mt-1">
-                      Don't want to upload files yourself? Send your Marg or Excel backup to our WhatsApp. Our team loads your stock in 15 minutes!
+                      Don't want to upload files yourself? Send your backup Excel/CSV or software export to our WhatsApp. Our team loads your stock in 15 minutes!
                     </p>
                     <a
-                      href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Team%2C%20I%20want%20to%20migrate%20my%20pharmacy%20stock%20from%20Marg%20ERP%20to%20DavaSetu.%20Here%20is%20my%20backup%20file."
+                      href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Team%2C%20I%20want%20to%20migrate%20my%20pharmacy%20stock%20to%20DavaSetu.%20Here%20is%20my%20backup%20file."
                       target="_blank"
                       rel="noreferrer"
                       className="mt-3 w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition flex items-center justify-center gap-2 shadow-sm"
@@ -1593,7 +1625,7 @@ export default function LandingPage() {
               <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600">Smart Batch & Expiry</button></li>
               <li><button onClick={() => navigate(isLoggedIn ? '/purchases' : '/login')} className="hover:text-emerald-600">Supplier Purchases (PO)</button></li>
               <li><button onClick={() => navigate(isLoggedIn ? '/reports' : '/login')} className="hover:text-emerald-600">Schedule H1 Compliance</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600 flex items-center gap-1 font-bold text-emerald-700"><span>Marg & Excel Migration</span><span className="text-[9px] bg-emerald-100 px-1 rounded">2 Min</span></button></li>
+              <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600 flex items-center gap-1 font-bold text-emerald-700"><span>1-Click Smart Migration</span><span className="text-[9px] bg-emerald-100 px-1 rounded">2 Min</span></button></li>
             </ul>
           </div>
 
