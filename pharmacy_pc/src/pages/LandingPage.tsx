@@ -144,8 +144,8 @@ export default function LandingPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-600 selection:text-white antialiased">
       
       {/* 1. TOP ANNOUNCEMENT BAR */}
-      <div className="bg-slate-900 text-white text-xs sm:text-sm font-medium py-2.5 px-4 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-slate-900 text-white text-xs sm:text-sm font-medium py-2.5 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+        <div className="w-full max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black tracking-wider uppercase">
               VERSION 3.0 LIVE
@@ -170,34 +170,29 @@ export default function LandingPage() {
       </div>
 
       {/* 2. MODERN FLOATING GLASS HEADER */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
           {/* BRAND LOGO */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="p-1.5 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-sm">
-              <img 
-                src="/davasetu_logo.png" 
-                alt="DavaSetu Pharmacy POS" 
-                className="h-10 sm:h-11 w-auto object-contain group-hover:scale-105 transition-transform"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
-              <div className="p-2 rounded-xl bg-emerald-600 text-white sm:hidden">
-                <Store className="w-5 h-5" />
-              </div>
-            </div>
-            <div>
+          <Link to="/" className="flex items-center gap-3.5 group select-none">
+            <img 
+              src="/davasetu_logo.png" 
+              alt="DavaSetu Pharmacy POS" 
+              className="h-10 sm:h-12 w-auto object-contain group-hover:scale-[1.02] transition-transform duration-200"
+            />
+            <div className="hidden sm:flex flex-col justify-center border-l border-slate-200 pl-3">
               <div className="flex items-center gap-2">
-                <span className="font-black text-2xl tracking-tight text-slate-900">
-                  Dava<span className="text-emerald-600">Setu</span>
-                </span>
                 <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                   POS 3.0
                 </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Cloud ERP
+                </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-semibold tracking-tight">Smart Cloud Pharmacy & Retail ERP</p>
+              <p className="text-[11px] text-slate-500 font-semibold tracking-tight mt-0.5">
+                Smart Cloud Pharmacy & Retail ERP
+              </p>
             </div>
           </Link>
 
@@ -252,7 +247,7 @@ export default function LandingPage() {
         {/* Subtle decorative background mesh */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-emerald-100/60 via-teal-100/30 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* LEFT COLUMN: PUNCHY COPY & VALUE PROPS (7 COLS) */}
@@ -452,7 +447,7 @@ export default function LandingPage() {
 
       {/* 4. HARDWARE & COMPATIBILITY TRUST STRIP */}
       <section className="py-8 bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-6 text-slate-500 text-xs font-bold uppercase tracking-wider">
             <span className="text-slate-400">Seamless Integration:</span>
             <span className="flex items-center gap-2"><QrCode className="w-4 h-4 text-emerald-600" /> All USB & Wireless Barcode Scanners</span>
