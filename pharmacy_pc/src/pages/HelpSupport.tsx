@@ -99,19 +99,32 @@ const HelpSupport = () => {
               <Phone className="w-5 h-5 mr-2 text-indigo-500" /> Contact Support
             </h3>
             <div className="space-y-4">
-              <a href="https://wa.me/919999999999" target="_blank" rel="noreferrer" className="flex items-center p-3 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
-                <MessageSquare className="w-5 h-5 mr-3" />
-                <span className="font-semibold">WhatsApp Support</span>
+              <a href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Support" target="_blank" rel="noreferrer" className="flex items-center p-3 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
+                <MessageSquare className="w-5 h-5 mr-3 shrink-0" />
+                <div>
+                  <span className="font-semibold block">WhatsApp Support</span>
+                  <span className="text-xs text-green-600">+91 96647 81007</span>
+                </div>
               </a>
-              <a href="mailto:support@davasetu.com" className="flex items-center p-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
-                <Mail className="w-5 h-5 mr-3" />
-                <span className="font-semibold">Email Us</span>
+              <a href="tel:+919664781007" className="flex items-center p-3 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors">
+                <Phone className="w-5 h-5 mr-3 shrink-0" />
+                <div>
+                  <span className="font-semibold block">Helpline Call</span>
+                  <span className="text-xs text-emerald-600">+91 96647 81007</span>
+                </div>
+              </a>
+              <a href="mailto:davasetu.otp@gmail.com" className="flex items-center p-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                <Mail className="w-5 h-5 mr-3 shrink-0" />
+                <div>
+                  <span className="font-semibold block">Email Support</span>
+                  <span className="text-xs text-blue-600">davasetu.otp@gmail.com</span>
+                </div>
               </a>
               <div className="flex items-center p-3 rounded-xl bg-slate-50 text-slate-700">
-                <FileText className="w-5 h-5 mr-3" />
+                <FileText className="w-5 h-5 mr-3 shrink-0" />
                 <div>
                   <span className="font-semibold block text-sm">Version Info</span>
-                  <span className="text-xs text-slate-500">DavaSetu v1.0.0</span>
+                  <span className="text-xs text-slate-500">DavaSetu POS v3.0</span>
                 </div>
               </div>
             </div>

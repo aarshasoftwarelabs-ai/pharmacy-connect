@@ -162,9 +162,12 @@ export default function LandingPage() {
             </span>
           </div>
           <div className="flex items-center gap-5 text-slate-300 text-xs">
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
-              <Phone className="w-3.5 h-3.5" /> Support: +91 98765 43210
-            </span>
+            <a 
+              href="tel:+919664781007" 
+              className="hidden sm:inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition"
+            >
+              <Phone className="w-3.5 h-3.5" /> Support: +91 96647 81007
+            </a>
             <button 
               onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login?mode=login')}
               className="text-white hover:text-emerald-400 font-bold flex items-center gap-1 transition"
@@ -1468,9 +1471,24 @@ export default function LandingPage() {
           <div>
             <h4 className="font-bold text-slate-900 text-sm mb-3">Support & Helpline</h4>
             <ul className="space-y-2 font-medium">
-              <li className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-emerald-600" /> Helpline: +91 98765 43210</li>
-              <li className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-emerald-600" /> support@davasetu.com</li>
-              <li className="flex items-center gap-2"><Globe className="w-3.5 h-3.5 text-emerald-600" /> 100% Hosted in Secure Cloud</li>
+              <li>
+                <a href="tel:+919664781007" className="flex items-center gap-2 hover:text-emerald-600 transition">
+                  <Phone className="w-3.5 h-3.5 text-emerald-600" /> Helpline: +91 96647 81007
+                </a>
+              </li>
+              <li>
+                <a href="mailto:davasetu.otp@gmail.com" className="flex items-center gap-2 hover:text-emerald-600 transition">
+                  <Mail className="w-3.5 h-3.5 text-emerald-600" /> davasetu.otp@gmail.com
+                </a>
+              </li>
+              <li>
+                <a href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Support" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-emerald-600 transition">
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp: +91 96647 81007
+                </a>
+              </li>
+              <li className="flex items-center gap-2 text-slate-500">
+                <Globe className="w-3.5 h-3.5 text-emerald-600" /> 100% Hosted in Secure Cloud
+              </li>
             </ul>
           </div>
         </div>
