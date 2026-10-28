@@ -17,7 +17,8 @@ import {
   Flame,
   X,
   Camera,
-  Barcode
+  Barcode,
+  FolderSync
 } from 'lucide-react';
 import { fetchMedicines, createMedicine, updateMedicine, deleteMedicine, generateMissingBarcodes, lookupMedicineByBarcode } from '../services/medicineService';
 import { fetchDistributors, Distributor } from '../services/distributorService';
@@ -412,8 +413,8 @@ export default function Inventory() {
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <TrendingUp className="w-4 h-4 mr-2 text-emerald-500" />
-          Distributor CSV Import
+          <FolderSync className="w-4 h-4 mr-2 text-emerald-500" />
+          Marg & Excel Smart Migration
         </button>
 
         <button

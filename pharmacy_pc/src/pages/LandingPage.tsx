@@ -46,7 +46,8 @@ import {
   BadgeCheck,
   Pill,
   FileCheck,
-  LogIn
+  LogIn,
+  FolderSync
 } from 'lucide-react';
 
 interface MedicineSample {
@@ -207,13 +208,17 @@ export default function LandingPage() {
           </Link>
 
           {/* DESKTOP NAVIGATION PILLS */}
-          <nav className="hidden lg:flex items-center gap-7 text-sm font-bold text-slate-600">
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-7 text-sm font-bold text-slate-600">
             <a href="#solutions" className="hover:text-emerald-600 transition-colors">Solutions</a>
             <a href="#interactive-simulator" className="hover:text-emerald-600 transition-colors flex items-center gap-1.5">
               <span>Live POS Simulator</span>
               <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-800 rounded-full font-black animate-pulse">Try Free</span>
             </a>
             <a href="#comparison" className="hover:text-emerald-600 transition-colors">Why DavaSetu?</a>
+            <a href="#migration" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
+              <span>Marg Migration</span>
+              <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 text-[10px] font-black">2 Min</span>
+            </a>
             <a href="#features" className="hover:text-emerald-600 transition-colors">Modules</a>
             <a href="#pricing" className="hover:text-emerald-600 transition-colors">Pricing & Plans</a>
             <a href="#faq" className="hover:text-emerald-600 transition-colors">FAQ</a>
@@ -811,6 +816,148 @@ export default function LandingPage() {
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* 6.5 SMART MIGRATION SECTION: SHIFT FROM MARG / BUSY / EXCEL */}
+      <section id="migration" className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto my-10">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 text-white rounded-3xl p-8 sm:p-12 border border-emerald-500/30 shadow-2xl relative overflow-hidden">
+          
+          {/* Subtle background glow */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            
+            {/* Left Column: Value Prop & Explanation */}
+            <div className="lg:col-span-7">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-black uppercase tracking-wider mb-4">
+                <FolderSync className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Zero Downtime Data Migration</span>
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                Switch from <span className="text-emerald-400">Marg ERP, Busy or Excel</span> in Under 2 Minutes.
+              </h2>
+
+              <p className="mt-4 text-slate-300 text-base leading-relaxed font-medium">
+                Already using an old desktop software? Don't type a single medicine manually. DavaSetu automatically imports your entire catalog, live batches, expiry dates, purchase rates, and MRPs with 100% data fidelity.
+              </p>
+
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">1-Click Marg & Excel Import</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">Auto-matches Marg columns and date formats seamlessly.</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-teal-500/20 text-teal-400 shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">Zero Counter Downtime</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">Shift your store in minutes without stopping a single customer bill.</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">Auto Generic Enrichment</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">50,000+ medicine master automatically links salt compositions.</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">100% Data Integrity</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">All batch numbers, expiry months, and purchase rates preserved.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Interactive Migration Action Box */}
+            <div className="lg:col-span-5">
+              <div className="rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
+                
+                <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black">
+                      <FolderSync className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-white text-sm block">Migration Options</span>
+                      <span className="text-[11px] text-emerald-300 font-semibold">Self-Serve or Assisted</span>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black border border-emerald-400/30">
+                    Free Forever
+                  </span>
+                </div>
+
+                <div className="my-6 space-y-4">
+                  {/* Option 1: In-App Wizard */}
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-400/50 transition">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-white text-sm">Method 1: 1-Click Self Import</span>
+                      <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded">Fastest</span>
+                    </div>
+                    <p className="text-xs text-slate-300">
+                      Upload your exported Marg, Busy, or Excel stock file directly inside the DavaSetu software inventory wizard.
+                    </p>
+                    <button
+                      onClick={() => navigate(isLoggedIn ? '/inventory' : '/login?mode=signup')}
+                      className="mt-3 w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2"
+                    >
+                      <span>Launch In-App Migration Wizard</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Option 2: WhatsApp Assisted */}
+                  <div className="p-4 rounded-2xl bg-emerald-950/50 border border-emerald-500/40">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <MessageSquare className="w-4 h-4 text-emerald-400" />
+                        <span className="font-bold text-emerald-200 text-sm">Method 2: Free WhatsApp Migration</span>
+                      </div>
+                      <span className="text-[10px] uppercase font-black text-slate-900 bg-emerald-400 px-2 py-0.5 rounded">VIP Support</span>
+                    </div>
+                    <p className="text-xs text-emerald-100/90 mt-1">
+                      Don't want to upload files yourself? Send your Marg or Excel backup to our WhatsApp. Our team loads your stock in 15 minutes!
+                    </p>
+                    <a
+                      href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Team%2C%20I%20want%20to%20migrate%20my%20pharmacy%20stock%20from%20Marg%20ERP%20to%20DavaSetu.%20Here%20is%20my%20backup%20file."
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>Send Backup on WhatsApp (+91 96647 81007)</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="text-center text-[11px] text-slate-400 font-medium flex items-center justify-center gap-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Your pharmacy inventory data remains 100% confidential & encrypted.</span>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 
@@ -1455,6 +1602,7 @@ export default function LandingPage() {
               <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600">Smart Batch & Expiry</button></li>
               <li><button onClick={() => navigate(isLoggedIn ? '/purchases' : '/login')} className="hover:text-emerald-600">Supplier Purchases (PO)</button></li>
               <li><button onClick={() => navigate(isLoggedIn ? '/reports' : '/login')} className="hover:text-emerald-600">Schedule H1 Compliance</button></li>
+              <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600 flex items-center gap-1 font-bold text-emerald-700"><span>Marg & Excel Migration</span><span className="text-[9px] bg-emerald-100 px-1 rounded">2 Min</span></button></li>
             </ul>
           </div>
 
