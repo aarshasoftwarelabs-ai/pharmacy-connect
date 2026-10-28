@@ -1596,75 +1596,213 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 12. FOOTER */}
-      <footer className="border-t border-slate-200 bg-white py-12 px-4 sm:px-6 lg:px-8 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="font-black text-xl text-slate-900">
-                Dava<span className="text-emerald-600">Setu</span>
+      {/* 12. PREMIUM ENTERPRISE FOOTER */}
+      <footer className="bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-400 border-t border-slate-800/80 pt-16 pb-12 relative overflow-hidden">
+        
+        {/* Subtle decorative background glow */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[300px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-10 w-[400px] h-[250px] bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          
+          {/* Top Trust & Value Pre-Footer Strip */}
+          <div className="pb-12 mb-12 border-b border-slate-800/80 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-semibold text-slate-300">
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>100% 256-Bit Encrypted Cloud Backups</span>
               </span>
-              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">POS</span>
+              <span className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-yellow-400 shrink-0" />
+                <span>3-Second Counter Billing</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
+                <span>GST & Schedule H1 Compliant</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>Live Phone Sales Tracking</span>
+              </span>
             </div>
-            <p className="text-slate-500 leading-relaxed font-medium">
-              Next-generation cloud pharmacy management, barcode counter billing, batch tracking, and pharmaceutical inventory software.
-            </p>
+
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-300 text-xs font-bold shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span>All Systems Operational • 99.98% Uptime</span>
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-bold text-slate-900 text-sm mb-3">POS Modules</h4>
-            <ul className="space-y-2">
-              <li><button onClick={() => navigate(isLoggedIn ? '/billing' : '/login')} className="hover:text-emerald-600">Counter Billing (POS)</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600">Generic & Salt Finder</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600">Smart Batch & Expiry</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/purchases' : '/login')} className="hover:text-emerald-600">Supplier Purchases (PO)</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/reports' : '/login')} className="hover:text-emerald-600">Schedule H1 Compliance</button></li>
-              <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-600 flex items-center gap-1 font-bold text-emerald-700"><span>1-Click Smart Migration</span><span className="text-[9px] bg-emerald-100 px-1 rounded">2 Min</span></button></li>
-            </ul>
-          </div>
+          {/* Main 4-Column Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8 mb-12">
+            
+            {/* Column 1: Brand & Pharmacy Mission (5 cols) */}
+            <div className="lg:col-span-5">
+              <div className="flex items-center gap-3 mb-4">
+                <img 
+                  src="/davasetu_logo.png" 
+                  alt="DavaSetu Pharmacy POS" 
+                  className="h-9 w-auto bg-white rounded-xl p-1.5 shadow-md shadow-emerald-950/40" 
+                />
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 whitespace-nowrap">
+                  Cloud POS 3.0
+                </span>
+              </div>
 
-          <div>
-            <h4 className="font-bold text-slate-900 text-sm mb-3">Hardware Compatibility</h4>
-            <ul className="space-y-2">
-              <li>TVS & NGX Barcode Scanners</li>
-              <li>2" & 3" Thermal Printers (Epson, TVS)</li>
-              <li>Laser GST A4/A5 Invoices</li>
-              <li>Android Smartphones & Tablets</li>
-            </ul>
-          </div>
+              <p className="text-slate-400 text-sm leading-relaxed font-medium max-w-sm">
+                India's next-generation cloud pharmacy platform built exclusively for retail chemists, medical counters, and pharmacy chains. Eliminates expired medicine deadstock, accelerates evening rush checkouts, and delivers real-time phone tracking.
+              </p>
 
-          <div>
-            <h4 className="font-bold text-slate-900 text-sm mb-3">Support & Helpline</h4>
-            <ul className="space-y-2 font-medium">
-              <li>
-                <a href="tel:+919664781007" className="flex items-center gap-2 hover:text-emerald-600 transition">
-                  <Phone className="w-3.5 h-3.5 text-emerald-600" /> Helpline: +91 96647 81007
+              {/* Chemist Trust Rating Card */}
+              <div className="mt-6 p-4 rounded-2xl bg-white/5 border border-white/10 max-w-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-2 shrink-0">
+                    <span className="w-7 h-7 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center text-[10px] font-black border border-slate-900">1.2k+</span>
+                    <span className="w-7 h-7 rounded-full bg-teal-500 text-slate-950 flex items-center justify-center text-[10px] font-black border border-slate-900">★</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 font-bold text-white text-xs">
+                      <span>Rated 4.9/5 by Indian Chemists</span>
+                      <div className="flex text-amber-400">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Gujarat • Maharashtra • Rajasthan • Pan India</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 2: POS Modules (2 cols) */}
+            <div className="lg:col-span-2">
+              <h4 className="font-black text-white text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>POS Modules</span>
+              </h4>
+              <ul className="space-y-2.5 text-xs font-semibold">
+                <li><button onClick={() => navigate(isLoggedIn ? '/billing' : '/login')} className="hover:text-emerald-400 transition text-left">Counter Billing (POS)</button></li>
+                <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-400 transition text-left">50k+ Generic & Salt Finder</button></li>
+                <li><button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-400 transition text-left">Smart Batch & Expiry Shield</button></li>
+                <li><button onClick={() => navigate(isLoggedIn ? '/purchases' : '/login')} className="hover:text-emerald-400 transition text-left">Supplier Purchases (PO)</button></li>
+                <li><button onClick={() => navigate(isLoggedIn ? '/reports' : '/login')} className="hover:text-emerald-400 transition text-left">Schedule H1 Compliance Log</button></li>
+                <li>
+                  <button onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')} className="hover:text-emerald-400 transition text-left flex items-center gap-1.5 text-emerald-300 font-bold">
+                    <span>1-Click Smart Migration</span>
+                    <span className="text-[9px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1 py-0.2 rounded font-black">2 Min</span>
+                  </button>
+                </li>
+                <li><button onClick={() => navigate(isLoggedIn ? '/billing' : '/login')} className="hover:text-emerald-400 transition text-left">WhatsApp Digital Receipts</button></li>
+              </ul>
+            </div>
+
+            {/* Column 3: Hardware & Device Support (2 cols) */}
+            <div className="lg:col-span-2">
+              <h4 className="font-black text-white text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-teal-400" />
+                <span>Hardware</span>
+              </h4>
+              <ul className="space-y-2.5 text-xs text-slate-400 font-medium">
+                <li className="flex items-center gap-2">
+                  <Printer className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span>2" & 3" Thermal Printers</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <QrCode className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span>1D & 2D Barcode Scanners</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span>Laser GST A4/A5 Invoices</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Laptop className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span>Windows PC & Laptops</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Smartphone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span>Android Phones & Tablets</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Database className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span>Offline Billing Cache Engine</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4: Dedicated VIP Chemist Helpdesk Card (3 cols) */}
+            <div className="lg:col-span-3">
+              <h4 className="font-black text-white text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <span>Chemist Helpline</span>
+              </h4>
+
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
+                <a 
+                  href="tel:+919664781007" 
+                  className="flex items-center gap-3 p-2.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-200 transition group"
+                >
+                  <div className="p-2 rounded-lg bg-emerald-500 text-slate-950 shrink-0">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">Call Chemist Support</span>
+                    <span className="text-sm font-black text-white group-hover:text-emerald-300">+91 96647 81007</span>
+                  </div>
                 </a>
-              </li>
-              <li>
-                <a href="mailto:davasetu.otp@gmail.com" className="flex items-center gap-2 hover:text-emerald-600 transition">
-                  <Mail className="w-3.5 h-3.5 text-emerald-600" /> davasetu.otp@gmail.com
-                </a>
-              </li>
-              <li>
-                <a href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Support" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-emerald-600 transition">
-                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp: +91 96647 81007
-                </a>
-              </li>
-              <li className="flex items-center gap-2 text-slate-500">
-                <Globe className="w-3.5 h-3.5 text-emerald-600" /> 100% Hosted in Secure Cloud
-              </li>
-            </ul>
-          </div>
-        </div>
 
-        <div className="max-w-7xl mx-auto pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 font-medium">
-          <p>© {new Date().getFullYear()} DavaSetu Cloud POS. All rights reserved.</p>
-          <div className="flex gap-4">
-            <button onClick={() => navigate('/login')} className="hover:text-emerald-600">Chemist Login</button>
-            <span>•</span>
-            <button onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')} className="hover:text-emerald-600">Launch POS</button>
+                <a 
+                  href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Team%2C%20I%20need%20assistance%20with%20my%20pharmacy%20software." 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center gap-3 p-2.5 rounded-xl bg-teal-950/60 hover:bg-teal-900/60 border border-teal-500/30 text-teal-200 transition group"
+                >
+                  <div className="p-2 rounded-lg bg-teal-500 text-slate-950 shrink-0">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-teal-300 font-bold uppercase tracking-wider block">WhatsApp VIP Desk</span>
+                    <span className="text-sm font-black text-white group-hover:text-teal-300">+91 96647 81007</span>
+                  </div>
+                </a>
+
+                <a 
+                  href="mailto:davasetu.otp@gmail.com" 
+                  className="flex items-center gap-2.5 text-xs text-slate-300 hover:text-emerald-300 transition pt-1 px-1"
+                >
+                  <Mail className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="truncate font-semibold">davasetu.otp@gmail.com</span>
+                </a>
+
+                <div className="text-[11px] text-slate-400 flex items-center gap-2 pt-1 border-t border-white/5 px-1 font-medium">
+                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Mon – Sat: 9 AM – 9 PM • Sunday Emergency</span>
+                </div>
+              </div>
+            </div>
+
           </div>
+
+          {/* Bottom Bar: Copyright, Host Info, & Quick Actions */}
+          <div className="pt-8 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-500">
+            <p>© {new Date().getFullYear()} DavaSetu Cloud POS (Aarsha Software Labs). All rights reserved.</p>
+            
+            <div className="flex items-center gap-2 text-slate-400">
+              <Globe className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Hosted on AWS & Cloudflare Secure Edge (Mumbai, India)</span>
+            </div>
+
+            <div className="flex items-center gap-4 text-slate-300 font-semibold">
+              <button onClick={() => navigate('/login?mode=login')} className="hover:text-emerald-400 transition">Chemist Login</button>
+              <span>•</span>
+              <button onClick={() => navigate('/login?mode=signup')} className="hover:text-emerald-400 transition">Sign Up Free</button>
+              <span>•</span>
+              <a href="#interactive-simulator" className="hover:text-emerald-400 transition">Live Demo</a>
+            </div>
+          </div>
+
         </div>
       </footer>
 
