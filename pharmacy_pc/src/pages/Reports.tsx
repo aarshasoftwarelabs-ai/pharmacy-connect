@@ -92,7 +92,7 @@ export default function Reports() {
     { id: 'medicine-sales', label: 'Medicine Sales', icon: ShoppingBag },
     { id: 'medicine-requests', label: 'Medicine Requests', icon: Stethoscope },
     { id: 'customers', label: 'Customers', icon: Users },
-    { id: 'gst', label: 'CA / GST Filing (GSTR-1 & 3B)', icon: FileSpreadsheet },
+    { id: 'gst', label: 'CA / GST Filing (GSTR-1, 2 & 3B)', icon: FileSpreadsheet },
   ] as const;
 
   const containerVariants: Variants = {

@@ -1,41 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  Receipt, 
-  Package, 
-  Truck, 
-  BarChart3, 
-  ShieldCheck, 
-  Zap, 
-  CheckCircle2, 
-  ArrowRight, 
-  Sparkles, 
-  Printer, 
-  QrCode, 
-  Smartphone, 
-  Users, 
-  Clock, 
-  Database, 
-  ChevronDown, 
-  Star, 
-  Store, 
-  FileText, 
-  Building2, 
-  Phone, 
-  Mail, 
-  Globe, 
-  Check, 
-  TrendingUp, 
-  Laptop, 
-  Layers, 
-  Crown, 
-  AlertTriangle, 
-  MessageSquare, 
-  HeartPulse, 
-  Search, 
-  X, 
-  Award, 
-  CheckCircle, 
+import {
+  Receipt,
+  Package,
+  Truck,
+  BarChart3,
+  ShieldCheck,
+  Zap,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  Printer,
+  QrCode,
+  Smartphone,
+  Users,
+  Clock,
+  Database,
+  ChevronDown,
+  Star,
+  Store,
+  FileText,
+  Building2,
+  Phone,
+  Mail,
+  Globe,
+  Check,
+  TrendingUp,
+  Laptop,
+  Layers,
+  Crown,
+  AlertTriangle,
+  MessageSquare,
+  HeartPulse,
+  Search,
+  X,
+  Award,
+  CheckCircle,
   RefreshCw,
   Send,
   Play,
@@ -146,13 +146,13 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-600 selection:text-white antialiased">
-      
+
       {/* 1. TOP ANNOUNCEMENT BAR */}
       <div className="bg-slate-900 text-white text-xs sm:text-sm font-medium py-2.5 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
         <div className="w-full max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black tracking-wider uppercase">
-              VERSION 3.0 LIVE
+              VERSION 1.0 LIVE
             </span>
             <span className="text-slate-300">
               Trusted by 1,200+ Retail Chemists & Pharmacies across India
@@ -163,16 +163,16 @@ export default function LandingPage() {
             </span>
           </div>
           <div className="flex items-center gap-3 sm:gap-4 text-slate-300 text-xs whitespace-nowrap">
-            <a 
-              href="tel:+919664781007" 
+            <a
+              href="tel:+919664781007"
               className="hidden lg:inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition whitespace-nowrap"
             >
               <Phone className="w-3.5 h-3.5" /> Support: +91 96647 81007
             </a>
-            
+
             <div className="flex items-center gap-2 sm:gap-2.5">
               {isLoggedIn ? (
-                <button 
+                <button
                   onClick={() => navigate('/dashboard')}
                   className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1.5 transition text-xs shadow-xs"
                 >
@@ -182,7 +182,7 @@ export default function LandingPage() {
               ) : (
                 <>
                   {/* CHEMIST SIGN IN */}
-                  <button 
+                  <button
                     onClick={() => navigate('/login?mode=login')}
                     className="px-2.5 py-1 text-slate-200 hover:text-white font-bold flex items-center gap-1.5 hover:bg-slate-800 rounded-lg transition text-xs"
                   >
@@ -193,7 +193,7 @@ export default function LandingPage() {
                   <span className="text-slate-700">|</span>
 
                   {/* CHEMIST SIGN UP */}
-                  <button 
+                  <button
                     onClick={() => navigate('/login?mode=signup')}
                     className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1.5 transition text-xs shadow-sm hover:scale-[1.02] active:scale-[0.98]"
                   >
@@ -214,12 +214,12 @@ export default function LandingPage() {
       {/* 2. MODERN FLOATING GLASS HEADER */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between">
-          
+
           {/* BRAND LOGO */}
           <Link to="/" className="flex items-center gap-3 shrink-0 select-none">
-            <img 
-              src="/davasetu_logo.png" 
-              alt="DavaSetu Pharmacy POS" 
+            <img
+              src="/davasetu_logo.png"
+              alt="DavaSetu Pharmacy POS"
               className="h-9 sm:h-10 w-auto object-contain"
             />
             <div className="hidden 2xl:flex items-center gap-1.5 border-l border-slate-200 pl-3">
@@ -250,16 +250,16 @@ export default function LandingPage() {
 
       {/* 3. HERO SECTION - ASYMMETRIC 2-COLUMN SPLIT LAYOUT (NOT CENTERED TEXT!) */}
       <section className="relative pt-6 pb-14 lg:pt-8 lg:pb-20 overflow-hidden bg-gradient-to-b from-white via-slate-50 to-emerald-50/20 border-b border-slate-200">
-        
+
         {/* Subtle decorative background mesh */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-emerald-100/60 via-teal-100/30 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
 
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
-            
+
             {/* LEFT COLUMN: PUNCHY COPY & VALUE PROPS (7 COLS) */}
             <div className="lg:col-span-7 pt-1 lg:pt-2">
-              
+
               {/* Category Pill */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-black mb-4 shadow-xs">
                 <ShieldCheck className="w-4 h-4 text-emerald-700" />
@@ -337,12 +337,12 @@ export default function LandingPage() {
 
             {/* RIGHT COLUMN: LIVE INTERACTIVE WORKSTATION WIDGET (5 COLS) */}
             <div className="lg:col-span-5 relative">
-              
+
               {/* Decorative Glow */}
               <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-3xl blur-xl opacity-20 transform rotate-1" />
 
               <div className="relative rounded-3xl bg-white border border-slate-200/90 shadow-2xl shadow-slate-300/60 p-6 flex flex-col justify-between">
-                
+
                 {/* Header Strip */}
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <div className="flex items-center gap-2.5">
@@ -419,14 +419,14 @@ export default function LandingPage() {
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                    <button 
+                    <button
                       onClick={() => navigate('/login')}
                       className="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black transition flex items-center justify-center gap-1.5 shadow"
                     >
                       <Printer className="w-4 h-4" />
                       <span>Print Thermal Bill</span>
                     </button>
-                    <button 
+                    <button
                       onClick={() => navigate('/login')}
                       className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition flex items-center justify-center gap-1.5 border border-slate-700"
                     >
@@ -496,11 +496,10 @@ export default function LandingPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveStudioTab(tab.id as any)}
-                className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition flex items-center gap-2 ${
-                  isActive 
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 scale-105' 
+                className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition flex items-center gap-2 ${isActive
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 scale-105'
                     : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
@@ -557,7 +556,7 @@ export default function LandingPage() {
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono">MATCH: 100%</span>
                 </div>
                 <p className="text-slate-300 font-mono text-[11px]">Active Salt: Amoxicillin (500mg) + Clavulanic Acid (125mg)</p>
-                
+
                 <div className="space-y-2 pt-1 font-mono">
                   <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-700 flex justify-between items-center">
                     <div>
@@ -674,7 +673,7 @@ export default function LandingPage() {
                   <span>SCHEDULE H1 DRUG AUDIT REGISTER</span>
                   <span className="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px]">100% FDA COMPLIANT</span>
                 </div>
-                
+
                 <div className="p-3 bg-white rounded-xl border border-rose-200 space-y-1.5">
                   <div className="flex justify-between font-bold text-slate-900">
                     <span>Patient: Rajesh Patel (+91 98251-XXXXX)</span>
@@ -738,7 +737,7 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          
+
           {/* LEGACY SOFTWARE */}
           <div className="p-8 rounded-3xl bg-white border-2 border-rose-200 shadow-sm flex flex-col justify-between">
             <div>
@@ -839,12 +838,12 @@ export default function LandingPage() {
       {/* 6.5 SMART MIGRATION SECTION: SHIFT FROM OLD SOFTWARE / EXCEL */}
       <section id="migration" className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto my-10">
         <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 text-white rounded-3xl p-8 sm:p-12 border border-emerald-500/30 shadow-2xl relative overflow-hidden">
-          
+
           {/* Subtle background glow */}
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-          
+
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
+
             {/* Left Column: Value Prop & Explanation */}
             <div className="lg:col-span-7">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-black uppercase tracking-wider mb-4">
@@ -906,7 +905,7 @@ export default function LandingPage() {
             {/* Right Column: Interactive Migration Action Box */}
             <div className="lg:col-span-5">
               <div className="rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
-                
+
                 <div className="flex items-center justify-between pb-4 border-b border-white/10">
                   <div className="flex items-center gap-2.5">
                     <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black">
@@ -994,7 +993,7 @@ export default function LandingPage() {
         </div>
 
         <div className="rounded-2xl bg-slate-900 text-slate-100 shadow-2xl overflow-hidden border border-slate-800">
-          
+
           {/* Simulator Bar */}
           <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -1010,7 +1009,7 @@ export default function LandingPage() {
           </div>
 
           <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
+
             {/* Left: Quick Item Adder */}
             <div className="lg:col-span-7 flex flex-col justify-between gap-4">
               <div>
@@ -1029,11 +1028,10 @@ export default function LandingPage() {
                       <button
                         key={med.id}
                         onClick={() => addSampleMed(med)}
-                        className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between group ${
-                          isInCart 
-                            ? 'bg-emerald-950/40 border-emerald-500/60 shadow-sm shadow-emerald-500/10' 
+                        className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between group ${isInCart
+                            ? 'bg-emerald-950/40 border-emerald-500/60 shadow-sm shadow-emerald-500/10'
                             : 'bg-slate-800/80 border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start justify-between">
                           <div>
@@ -1142,11 +1140,10 @@ export default function LandingPage() {
                     <button
                       key={mode}
                       onClick={() => setPaymentMode(mode)}
-                      className={`py-2 rounded-xl text-xs font-bold border transition ${
-                        paymentMode === mode 
-                          ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black' 
+                      className={`py-2 rounded-xl text-xs font-bold border transition ${paymentMode === mode
+                          ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black'
                           : 'bg-slate-900 text-slate-400 border-slate-800'
-                      }`}
+                        }`}
                     >
                       {mode === 'UPI' ? '⚡ UPI QR' : mode === 'CASH' ? '💵 Cash' : '💳 Card'}
                     </button>
@@ -1175,7 +1172,7 @@ export default function LandingPage() {
         {showWhatsAppModal && (
           <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-slate-800 shadow-2xl relative animate-in fade-in zoom-in duration-200">
-              <button 
+              <button
                 onClick={() => setShowWhatsAppModal(false)}
                 className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold"
               >
@@ -1251,14 +1248,14 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-          
+
           {/* PLAN 1: MONTHLY PRO */}
           <div className="p-8 rounded-3xl bg-white border-2 border-slate-200 hover:border-emerald-500 transition-all flex flex-col justify-between shadow-sm">
             <div>
               <span className="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Monthly Pass</span>
               <h3 className="text-2xl font-black text-slate-900 mt-1">Monthly Pro</h3>
               <p className="text-xs text-slate-500 mt-2 font-medium">Essential cloud POS billing for independent retail counters.</p>
-              
+
               <div className="mt-6 flex items-baseline gap-1">
                 <span className="text-4xl font-black text-slate-900">₹799</span>
                 <span className="text-sm font-bold text-slate-500">/ month</span>
@@ -1307,7 +1304,7 @@ export default function LandingPage() {
               <span className="text-xs uppercase font-extrabold text-emerald-700 tracking-wider">Annual Pass</span>
               <h3 className="text-2xl font-black text-slate-900 mt-1">Yearly Premium</h3>
               <p className="text-xs text-slate-600 mt-2 font-medium">Complete AI-powered pharmacy ERP for high-volume stores.</p>
-              
+
               <div className="mt-6 flex flex-col">
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-black text-emerald-800">₹5,999</span>
@@ -1363,12 +1360,12 @@ export default function LandingPage() {
           {/* PLAN 3: FOUNDER'S LIFETIME */}
           <div className="p-8 rounded-3xl bg-slate-900 text-white border-2 border-amber-400 shadow-xl shadow-amber-500/10 flex flex-col justify-between relative overflow-hidden">
             <div className="absolute -right-6 -top-6 bg-amber-400/10 w-32 h-32 rounded-full blur-2xl pointer-events-none" />
-            
+
             <div className="relative z-10">
               <span className="text-xs uppercase font-extrabold text-amber-400 tracking-wider">Lifetime Deal</span>
               <h3 className="text-2xl font-black text-white mt-1">Founder's Lifetime</h3>
               <p className="text-xs text-slate-300 mt-2 font-medium">Pay once, own forever. Zero recurring monthly or yearly fees.</p>
-              
+
               <div className="mt-6 flex flex-col">
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-black text-white">₹24,999</span>
@@ -1467,7 +1464,7 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          
+
           <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-1 text-amber-400 mb-3">
@@ -1598,13 +1595,13 @@ export default function LandingPage() {
 
       {/* 12. COMPACT PREMIUM ENTERPRISE FOOTER */}
       <footer className="bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-400 border-t border-slate-800/80 pt-8 pb-6 sm:pt-10 sm:pb-7 relative overflow-hidden text-xs">
-        
+
         {/* Subtle decorative background glow */}
         <div className="absolute top-0 left-1/4 w-[500px] h-[200px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-10 w-[300px] h-[150px] bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          
+
           {/* Top Trust & Value Pre-Footer Strip - Compact */}
           <div className="pb-4 mb-6 border-b border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] sm:text-xs">
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 font-semibold text-slate-300">
@@ -1634,14 +1631,14 @@ export default function LandingPage() {
 
           {/* Main 4-Column Grid - Compact Layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-8 mb-6">
-            
+
             {/* Column 1: Brand & Pharmacy Mission (5 cols) */}
             <div className="lg:col-span-5">
               <div className="flex items-center gap-2.5 mb-2.5">
-                <img 
-                  src="/davasetu_logo.png" 
-                  alt="DavaSetu Pharmacy POS" 
-                  className="h-8 w-auto bg-white rounded-lg p-1 shadow-sm" 
+                <img
+                  src="/davasetu_logo.png"
+                  alt="DavaSetu Pharmacy POS"
+                  className="h-8 w-auto bg-white rounded-lg p-1 shadow-sm"
                 />
                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 whitespace-nowrap">
                   Cloud POS 3.0
@@ -1740,8 +1737,8 @@ export default function LandingPage() {
               </h4>
 
               <div className="rounded-xl bg-white/5 border border-white/10 p-3 space-y-2">
-                <a 
-                  href="tel:+919664781007" 
+                <a
+                  href="tel:+919664781007"
                   className="flex items-center gap-2.5 p-2 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-200 transition group"
                 >
                   <div className="p-1.5 rounded-md bg-emerald-500 text-slate-950 shrink-0">
@@ -1753,9 +1750,9 @@ export default function LandingPage() {
                   </div>
                 </a>
 
-                <a 
-                  href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Team%2C%20I%20need%20assistance%20with%20my%20pharmacy%20software." 
-                  target="_blank" 
+                <a
+                  href="https://wa.me/919664781007?text=Hello%20DavaSetu%20Team%2C%20I%20need%20assistance%20with%20my%20pharmacy%20software."
+                  target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-2.5 p-2 rounded-lg bg-teal-950/60 hover:bg-teal-900/60 border border-teal-500/30 text-teal-200 transition group"
                 >
@@ -1768,8 +1765,8 @@ export default function LandingPage() {
                   </div>
                 </a>
 
-                <a 
-                  href="mailto:davasetu.otp@gmail.com" 
+                <a
+                  href="mailto:davasetu.otp@gmail.com"
                   className="flex items-center gap-2 text-xs text-slate-300 hover:text-emerald-300 transition px-0.5"
                 >
                   <Mail className="w-3 h-3 text-emerald-400 shrink-0" />
@@ -1788,7 +1785,7 @@ export default function LandingPage() {
           {/* Bottom Bar: Copyright, Host Info, & Quick Actions - Compact */}
           <div className="pt-4 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-3 text-[11px] font-medium text-slate-500">
             <p>© {new Date().getFullYear()} DavaSetu Cloud POS (Aarsha Software Labs). All rights reserved.</p>
-            
+
             <div className="flex items-center gap-1.5 text-slate-400">
               <Globe className="w-3.5 h-3.5 text-emerald-400" />
               <span>Hosted on AWS & Cloudflare Secure Edge (Mumbai, India)</span>

@@ -121,12 +121,17 @@ export class ReportService {
 }
 
 export interface CaTaxFilingData {
+  hasGstin?: boolean;
+  message?: string;
   pharmacy: {
+    id?: number;
     name: string;
-    gstin: string;
-    state: string;
+    gstin: string | null;
+    state?: string;
+    address?: string;
+    phone?: string;
   };
-  gstr1: {
+  gstr1?: {
     b2b: {
       invoiceNumber: string;
       invoiceDate: string;
@@ -166,7 +171,69 @@ export interface CaTaxFilingData {
       cancelledCount: number;
     };
   };
-  gstr3b: {
+  gstr2?: {
+    b2b: {
+      id: number;
+      invoiceNumber: string;
+      invoiceDate: string;
+      supplierName: string;
+      supplierGstin: string;
+      supplierCity?: string;
+      supplierState?: string;
+      taxableValue: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+      totalTax: number;
+      invoiceValue: number;
+      reverseCharge: string;
+      itcEligibility: string;
+    }[];
+    rateWise: {
+      rate: number;
+      taxableValue: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+      totalTax: number;
+      totalValue: number;
+    }[];
+    hsnSummary: {
+      hsnCode: string;
+      description: string;
+      uqc: string;
+      totalQuantity: number;
+      totalValue: number;
+      taxableValue: number;
+      rate: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+    }[];
+    supplierSummary: {
+      supplierName: string;
+      supplierGstin: string;
+      supplierCity?: string;
+      totalInvoices: number;
+      taxableValue: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+      totalItc: number;
+      totalPurchases: number;
+    }[];
+    summary: {
+      totalInvoices: number;
+      taxableAmount: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+      totalTax: number;
+      totalPurchases: number;
+      eligibleItc: number;
+    };
+  };
+  gstr3b?: {
     outwardSupplies: {
       taxableAmount: number;
       cgst: number;

@@ -285,28 +285,44 @@ export class ReportService {
   }
 
   /**
-   * 8. CA / TAX FILING REPORT (GSTR-1 & GSTR-3B)
+   * 8. CA / TAX FILING REPORT (GSTR-1, GSTR-2 & GSTR-3B)
    */
   static async getCaTaxFilingReport(pharmacyId: number, params: ReportDateRange) {
     // 1. Pharmacy Profile
     const pharmacyRes = await pool.query(
-      `SELECT name, gstin, state, address, phone FROM pharmacies WHERE id = $1`,
+      `SELECT id, name, gstin, state, address, phone FROM pharmacies WHERE id = $1`,
       [pharmacyId]
     );
-    const pharmacy = pharmacyRes.rows[0] || { name: 'Pharmacy', gstin: '24AAAAA0000A1Z5', state: 'Gujarat' };
+    const pharmacy = pharmacyRes.rows[0];
 
-    // Date filters
+    // Mandatory GSTIN check: without a valid GST number, NO reports can be generated
+    if (!pharmacy || !pharmacy.gstin || !pharmacy.gstin.trim()) {
+      return {
+        hasGstin: false,
+        message: 'GST Identification Number (GSTIN) is required to generate GST tax filing reports.',
+        pharmacy: {
+          id: pharmacy?.id || pharmacyId,
+          name: pharmacy?.name || 'Pharmacy',
+          gstin: null,
+          state: pharmacy?.state || '',
+          address: pharmacy?.address || '',
+          phone: pharmacy?.phone || ''
+        }
+      };
+    }
+
+    // Date filters for sales/bills
     const billValues: any[] = [];
     const billFilter = buildDateFilter(pharmacyId, 'b.bill_date', params, billValues, 'b.pharmacy_id');
 
-    // 2. B2B Sales (Wholesale bills or bills with B2B clients)
+    // 2. B2B Sales (Wholesale bills or bills with B2B clients) - GSTR-1
     const b2bQuery = `
       SELECT 
         b.id,
         b.bill_number as "invoiceNumber",
         b.bill_date as "invoiceDate",
         b.customer_name as "receiverName",
-        COALESCE(c.gstin, '24AAAAA0000A1Z5') as "receiverGstin",
+        COALESCE(c.gstin, '') as "receiverGstin",
         COALESCE(c.business_name, b.customer_name) as "tradeName",
         COALESCE(b.total_taxable_amount, b.subtotal) as "taxableValue",
         COALESCE(b.total_cgst, 0) as "cgst",
@@ -323,7 +339,7 @@ export class ReportService {
     `;
     const b2bRes = await pool.query(b2bQuery, billValues);
 
-    // 3. B2CS (Retail Consumer Sales grouped by GST rate)
+    // 3. B2CS (Retail Consumer Sales grouped by GST rate) - GSTR-1
     const b2csQuery = `
       SELECT 
         bi.gst_rate as "rate",
@@ -343,7 +359,7 @@ export class ReportService {
     `;
     const b2csRes = await pool.query(b2csQuery, billValues);
 
-    // 4. HSN Summary (Grouped by HSN code and GST rate)
+    // 4. HSN Summary (Outward medicine supplies grouped by HSN code and GST rate) - GSTR-1
     const hsnQuery = `
       SELECT 
         COALESCE(NULLIF(bi.hsn_code, ''), '3004') as "hsnCode",
@@ -364,7 +380,7 @@ export class ReportService {
     `;
     const hsnRes = await pool.query(hsnQuery, billValues);
 
-    // 5. Document Issued Summary
+    // 5. Document Issued Summary - GSTR-1
     const docQuery = `
       SELECT 
         MIN(bill_number) as "fromSerial",
@@ -391,30 +407,117 @@ export class ReportService {
     `;
     const outwardRes = await pool.query(outwardQuery, billValues);
 
-    // 7. Eligible Input Tax Credit (ITC) from Purchases (GSTR-3B Table 4)
+    // 7. Inward Purchases Filters (GSTR-2 & GSTR-3B Table 4)
     const purchaseValues: any[] = [];
-    let purchaseFilter = ` pharmacy_id = $1 `;
+    let purchaseFilter = ` p.pharmacy_id = $1 `;
     purchaseValues.push(pharmacyId);
     if (params.startDate) {
-      purchaseFilter += ` AND (invoice_date >= $${purchaseValues.length + 1} OR created_at >= $${purchaseValues.length + 1}) `;
+      purchaseFilter += ` AND (p.invoice_date >= $${purchaseValues.length + 1} OR (p.invoice_date IS NULL AND p.created_at >= $${purchaseValues.length + 1})) `;
       purchaseValues.push(params.startDate);
     }
     if (params.endDate) {
-      purchaseFilter += ` AND (invoice_date <= $${purchaseValues.length + 1} OR created_at <= $${purchaseValues.length + 1}) `;
+      purchaseFilter += ` AND (p.invoice_date <= $${purchaseValues.length + 1} OR (p.invoice_date IS NULL AND p.created_at <= $${purchaseValues.length + 1})) `;
       purchaseValues.push(params.endDate);
     }
 
+    // GSTR-2 Section 1: Inward B2B Invoices (Purchases from Distributors)
+    const gstr2B2bQuery = `
+      SELECT 
+        p.id,
+        p.invoice_number as "invoiceNumber",
+        p.invoice_date as "invoiceDate",
+        COALESCE(s.supplier_name, 'Direct Distributor') as "supplierName",
+        COALESCE(s.gstin, '') as "supplierGstin",
+        COALESCE(s.city, '') as "supplierCity",
+        COALESCE(s.state, 'Gujarat') as "supplierState",
+        COALESCE(p.taxable_amount, 0) as "taxableValue",
+        COALESCE(p.cgst_amount, 0) as "cgst",
+        COALESCE(p.sgst_amount, 0) as "sgst",
+        COALESCE(p.igst_amount, 0) as "igst",
+        COALESCE(p.total_tax, 0) as "totalTax",
+        COALESCE(p.grand_total, 0) as "invoiceValue",
+        'N' as "reverseCharge",
+        'Inputs' as "itcEligibility"
+      FROM purchase_invoices p
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      WHERE ${purchaseFilter} AND p.payment_status != 'CANCELLED'
+      ORDER BY p.invoice_date DESC, p.created_at DESC
+    `;
+    const gstr2B2bRes = await pool.query(gstr2B2bQuery, purchaseValues);
+
+    // GSTR-2 Section 2: Inward Supplies Grouped by Tax Slab
+    const gstr2RateWiseQuery = `
+      SELECT 
+        COALESCE(pi.gst_rate, 0) as "rate",
+        COALESCE(SUM(pi.taxable_amount), 0) as "taxableValue",
+        COALESCE(SUM(pi.cgst_amount), 0) as "cgst",
+        COALESCE(SUM(pi.sgst_amount), 0) as "sgst",
+        COALESCE(SUM(pi.igst_amount), 0) as "igst",
+        COALESCE(SUM(pi.cgst_amount + pi.sgst_amount + pi.igst_amount), 0) as "totalTax",
+        COALESCE(SUM(pi.total_amount), 0) as "totalValue"
+      FROM purchase_items pi
+      JOIN purchase_invoices p ON pi.purchase_invoice_id = p.id
+      WHERE ${purchaseFilter} AND p.payment_status != 'CANCELLED'
+      GROUP BY pi.gst_rate
+      ORDER BY pi.gst_rate ASC
+    `;
+    const gstr2RateWiseRes = await pool.query(gstr2RateWiseQuery, purchaseValues);
+
+    // GSTR-2 Section 3: HSN-wise Inward Supplies (Purchased Medicines)
+    const gstr2HsnQuery = `
+      SELECT 
+        COALESCE(NULLIF(m.hsn_code, ''), '3004') as "hsnCode",
+        COALESCE(MIN(m.name), 'Medicine Supplies') as "description",
+        'NOS' as "uqc",
+        COALESCE(SUM(pi.quantity + pi.free_quantity), 0) as "totalQuantity",
+        COALESCE(SUM(pi.total_amount), 0) as "totalValue",
+        COALESCE(SUM(pi.taxable_amount), 0) as "taxableValue",
+        COALESCE(pi.gst_rate, 0) as "rate",
+        COALESCE(SUM(pi.cgst_amount), 0) as "cgst",
+        COALESCE(SUM(pi.sgst_amount), 0) as "sgst",
+        COALESCE(SUM(pi.igst_amount), 0) as "igst"
+      FROM purchase_items pi
+      JOIN purchase_invoices p ON pi.purchase_invoice_id = p.id
+      LEFT JOIN medicines m ON pi.medicine_id = m.id
+      WHERE ${purchaseFilter} AND p.payment_status != 'CANCELLED'
+      GROUP BY COALESCE(NULLIF(m.hsn_code, ''), '3004'), pi.gst_rate
+      ORDER BY pi.gst_rate ASC
+    `;
+    const gstr2HsnRes = await pool.query(gstr2HsnQuery, purchaseValues);
+
+    // GSTR-2 Section 4: Supplier / Distributor ITC Summary
+    const gstr2SupplierQuery = `
+      SELECT 
+        COALESCE(s.supplier_name, 'Direct Distributor') as "supplierName",
+        COALESCE(s.gstin, '') as "supplierGstin",
+        COALESCE(s.city, '') as "supplierCity",
+        COUNT(p.id) as "totalInvoices",
+        COALESCE(SUM(p.taxable_amount), 0) as "taxableValue",
+        COALESCE(SUM(p.cgst_amount), 0) as "cgst",
+        COALESCE(SUM(p.sgst_amount), 0) as "sgst",
+        COALESCE(SUM(p.igst_amount), 0) as "igst",
+        COALESCE(SUM(p.total_tax), 0) as "totalItc",
+        COALESCE(SUM(p.grand_total), 0) as "totalPurchases"
+      FROM purchase_invoices p
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      WHERE ${purchaseFilter} AND p.payment_status != 'CANCELLED'
+      GROUP BY s.supplier_name, s.gstin, s.city
+      ORDER BY "totalPurchases" DESC
+    `;
+    const gstr2SupplierRes = await pool.query(gstr2SupplierQuery, purchaseValues);
+
+    // Overall Eligible Input Tax Credit (ITC) from Purchases (GSTR-3B Table 4)
     const purchaseQuery = `
       SELECT 
-        COALESCE(SUM(taxable_amount), 0) as "taxableAmount",
-        COALESCE(SUM(cgst_amount), 0) as "cgst",
-        COALESCE(SUM(sgst_amount), 0) as "sgst",
-        COALESCE(SUM(igst_amount), 0) as "igst",
-        COALESCE(SUM(total_tax), 0) as "totalTax",
-        COALESCE(SUM(grand_total), 0) as "totalPurchases",
-        COUNT(id) as "totalInvoices"
-      FROM purchase_invoices
-      WHERE ${purchaseFilter} AND payment_status != 'CANCELLED'
+        COALESCE(SUM(p.taxable_amount), 0) as "taxableAmount",
+        COALESCE(SUM(p.cgst_amount), 0) as "cgst",
+        COALESCE(SUM(p.sgst_amount), 0) as "sgst",
+        COALESCE(SUM(p.igst_amount), 0) as "igst",
+        COALESCE(SUM(p.total_tax), 0) as "totalTax",
+        COALESCE(SUM(p.grand_total), 0) as "totalPurchases",
+        COUNT(p.id) as "totalInvoices"
+      FROM purchase_invoices p
+      WHERE ${purchaseFilter} AND p.payment_status != 'CANCELLED'
     `;
     const purchaseRes = await pool.query(purchaseQuery, purchaseValues);
 
@@ -445,9 +548,11 @@ export class ReportService {
     };
 
     return {
+      hasGstin: true,
       pharmacy: {
+        id: pharmacy.id,
         name: pharmacy.name,
-        gstin: pharmacy.gstin || '24AAAAA0000A1Z5',
+        gstin: pharmacy.gstin,
         state: pharmacy.state || 'Gujarat',
       },
       gstr1: {
@@ -489,6 +594,68 @@ export class ReportService {
           totalCount: parseInt(docRes.rows[0]?.totalCount || 0, 10),
           cancelledCount: parseInt(docRes.rows[0]?.cancelledCount || 0, 10),
         },
+      },
+      gstr2: {
+        b2b: gstr2B2bRes.rows.map(r => ({
+          id: r.id,
+          invoiceNumber: r.invoiceNumber,
+          invoiceDate: r.invoiceDate,
+          supplierName: r.supplierName,
+          supplierGstin: r.supplierGstin,
+          supplierCity: r.supplierCity,
+          supplierState: r.supplierState,
+          taxableValue: parseFloat(r.taxableValue || 0),
+          cgst: parseFloat(r.cgst || 0),
+          sgst: parseFloat(r.sgst || 0),
+          igst: parseFloat(r.igst || 0),
+          totalTax: parseFloat(r.totalTax || 0),
+          invoiceValue: parseFloat(r.invoiceValue || 0),
+          reverseCharge: r.reverseCharge,
+          itcEligibility: r.itcEligibility,
+        })),
+        rateWise: gstr2RateWiseRes.rows.map(r => ({
+          rate: parseFloat(r.rate || 0),
+          taxableValue: parseFloat(r.taxableValue || 0),
+          cgst: parseFloat(r.cgst || 0),
+          sgst: parseFloat(r.sgst || 0),
+          igst: parseFloat(r.igst || 0),
+          totalTax: parseFloat(r.totalTax || 0),
+          totalValue: parseFloat(r.totalValue || 0),
+        })),
+        hsnSummary: gstr2HsnRes.rows.map(r => ({
+          hsnCode: r.hsnCode,
+          description: r.description,
+          uqc: r.uqc,
+          totalQuantity: parseInt(r.totalQuantity || 0, 10),
+          totalValue: parseFloat(r.totalValue || 0),
+          taxableValue: parseFloat(r.taxableValue || 0),
+          rate: parseFloat(r.rate || 0),
+          cgst: parseFloat(r.cgst || 0),
+          sgst: parseFloat(r.sgst || 0),
+          igst: parseFloat(r.igst || 0),
+        })),
+        supplierSummary: gstr2SupplierRes.rows.map(r => ({
+          supplierName: r.supplierName,
+          supplierGstin: r.supplierGstin,
+          supplierCity: r.supplierCity,
+          totalInvoices: parseInt(r.totalInvoices || 0, 10),
+          taxableValue: parseFloat(r.taxableValue || 0),
+          cgst: parseFloat(r.cgst || 0),
+          sgst: parseFloat(r.sgst || 0),
+          igst: parseFloat(r.igst || 0),
+          totalItc: parseFloat(r.totalItc || 0),
+          totalPurchases: parseFloat(r.totalPurchases || 0),
+        })),
+        summary: {
+          totalInvoices: itc.totalInvoices,
+          taxableAmount: itc.taxableAmount,
+          cgst: itc.cgst,
+          sgst: itc.sgst,
+          igst: itc.igst,
+          totalTax: itc.totalTax,
+          totalPurchases: itc.totalPurchases,
+          eligibleItc: itc.totalTax
+        }
       },
       gstr3b: {
         outwardSupplies: outward,
