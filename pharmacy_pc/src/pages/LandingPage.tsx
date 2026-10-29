@@ -47,7 +47,8 @@ import {
   Pill,
   FileCheck,
   LogIn,
-  FolderSync
+  FolderSync,
+  Download
 } from 'lucide-react';
 import LiveProductDemoPlayer from '../components/landing/LiveProductDemoPlayer';
 
@@ -56,6 +57,19 @@ export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [activeStudioTab, setActiveStudioTab] = useState<'billing' | 'generic' | 'expiry' | 'purchases' | 'compliance' | 'mobile'>('billing');
+  const [studioScannedIdx, setStudioScannedIdx] = useState(0);
+  const [studioGenericSelected, setStudioGenericSelected] = useState<'branded' | 'generic'>('generic');
+  const [studioExpiryVoucherCreated, setStudioExpiryVoucherCreated] = useState(false);
+  const [studioSchemeBoxes, setStudioSchemeBoxes] = useState(10);
+  const [showH1Modal, setShowH1Modal] = useState(false);
+  const [mobileRadarMetric, setMobileRadarMetric] = useState<'revenue' | 'tender' | 'stock'>('revenue');
+  const [mobileRadarRefreshed, setMobileRadarRefreshed] = useState(false);
+
+  const STUDIO_SCAN_ITEMS = [
+    { code: '8901117254012', name: 'Dolo 650mg Tab', batch: 'BT-9421', exp: '11/27', rack: 'A-04', stock: 84, mrp: 31.50, duration: '2.1s' },
+    { code: '8901036021115', name: 'Augmentin 625 Duo', batch: 'AUG-441', exp: '08/26', rack: 'B-12', stock: 32, mrp: 201.20, duration: '1.8s' },
+    { code: '8901086012431', name: 'Pantocid DSR Cap', batch: 'PAN-109', exp: '05/27', rack: 'C-01', stock: 45, mrp: 189.00, duration: '1.6s' },
+  ];
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -174,7 +188,7 @@ export default function LandingPage() {
 
           {/* DESKTOP NAVIGATION PILLS - CLEAN & SPACIOUS */}
           <nav className="hidden md:flex items-center gap-5 lg:gap-7 xl:gap-8 text-xs sm:text-sm font-bold text-slate-600 whitespace-nowrap">
-            <a href="#solutions" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Solutions</a>
+            <a href="#modules" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Modules</a>
             <a href="#interactive-simulator" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap">
               <span>Live Demo</span>
               <span className="px-1.5 py-0.5 text-[9px] bg-emerald-100 text-emerald-800 rounded-full font-black uppercase tracking-wide leading-none shrink-0">Try</span>
@@ -184,10 +198,19 @@ export default function LandingPage() {
               <span>Smart Migration</span>
               <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[9px] font-black border border-amber-200 leading-none shrink-0">2 Min</span>
             </a>
-            <a href="#features" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Modules</a>
             <a href="#pricing" className="hover:text-emerald-600 transition-colors whitespace-nowrap">Pricing</a>
             <a href="#faq" className="hover:text-emerald-600 transition-colors whitespace-nowrap">FAQ</a>
           </nav>
+        </div>
+
+        {/* MOBILE NAVIGATION PILLS BAR */}
+        <div className="md:hidden flex items-center gap-2 px-4 py-2 overflow-x-auto no-scrollbar border-t border-slate-100 text-xs font-bold text-slate-600 bg-white/95">
+          <a href="#modules" className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 font-black whitespace-nowrap">Modules</a>
+          <a href="#interactive-simulator" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 whitespace-nowrap">Live Demo</a>
+          <a href="#comparison" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 whitespace-nowrap">Why DavaSetu?</a>
+          <a href="#migration" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 whitespace-nowrap">Migration</a>
+          <a href="#pricing" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 whitespace-nowrap">Pricing</a>
+          <a href="#faq" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 whitespace-nowrap">FAQ</a>
         </div>
       </header>
 
@@ -410,7 +433,10 @@ export default function LandingPage() {
       </section>
 
       {/* 5. INTERACTIVE FEATURE STUDIO (TABBED WORKFLOW LAYOUT) */}
-      <section id="solutions" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section id="modules" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-28 relative">
+        <div id="features" className="absolute -top-28 left-0 pointer-events-none" />
+        <div id="solutions" className="absolute -top-28 left-0 pointer-events-none" />
+
         <div className="text-center max-w-3xl mx-auto mb-14">
           <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-1 rounded-full">
             Interactive Workflow Studio
@@ -419,7 +445,7 @@ export default function LandingPage() {
             Engineered for Every Corner of Your Pharmacy
           </h2>
           <p className="mt-2 text-slate-600 text-sm sm:text-base">
-            Click on any module below to inspect how DavaSetu automates your daily medical store routine.
+            Click on any module below to inspect interactive controls and see how DavaSetu automates your daily medical store routine.
           </p>
         </div>
 
@@ -439,12 +465,12 @@ export default function LandingPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveStudioTab(tab.id as any)}
-                className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition flex items-center gap-2 ${isActive
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 scale-105'
-                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 active:scale-95 ${isActive
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 scale-105 ring-2 ring-emerald-400'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-emerald-300'
                   }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-emerald-600'}`} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -466,15 +492,58 @@ export default function LandingPage() {
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Instant GST calculation with HSN auto-fill</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> WhatsApp invoice dispatch directly to customer mobile</li>
                 </ul>
-              </div>
-              <div className="p-6 rounded-2xl bg-slate-900 text-white font-mono text-xs space-y-3">
-                <div className="text-emerald-400 font-bold border-b border-slate-800 pb-2">SCANNER FEED: ACTIVE</div>
-                <p>➔ Scanned: 8901117254012 (Dolo 650)</p>
-                <p>➔ Batch: BT-9421 • Exp: 11/27 • Rack: A-04</p>
-                <p>➔ In Stock: 84 Strips • MRP: ₹31.50</p>
-                <div className="p-2.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-emerald-300">
-                  Bill #10842 generated in 2.1 seconds.
+
+                {/* Real Working Actions */}
+                <div className="mt-8 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => navigate(isLoggedIn ? '/billing' : '/login')}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Zap className="w-4 h-4 text-yellow-300" />
+                    <span>{isLoggedIn ? 'Open POS Billing Terminal' : 'Try Live Billing (15-Day Free)'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <a
+                    href="#interactive-simulator"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center gap-1.5 border border-slate-200"
+                  >
+                    <Play className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
+                    <span>Watch Demo Simulator</span>
+                  </a>
                 </div>
+              </div>
+
+              {/* Interactive Scanner Feed */}
+              <div className="p-6 rounded-2xl bg-slate-900 text-white font-mono text-xs space-y-3 shadow-xl border border-slate-800">
+                <div className="text-emerald-400 font-bold border-b border-slate-800 pb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    SCANNER FEED: ACTIVE
+                  </span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">USB / Wireless Ready</span>
+                </div>
+
+                <div className="p-3 bg-slate-950/70 rounded-xl border border-slate-800/80 space-y-1.5">
+                  <p className="text-emerald-300 font-bold text-sm">➔ Scanned: {STUDIO_SCAN_ITEMS[studioScannedIdx].name}</p>
+                  <p className="text-slate-400 text-[11px]">Barcode: {STUDIO_SCAN_ITEMS[studioScannedIdx].code}</p>
+                  <p className="text-slate-300">➔ Batch: {STUDIO_SCAN_ITEMS[studioScannedIdx].batch} • Exp: {STUDIO_SCAN_ITEMS[studioScannedIdx].exp} • Rack: {STUDIO_SCAN_ITEMS[studioScannedIdx].rack}</p>
+                  <p className="text-slate-300">➔ In Stock: {STUDIO_SCAN_ITEMS[studioScannedIdx].stock} Strips • MRP: ₹{STUDIO_SCAN_ITEMS[studioScannedIdx].mrp.toFixed(2)}</p>
+                </div>
+
+                <div className="p-2.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 flex items-center justify-between">
+                  <span>✓ Bill generated in {STUDIO_SCAN_ITEMS[studioScannedIdx].duration}</span>
+                  <span className="text-[10px] bg-emerald-500 text-slate-950 px-1.5 py-0.2 rounded font-black">Ready to Tender</span>
+                </div>
+
+                {/* Interactive Scan Switcher Button */}
+                <button
+                  onClick={() => setStudioScannedIdx((prev) => (prev + 1) % STUDIO_SCAN_ITEMS.length)}
+                  className="w-full mt-2 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs flex items-center justify-center gap-2 transition active:scale-98"
+                >
+                  <Zap className="w-3.5 h-3.5 text-yellow-300" />
+                  <span>Tap to Simulate Barcode Scan (Next Medicine)</span>
+                </button>
               </div>
             </div>
           )}
@@ -485,56 +554,99 @@ export default function LandingPage() {
                 <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">High-Margin Substitution</span>
                 <h3 className="text-2xl font-black text-slate-900 mt-1">Smart Generic & Salt Composition Finder</h3>
                 <p className="text-slate-600 text-sm mt-3 leading-relaxed">
-                  When a customer requests an expensive branded medicine or when an item is out of stock, DavaSetu instantly reveals equivalent generic alternatives with the exact same chemical salt composition (e.g. Amoxicillin + Clavulanic Acid). Pass on savings to your patients while boosting your pharmacy's gross profit margin by 30% to 45%!
+                  When a customer requests an expensive branded medicine or when an item is out of stock, DavaSetu instantly reveals equivalent generic alternatives with the exact same chemical salt composition. Pass on savings to your patients while boosting your pharmacy's gross profit margin by 30% to 45%!
                 </p>
                 <ul className="mt-6 space-y-2.5 text-xs font-bold text-slate-700">
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Instant 1-second salt & chemical molecule database matching</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Compare live stock, packaging, and manufacturer quality</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Earn 30%–45% higher retail margin on equivalent ethical generics</li>
                 </ul>
+
+                {/* Real Working Actions */}
+                <div className="mt-8 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Search className="w-4 h-4" />
+                    <span>Search 50,000+ Salts Database</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <a
+                    href="#interactive-simulator"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center gap-1.5 border border-slate-200"
+                  >
+                    <Play className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
+                    <span>Watch In Demo</span>
+                  </a>
+                </div>
               </div>
-              <div className="p-6 rounded-2xl bg-emerald-950 text-white text-xs space-y-3 shadow-lg">
+
+              {/* Interactive Generic Card */}
+              <div className="p-6 rounded-2xl bg-emerald-950 text-white text-xs space-y-3 shadow-xl border border-emerald-800">
                 <div className="font-bold text-emerald-400 border-b border-emerald-800/80 pb-2 flex justify-between items-center">
                   <span>SMART SALT COMPOSITION RADAR</span>
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono">MATCH: 100%</span>
                 </div>
                 <p className="text-slate-300 font-mono text-[11px]">Active Salt: Amoxicillin (500mg) + Clavulanic Acid (125mg)</p>
 
-                <div className="space-y-2 pt-1 font-mono">
-                  <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-700 flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-white">Augmentin 625 Duo (GSK)</p>
-                      <span className="text-[10px] text-slate-400">Branded • Margin: 16%</span>
-                    </div>
-                    <span className="font-bold text-slate-300">₹201.20</span>
-                  </div>
+                {/* Branded vs Generic Selectors */}
+                <div className="grid grid-cols-2 gap-2 pt-1 font-mono">
+                  <button
+                    onClick={() => setStudioGenericSelected('branded')}
+                    className={`p-2.5 rounded-xl border text-left transition ${studioGenericSelected === 'branded'
+                        ? 'bg-slate-900 border-emerald-400 text-white shadow-md'
+                        : 'bg-slate-900/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                  >
+                    <p className="font-bold text-xs">Augmentin 625 (GSK)</p>
+                    <span className="text-[10px] block mt-0.5">Branded • Margin: 16%</span>
+                    <span className="font-bold text-slate-300 block mt-1">₹201.20</span>
+                  </button>
 
-                  <div className="p-2.5 bg-emerald-900/70 rounded-xl border-2 border-emerald-400 flex justify-between items-center text-white">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-black text-emerald-200">Moxikind-CV 625 (Mankind)</p>
-                        <span className="text-[9px] bg-emerald-500 text-slate-950 font-black px-1.5 py-0.2 rounded">RECOMMENDED</span>
+                  <button
+                    onClick={() => setStudioGenericSelected('generic')}
+                    className={`p-2.5 rounded-xl border-2 text-left transition ${studioGenericSelected === 'generic'
+                        ? 'bg-emerald-900/90 border-emerald-400 text-white shadow-md shadow-emerald-500/20'
+                        : 'bg-emerald-950/40 border-emerald-800/60 text-slate-300 hover:text-white'
+                      }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <p className="font-black text-xs text-emerald-200">Moxikind-CV 625</p>
+                    </div>
+                    <span className="text-[10px] text-emerald-300 block mt-0.5">Generic • Margin: 38%</span>
+                    <span className="font-black text-emerald-300 block mt-1">₹178.50 (-₹22.70)</span>
+                  </button>
+                </div>
+
+                {/* Live Margin Calculation Result */}
+                <div className="p-3 bg-emerald-900/60 rounded-xl border border-emerald-500/40 text-[11px] space-y-1">
+                  {studioGenericSelected === 'generic' ? (
+                    <>
+                      <div className="flex justify-between font-bold text-emerald-200">
+                        <span>Chemist Extra Profit:</span>
+                        <span className="text-emerald-300 font-black">+₹35.63 / Strip (+110% Gain)</span>
                       </div>
-                      <span className="text-[10px] text-emerald-300">Generic Substitute • Margin: 38% (+22% Profit)</span>
+                      <div className="flex justify-between text-emerald-300 text-[10px]">
+                        <span>Patient Savings:</span>
+                        <span className="font-bold">₹22.70 / Strip Saved</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-slate-300 text-[10px]">
+                      Branded medicine selected. Standard chemist margin is 16%. Switch to generic above to boost margin to 38%!
                     </div>
-                    <div className="text-right">
-                      <span className="font-black text-emerald-300">₹178.50</span>
-                      <span className="block text-[9px] text-emerald-400 font-bold">Patient saves ₹22.70</span>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-700 flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-white">Novamox-CV 625 (Cipla)</p>
-                      <span className="text-[10px] text-slate-400">Ethical Generic • Margin: 32%</span>
-                    </div>
-                    <span className="font-bold text-slate-300">₹182.00</span>
-                  </div>
+                  )}
                 </div>
 
-                <div className="p-2 bg-emerald-900/40 rounded-lg border border-emerald-500/30 text-[11px] text-emerald-300 text-center font-bold">
-                  💡 Suggesting Moxikind-CV saves patient money & increases chemist profit by +22%!
-                </div>
+                <button
+                  onClick={() => setStudioGenericSelected(studioGenericSelected === 'generic' ? 'branded' : 'generic')}
+                  className="w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 hover:bg-emerald-400 active:scale-98"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Tap to Toggle: {studioGenericSelected === 'generic' ? 'View Branded Option' : 'Switch to High-Margin Generic'}</span>
+                </button>
               </div>
             </div>
           )}
@@ -552,21 +664,80 @@ export default function LandingPage() {
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-600" /> FIFO (First-In First-Out) stock rotation algorithm</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-600" /> 1-Click distributor return voucher generation</li>
                 </ul>
+
+                {/* Real Working Actions */}
+                <div className="mt-8 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => navigate(isLoggedIn ? '/inventory' : '/login')}
+                    className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-md shadow-teal-600/20 transition flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Open Expiry Shield in Inventory</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <a
+                    href="#interactive-simulator"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center gap-1.5 border border-slate-200"
+                  >
+                    <Play className="w-3.5 h-3.5 text-teal-600 fill-teal-600" />
+                    <span>Watch In Demo</span>
+                  </a>
+                </div>
               </div>
-              <div className="p-6 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs space-y-3">
+
+              {/* Interactive Expiry Card */}
+              <div className="p-6 rounded-2xl bg-amber-50/80 border-2 border-amber-200 text-amber-950 text-xs space-y-3 shadow-lg">
                 <div className="font-bold flex items-center justify-between border-b border-amber-200 pb-2">
-                  <span>EXPIRY ACTION LIST</span>
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-rose-600" />
+                    <span>NEAR-EXPIRY RETURN RADAR</span>
+                  </span>
                   <span className="px-2 py-0.5 rounded bg-rose-500 text-white font-black text-[10px]">60 DAYS WARNING</span>
                 </div>
-                <div className="p-2 bg-white rounded border border-amber-200 flex justify-between font-bold">
-                  <span>Augmentin 625 Duo (AUG-441)</span>
-                  <span className="text-rose-600">12 Strips • Return to Apex Pharma</span>
+
+                <div className="space-y-2">
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200 flex justify-between items-center font-bold">
+                    <div>
+                      <p className="text-slate-900">Augmentin 625 Duo (Batch: AUG-441)</p>
+                      <span className="text-[10px] text-slate-500 font-normal">Exp: 08/26 • Distributor: Apex Pharma</span>
+                    </div>
+                    <span className="text-rose-600 font-black">12 Strips</span>
+                  </div>
+
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200 flex justify-between items-center font-bold">
+                    <div>
+                      <p className="text-slate-900">Azithral 500mg Tab (Batch: AZ-772)</p>
+                      <span className="text-[10px] text-slate-500 font-normal">Exp: 07/26 • Distributor: Sun Pharma Dist.</span>
+                    </div>
+                    <span className="text-amber-700 font-black">8 Strips</span>
+                  </div>
                 </div>
-                <div className="p-2 bg-white rounded border border-amber-200 flex justify-between font-bold">
-                  <span>Azithral 500mg (AZ-772)</span>
-                  <span className="text-amber-700">8 Strips • Return to Sun Dist.</span>
-                </div>
-                <p className="text-[11px] text-amber-800 font-semibold">Total Recoverable Supplier Credit: ₹4,180.00</p>
+
+                {studioExpiryVoucherCreated ? (
+                  <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-950 space-y-1 font-bold animate-in fade-in">
+                    <p className="text-emerald-800 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      Supplier Debit Note #DV-882 Created!
+                    </p>
+                    <p className="text-[11px] text-emerald-700 font-normal">
+                      Full credit voucher of ₹4,180.00 successfully booked against distributor statement.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-2 bg-amber-100/70 rounded-lg text-amber-900 text-[11px] font-bold flex justify-between items-center">
+                    <span>Total Recoverable Supplier Credit:</span>
+                    <span className="text-rose-700 font-black text-sm">₹4,180.00</span>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setStudioExpiryVoucherCreated(!studioExpiryVoucherCreated)}
+                  className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow active:scale-98"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>{studioExpiryVoucherCreated ? 'Reset Debit Note Simulation' : 'Tap to Generate Supplier Debit Note'}</span>
+                </button>
               </div>
             </div>
           )}
@@ -584,15 +755,78 @@ export default function LandingPage() {
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-600" /> Automatic cost price & selling MRP margin calculation</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-600" /> Purchase return debit note tracking</li>
                 </ul>
-              </div>
-              <div className="p-6 rounded-2xl bg-cyan-50 border border-cyan-200 text-cyan-950 text-xs space-y-3 font-mono">
-                <div className="font-bold border-b border-cyan-200 pb-2">PURCHASE INWARD: #PO-9402</div>
-                <p>Distributor: Apex Pharma Distributors</p>
-                <p>Scheme: 10 Boxes + 1 Free Box Applied</p>
-                <p>Trade Discount: 4.5% • Margin: 28.4%</p>
-                <div className="p-2 bg-white rounded border border-cyan-300 font-bold text-cyan-900">
-                  Stock quantity updated in inventory automatically.
+
+                {/* Real Working Actions */}
+                <div className="mt-8 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => navigate(isLoggedIn ? '/purchases' : '/login')}
+                    className="px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs shadow-md shadow-cyan-700/20 transition flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Truck className="w-4 h-4" />
+                    <span>Inward Supplier Purchase Invoices</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <a
+                    href="#interactive-simulator"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center gap-1.5 border border-slate-200"
+                  >
+                    <Play className="w-3.5 h-3.5 text-cyan-700 fill-cyan-700" />
+                    <span>Watch In Demo</span>
+                  </a>
                 </div>
+              </div>
+
+              {/* Interactive Purchase Scheme Calculator */}
+              <div className="p-6 rounded-2xl bg-cyan-50/80 border-2 border-cyan-200 text-cyan-950 text-xs space-y-3 font-mono shadow-lg">
+                <div className="font-bold border-b border-cyan-200 pb-2 flex justify-between items-center text-cyan-900">
+                  <span>PURCHASE SCHEME SIMULATOR</span>
+                  <span className="text-[10px] bg-cyan-200 px-2 py-0.5 rounded font-bold">#PO-9402</span>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-cyan-200">
+                  <span className="font-bold text-slate-800">Order Quantity:</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setStudioSchemeBoxes(Math.max(5, studioSchemeBoxes - 5))}
+                      className="w-7 h-7 rounded-lg bg-cyan-100 hover:bg-cyan-200 text-cyan-900 font-bold flex items-center justify-center transition"
+                    >
+                      -
+                    </button>
+                    <span className="font-black text-sm text-cyan-950 px-2">{studioSchemeBoxes} Boxes</span>
+                    <button
+                      onClick={() => setStudioSchemeBoxes(studioSchemeBoxes + 5)}
+                      className="w-7 h-7 rounded-lg bg-cyan-100 hover:bg-cyan-200 text-cyan-900 font-bold flex items-center justify-center transition"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white rounded-xl border border-cyan-200 space-y-1.5 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Free Scheme Benefit:</span>
+                    <span className="font-black text-emerald-700">+{Math.floor(studioSchemeBoxes / 10)} Free Boxes</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Standard Cost Price:</span>
+                    <span className="font-bold text-slate-700">₹90.00 / Box</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-cyan-100 font-bold text-cyan-900">
+                    <span>Effective Cost After Scheme:</span>
+                    <span className="text-emerald-700 font-black">
+                      ₹{(90 * studioSchemeBoxes / (studioSchemeBoxes + Math.floor(studioSchemeBoxes / 10))).toFixed(2)} / Box
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setStudioSchemeBoxes(prev => (prev >= 30 ? 10 : prev + 10))}
+                  className="w-full py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-2 active:scale-98 shadow"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Tap to Test Next Scheme Tier (+10 Boxes)</span>
+                </button>
               </div>
             </div>
           )}
@@ -610,8 +844,30 @@ export default function LandingPage() {
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-rose-600" /> Doctor registration number & patient address auto-linking</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-rose-600" /> Instant 1-click export for FDA & Drug Inspector audits</li>
                 </ul>
+
+                {/* Real Working Actions */}
+                <div className="mt-8 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => navigate(isLoggedIn ? '/reports' : '/login')}
+                    className="px-5 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs shadow-md shadow-rose-700/20 transition flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>View Schedule H1 Log in Reports</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <a
+                    href="#interactive-simulator"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center gap-1.5 border border-slate-200"
+                  >
+                    <Play className="w-3.5 h-3.5 text-rose-700 fill-rose-700" />
+                    <span>Watch In Demo</span>
+                  </a>
+                </div>
               </div>
-              <div className="p-6 rounded-2xl bg-rose-50 border-2 border-rose-200 text-rose-950 text-xs space-y-3 font-mono shadow-sm">
+
+              {/* Interactive Compliance Register Preview */}
+              <div className="p-6 rounded-2xl bg-rose-50 border-2 border-rose-200 text-rose-950 text-xs space-y-3 font-mono shadow-lg">
                 <div className="font-bold border-b border-rose-200 pb-2 flex justify-between items-center text-rose-900">
                   <span>SCHEDULE H1 DRUG AUDIT REGISTER</span>
                   <span className="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px]">100% FDA COMPLIANT</span>
@@ -626,13 +882,17 @@ export default function LandingPage() {
                   <p className="text-slate-800 font-bold">Dispensed: Alprazolam 0.5mg Tab (Batch: AL-902)</p>
                   <div className="flex justify-between items-center pt-1 border-t border-slate-100 text-[10px] text-emerald-700 font-bold">
                     <span>Qty: 10 Tablets</span>
-                    <span>✓ Auto-Logged to H1 Register</span>
+                    <span>✓ Auto-Logged to Form 35</span>
                   </div>
                 </div>
 
-                <div className="p-2.5 bg-rose-100/70 rounded-lg border border-rose-300 text-[11px] text-rose-900 text-center font-bold">
-                  🛡️ Zero penalty risk: Ready-to-print inspection log for Drug Inspectors!
-                </div>
+                <button
+                  onClick={() => setShowH1Modal(true)}
+                  className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 active:scale-98 shadow"
+                >
+                  <FileCheck className="w-4 h-4" />
+                  <span>Tap to Open Full FDA Register Modal</span>
+                </button>
               </div>
             </div>
           )}
@@ -650,19 +910,196 @@ export default function LandingPage() {
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Staff security locks (cashiers cannot edit purchase rates)</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Camera barcode scan for instant stock checking on phone</li>
                 </ul>
-              </div>
-              <div className="p-6 rounded-2xl bg-slate-900 text-white text-xs space-y-3">
-                <div className="font-bold text-emerald-400 border-b border-slate-800 pb-2 flex justify-between">
-                  <span>MOBILE APP LIVE RADAR</span>
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">SYNCED</span>
+
+                {/* Real Working Actions */}
+                <div className="mt-8 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    <span>Launch Mobile Phone Cloud POS</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <a
+                    href="#interactive-simulator"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center gap-1.5 border border-slate-200"
+                  >
+                    <Play className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
+                    <span>Watch In Demo</span>
+                  </a>
                 </div>
-                <p>🏪 Today's Gross Revenue: ₹48,250.00</p>
-                <p>💵 Cash in Drawer: ₹18,400.00 • UPI: ₹29,850.00</p>
-                <p>📦 Current Low Stock Alerts: 4 Items</p>
+              </div>
+
+              {/* Interactive Mobile Radar Card */}
+              <div className="p-6 rounded-2xl bg-slate-900 text-white text-xs space-y-3 shadow-xl border border-slate-800">
+                <div className="font-bold text-emerald-400 border-b border-slate-800 pb-2 flex justify-between items-center">
+                  <span className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4" />
+                    <span>MOBILE APP LIVE RADAR</span>
+                  </span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    CLOUD SYNCED
+                  </span>
+                </div>
+
+                {/* Metric Selector Pills */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    onClick={() => setMobileRadarMetric('revenue')}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition ${mobileRadarMetric === 'revenue'
+                        ? 'bg-emerald-500 text-slate-950 font-black'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                  >
+                    Revenue
+                  </button>
+                  <button
+                    onClick={() => setMobileRadarMetric('tender')}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition ${mobileRadarMetric === 'tender'
+                        ? 'bg-emerald-500 text-slate-950 font-black'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                  >
+                    UPI / Cash
+                  </button>
+                  <button
+                    onClick={() => setMobileRadarMetric('stock')}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition ${mobileRadarMetric === 'stock'
+                        ? 'bg-emerald-500 text-slate-950 font-black'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                  >
+                    Low Stock (4)
+                  </button>
+                </div>
+
+                {/* Dynamic Content based on Metric */}
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1.5 font-mono">
+                  {mobileRadarMetric === 'revenue' && (
+                    <>
+                      <p className="text-slate-400 text-[10px]">Today's Counter Revenue (Live):</p>
+                      <p className="text-2xl font-black text-emerald-400">₹48,250.00</p>
+                      <p className="text-slate-400 text-[10px]">142 Total Invoices Dispensed Today</p>
+                    </>
+                  )}
+                  {mobileRadarMetric === 'tender' && (
+                    <>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-300">⚡ UPI / QR Collections:</span>
+                        <span className="font-bold text-emerald-400">₹29,850.00</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-800">
+                        <span className="text-slate-300">💵 Cash in Register:</span>
+                        <span className="font-bold text-amber-400">₹18,400.00</span>
+                      </div>
+                    </>
+                  )}
+                  {mobileRadarMetric === 'stock' && (
+                    <>
+                      <div className="flex justify-between items-center text-xs text-rose-400 font-bold">
+                        <span>⚠️ Low Stock Medicines:</span>
+                        <span>4 Items</span>
+                      </div>
+                      <p className="text-slate-400 text-[10px]">Paracip 500 (2 strips left) • Azithral 500 (3 left)</p>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setMobileRadarRefreshed(true);
+                    setTimeout(() => setMobileRadarRefreshed(false), 900);
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-2 border border-slate-700 active:scale-98"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${mobileRadarRefreshed ? 'animate-spin' : ''}`} />
+                  <span>{mobileRadarRefreshed ? '✓ Live Cloud Data Refreshed!' : 'Tap for Real-Time Sync'}</span>
+                </button>
               </div>
             </div>
           )}
         </div>
+
+        {/* FDA Schedule H1 Register Preview Modal */}
+        {showH1Modal && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 text-slate-800 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setShowH1Modal(false)}
+                className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 font-bold text-lg"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow">
+                  <FileCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-base">Schedule H1 Drug Inspection Register (Form 35)</h3>
+                  <p className="text-xs text-slate-500">Government mandated register for FDA & Drug Inspector audits</p>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 text-[11px]">
+                    <tr>
+                      <th className="p-2.5">Date & Bill #</th>
+                      <th className="p-2.5">Patient Details</th>
+                      <th className="p-2.5">Doctor & Reg No</th>
+                      <th className="p-2.5">Drug & Batch</th>
+                      <th className="p-2.5">Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-[11px]">
+                    <tr>
+                      <td className="p-2.5 font-mono">29-Oct-26<br/><span className="text-slate-400">#10842</span></td>
+                      <td className="p-2.5 font-bold">Rajesh Patel<br/><span className="font-normal text-slate-500">+91 98251-XXXXX</span></td>
+                      <td className="p-2.5">Dr. N. K. Shah<br/><span className="text-slate-500 font-mono">Reg: G-39420</span></td>
+                      <td className="p-2.5 font-bold text-rose-700">Alprazolam 0.5mg<br/><span className="text-slate-400 font-normal font-mono">Batch: AL-902</span></td>
+                      <td className="p-2.5 font-bold">10 Tabs</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2.5 font-mono">29-Oct-26<br/><span className="text-slate-400">#10839</span></td>
+                      <td className="p-2.5 font-bold">Bhavna Shah<br/><span className="font-normal text-slate-500">+91 94280-XXXXX</span></td>
+                      <td className="p-2.5">Dr. R. M. Desai<br/><span className="text-slate-500 font-mono">Reg: G-21045</span></td>
+                      <td className="p-2.5 font-bold text-rose-700">Cefixime 200mg<br/><span className="text-slate-400 font-normal font-mono">Batch: CF-331</span></td>
+                      <td className="p-2.5 font-bold">10 Tabs</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 font-medium flex items-center justify-between">
+                <span>✓ 100% compliant with Central Drugs Standard Control Organisation (CDSCO)</span>
+                <span className="font-bold text-emerald-800">Drug Inspector Ready</span>
+              </div>
+
+              <div className="mt-5 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setShowH1Modal(false)}
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition"
+                >
+                  Close Preview
+                </button>
+                <button
+                  onClick={() => {
+                    alert('Register PDF downloaded for Drug Inspector inspection.');
+                    setShowH1Modal(false);
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition flex items-center gap-2 shadow"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Inspection PDF</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* 6. COMPARISON MATRIX: LEGACY DESKTOP SOFTWARE VS DAVASETU */}

@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  [id] {
+    scroll-margin-top: 100px;
+  }
+
   body {
     @apply antialiased;
     -webkit-tap-highlight-color: transparent;
