@@ -31,14 +31,14 @@ export default function MedicineSalesTab({ dateRange }: { dateRange: ReportDateR
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center bg-white border border-slate-300 rounded-lg px-3 py-2 w-full max-w-md shadow-sm">
-          <Search className="w-5 h-5 text-slate-400 mr-2" />
+        <div className="flex items-center bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 w-full max-w-md shadow-xs focus-within:border-pharmacy-500 focus-within:ring-2 focus-within:ring-pharmacy-500/20 transition-all">
+          <Search className="w-4 h-4 text-slate-400 mr-2.5 shrink-0" />
           <input
             type="text"
             placeholder="Search Medicine..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent border-0 focus:ring-0 p-0 text-sm text-slate-900"
+            className="flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-sm text-slate-900 placeholder:text-slate-400"
           />
         </div>
         

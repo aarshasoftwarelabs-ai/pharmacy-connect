@@ -9,6 +9,11 @@
     touch-action: manipulation;
   }
 
+  /* Prevent browser default black focus outline on any input, textarea, or select */
+  input:focus, textarea:focus, select:focus {
+    outline: none !important;
+  }
+
   /* Global Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 10px;
