@@ -49,38 +49,12 @@ import {
   LogIn,
   FolderSync
 } from 'lucide-react';
-
-interface MedicineSample {
-  id: string;
-  name: string;
-  category: string;
-  batch: string;
-  exp: string;
-  mrp: number;
-  discount: number;
-  qty: number;
-  gst: number;
-}
-
-const SAMPLE_MEDS: MedicineSample[] = [
-  { id: '1', name: 'Dolo 650mg Tab', category: 'Micro Labs • Paracetamol', batch: 'BT-9421', exp: '11/27', mrp: 31.50, discount: 10, qty: 1, gst: 12 },
-  { id: '2', name: 'Augmentin 625 Duo', category: 'GSK • Amoxycillin + Clav', batch: 'AUG-441', exp: '08/26', mrp: 201.20, discount: 12, qty: 1, gst: 12 },
-  { id: '3', name: 'Pantocid DSR Cap', category: 'Sun Pharma • Pantoprazole', batch: 'PAN-109', exp: '05/27', mrp: 189.00, discount: 15, qty: 1, gst: 12 },
-  { id: '4', name: 'Azithral 500mg Tab', category: 'Alembic • Azithromycin', batch: 'AZ-772', exp: '12/26', mrp: 119.50, discount: 10, qty: 1, gst: 12 },
-  { id: '5', name: 'Montair LC Kid Tab', category: 'Cipla • Montelukast + Lev', batch: 'MN-331', exp: '03/27', mrp: 145.00, discount: 10, qty: 1, gst: 12 },
-  { id: '6', name: 'Telma 40mg Tab', category: 'Glenmark • Telmisartan', batch: 'TL-552', exp: '10/27', mrp: 128.00, discount: 10, qty: 1, gst: 12 },
-];
+import LiveProductDemoPlayer from '../components/landing/LiveProductDemoPlayer';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [cart, setCart] = useState<MedicineSample[]>([SAMPLE_MEDS[0], SAMPLE_MEDS[1]]);
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
-  const [paymentMode, setPaymentMode] = useState<'UPI' | 'CASH' | 'CARD'>('UPI');
-  const [receiptSimulated, setReceiptSimulated] = useState(false);
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
-  const [customerPhone] = useState('9876543210');
-  const [customerName] = useState('Rajesh Patel');
   const [activeStudioTab, setActiveStudioTab] = useState<'billing' | 'generic' | 'expiry' | 'purchases' | 'compliance' | 'mobile'>('billing');
 
   useEffect(() => {
@@ -89,37 +63,6 @@ export default function LandingPage() {
       setIsLoggedIn(true);
     }
   }, []);
-
-  const addSampleMed = (med: MedicineSample) => {
-    setCart(prev => {
-      const exists = prev.find(item => item.id === med.id);
-      if (exists) {
-        return prev.map(item => item.id === med.id ? { ...item, qty: item.qty + 1 } : item);
-      }
-      return [...prev, { ...med, qty: 1 }];
-    });
-  };
-
-  const removeSampleMed = (id: string) => {
-    setCart(prev => prev.filter(item => item.id !== id));
-  };
-
-  const calculateSubtotal = () => {
-    return cart.reduce((acc, item) => acc + (item.mrp * item.qty), 0);
-  };
-
-  const calculateDiscount = () => {
-    return cart.reduce((acc, item) => acc + ((item.mrp * (item.discount / 100)) * item.qty), 0);
-  };
-
-  const calculateGST = () => {
-    const taxable = calculateSubtotal() - calculateDiscount();
-    return taxable * 0.12;
-  };
-
-  const calculateTotal = () => {
-    return (calculateSubtotal() - calculateDiscount() + calculateGST()).toFixed(2);
-  };
 
   const faqs = [
     {
@@ -319,7 +262,7 @@ export default function LandingPage() {
                   className="px-6 py-3.5 sm:px-7 sm:py-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-base border-2 border-slate-200 shadow-sm transition flex items-center justify-center gap-2"
                 >
                   <Play className="w-4 h-4 text-emerald-600 fill-emerald-600" />
-                  <span>Try Interactive Demo</span>
+                  <span>Watch Live Animated Demo</span>
                 </a>
               </div>
 
@@ -977,236 +920,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 7. INTERACTIVE LIVE COUNTER SIMULATOR */}
-      <section id="interactive-simulator" className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl my-10">
+      {/* 7. INTERACTIVE LIVE COUNTER SIMULATOR & ANIMATED PRODUCT TOUR */}
+      <section id="interactive-simulator" className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto my-10">
         <div className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black mb-3 border border-emerald-300">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Interactive Live Counter Simulator</span>
+            <span>Interactive Live Product Simulator</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900">
-            Test Counter Billing Speed Right Now
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
+            See How DavaSetu Works in Real-Time
           </h2>
-          <p className="mt-2 text-slate-600 text-sm sm:text-base font-medium">
-            Click on medicines below to simulate barcode scan, automated discounts, and instant receipt generation!
+          <p className="mt-3 text-slate-600 text-sm sm:text-base font-medium">
+            Watch our step-by-step automated workflow: Barcode scan with FEFO batch selection, 3-second thermal & WhatsApp billing, and 1-click GSTR-1, 2 & 3B GST returns.
           </p>
         </div>
 
-        <div className="rounded-2xl bg-slate-900 text-slate-100 shadow-2xl overflow-hidden border border-slate-800">
-
-          {/* Simulator Bar */}
-          <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="font-bold text-sm text-white flex items-center gap-2">
-                <Store className="w-4 h-4 text-emerald-400" />
-                DavaSetu POS 3.0 • Counter Terminal Simulator
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Barcode Scanner & Thermal Printer Ready</span>
-            </div>
-          </div>
-
-          <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            {/* Left: Quick Item Adder */}
-            <div className="lg:col-span-7 flex flex-col justify-between gap-4">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                    <Package className="w-4 h-4 text-emerald-400" />
-                    <span>Click any medicine to simulate barcode scan:</span>
-                  </h3>
-                  <span className="text-xs text-slate-400 font-mono">6 Demo Items</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {SAMPLE_MEDS.map((med) => {
-                    const isInCart = cart.some(c => c.id === med.id);
-                    return (
-                      <button
-                        key={med.id}
-                        onClick={() => addSampleMed(med)}
-                        className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between group ${isInCart
-                            ? 'bg-emerald-950/40 border-emerald-500/60 shadow-sm shadow-emerald-500/10'
-                            : 'bg-slate-800/80 border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800'
-                          }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-bold text-white text-sm group-hover:text-emerald-400 transition-colors">
-                              {med.name}
-                            </p>
-                            <p className="text-[11px] text-slate-400 mt-0.5">{med.category}</p>
-                          </div>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-300 font-mono border border-slate-700">
-                            Exp: {med.exp}
-                          </span>
-                        </div>
-                        <div className="mt-3 pt-2 border-t border-slate-700/60 flex items-center justify-between">
-                          <span className="font-black text-emerald-400 text-sm">₹{med.mrp.toFixed(2)}</span>
-                          <span className="text-[11px] text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded font-bold">
-                            + {med.discount}% Disc
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Patient info in simulator */}
-              <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">Customer WhatsApp:</span>
-                    <p className="font-bold text-xs text-white">{customerName} ({customerPhone})</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowWhatsAppModal(true)}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Preview WhatsApp Receipt</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Cart & Calculation */}
-            <div className="lg:col-span-5 bg-slate-950 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <span className="font-bold text-white text-sm flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-emerald-400" />
-                    <span>Counter Bill Summary</span>
-                  </span>
-                  <span className="text-xs text-slate-400 font-mono">{cart.length} item(s)</span>
-                </div>
-
-                <div className="mt-3 space-y-2 max-h-52 overflow-y-auto pr-1">
-                  {cart.length === 0 ? (
-                    <div className="text-center py-10 text-slate-500 text-xs">
-                      Click any medicine on the left to add to bill!
-                    </div>
-                  ) : (
-                    cart.map((item) => (
-                      <div key={item.id} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
-                        <div>
-                          <p className="font-bold text-white">{item.name}</p>
-                          <p className="text-[10px] text-slate-400">Qty: {item.qty} × ₹{item.mrp.toFixed(2)}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-extrabold text-emerald-400">₹{(item.mrp * item.qty).toFixed(2)}</span>
-                          <button
-                            onClick={() => removeSampleMed(item.id)}
-                            className="text-rose-400 hover:text-rose-300 font-bold px-1"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Totals & Quick Actions */}
-              <div className="mt-4 pt-3 border-t border-slate-800 space-y-2 text-xs">
-                <div className="flex justify-between text-slate-400">
-                  <span>Gross MRP Subtotal:</span>
-                  <span>₹{calculateSubtotal().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-teal-400">
-                  <span>Discount Savings:</span>
-                  <span>- ₹{calculateDiscount().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>GST Tax (CGST+SGST 12%):</span>
-                  <span>+ ₹{calculateGST().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-base font-black text-white pt-2 border-t border-slate-800">
-                  <span>Net Payable Amount:</span>
-                  <span className="text-emerald-400 text-xl font-black">₹{calculateTotal()}</span>
-                </div>
-
-                {/* Payment Selector */}
-                <div className="pt-2 grid grid-cols-3 gap-2">
-                  {(['UPI', 'CASH', 'CARD'] as const).map(mode => (
-                    <button
-                      key={mode}
-                      onClick={() => setPaymentMode(mode)}
-                      className={`py-2 rounded-xl text-xs font-bold border transition ${paymentMode === mode
-                          ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black'
-                          : 'bg-slate-900 text-slate-400 border-slate-800'
-                        }`}
-                    >
-                      {mode === 'UPI' ? '⚡ UPI QR' : mode === 'CASH' ? '💵 Cash' : '💳 Card'}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  disabled={cart.length === 0}
-                  onClick={() => {
-                    setReceiptSimulated(true);
-                    setTimeout(() => setReceiptSimulated(false), 4000);
-                  }}
-                  className="w-full mt-3 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>{receiptSimulated ? '✓ Bill Printed & WhatsApp Receipt Dispatched!' : 'Simulate 3-Sec Print & WhatsApp Bill'}</span>
-                </button>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-
-        {/* WhatsApp Preview Modal */}
-        {showWhatsAppModal && (
-          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-slate-800 shadow-2xl relative animate-in fade-in zoom-in duration-200">
-              <button
-                onClick={() => setShowWhatsAppModal(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold"
-              >
-                ✕
-              </button>
-
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900">WhatsApp Invoicing</h4>
-                  <p className="text-xs text-slate-500">Delivered directly to patient's mobile</p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-xs text-slate-800 space-y-2 font-mono">
-                <p className="font-bold text-emerald-900">🏥 DavaSetu Pharmacy</p>
-                <p>Hello {customerName},</p>
-                <p>Your medicine invoice #{Math.floor(Math.random() * 9000 + 1000)} is ready.</p>
-                <p>Net Total: <strong>₹{calculateTotal()}</strong></p>
-                <p className="text-emerald-700 underline">👉 Click here to download your GST PDF Bill</p>
-                <p className="text-[10px] text-slate-500 pt-2 border-t border-emerald-200">Sent via DavaSetu Cloud POS</p>
-              </div>
-
-              <button
-                onClick={() => setShowWhatsAppModal(false)}
-                className="w-full mt-5 py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition"
-              >
-                Close Preview
-              </button>
-            </div>
-          </div>
-        )}
+        <LiveProductDemoPlayer />
       </section>
 
       {/* 8. OFFICIAL POS SUBSCRIPTION PLANS (EXACT TO SETTINGS - 100% ENGLISH) */}
