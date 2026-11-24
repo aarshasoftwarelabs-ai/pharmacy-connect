@@ -1152,6 +1152,8 @@ class InventoryScreen extends StatelessWidget {
     final mrpCtrl = TextEditingController(text: initialData != null ? initialData.mrp.toStringAsFixed(2) : '');
     final spCtrl = TextEditingController(text: initialData != null ? initialData.sellingPrice.toStringAsFixed(2) : '');
     final stockCtrl = TextEditingController(text: initialData != null ? initialData.stock.toString() : '10');
+    final freeSchemeCtrl = TextEditingController(text: '0');
+    final purchasePriceCtrl = TextEditingController(text: '');
     final barcodeCtrl = TextEditingController(text: initialData?.barcode ?? '');
     final expiryCtrl = TextEditingController(text: initialData?.expiryDate ?? '12/2028');
 
@@ -1294,16 +1296,99 @@ class InventoryScreen extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
+                          flex: 3,
                           child: TextField(
                             controller: stockCtrl,
                             keyboardType: TextInputType.number,
+                            onChanged: (_) => setSheetState(() {}),
                             decoration: const InputDecoration(
-                              labelText: 'Stock Units *',
+                              labelText: 'Billed Units *',
                               hintText: '10',
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: freeSchemeCtrl,
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setSheetState(() {}),
+                            decoration: const InputDecoration(
+                              labelText: 'Free Scheme',
+                              hintText: '0',
+                              helperText: 'e.g. 1 Free',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 3,
+                          child: TextField(
+                            controller: purchasePriceCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (_) => setSheetState(() {}),
+                            decoration: const InputDecoration(
+                              labelText: 'Buy Rate (₹)',
+                              hintText: '35.00',
+                            ),
+                          ),
+                        ),
                       ],
+                    ),
+                    Builder(
+                      builder: (context) {
+                        final bUnits = int.tryParse(stockCtrl.text) ?? 0;
+                        final fUnits = int.tryParse(freeSchemeCtrl.text) ?? 0;
+                        final totUnits = bUnits + fUnits;
+                        final pRate = double.tryParse(purchasePriceCtrl.text) ?? 0.0;
+
+                        if (fUnits > 0 && bUnits > 0) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFFBEB),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFFDE68A)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFD97706),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text('SCHEME', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white)),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          '$bUnits Billed + $fUnits Free = $totUnits Total Received',
+                                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (pRate > 0) ...[
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Effective Landed Cost: ₹${((pRate * bUnits) / totUnits).toStringAsFixed(2)}/unit (Billed: ₹${pRate.toStringAsFixed(2)})',
+                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF047857)),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
                     ),
                     const SizedBox(height: 10),
                     Row(
@@ -1419,7 +1504,13 @@ class InventoryScreen extends StatelessWidget {
 
                           final mrp = double.tryParse(mrpCtrl.text) ?? 50.0;
                           final sp = double.tryParse(spCtrl.text) ?? (mrp * 0.9);
-                          final stock = int.tryParse(stockCtrl.text) ?? 10;
+                          final billedStock = int.tryParse(stockCtrl.text) ?? 10;
+                          final freeStock = int.tryParse(freeSchemeCtrl.text) ?? 0;
+                          final totalStock = billedStock + freeStock;
+                          final pRate = double.tryParse(purchasePriceCtrl.text);
+                          final effectivePrice = (pRate != null && totalStock > 0)
+                              ? ((pRate * billedStock) / totalStock)
+                              : pRate;
 
                           if (ctx.mounted) Navigator.pop(ctx);
                           final ok = await inv.addMedicine(
@@ -1430,15 +1521,17 @@ class InventoryScreen extends StatelessWidget {
                                 manufacturer: mfgCtrl.text.trim().isNotEmpty ? mfgCtrl.text.trim() : null,
                                 mrp: mrp,
                                 sellingPrice: sp,
-                                stock: stock,
+                                purchasePrice: effectivePrice,
+                                stock: totalStock,
                                 barcode: barcodeCtrl.text.trim().isNotEmpty ? barcodeCtrl.text.trim() : null,
                                 expiryDate: expiryCtrl.text.trim().isNotEmpty ? expiryCtrl.text.trim() : '12/2028',
                               );
                           if (context.mounted) {
+                            final schemeBadge = freeStock > 0 ? ' ($billedStock + $freeStock Free = $totalStock units)' : '';
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(ok 
-                                  ? '✓ Added ${nameCtrl.text.trim()} to inventory!' 
+                                  ? '✓ Added ${nameCtrl.text.trim()}$schemeBadge to inventory!' 
                                   : (inv.errorMessage ?? 'Failed to add medicine. Please try again.')),
                                 backgroundColor: ok ? const Color(0xFF059669) : Colors.red,
                               ),

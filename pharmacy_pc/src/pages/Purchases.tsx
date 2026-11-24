@@ -1212,6 +1212,31 @@ export default function Purchases() {
                       onChange={e => setMrp(Math.max(0, parseFloat(e.target.value) || 0))}
                     />
                   </div>
+
+                  {/* Wholesale Scheme Live Benefit Calculator */}
+                  {freeQty > 0 && qty > 0 && price > 0 && (
+                    <div className="md:col-span-12 bg-gradient-to-r from-amber-50 to-emerald-50 border border-amber-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-amber-500 text-white font-extrabold rounded-md text-[10px] uppercase">
+                          Wholesale Scheme
+                        </span>
+                        <span className="font-bold text-slate-800">
+                          {qty} Billed + {freeQty} Free = <span className="text-emerald-700 font-extrabold">{qty + freeQty} Total Units Inward</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-500">
+                          Billed Rate: <span className="line-through text-slate-400">₹{price.toFixed(2)}</span>
+                        </span>
+                        <span className="text-emerald-700 font-black text-sm">
+                          Effective Cost: ₹{((price * qty) / (qty + freeQty)).toFixed(2)}/unit
+                        </span>
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded text-[11px]">
+                          +{(((price - ((price * qty) / (qty + freeQty))) / price) * 100).toFixed(1)}% Scheme Margin
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -1278,10 +1303,28 @@ export default function Purchases() {
                           <td className="px-4 py-3 font-mono font-bold text-slate-700">{it.batch_number}</td>
                           <td className="px-4 py-3 text-slate-600">{it.expiry_date}</td>
                           <td className="px-4 py-3 text-right">
-                            <span className="font-bold text-slate-800">{it.quantity}</span>
-                            {it.free_quantity > 0 && <span className="text-emerald-600 font-bold ml-1">+{it.free_quantity}F</span>}
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="font-bold text-slate-800">{it.quantity}</span>
+                              {it.free_quantity > 0 && (
+                                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[10px]">
+                                  +{it.free_quantity} Free
+                                </span>
+                              )}
+                            </div>
+                            {it.free_quantity > 0 && (
+                              <div className="text-[10px] text-slate-500 font-semibold">
+                                ({it.quantity + it.free_quantity} Total Units)
+                              </div>
+                            )}
                           </td>
-                          <td className="px-4 py-3 text-right text-slate-600">₹{it.purchase_price.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-right text-slate-600">
+                            <div>₹{it.purchase_price.toFixed(2)}</div>
+                            {it.free_quantity > 0 && (
+                              <div className="text-[10px] text-emerald-600 font-bold" title="Effective Landed Cost per unit">
+                                Eff: ₹{((it.purchase_price * it.quantity) / (it.quantity + it.free_quantity)).toFixed(2)}
+                              </div>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-right text-slate-600">{it.gst_rate}%</td>
                           <td className="px-4 py-3 text-right font-black text-slate-900">₹{it.total_amount.toFixed(2)}</td>
                           <td className="px-4 py-3 text-center">
@@ -1531,9 +1574,20 @@ export default function Purchases() {
                             </td>
                             <td className="px-4 py-3 text-right">
                               <span className="font-bold text-slate-800">{it.quantity}</span>
-                              {it.free_quantity > 0 && <span className="text-emerald-600 font-bold ml-1">+{it.free_quantity}F</span>}
+                              {it.free_quantity > 0 && (
+                                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[10px] ml-1">
+                                  +{it.free_quantity} Free ({Number(it.quantity) + Number(it.free_quantity)} Total)
+                                </span>
+                              )}
                             </td>
-                            <td className="px-4 py-3 text-right text-slate-600">₹{parseFloat(it.purchase_price).toFixed(2)}</td>
+                            <td className="px-4 py-3 text-right text-slate-600">
+                              <div>₹{parseFloat(it.purchase_price).toFixed(2)}</div>
+                              {it.free_quantity > 0 && (
+                                <div className="text-[10px] text-emerald-600 font-bold" title="Effective Landed Cost">
+                                  Eff: ₹{((parseFloat(it.purchase_price) * Number(it.quantity)) / (Number(it.quantity) + Number(it.free_quantity))).toFixed(2)}
+                                </div>
+                              )}
+                            </td>
                             <td className="px-4 py-3 text-right text-slate-600">{it.gst_rate || 12}%</td>
                             <td className="px-4 py-3 text-right font-bold text-slate-900">₹{parseFloat(it.total_amount).toFixed(2)}</td>
                           </tr>

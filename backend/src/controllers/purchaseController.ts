@@ -175,6 +175,10 @@ export class PurchaseController {
         const pMrp = parseFloat(item.mrp) || pPrice;
         const pSelling = parseFloat(item.selling_price) || pMrp;
 
+        // Effective Landed Cost: If scheme free units exist (e.g. 10 + 1 Free Scheme),
+        // weighted net purchase price per unit = (itemQty * pPrice) / totalQty
+        const effectivePrice = totalQty > 0 ? Number(((itemQty * pPrice) / totalQty).toFixed(2)) : pPrice;
+
         let previousQuantity = 0;
         let batchId;
         
@@ -195,7 +199,7 @@ export class PurchaseController {
                  selling_price = $4,
                  expiry_date = $5
              WHERE id = $6`,
-            [totalQty, pPrice, pMrp, pSelling, expDate, batchId]
+            [totalQty, effectivePrice, pMrp, pSelling, expDate, batchId]
           );
         } else {
           const newBatch = await client.query(
@@ -205,16 +209,20 @@ export class PurchaseController {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
             [
               medicineId, pharmacyId, batchNum, expDate,
-              pPrice, pMrp, pSelling, totalQty, totalQty
+              effectivePrice, pMrp, pSelling, totalQty, totalQty
             ]
           );
           batchId = newBatch.rows[0].id;
         }
 
-        // Update medicine current_stock
+        // Update medicine current_stock and purchase_price with effective scheme price
         await client.query(
-          `UPDATE medicines SET current_stock = COALESCE(current_stock, 0) + $1 WHERE id = $2`,
-          [totalQty, medicineId]
+          `UPDATE medicines 
+           SET current_stock = COALESCE(current_stock, 0) + $1,
+               purchase_price = $2,
+               updated_at = NOW()
+           WHERE id = $3`,
+          [totalQty, effectivePrice, medicineId]
         );
 
         // Record stock movement
