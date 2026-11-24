@@ -104,17 +104,21 @@ export class PharmacyController {
 
       const canBill = status !== 'EXPIRED';
 
+      const planNames: Record<string, string> = {
+        MOBILE_YEARLY: 'Mobile-Only Pro (1-Year Pass)',
+        MONTHLY: 'Monthly Pro',
+        HALF_YEARLY: 'Half-Yearly Pro (6-Month Pass)',
+        YEARLY: 'Yearly Pro',
+        LIFETIME: 'Founder Lifetime',
+      };
+
       res.status(200).json({
         success: true,
         data: {
           pharmacyId: pharmacy.id,
           pharmacyName: pharmacy.name,
           planType,
-          planName: planType === 'MOBILE_YEARLY' ? 'Mobile-Only Pro (1-Year Pass)'
-                  : planType === 'YEARLY' ? 'Yearly Pro'
-                  : planType === 'MONTHLY' ? 'Monthly Pro'
-                  : planType === 'LIFETIME' ? 'Founder Lifetime'
-                  : '14-Day Free Trial',
+          planName: planNames[planType] || '14-Day Free Trial',
           trialStartDate: pharmacy.trialStartDate,
           subscriptionEndDate: endDate ? endDate.toISOString() : null,
           daysRemaining: Math.max(0, daysRemaining),
@@ -152,8 +156,22 @@ export class PharmacyController {
         return res.status(404).json({ success: false, message: 'Pharmacy not found' });
       }
 
+      const defaultDurations: Record<string, number> = {
+        MONTHLY: 1,
+        HALF_YEARLY: 6,
+        MOBILE_YEARLY: 12,
+        YEARLY: 12,
+      };
+      const defaultAmounts: Record<string, number> = {
+        MONTHLY: 799.00,
+        HALF_YEARLY: 3499.00,
+        MOBILE_YEARLY: 1499.00,
+        YEARLY: 5999.00,
+        LIFETIME: 24999.00,
+      };
+
       let endDate: string | null = null;
-      const monthsToAdd = durationMonths ? parseInt(durationMonths, 10) : (planType === 'MOBILE_YEARLY' || planType === 'YEARLY' ? 12 : 1);
+      const monthsToAdd = durationMonths ? parseInt(durationMonths, 10) : (defaultDurations[planType] ?? 1);
       
       if (planType !== 'LIFETIME') {
         let baseDate = new Date();
@@ -175,7 +193,7 @@ export class PharmacyController {
         planType, 
         endDate,
         {
-          amount: typeof amount === 'number' ? amount : parseFloat(amount) || (planType === 'MOBILE_YEARLY' ? 1499.00 : 5999.00),
+          amount: typeof amount === 'number' ? amount : parseFloat(amount) || (defaultAmounts[planType] ?? 5999.00),
           paymentMethod: paymentMethod || 'UPI',
           transactionId,
           upiId: upiId || 'lodaliya@ptyes',

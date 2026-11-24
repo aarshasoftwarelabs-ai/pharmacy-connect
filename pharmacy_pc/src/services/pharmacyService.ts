@@ -54,10 +54,15 @@ export class PharmacyService {
     return await response.json();
   }
 
-  static async updateSubscription(pharmacyId: number, planType: string, durationMonths?: number): Promise<PharmacyProfile> {
+  static async updateSubscription(
+    pharmacyId: number,
+    planType: string,
+    durationMonths?: number,
+    paymentDetails?: { amount?: number; paymentMethod?: string; transactionId?: string }
+  ): Promise<PharmacyProfile> {
     const response = await apiFetch(`${API_BASE_URL}/pharmacies/${pharmacyId}/subscription`, {
       method: 'POST',
-      body: JSON.stringify({ planType, durationMonths }),
+      body: JSON.stringify({ planType, durationMonths, ...paymentDetails }),
     });
 
     if (!response.ok) {

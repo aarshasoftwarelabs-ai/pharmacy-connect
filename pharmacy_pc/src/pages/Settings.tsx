@@ -3,6 +3,7 @@ import { PharmacyService } from '../services/pharmacyService';
 import { PaymentService } from '../services/paymentService';
 import { BillingService } from '../services/billingService';
 import { testPrintThermalReceipt } from '../utils/printUtils';
+import { getPharmacyId } from '../config/development';
 import { 
   Bell, 
   Shield, 
@@ -41,6 +42,110 @@ interface SettingsState {
   autoPrintReceipts: boolean;
   compactView: boolean;
 }
+
+interface SubscriptionPlanConfig {
+  id: 'MOBILE_YEARLY' | 'MONTHLY' | 'HALF_YEARLY' | 'YEARLY' | 'LIFETIME';
+  title: string;
+  price: number;
+  earlyPrice: number;
+  periodLabel: string;
+  durationMonths?: number;
+  badge?: string;
+  subBadge?: string;
+  ctaLabel: string;
+  variant: 'default' | 'featured' | 'dark' | 'mobile';
+  features: Array<{ text: string; highlight?: boolean }>;
+}
+
+const SUBSCRIPTION_PLANS: SubscriptionPlanConfig[] = [
+  {
+    id: 'MOBILE_YEARLY',
+    title: 'Mobile-Only Pro',
+    price: 1499,
+    earlyPrice: 1424,
+    periodLabel: '/yr',
+    durationMonths: 12,
+    badge: 'Mobile Only',
+    subBadge: 'Just ₹4.10/day • No PC needed',
+    ctaLabel: 'Select Mobile Pass',
+    variant: 'mobile',
+    features: [
+      { text: 'Unlimited Smartphone Billing' },
+      { text: 'Bluetooth Thermal Printer Support' },
+      { text: 'Camera Barcode & Expiry Alerts' },
+      { text: 'WhatsApp Digital Receipts', highlight: true },
+    ],
+  },
+  {
+    id: 'MONTHLY',
+    title: 'Monthly Pro',
+    price: 799,
+    earlyPrice: 759,
+    periodLabel: '/mo',
+    durationMonths: 1,
+    ctaLabel: 'Select Monthly',
+    variant: 'default',
+    features: [
+      { text: 'Unlimited PC & POS Billing' },
+      { text: 'Thermal Printer Support' },
+      { text: 'Basic Sales & GST Reports' },
+      { text: 'Mobile App Access (1 Phone Terminal)', highlight: true },
+    ],
+  },
+  {
+    id: 'HALF_YEARLY',
+    title: 'Half-Yearly Pro',
+    price: 3499,
+    earlyPrice: 3324,
+    periodLabel: '/ 6 mos',
+    durationMonths: 6,
+    badge: 'Save 27%',
+    subBadge: '₹19/day • Full PC + Mobile',
+    ctaLabel: 'Select 6-Month Plan',
+    variant: 'default',
+    features: [
+      { text: 'Everything in Monthly Pro' },
+      { text: 'Smart Inventory & Expiry Returns' },
+      { text: 'FDCA Schedule H1 Digital Register' },
+      { text: 'Mobile App + Cloud Sync', highlight: true },
+    ],
+  },
+  {
+    id: 'YEARLY',
+    title: 'Yearly Premium',
+    price: 5999,
+    earlyPrice: 5699,
+    periodLabel: '/yr',
+    durationMonths: 12,
+    badge: 'Best Value',
+    subBadge: 'Just ₹16/day',
+    ctaLabel: 'Upgrade to Yearly',
+    variant: 'featured',
+    features: [
+      { text: 'Everything in Half-Yearly Pro' },
+      { text: 'Smart Inventory (AI) & Trends' },
+      { text: 'Mobile App + Multi-Device Cloud Sync', highlight: true },
+      { text: 'Staff Phone Barcode Scanners' },
+      { text: 'Priority Support' },
+    ],
+  },
+  {
+    id: 'LIFETIME',
+    title: "Founder's Lifetime",
+    price: 24999,
+    earlyPrice: 23749,
+    periodLabel: 'once',
+    ctaLabel: 'Get Lifetime Deal',
+    variant: 'dark',
+    features: [
+      { text: 'Lifetime PC & Cloud Access' },
+      { text: 'No Recurring Renewal Fees' },
+      { text: 'Lifetime Mobile App & Real-Time Sync', highlight: true },
+      { text: 'Unlimited Staff Scanner Seats' },
+      { text: 'All Future Updates & VIP Support' },
+    ],
+  },
+];
 
 const DEFAULT_SETTINGS: SettingsState = {
   acceptingOrders: true,
@@ -252,12 +357,7 @@ export default function Settings() {
 
     const fetchProfile = async () => {
       try {
-        let pId = 1;
-        const localData = localStorage.getItem('pharmacy_profile_data');
-        if (localData) {
-          const p = JSON.parse(localData);
-          if (p.id) pId = p.id;
-        }
+        const pId = getPharmacyId();
         const data = await PharmacyService.getPharmacyProfile(pId);
         setProfile(data);
       } catch (e) {
@@ -297,28 +397,15 @@ export default function Settings() {
     setTimeout(() => setIsSaved(false), 2000);
   };
 
-  const handlePaymentClick = (plan: 'Monthly' | 'Yearly' | 'Lifetime') => {
-    let finalAmount = 0;
-    let planName = '';
-    
-    if (plan === 'Monthly') {
-      planName = 'Monthly Pro';
-      finalAmount = isEarlyAdopter ? 759 : 799;
-    } else if (plan === 'Yearly') {
-      planName = 'Yearly Premium';
-      finalAmount = isEarlyAdopter ? 5699 : 5999;
-    } else if (plan === 'Lifetime') {
-      planName = 'Founder Lifetime';
-      finalAmount = isEarlyAdopter ? 23749 : 24999;
-    }
-    
-    handlePayment(finalAmount, planName);
+  const handlePaymentClick = (plan: SubscriptionPlanConfig) => {
+    const finalAmount = isEarlyAdopter ? plan.earlyPrice : plan.price;
+    handlePayment(finalAmount, plan);
   };
 
-  const handlePayment = async (amount: number, planName: string) => {
+  const handlePayment = async (amount: number, plan: SubscriptionPlanConfig) => {
     try {
       // 1. Create order on the server
-      const orderData = await PaymentService.createOrder(amount, 'INR', planName);
+      const orderData = await PaymentService.createOrder(amount, 'INR', plan.title);
       
       if (!orderData.success) {
         alert('Failed to initiate payment. Please try again.');
@@ -330,7 +417,7 @@ export default function Settings() {
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: 'DavaSetu',
-        description: `${planName} Subscription`,
+        description: `${plan.title} Subscription`,
         order_id: orderData.order.id, // The order ID from backend
         handler: async function (response: any) {
           // This is called when payment is successful
@@ -343,12 +430,18 @@ export default function Settings() {
             });
 
             if (verification.success) {
-              const duration = planName.includes('Monthly') ? 1 : (planName.includes('Yearly') || planName.includes('Mobile')) ? 12 : undefined;
-              const planType = planName.includes('Lifetime') ? 'LIFETIME' : planName.includes('Mobile') ? 'MOBILE_YEARLY' : planName.includes('Yearly') ? 'YEARLY' : 'MONTHLY';
-              
-              // Using hardcoded pharmacy ID 1 for now
-              await PharmacyService.updateSubscription(1, planType, duration); 
-              alert(`Payment successful! Welcome to the ${planName}.\nPayment ID: ${response.razorpay_payment_id}`);
+              const activePharmacyId = profile?.id || getPharmacyId();
+              await PharmacyService.updateSubscription(
+                activePharmacyId,
+                plan.id,
+                plan.durationMonths,
+                {
+                  amount,
+                  paymentMethod: 'RAZORPAY',
+                  transactionId: response.razorpay_payment_id,
+                }
+              );
+              alert(`Payment successful! Welcome to ${plan.title}.\nPayment ID: ${response.razorpay_payment_id}`);
               window.location.reload();
             } else {
               alert('Payment verification failed. Please contact support.');
@@ -359,9 +452,9 @@ export default function Settings() {
           }
         },
         prefill: {
-          name: 'Pharmacy Owner',
-          email: 'owner@davasetu.com',
-          contact: '9999999999'
+          name: profile?.ownerName || profile?.name || 'Pharmacy Owner',
+          email: profile?.email || 'owner@davasetu.com',
+          contact: profile?.phone || '9999999999'
         },
         theme: {
           color: '#0284c7' // pharmacy-600 color approx
@@ -526,99 +619,141 @@ export default function Settings() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                
-                {/* Monthly Plan */}
-                <div className="border border-slate-200 rounded-2xl p-5 transition-all flex flex-col relative bg-white h-full hover:border-pharmacy-300">
-                  <h4 className="text-slate-500 font-semibold text-sm uppercase tracking-wider mb-2">Monthly Pro</h4>
-                  <div className="mb-4">
-                    {isEarlyAdopter ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm text-slate-400 line-through font-medium">₹799</span>
-                        <div>
-                          <span className="text-3xl font-bold text-slate-800">₹759</span>
-                          <span className="text-slate-500 text-sm"> /mo</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <span className="text-3xl font-bold text-slate-800">₹799</span>
-                        <span className="text-slate-500 text-sm"> /mo</span>
-                      </div>
-                    )}
-                  </div>
-                  <ul className="space-y-3 mb-6 flex-1 text-sm text-slate-600">
-                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> Unlimited Billing</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> Thermal Printer Support</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> Basic Reports</li>
-                    <li className="flex items-start text-emerald-700 font-medium"><Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0 mt-0.5" /> Mobile App Access (1 Phone Terminal)</li>
-                  </ul>
-                  <button onClick={() => handlePaymentClick('Monthly')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Select Monthly</button>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 pt-3">
+                {SUBSCRIPTION_PLANS.map((plan) => {
+                  const isCurrentPlan = profile?.planType === plan.id;
+                  const isFeatured = plan.variant === 'featured';
+                  const isDark = plan.variant === 'dark';
+                  const isMobile = plan.variant === 'mobile';
+                  const displayPrice = isEarlyAdopter ? plan.earlyPrice : plan.price;
 
-                {/* Yearly Plan - Best Value */}
-                <div className="border-2 rounded-2xl p-5 relative flex flex-col shadow-md transform lg:-translate-y-2 h-full z-10 border-pharmacy-500 bg-pharmacy-50">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase shadow-sm whitespace-nowrap bg-pharmacy-600">Best Value</div>
-                  <h4 className="font-semibold text-sm uppercase tracking-wider mb-2 mt-2 text-pharmacy-700">Yearly Premium</h4>
-                  <div className="mb-4">
-                    {isEarlyAdopter ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm text-slate-400 line-through font-medium">₹5,999</span>
-                        <div>
-                          <span className="text-3xl font-bold text-slate-900">₹5,699</span>
-                          <span className="text-slate-500 text-sm"> /yr</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <span className="text-3xl font-bold text-slate-900">₹5,999</span>
-                        <span className="text-slate-500 text-sm"> /yr</span>
-                      </div>
-                    )}
-                    <div className="mt-2"><span className="text-xs font-bold px-2.5 py-1 rounded-md border text-pharmacy-700 bg-pharmacy-100 border-pharmacy-200">Just ₹16/day</span></div>
-                  </div>
-                  <ul className="space-y-3 mb-6 flex-1 text-sm text-slate-700">
-                    <li className="flex items-start"><Check className="w-4 h-4 mr-2 shrink-0 mt-0.5 text-pharmacy-600" /> Everything in Monthly</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 mr-2 shrink-0 mt-0.5 text-pharmacy-600" /> Smart Inventory (AI)</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 mr-2 shrink-0 mt-0.5 text-pharmacy-600" /> 7-Day Advanced Trends</li>
-                    <li className="flex items-start font-semibold text-emerald-800"><Check className="w-4 h-4 mr-2 shrink-0 mt-0.5 text-pharmacy-600" /> Mobile App + Multi-Device Cloud Sync</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 mr-2 shrink-0 mt-0.5 text-pharmacy-600" /> Staff Phone Barcode Scanners</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 mr-2 shrink-0 mt-0.5 text-pharmacy-600" /> Priority Support</li>
-                  </ul>
-                  <button onClick={() => handlePaymentClick('Yearly')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold text-white transition-colors shadow-sm bg-pharmacy-600 hover:bg-pharmacy-700 shadow-pharmacy-500/30">Upgrade to Yearly</button>
-                </div>
+                  const cardClass = isDark
+                    ? 'border border-slate-200 bg-slate-900 text-white hover:border-amber-300'
+                    : isFeatured
+                      ? 'border-2 border-pharmacy-500 bg-pharmacy-50 shadow-md lg:-translate-y-1.5 z-10'
+                      : isMobile
+                        ? 'border border-amber-200 bg-amber-50/40 hover:border-amber-400'
+                        : 'border border-slate-200 bg-white hover:border-pharmacy-300';
 
-                {/* Lifetime Plan */}
-                <div className="border border-slate-200 rounded-2xl p-5 hover:border-amber-300 transition-all flex flex-col relative bg-slate-900 text-white overflow-hidden h-full">
-                  <div className="absolute -right-4 -top-4 bg-amber-500 w-24 h-24 rounded-full opacity-20 blur-2xl"></div>
-                  <h4 className="text-amber-400 font-semibold text-sm uppercase tracking-wider mb-2 relative z-10">Founder's Lifetime</h4>
-                  <div className="mb-4 relative z-10">
-                    {isEarlyAdopter ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm text-slate-400 line-through font-medium">₹24,999</span>
-                        <div>
-                          <span className="text-3xl font-bold text-white">₹23,749</span>
-                          <span className="text-slate-400 text-sm"> once</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <span className="text-3xl font-bold text-white">₹24,999</span>
-                        <span className="text-slate-400 text-sm"> once</span>
-                      </div>
-                    )}
-                  </div>
-                  <ul className="space-y-3 mb-6 flex-1 text-sm text-slate-300 relative z-10">
-                    <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> Lifetime Access</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> No Recurring Fees</li>
-                    <li className="flex items-start text-amber-300 font-semibold"><Check className="w-4 h-4 text-amber-400 mr-2 shrink-0 mt-0.5" /> Lifetime Mobile App & Real-Time Sync</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-amber-400 mr-2 shrink-0 mt-0.5" /> Unlimited Staff Mobile Scanner Seats</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> All Future Updates</li>
-                    <li className="flex items-start"><Check className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" /> VIP Support</li>
-                  </ul>
-                  <button onClick={() => handlePaymentClick('Lifetime')} className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-slate-900 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20 relative z-10">Get Lifetime Deal</button>
-                </div>
+                  const buttonClass = isDark
+                    ? 'bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-lg shadow-amber-500/20'
+                    : isFeatured
+                      ? 'bg-pharmacy-600 hover:bg-pharmacy-700 text-white shadow-sm shadow-pharmacy-500/30'
+                      : isMobile
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm'
+                        : 'border-2 border-slate-200 text-slate-700 hover:bg-slate-50';
 
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`rounded-2xl p-5 transition-all flex flex-col relative overflow-hidden h-full ${cardClass}`}
+                    >
+                      {isDark && (
+                        <div className="absolute -right-4 -top-4 bg-amber-500 w-24 h-24 rounded-full opacity-20 blur-2xl" />
+                      )}
+
+                      {plan.badge && (
+                        <span
+                          className={`self-start mb-2 px-3 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase ${
+                            isFeatured
+                              ? 'bg-pharmacy-600 text-white'
+                              : isMobile
+                                ? 'bg-amber-200 text-amber-900'
+                                : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          }`}
+                        >
+                          {plan.badge}
+                        </span>
+                      )}
+
+                      <div className="flex items-center justify-between gap-2 mb-2 relative z-10">
+                        <h4
+                          className={`font-semibold text-sm uppercase tracking-wider ${
+                            isDark
+                              ? 'text-amber-400'
+                              : isFeatured
+                                ? 'text-pharmacy-700'
+                                : isMobile
+                                  ? 'text-amber-800'
+                                  : 'text-slate-500'
+                          }`}
+                        >
+                          {plan.title}
+                        </h4>
+                        {isCurrentPlan && (
+                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                            Active
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mb-4 relative z-10">
+                        {isEarlyAdopter ? (
+                          <div className="flex flex-col">
+                            <span className="text-sm text-slate-400 line-through font-medium">
+                              ₹{plan.price.toLocaleString('en-IN')}
+                            </span>
+                            <div>
+                              <span className={`text-3xl font-bold ${isDark ? 'text-white' : isFeatured ? 'text-slate-900' : 'text-slate-800'}`}>
+                                ₹{displayPrice.toLocaleString('en-IN')}
+                              </span>
+                              <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}> {plan.periodLabel}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className={`text-3xl font-bold ${isDark ? 'text-white' : isFeatured ? 'text-slate-900' : 'text-slate-800'}`}>
+                              ₹{plan.price.toLocaleString('en-IN')}
+                            </span>
+                            <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}> {plan.periodLabel}</span>
+                          </div>
+                        )}
+                        {plan.subBadge && (
+                          <div className="mt-2">
+                            <span
+                              className={`text-xs font-bold px-2.5 py-1 rounded-md border ${
+                                isMobile
+                                  ? 'text-amber-800 bg-amber-100 border-amber-200'
+                                  : 'text-pharmacy-700 bg-pharmacy-100 border-pharmacy-200'
+                              }`}
+                            >
+                              {plan.subBadge}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <ul className={`space-y-2.5 mb-6 flex-1 text-sm relative z-10 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {plan.features.map((feat, idx) => (
+                          <li
+                            key={idx}
+                            className={`flex items-start ${
+                              feat.highlight
+                                ? isDark
+                                  ? 'text-amber-300 font-semibold'
+                                  : 'text-emerald-800 font-semibold'
+                                : ''
+                            }`}
+                          >
+                            <Check
+                              className={`w-4 h-4 mr-2 shrink-0 mt-0.5 ${
+                                isDark ? 'text-amber-400' : isFeatured ? 'text-pharmacy-600' : 'text-emerald-500'
+                              }`}
+                            />
+                            {feat.text}
+                          </li>
+                        ))}
+                      </ul>
+
+                      <button
+                        onClick={() => handlePaymentClick(plan)}
+                        className={`mt-auto w-full py-2.5 rounded-xl text-sm font-bold transition-colors relative z-10 ${buttonClass}`}
+                      >
+                        {isCurrentPlan ? 'Renew / Extend' : plan.ctaLabel}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
               
               <div className="mt-6 flex flex-col sm:flex-row items-center justify-center text-xs text-slate-500 bg-slate-50 py-3 px-4 rounded-xl border border-slate-100 text-center sm:text-left">
