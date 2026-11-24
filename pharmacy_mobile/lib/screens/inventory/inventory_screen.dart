@@ -1303,13 +1303,16 @@ class InventoryScreen extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
+                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+                          final inv = context.read<InventoryProvider>();
+
                           if (nameCtrl.text.trim().isEmpty && barcodeCtrl.text.trim().isNotEmpty) {
                             final auto = await BarcodeMedicineService.lookup(barcodeCtrl.text.trim());
                             applyAutoFill(auto);
                           }
 
                           if (nameCtrl.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            scaffoldMessenger.showSnackBar(
                               const SnackBar(content: Text('Please enter medicine name or scan barcode')),
                             );
                             return;
@@ -1319,8 +1322,7 @@ class InventoryScreen extends StatelessWidget {
                           final sp = double.tryParse(spCtrl.text) ?? (mrp * 0.9);
                           final stock = int.tryParse(stockCtrl.text) ?? 10;
 
-                          Navigator.pop(ctx);
-                          final inv = context.read<InventoryProvider>();
+                          if (ctx.mounted) Navigator.pop(ctx);
                           final ok = await inv.addMedicine(
                                 name: nameCtrl.text.trim(),
                                 genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,

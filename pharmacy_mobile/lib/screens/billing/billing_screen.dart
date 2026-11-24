@@ -252,7 +252,7 @@ class _BillingScreenState extends State<BillingScreen> {
                                               context.read<BillingProvider>().addToCart(med);
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(
-                                                  content: Text('Added ${med.name} to POS cart' + (isOut ? ' (Zero Stock)' : '')),
+                                                  content: Text('Added ${med.name} to POS cart${isOut ? ' (Zero Stock)' : ''}'),
                                                   backgroundColor: AppColors.primaryDark,
                                                   duration: const Duration(milliseconds: 700),
                                                 ),
@@ -486,6 +486,7 @@ class _BillingScreenState extends State<BillingScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () async {
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
                       final pharmacy = StorageService.getPharmacy();
                       final pharmacyName = pharmacy?['name']?.toString() ?? 'DavaSetu Medicals';
                       final gstin = pharmacy?['gstin']?.toString();
@@ -505,30 +506,32 @@ class _BillingScreenState extends State<BillingScreen> {
                         );
 
                         if (ok) {
-                          if (context.mounted) {
+                          if (ctx.mounted) {
                             Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: const Color(0xFF15803D),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                content: const Row(
-                                  children: [
-                                    Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                                    SizedBox(width: 8),
-                                    Text('Receipt printed to Bluetooth printer!'),
-                                  ],
-                                ),
-                              ),
-                            );
                           }
+                          scaffoldMessenger.showSnackBar(
+                            SnackBar(
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: const Color(0xFF15803D),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              content: const Row(
+                                children: [
+                                  Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Receipt printed to Bluetooth printer!'),
+                                ],
+                              ),
+                            ),
+                          );
                           return;
                         }
                       }
 
                       // If no default printer or print failed, open Bluetooth printer bottom sheet
-                      if (context.mounted) {
+                      if (ctx.mounted) {
                         Navigator.pop(ctx);
+                      }
+                      if (mounted) {
                         BluetoothPrinterModal.show(
                           context,
                           autoPrintBill: bill,
@@ -904,7 +907,7 @@ _Thank you for choosing DavaSetu Pharmacy!_
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: inventory.medicines.take(6).length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final med = inventory.medicines[index];
                 return _buildQuickPickMedicineTile(med, billing);
@@ -1016,7 +1019,7 @@ _Thank you for choosing DavaSetu Pharmacy!_
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
       itemCount: billing.cartItems.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final item = billing.cartItems[index];
 

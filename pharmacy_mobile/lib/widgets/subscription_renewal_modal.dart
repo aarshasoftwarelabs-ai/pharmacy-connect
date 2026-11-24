@@ -86,7 +86,7 @@ class _SubscriptionRenewalModalState extends State<SubscriptionRenewalModal> {
     try {
       final res = await _upiChannel.invokeMethod<bool>('launchUpi', {
         'uri': upiUri,
-        if (packageName != null) 'package': packageName,
+        'package': ?packageName,
       });
       opened = res == true;
     } catch (e) {

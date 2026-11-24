@@ -301,9 +301,9 @@ class InventoryProvider extends ChangeNotifier {
     try {
       final payload = {
         'currentStock': updatedStock,
-        if (newSellingPrice != null) 'sellingPrice': newSellingPrice,
-        if (cleanBatch != null) 'batchNumber': cleanBatch,
-        if (cleanExp != null) 'expiryDate': cleanExp,
+        'sellingPrice': ?newSellingPrice,
+        'batchNumber': ?cleanBatch,
+        'expiryDate': ?cleanExp,
       };
       final res = await ApiService.put(ApiEndpoints.updateMedicine(medicineId), payload);
       if (!res.success) {

@@ -226,9 +226,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '✓ ${medicine.name} (₹${medicine.sellingPrice.toStringAsFixed(2)})' +
-                    (scannedBatch != null ? ' [B: $scannedBatch]' : '') +
-                    ' ➔ Added & Synced to PC 💻',
+                    '✓ ${medicine.name} (₹${medicine.sellingPrice.toStringAsFixed(2)})${scannedBatch != null ? ' [B: $scannedBatch]' : ''} ➔ Added & Synced to PC 💻',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -427,6 +425,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               final sp = double.tryParse(priceCtrl.text);
                               Navigator.pop(ctx);
                               final inv = context.read<InventoryProvider>();
+                              final scaffoldMessenger = ScaffoldMessenger.of(context);
                               final ok = await inv.updateMedicineStock(
                                     medicineId: medicine.id,
                                     addedUnits: addCount,
@@ -437,14 +436,14 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               if (mounted) {
                                 if (ok) {
                                   HapticFeedback.mediumImpact();
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  scaffoldMessenger.showSnackBar(
                                     SnackBar(
                                       backgroundColor: AppColors.success,
                                       content: Text('✓ Updated Stock: Added $addCount units to ${medicine.name} (Total: $expectedTotal)'),
                                     ),
                                   );
                                 } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  scaffoldMessenger.showSnackBar(
                                     SnackBar(
                                       backgroundColor: AppColors.error,
                                       content: Text(inv.errorMessage ?? 'Failed to update stock'),
@@ -827,6 +826,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
                           Navigator.pop(ctx);
                           final inv = context.read<InventoryProvider>();
+                          final billing = context.read<BillingProvider>();
+                          final auth = context.read<AuthProvider>();
+                          final scaffoldMessenger = ScaffoldMessenger.of(context);
                           final ok = await inv.addMedicine(
                             name: medName,
                             genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
@@ -848,7 +850,6 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
                               // If currently in Billing Mode: immediately add to active bill and sync to PC!
                               if (_currentMode == StaffScannerMode.billing) {
-                                final billing = context.read<BillingProvider>();
                                 final createdMed = inv.findByBarcode(scannedBarcode) ?? MedicineModel(
                                   id: 'med_${DateTime.now().millisecondsSinceEpoch}',
                                   name: medName,
@@ -865,7 +866,6 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 );
                                 billing.addToCart(createdMed, quantity: 1);
 
-                                final auth = context.read<AuthProvider>();
                                 MedicineBoxOcrService.syncBoxItemToPc(
                                   pharmacyId: auth.pharmacyId,
                                   medicineName: medName,
@@ -878,14 +878,14 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                   genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
                                 );
 
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                scaffoldMessenger.showSnackBar(
                                   SnackBar(
                                     backgroundColor: const Color(0xFF16A34A),
                                     content: Text('✓ $medName (₹$sp) નોંધાઈ ગઈ અને બિલમાં ઉમેરાઈ ગઈ! 💻'),
                                   ),
                                 );
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                scaffoldMessenger.showSnackBar(
                                   SnackBar(
                                     backgroundColor: AppColors.success,
                                     content: Text('✓ Successfully registered $medName & saved to Inventory!'),
@@ -893,7 +893,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 );
                               }
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              scaffoldMessenger.showSnackBar(
                                 SnackBar(
                                   backgroundColor: AppColors.error,
                                   content: Text(inv.errorMessage ?? 'Failed to register medicine'),
@@ -993,7 +993,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: billing.cartItems.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final item = billing.cartItems[index];
                           return ListTile(
@@ -1178,11 +1178,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
+              final auth = context.read<AuthProvider>();
+              final nav = Navigator.of(context);
               Navigator.pop(ctx);
-              await context.read<AuthProvider>().logout();
-              if (context.mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
+              await auth.logout();
+              if (mounted) {
+                nav.pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const LoginScreen()),
                   (route) => false,
                 );
@@ -1439,7 +1440,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 if (photo != null) {
                                   setSheetState(() => backPhoto = photo);
                                   // Auto-proceed to merge when both photos are ready
-                                  Navigator.pop(ctx, true);
+                                  if (ctx.mounted) {
+                                    Navigator.pop(ctx, true);
+                                  }
                                 }
                               },
                             ),
@@ -1944,6 +1947,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               final addStock = int.tryParse(qtyCtrl.text.trim()) ?? 10;
 
                               final inv = context.read<InventoryProvider>();
+                              final scaffoldMessenger = ScaffoldMessenger.of(context);
                               await inv.addMedicine(
                                 name: medName,
                                 genericName: genSalt.isNotEmpty ? genSalt : null,
@@ -1958,11 +1962,13 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 expiryDate: expVal.isNotEmpty ? expVal : null,
                               );
 
-                              Navigator.pop(ctx);
+                              if (ctx.mounted) {
+                                Navigator.pop(ctx);
+                              }
                               HapticFeedback.heavyImpact();
                               SystemSound.play(SystemSoundType.click);
 
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              scaffoldMessenger.showSnackBar(
                                 SnackBar(
                                   backgroundColor: const Color(0xFFEA580C),
                                   behavior: SnackBarBehavior.floating,
@@ -2013,8 +2019,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               final packVal = packCtrl.text.trim();
                               final count = int.tryParse(qtyCtrl.text.trim()) ?? 1;
 
-                              // 1. Sync to PC Billing instantly
+                              // 1. Capture providers and sync to PC Billing instantly
                               final auth = context.read<AuthProvider>();
+                              final inv = context.read<InventoryProvider>();
+                              final billing = context.read<BillingProvider>();
+                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+
                               await MedicineBoxOcrService.syncBoxItemToPc(
                                 pharmacyId: auth.pharmacyId,
                                 medicineName: medName,
@@ -2029,7 +2039,6 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               );
 
                               // 2. Also register into Supabase inventory
-                              final inv = context.read<InventoryProvider>();
                               await inv.addMedicine(
                                 name: medName,
                                 genericName: genSalt.isNotEmpty ? genSalt : null,
@@ -2058,13 +2067,15 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
                                 expiryDate: expVal.isNotEmpty ? expVal : null,
                               );
-                              context.read<BillingProvider>().addToCart(med, quantity: count);
+                              billing.addToCart(med, quantity: count);
 
-                              Navigator.pop(ctx);
+                              if (ctx.mounted) {
+                                Navigator.pop(ctx);
+                              }
                               HapticFeedback.heavyImpact();
                               SystemSound.play(SystemSoundType.click);
 
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              scaffoldMessenger.showSnackBar(
                                 SnackBar(
                                   backgroundColor: const Color(0xFF16A34A),
                                   behavior: SnackBarBehavior.floating,
