@@ -17,6 +17,7 @@ router.post('/scan-box', upload.single('image'), MedicineController.scanBox);
 
 router.get('/', authenticate, requirePermission('MEDICINES_VIEW'), MedicineController.getMedicines);
 router.get('/lookup-barcode/:barcode', authenticate, MedicineController.lookupBarcode);
+router.get('/substitutes', authenticate, MedicineController.getSubstitutes);
 router.get('/dead-stock', authenticate, requirePermission('MEDICINES_VIEW'), MedicineController.getDeadStock);
 router.post('/', authenticate, requirePermission('MEDICINES_CREATE'), MedicineController.createMedicine);
 router.post('/bulk-import', authenticate, MedicineController.bulkImport);

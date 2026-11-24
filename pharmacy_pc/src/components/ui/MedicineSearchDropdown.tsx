@@ -34,6 +34,7 @@ export default function MedicineSearchDropdown({ catalogue, value, onChange, pla
 
   const filteredCatalogue = catalogue.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (m.genericName && m.genericName.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (m.manufacturer && m.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()))
   ).slice(0, 50); // Limit to 50 for performance
 
@@ -91,13 +92,21 @@ export default function MedicineSearchDropdown({ catalogue, value, onChange, pla
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-500">{med.manufacturer || 'Generic'} • {med.dosageForm || med.category || 'Medicine'}</div>
+                      <div className="text-xs text-slate-500">
+                        {med.genericName && <span className="font-medium text-slate-600">{med.genericName} • </span>}
+                        {med.manufacturer || 'Generic'} • {med.dosageForm || med.category || 'Medicine'}
+                      </div>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-emerald-600 text-sm">₹{med.sellingPrice}</div>
-                      <div className={`text-xs font-medium flex items-center justify-end ${med.currentStock > 0 ? 'text-slate-500' : 'text-red-500'}`}>
-                        {med.currentStock <= 0 && <AlertCircle className="w-3 h-3 mr-1" />}
-                        Stock: {med.currentStock}
+                      <div className={`text-xs font-semibold flex items-center justify-end ${med.currentStock > 0 ? 'text-slate-500' : 'text-rose-600'}`}>
+                        {med.currentStock <= 0 ? (
+                          <span className="flex items-center text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded font-bold">
+                            <AlertCircle className="w-2.5 h-2.5 mr-0.5" /> Out of Stock
+                          </span>
+                        ) : (
+                          `Stock: ${med.currentStock}`
+                        )}
                       </div>
                     </div>
                   </li>

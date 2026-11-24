@@ -131,6 +131,46 @@ export class MedicineService {
     return result.rows;
   }
 
+  /**
+   * Find in-stock substitute medicines with the same generic salt / composition
+   */
+  static async getSubstitutes(pharmacyId: number, genericName: string, excludeId?: number | string, strength?: string) {
+    const cleanGeneric = (genericName || '').trim();
+    if (!cleanGeneric || cleanGeneric.toLowerCase() === 'general formulation') {
+      return [];
+    }
+
+    const query = `
+      SELECT m.id, m.pharmacy_id as "pharmacyId", m.name, m.generic_name as "genericName", 
+             m.category, m.strength, m.sku, m.barcode, m.current_stock as "currentStock", 
+             m.minimum_stock as "minimumStock", m.selling_price as "sellingPrice",
+             COALESCE(m.mrp, m.selling_price) as "mrp",
+             m.manufacturer, m.expiry_date as "expiryDate"
+      FROM medicines m
+      WHERE m.pharmacy_id = $1 
+        AND m.current_stock > 0
+        AND ($2::text IS NULL OR $2::text = '' OR m.id::text <> $2::text)
+        AND (
+          LOWER(TRIM(m.generic_name)) = LOWER(TRIM($3))
+          OR LOWER(m.generic_name) ILIKE '%' || LOWER(TRIM($3)) || '%'
+          OR LOWER(TRIM($3)) ILIKE '%' || LOWER(m.generic_name) || '%'
+        )
+      ORDER BY 
+        CASE WHEN $4::text IS NOT NULL AND LOWER(TRIM(COALESCE(m.strength, ''))) = LOWER(TRIM($4)) THEN 0 ELSE 1 END,
+        m.current_stock DESC,
+        m.selling_price ASC
+      LIMIT 10;
+    `;
+
+    const result = await pool.query(query, [
+      pharmacyId, 
+      excludeId ? String(excludeId) : null, 
+      cleanGeneric,
+      strength ? String(strength).trim() : null
+    ]);
+    return result.rows;
+  }
+
   static async lookupBarcode(pharmacyId: number, barcode: string) {
     const clean = (barcode || '').trim();
     if (!clean) return { found: false, message: 'Barcode is empty' };

@@ -270,33 +270,68 @@ class _BillingScreenState extends State<BillingScreen> {
                                             ),
                                           ),
                                           const SizedBox(height: 4),
-                                          InkWell(
-                                            onTap: () {
-                                              context.read<BillingProvider>().addToCart(med);
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(
-                                                  content: Text('Added ${med.name} to POS cart${isOut ? ' (Zero Stock)' : ''}'),
-                                                  backgroundColor: AppColors.primaryDark,
-                                                  duration: const Duration(milliseconds: 700),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (isOut && med.genericName != null && med.genericName!.trim().isNotEmpty) ...[
+                                                InkWell(
+                                                  onTap: () => _showSubstitutesModal(context, med),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFEFF6FF),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                      border: Border.all(color: const Color(0xFF93C5FD)),
+                                                    ),
+                                                    child: const Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.bolt_rounded, size: 12, color: Color(0xFF1D4ED8)),
+                                                        SizedBox(width: 2),
+                                                        Text(
+                                                          'Subs',
+                                                          style: TextStyle(
+                                                            color: Color(0xFF1D4ED8),
+                                                            fontWeight: FontWeight.bold,
+                                                            fontSize: 10,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
                                                 ),
-                                              );
-                                            },
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: isOut ? const Color(0xFFF59E0B) : AppColors.primary,
+                                                const SizedBox(width: 4),
+                                              ],
+                                              InkWell(
+                                                onTap: () {
+                                                  context.read<BillingProvider>().addToCart(med);
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Added ${med.name} to POS cart${isOut ? ' (Zero Stock)' : ''}'),
+                                                      backgroundColor: AppColors.primaryDark,
+                                                      duration: const Duration(milliseconds: 700),
+                                                    ),
+                                                  );
+                                                },
                                                 borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                isOut ? '+ Add (0 Stk)' : '+ Add',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 11,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: isOut ? const Color(0xFFF59E0B) : AppColors.primary,
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Text(
+                                                    isOut ? '+ Add (0 Stk)' : '+ Add',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -1169,6 +1204,31 @@ _Thank you for choosing DavaSetu Pharmacy!_
                         ),
                       ],
                     ),
+                    if (item.medicine.stock <= 0) ...[
+                      const SizedBox(height: 5),
+                      InkWell(
+                        onTap: () => _showSubstitutesModal(context, item.medicine),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFF59E0B)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFB45309)),
+                              SizedBox(width: 4),
+                              Text(
+                                'Out of Stock • ⚡ View Substitutes',
+                                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1350,6 +1410,205 @@ _Thank you for choosing DavaSetu Pharmacy!_
           ),
         ),
       ),
+    );
+  }
+
+  void _showSubstitutesModal(BuildContext context, MedicineModel outMed) {
+    final inventory = context.read<InventoryProvider>();
+    final cleanGeneric = (outMed.genericName ?? '').trim().toLowerCase();
+
+    final substitutes = inventory.medicines.where((m) {
+      if (m.id == outMed.id) return false;
+      if (m.stock <= 0) return false;
+      if (m.genericName == null || m.genericName!.trim().isEmpty) return false;
+      final g = m.genericName!.trim().toLowerCase();
+      if (g == 'general formulation') return false;
+      return g == cleanGeneric || g.contains(cleanGeneric) || cleanGeneric.contains(g);
+    }).toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.bolt_rounded, color: Color(0xFF2563EB), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Same Salt Alternatives',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        ),
+                        Text(
+                          outMed.genericName ?? outMed.name,
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFFB45309)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '"${outMed.name}" is out of stock. Select an in-stock equivalent brand below:',
+                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF92400E), fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (substitutes.isEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'No other in-stock medicines found with this generic salt.',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: substitutes.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    itemBuilder: (c, i) {
+                      final sub = substitutes[i];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          sub.name,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                        ),
+                                      ),
+                                      if (sub.strength != null && sub.strength!.isNotEmpty) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEFF6FF),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: const Color(0xFF93C5FD)),
+                                          ),
+                                          child: Text(
+                                            sub.strength!,
+                                            style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${sub.manufacturer ?? "Generic"} • In Stock: ${sub.stock}',
+                                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF16A34A), fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _currency.format(sub.sellingPrice),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                ),
+                                const SizedBox(height: 4),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    context.read<BillingProvider>().addToCart(sub);
+                                    Navigator.pop(ctx);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Replaced with in-stock ${sub.name}!'),
+                                        backgroundColor: const Color(0xFF15803D),
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF059669),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  child: const Text('Select', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

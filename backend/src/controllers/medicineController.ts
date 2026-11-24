@@ -101,6 +101,29 @@ export class MedicineController {
     }
   }
 
+  static async getSubstitutes(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = Number((req as any).user?.pharmacyId || req.query.pharmacyId || 1);
+      const genericName = req.query.genericName as string;
+      const excludeId = req.query.excludeId as string;
+      const strength = req.query.strength as string;
+
+      if (!genericName) {
+        return res.json([]);
+      }
+
+      const substitutes = await MedicineService.getSubstitutes(
+        pharmacyId,
+        genericName,
+        excludeId,
+        strength
+      );
+      res.json(substitutes);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async scanBox(req: any, res: Response, next: NextFunction) {
     try {
       const pharmacyId = Number(req.body.pharmacyId || req.body.pharmacy_id || req.user?.pharmacyId || 1);

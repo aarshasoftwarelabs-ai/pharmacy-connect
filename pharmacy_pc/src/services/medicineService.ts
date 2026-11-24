@@ -186,3 +186,20 @@ export const scanMedicineBox = async (
   return result.data;
 };
 
+export const fetchSubstitutes = async (
+  genericName: string, 
+  excludeId?: string | number, 
+  strength?: string
+): Promise<Medicine[]> => {
+  if (!genericName || genericName.trim() === '') return [];
+  const params = new URLSearchParams({
+    genericName: genericName.trim(),
+    ...(excludeId ? { excludeId: String(excludeId) } : {}),
+    ...(strength ? { strength: String(strength).trim() } : {})
+  });
+  const response = await apiFetch(`${API_BASE_URL}/medicines/substitutes?${params.toString()}`);
+  if (!response.ok) return [];
+  return response.json();
+};
+
+
