@@ -112,6 +112,50 @@ class InventoryProvider extends ChangeNotifier {
   List<MedicineModel> get lowStockMedicines =>
       _medicines.where((m) => m.isLowStock).toList();
 
+  static int? getDaysUntilExpiry(String? expiryDate) {
+    if (expiryDate == null || expiryDate.trim().isEmpty) return null;
+    try {
+      final clean = expiryDate.trim();
+      DateTime? parsed;
+      if (clean.contains('-')) {
+        parsed = DateTime.tryParse(clean);
+      } else if (clean.contains('/')) {
+        final parts = clean.split('/');
+        if (parts.length == 2) {
+          final m = int.tryParse(parts[0]);
+          final y = int.tryParse(parts[1]);
+          if (m != null && y != null) {
+            final fullY = y < 100 ? 2000 + y : y;
+            parsed = DateTime(fullY, m, 1);
+          }
+        } else if (parts.length == 3) {
+          final d = int.tryParse(parts[0]);
+          final m = int.tryParse(parts[1]);
+          final y = int.tryParse(parts[2]);
+          if (d != null && m != null && y != null) {
+            final fullY = y < 100 ? 2000 + y : y;
+            parsed = DateTime(fullY, m, d);
+          }
+        }
+      }
+      if (parsed != null) {
+        return parsed.difference(DateTime.now()).inDays;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  List<MedicineModel> getExpiringMedicines({int days = 90}) {
+    return _medicines.where((m) {
+      if (m.stock <= 0) return false;
+      final d = getDaysUntilExpiry(m.expiryDate);
+      if (d == null) return false;
+      return d <= days;
+    }).toList();
+  }
+
+  int get nearExpiryCount => getExpiringMedicines(days: 90).length;
+
   int get totalStockCount => _medicines.fold(0, (sum, m) => sum + m.stock);
   int get lowStockCount => lowStockMedicines.length;
 

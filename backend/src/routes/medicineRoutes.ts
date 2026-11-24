@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { MedicineController } from '../controllers/medicineController';
+import { DistributorController } from '../controllers/distributorController';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/requirePermission';
 
@@ -18,6 +19,7 @@ router.post('/scan-box', upload.single('image'), MedicineController.scanBox);
 router.get('/', authenticate, requirePermission('MEDICINES_VIEW'), MedicineController.getMedicines);
 router.get('/lookup-barcode/:barcode', authenticate, MedicineController.lookupBarcode);
 router.get('/substitutes', authenticate, MedicineController.getSubstitutes);
+router.get('/near-expiry', authenticate, DistributorController.getExpiringMedicines);
 router.get('/dead-stock', authenticate, requirePermission('MEDICINES_VIEW'), MedicineController.getDeadStock);
 router.post('/', authenticate, requirePermission('MEDICINES_CREATE'), MedicineController.createMedicine);
 router.post('/bulk-import', authenticate, MedicineController.bulkImport);

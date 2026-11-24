@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
@@ -275,7 +276,7 @@ class InventoryScreen extends StatelessWidget {
   Widget _buildKpiBar(BuildContext context, InventoryProvider inventory) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: Row(
         children: [
           Expanded(
@@ -289,7 +290,7 @@ class InventoryScreen extends StatelessWidget {
               onTap: () => inventory.setSelectedCategory('All'),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
             child: _buildKpiCard(
               title: 'Total Units',
@@ -300,7 +301,7 @@ class InventoryScreen extends StatelessWidget {
               borderColor: const Color(0xFFDBEAFE),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
             child: _buildKpiCard(
               title: 'Low Stock',
@@ -309,6 +310,18 @@ class InventoryScreen extends StatelessWidget {
               color: inventory.lowStockCount > 0 ? const Color(0xFFD97706) : AppColors.textMuted,
               bgColor: inventory.lowStockCount > 0 ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
               borderColor: inventory.lowStockCount > 0 ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _buildKpiCard(
+              title: 'Near Expiry',
+              value: '${inventory.nearExpiryCount}',
+              icon: Icons.event_busy_rounded,
+              color: inventory.nearExpiryCount > 0 ? const Color(0xFFDC2626) : AppColors.textMuted,
+              bgColor: inventory.nearExpiryCount > 0 ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
+              borderColor: inventory.nearExpiryCount > 0 ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0),
+              onTap: () => _showNearExpirySheet(context, inventory),
             ),
           ),
         ],
@@ -641,18 +654,51 @@ class InventoryScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                      if (med.expiryDate != null && med.expiryDate!.isNotEmpty)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.event_outlined, size: 12, color: Color(0xFF15803D)),
-                            const SizedBox(width: 3),
-                            Text(
-                              'Exp: ${med.expiryDate}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF15803D)),
-                            ),
-                          ],
+                      if (med.expiryDate != null && med.expiryDate!.isNotEmpty) ...[
+                        Builder(
+                          builder: (_) {
+                            final days = InventoryProvider.getDaysUntilExpiry(med.expiryDate);
+                            final isExpired = days != null && days < 0;
+                            final isCritical = days != null && days >= 0 && days <= 30;
+                            final isWarning = days != null && days > 30 && days <= 90;
+                            final expColor = isExpired
+                                ? const Color(0xFFDC2626)
+                                : isCritical
+                                    ? const Color(0xFFDC2626)
+                                    : isWarning
+                                        ? const Color(0xFFD97706)
+                                        : const Color(0xFF15803D);
+
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isExpired || isCritical
+                                      ? Icons.warning_amber_rounded
+                                      : Icons.event_outlined,
+                                  size: 12,
+                                  color: expColor,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  isExpired
+                                      ? 'Expired (${-days}d ago)'
+                                      : isCritical
+                                          ? 'Exp in ${days}d (Return Soon!)'
+                                          : isWarning
+                                              ? 'Exp: ${med.expiryDate} (${days}d)'
+                                              : 'Exp: ${med.expiryDate}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isExpired || isCritical ? FontWeight.bold : FontWeight.w600,
+                                    color: expColor,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
+                      ],
                     ],
                   ),
                 ],
@@ -1398,6 +1444,284 @@ class InventoryScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showNearExpirySheet(BuildContext context, InventoryProvider inventory) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        int filterDays = 90;
+        final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            final list = inventory.getExpiringMedicines(days: filterDays);
+            final totalUnits = list.fold<int>(0, (sum, m) => sum + m.stock);
+            final totalValue = list.fold<double>(0.0, (sum, m) => sum + (m.stock * m.sellingPrice * 0.75));
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(modalCtx).size.height * 0.85,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: const Icon(Icons.event_busy_rounded, color: Color(0xFFDC2626), size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Near-Expiry Return Alert',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            ),
+                            Text(
+                              'Return to Distributor for 100% Credit Note',
+                              style: TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Filter days pills (30d, 60d, 90d)
+                  Row(
+                    children: [
+                      for (final d in [30, 60, 90]) ...[
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => setModalState(() => filterDays = d),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 7),
+                              decoration: BoxDecoration(
+                                color: filterDays == d ? const Color(0xFFDC2626) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '<$d Days',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: filterDays == d ? Colors.white : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (d != 90) const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Summary bar
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${list.length} Products ($totalUnits units)',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                        ),
+                        Text(
+                          'Est. Value: ${currency.format(totalValue)}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Medicine list
+                  if (list.isEmpty) ...[
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          '✓ Great job! No medicines expiring in this period.',
+                          style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: list.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        itemBuilder: (c, i) {
+                          final med = list[i];
+                          final days = InventoryProvider.getDaysUntilExpiry(med.expiryDate);
+                          final isExpired = days != null && days < 0;
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              med.name,
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                                            ),
+                                          ),
+                                          if (med.strength != null && med.strength!.isNotEmpty) ...[
+                                            const SizedBox(width: 5),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFEFF6FF),
+                                                borderRadius: BorderRadius.circular(4),
+                                                border: Border.all(color: const Color(0xFF93C5FD)),
+                                              ),
+                                              child: Text(
+                                                med.strength!,
+                                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Batch: ${med.batchNumber ?? "-"} • Exp: ${med.expiryDate ?? "-"}',
+                                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isExpired ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: isExpired ? const Color(0xFFF87171) : const Color(0xFFFCD34D)),
+                                      ),
+                                      child: Text(
+                                        isExpired ? 'Expired' : '${days}d left',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: isExpired ? const Color(0xFFDC2626) : const Color(0xFFB45309),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${med.stock} in store',
+                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: list.isEmpty ? null : () {
+                        final buffer = StringBuffer();
+                        buffer.writeln('📋 *EXPIRED / NEAR-EXPIRY MEDICINE RETURN LIST*');
+                        buffer.writeln('📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}');
+                        buffer.writeln('⚠️ Filter: Expiring within $filterDays days');
+                        buffer.writeln('------------------------------------');
+                        for (int i = 0; i < list.length; i++) {
+                          final m = list[i];
+                          final d = InventoryProvider.getDaysUntilExpiry(m.expiryDate);
+                          final expInfo = (d != null && d < 0) ? 'EXPIRED' : '${d ?? "-"}d left';
+                          buffer.writeln('${i + 1}. ${m.name} [B: ${m.batchNumber ?? "-"}] - Qty: ${m.stock} (Exp: ${m.expiryDate ?? "-"}, $expInfo)');
+                        }
+                        buffer.writeln('------------------------------------');
+                        buffer.writeln('Total Items: $totalUnits Units (${list.length} Products)');
+                        buffer.writeln('Estimated Value: ${currency.format(totalValue)}');
+                        buffer.writeln('Please arrange pickup and send Credit Note. Thank you!');
+
+                        Clipboard.setData(ClipboardData(text: buffer.toString()));
+                        Navigator.pop(modalCtx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                SizedBox(width: 8),
+                                Expanded(child: Text('Distributor Return List copied to clipboard! Paste in WhatsApp.')),
+                              ],
+                            ),
+                            backgroundColor: Color(0xFF059669),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.share_rounded, size: 18),
+                      label: const Text('Copy WhatsApp Return List to Distributor', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           },
