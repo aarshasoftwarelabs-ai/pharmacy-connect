@@ -1,15 +1,21 @@
 import { Pool } from 'pg';
 import { env } from './env';
 
-// Create a PostgreSQL connection pool
+const isSupabase = env.DATABASE_URL.includes('supabase.com') || env.DATABASE_URL.includes('pooler.supabase.com');
+
+// Create a PostgreSQL connection pool optimized for Supabase Pooler
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: (env.NODE_ENV === 'production' || isSupabase) ? { rejectUnauthorized: false } : false,
+  max: 15, // Safe limit for Supabase connection pooler
+  idleTimeoutMillis: 30000, // Close idle connections before Supabase pooler terminates them
+  connectionTimeoutMillis: 10000, // 10s connection timeout
+  allowExitOnIdle: false,
 });
 
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle PostgreSQL client', err);
-  process.exit(-1);
+// Resilient idle client handling: Never exit process on pooler connection reset
+pool.on('error', (err: any) => {
+  console.warn('⚠️ Supabase pooler connection notice (auto-reconnecting):', err?.message || err);
 });
 
 /**

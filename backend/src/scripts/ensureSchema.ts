@@ -57,7 +57,62 @@ export const ensureSchema = async () => {
       UPDATE medicine_batches SET stock = available_quantity WHERE stock = 0 AND available_quantity > 0;
     `);
 
-    // 2. Delivery assignment columns on bills
+    // 2. Ensure Master Staff Members Table exists before altering bills
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS staff_members (
+        id SERIAL PRIMARY KEY,
+        pharmacy_id INTEGER REFERENCES pharmacies(id) ON DELETE CASCADE,
+        name VARCHAR(255),
+        phone VARCHAR(20),
+        email VARCHAR(255),
+        role VARCHAR(50) NOT NULL DEFAULT 'BILLER',
+        pin VARCHAR(10) DEFAULT '1234',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS pin VARCHAR(10) DEFAULT '1234';
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'BILLER';
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+    `);
+
+    // 3. Ensure Master Suppliers Table exists before altering distributor_returns
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS suppliers (
+        id SERIAL PRIMARY KEY,
+        pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+        supplier_name VARCHAR(255) NOT NULL,
+        contact_person VARCHAR(255),
+        mobile VARCHAR(50),
+        alternate_phone VARCHAR(50),
+        email VARCHAR(255),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        pincode VARCHAR(20),
+        gstin VARCHAR(50),
+        drug_license_number VARCHAR(100),
+        fssai_number VARCHAR(50),
+        pan_number VARCHAR(30),
+        credit_period_days INTEGER DEFAULT 21,
+        opening_balance NUMERIC(12,2) DEFAULT 0,
+        current_balance NUMERIC(12,2) DEFAULT 0,
+        bank_name VARCHAR(100),
+        account_number VARCHAR(50),
+        ifsc_code VARCHAR(30),
+        branch_name VARCHAR(100),
+        upi_id VARCHAR(100),
+        deals_in_brands TEXT,
+        notes TEXT,
+        status VARCHAR(50) DEFAULT 'ACTIVE',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_suppliers_pharmacy ON suppliers(pharmacy_id);
+    `);
+
+    // 4. Delivery assignment columns on bills
     await pool.query(`
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS delivery_staff_id INTEGER REFERENCES staff_members(id) ON DELETE SET NULL;
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS delivery_status VARCHAR(50) DEFAULT 'DIRECT_PICKUP';
@@ -114,26 +169,6 @@ export const ensureSchema = async () => {
           reason VARCHAR(100) DEFAULT 'EXPIRED',
           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-    `);
-
-    // 4. Staff members schema fix (pin, name, role, is_active)
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS staff_members (
-        id SERIAL PRIMARY KEY,
-        pharmacy_id INTEGER REFERENCES pharmacies(id) ON DELETE CASCADE,
-        name VARCHAR(255),
-        phone VARCHAR(20),
-        email VARCHAR(255),
-        role VARCHAR(50) NOT NULL DEFAULT 'BILLER',
-        pin VARCHAR(10) DEFAULT '1234',
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS name VARCHAR(255);
-      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS pin VARCHAR(10) DEFAULT '1234';
-      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'BILLER';
-      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
     `);
 
     // Ensure at least one default staff exists for existing pharmacies
@@ -197,8 +232,16 @@ export const ensureSchema = async () => {
         DROP TABLE IF EXISTS delivery_routes CASCADE;
         DROP TABLE IF EXISTS trade_schemes CASCADE;
 
-        -- Normalize all pharmacies to RETAIL
-        UPDATE pharmacies SET business_type = 'RETAIL', is_wholesale_enabled = false WHERE business_type = 'WHOLESALE' OR is_wholesale_enabled = true;
+        -- Normalize all pharmacies to RETAIL safely without schema errors
+        DO $$ 
+        BEGIN
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pharmacies' AND column_name = 'business_type') THEN
+            UPDATE pharmacies SET business_type = 'RETAIL' WHERE business_type = 'WHOLESALE';
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pharmacies' AND column_name = 'is_wholesale_enabled') THEN
+            UPDATE pharmacies SET is_wholesale_enabled = false WHERE is_wholesale_enabled = true;
+          END IF;
+        END $$;
       `);
       console.log('🧹 Successfully purged Wholesale/B2B database records & tables.');
     } catch (cleanErr) {
