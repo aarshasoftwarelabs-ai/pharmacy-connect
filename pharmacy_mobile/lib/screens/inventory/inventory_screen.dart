@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -60,6 +61,16 @@ class InventoryScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: inventory.lowStockCount > 0,
+              label: Text('${inventory.lowStockCount}'),
+              backgroundColor: const Color(0xFFD97706),
+              child: const Icon(Icons.menu_book_rounded, color: Color(0xFFD97706)),
+            ),
+            tooltip: 'Shortage Book (કમી-બુક)',
+            onPressed: () => _showShortageBookSheet(context, inventory),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
             tooltip: 'Reload Inventory',
@@ -310,6 +321,7 @@ class InventoryScreen extends StatelessWidget {
               color: inventory.lowStockCount > 0 ? const Color(0xFFD97706) : AppColors.textMuted,
               bgColor: inventory.lowStockCount > 0 ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
               borderColor: inventory.lowStockCount > 0 ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+              onTap: () => _showShortageBookSheet(context, inventory),
             ),
           ),
           const SizedBox(width: 6),
@@ -1727,6 +1739,415 @@ class InventoryScreen extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  // Shortage Book (કમી-બુક) / Auto Reorder Sheet
+  void _showShortageBookSheet(BuildContext context, InventoryProvider inventory) {
+    final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (modalCtx) {
+        String filterType = 'ALL'; // ALL, OUT_OF_STOCK, CRITICAL
+        final Map<String, int> customQuantities = {};
+        final Set<String> excludedIds = {};
+        final searchCtrl = TextEditingController();
+
+        return StatefulBuilder(
+          builder: (sheetContext, setModalState) {
+            // Get all shortage medicines (stock <= minStockAlert)
+            final allShortage = inventory.allMedicines.where((m) => m.isLowStock).toList();
+            allShortage.sort((a, b) => a.stock.compareTo(b.stock)); // 0 stock first
+
+            final filtered = allShortage.where((m) {
+              if (filterType == 'OUT_OF_STOCK' && m.stock > 0) return false;
+              if (filterType == 'CRITICAL' && m.stock > 5) return false;
+              if (searchCtrl.text.trim().isNotEmpty) {
+                final q = searchCtrl.text.trim().toLowerCase();
+                final matchName = m.name.toLowerCase().contains(q);
+                final matchGen = m.genericName?.toLowerCase().contains(q) ?? false;
+                final matchMfg = m.manufacturer?.toLowerCase().contains(q) ?? false;
+                if (!matchName && !matchGen && !matchMfg) return false;
+              }
+              return true;
+            }).toList();
+
+            final selectedItems = filtered.where((m) => !excludedIds.contains(m.id)).toList();
+            int totalOrderUnits = 0;
+            double totalOrderValue = 0;
+
+            for (final m in selectedItems) {
+              final defaultQty = math.max(10, (m.minStockAlert * 2) - m.stock);
+              final qty = customQuantities[m.id] ?? defaultQty;
+              totalOrderUnits += qty;
+              final estCost = m.sellingPrice > 0 ? (m.sellingPrice * 0.75) : (m.mrp * 0.7);
+              totalOrderValue += (estCost * qty);
+            }
+
+            final outCount = allShortage.where((m) => m.isOutOfStock).length;
+            final critCount = allShortage.where((m) => m.stock > 0 && m.stock <= 5).length;
+
+            return Container(
+              height: MediaQuery.of(sheetContext).size.height * 0.88,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.menu_book_rounded, color: Color(0xFFD97706), size: 22),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Shortage Book (કમી-બુક)',
+                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            ),
+                            Text(
+                              'Auto Reorder & WhatsApp Order to Wholesalers',
+                              style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(modalCtx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Search box inside shortage sheet
+                  Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TextField(
+                      controller: searchCtrl,
+                      onChanged: (_) => setModalState(() {}),
+                      style: const TextStyle(fontSize: 13),
+                      decoration: const InputDecoration(
+                        hintText: 'Search shortage medicine...',
+                        hintStyle: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        prefixIcon: Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Filter Chips
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildShortageFilterChip('ALL', 'All Shortage (${allShortage.length})', filterType, (v) {
+                          setModalState(() => filterType = v);
+                        }),
+                        const SizedBox(width: 6),
+                        _buildShortageFilterChip('OUT_OF_STOCK', 'Out of Stock ($outCount)', filterType, (v) {
+                          setModalState(() => filterType = v);
+                        }),
+                        const SizedBox(width: 6),
+                        _buildShortageFilterChip('CRITICAL', 'Critical <=5 ($critCount)', filterType, (v) {
+                          setModalState(() => filterType = v);
+                        }),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Summary Strip
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${selectedItems.length} Items Selected ($totalOrderUnits units to order)',
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                        ),
+                        Text(
+                          'Est: ${currency.format(totalOrderValue)}',
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Shortage Items List
+                  if (filtered.isEmpty) ...[
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          '✓ Stock is sufficient! No shortage items found.',
+                          style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        itemBuilder: (ctx, i) {
+                          final med = filtered[i];
+                          final isExcluded = excludedIds.contains(med.id);
+                          final defaultQty = math.max(10, (med.minStockAlert * 2) - med.stock);
+                          final orderQty = customQuantities[med.id] ?? defaultQty;
+
+                          return Container(
+                            color: isExcluded ? const Color(0xFFF8FAFC) : Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Checkbox(
+                                  value: !isExcluded,
+                                  activeColor: const Color(0xFFD97706),
+                                  onChanged: (val) {
+                                    setModalState(() {
+                                      if (val == true) {
+                                        excludedIds.remove(med.id);
+                                      } else {
+                                        excludedIds.add(med.id);
+                                      }
+                                    });
+                                  },
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              med.name,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13.5,
+                                                decoration: isExcluded ? TextDecoration.lineThrough : null,
+                                                color: isExcluded ? AppColors.textMuted : AppColors.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                          if (med.strength != null && med.strength!.isNotEmpty) ...[
+                                            const SizedBox(width: 4),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFEFF6FF),
+                                                borderRadius: BorderRadius.circular(4),
+                                                border: Border.all(color: const Color(0xFF93C5FD)),
+                                              ),
+                                              child: Text(
+                                                med.strength!,
+                                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: med.stock <= 0 ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              med.stock <= 0 ? 'Out of Stock (0)' : 'Current: ${med.stock}',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: med.stock <= 0 ? AppColors.error : const Color(0xFFB45309),
+                                              ),
+                                            ),
+                                          ),
+                                          if (med.manufacturer != null && med.manufacturer!.isNotEmpty) ...[
+                                            const SizedBox(width: 6),
+                                            Flexible(
+                                              child: Text(
+                                                med.manufacturer!,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Order Qty Stepper
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      InkWell(
+                                        onTap: isExcluded || orderQty <= 1 ? null : () {
+                                          setModalState(() {
+                                            customQuantities[med.id] = orderQty - 5 > 0 ? orderQty - 5 : 1;
+                                          });
+                                        },
+                                        child: const Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                                          child: Icon(Icons.remove_rounded, size: 14, color: AppColors.textSecondary),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        child: Text(
+                                          '$orderQty',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                      ),
+                                      InkWell(
+                                        onTap: isExcluded ? null : () {
+                                          setModalState(() {
+                                            customQuantities[med.id] = orderQty + 5;
+                                          });
+                                        },
+                                        child: const Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                                          child: Icon(Icons.add_rounded, size: 14, color: AppColors.primary),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 10),
+                  // WhatsApp 1-Click Order Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: selectedItems.isEmpty ? null : () {
+                        final buffer = StringBuffer();
+                        buffer.writeln('📦 *PURCHASE ORDER (કમી-બુક / SHORTAGE)*');
+                        buffer.writeln('📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}');
+                        buffer.writeln('🏪 Store: PharmacyConnect');
+                        buffer.writeln('------------------------------------');
+                        for (int i = 0; i < selectedItems.length; i++) {
+                          final m = selectedItems[i];
+                          final defaultQty = math.max(10, (m.minStockAlert * 2) - m.stock);
+                          final qty = customQuantities[m.id] ?? defaultQty;
+                          final strengthStr = (m.strength != null && m.strength!.isNotEmpty) ? ' [${m.strength}]' : '';
+                          buffer.writeln('${i + 1}. ${m.name}$strengthStr - Order: $qty units (Current Stock: ${m.stock})');
+                        }
+                        buffer.writeln('------------------------------------');
+                        buffer.writeln('Total Items: ${selectedItems.length} Products');
+                        buffer.writeln('Total Order Quantity: $totalOrderUnits Units');
+                        buffer.writeln('Est. Value: ${currency.format(totalOrderValue)}');
+                        buffer.writeln('Please confirm dispatch & delivery timing. Thank you!');
+
+                        Clipboard.setData(ClipboardData(text: buffer.toString()));
+                        Navigator.pop(modalCtx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                SizedBox(width: 8),
+                                Expanded(child: Text('✓ WhatsApp Shortage Order copied! Paste in WhatsApp to send to distributor.')),
+                              ],
+                            ),
+                            backgroundColor: Color(0xFF059669),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.send_rounded, size: 18),
+                      label: const Text('Copy WhatsApp Order to Wholesaler', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildShortageFilterChip(String value, String label, String activeValue, ValueChanged<String> onSelected) {
+    final isSelected = value == activeValue;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onSelected(value),
+      selectedColor: const Color(0xFFFEF3C7),
+      backgroundColor: const Color(0xFFF1F5F9),
+      labelStyle: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+        color: isSelected ? const Color(0xFFB45309) : AppColors.textSecondary,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFFFDE68A) : Colors.transparent,
+        ),
+      ),
     );
   }
 }

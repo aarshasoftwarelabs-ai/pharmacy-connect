@@ -171,6 +171,27 @@ export class MedicineService {
     return result.rows;
   }
 
+  /**
+   * Get medicines below minimum stock limit (Auto Shortage / Kammi-Book)
+   */
+  static async getShortageMedicines(pharmacyId: number) {
+    const query = `
+      SELECT m.id, m.pharmacy_id as "pharmacyId", m.name, m.generic_name as "genericName", 
+             m.category, m.strength, m.sku, m.barcode, m.current_stock as "currentStock", 
+             m.minimum_stock as "minimumStock", m.selling_price as "sellingPrice",
+             m.purchase_price as "purchasePrice",
+             COALESCE(m.mrp, m.selling_price) as "mrp",
+             m.manufacturer, m.expiry_date as "expiryDate",
+             GREATEST(10, (m.minimum_stock * 2) - m.current_stock) as "suggestedReorderQty"
+      FROM medicines m
+      WHERE m.pharmacy_id = $1 
+        AND m.current_stock <= m.minimum_stock
+      ORDER BY m.current_stock ASC, m.name ASC;
+    `;
+    const result = await pool.query(query, [pharmacyId]);
+    return result.rows;
+  }
+
   static async lookupBarcode(pharmacyId: number, barcode: string) {
     const clean = (barcode || '').trim();
     if (!clean) return { found: false, message: 'Barcode is empty' };

@@ -18,7 +18,8 @@ import {
   X,
   Camera,
   Barcode,
-  FolderSync
+  FolderSync,
+  BookOpen
 } from 'lucide-react';
 import { fetchMedicines, createMedicine, updateMedicine, deleteMedicine, generateMissingBarcodes, lookupMedicineByBarcode } from '../services/medicineService';
 import { fetchDistributors, Distributor } from '../services/distributorService';
@@ -31,10 +32,11 @@ import ExpiryReturnModule from '../components/inventory/ExpiryReturnModule';
 import DistributorCsvImport from '../components/inventory/DistributorCsvImport';
 import MedicineBatchesModal from '../components/inventory/MedicineBatchesModal';
 import DeadStockModule from '../components/inventory/DeadStockModule';
+import ShortageBookModule from '../components/inventory/ShortageBookModule';
 import { BatchService } from '../services/batchService';
 
 export default function Inventory() {
-  const [activeInventoryTab, setActiveInventoryTab] = useState<'STOCK' | 'EXPIRY_RETURNS' | 'CSV_IMPORT' | 'DEAD_STOCK'>('STOCK');
+  const [activeInventoryTab, setActiveInventoryTab] = useState<'STOCK' | 'EXPIRY_RETURNS' | 'SHORTAGE_BOOK' | 'CSV_IMPORT' | 'DEAD_STOCK'>('STOCK');
   const [searchTerm, setSearchTerm] = useState('');
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [distributors, setDistributors] = useState<Distributor[]>([]);
@@ -406,6 +408,23 @@ export default function Inventory() {
         </button>
 
         <button
+          onClick={() => setActiveInventoryTab('SHORTAGE_BOOK')}
+          className={`flex items-center px-5 py-2.5 font-bold text-xs rounded-xl transition-all ${
+            activeInventoryTab === 'SHORTAGE_BOOK'
+              ? 'bg-white text-amber-600 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 mr-2 text-amber-500" />
+          Shortage Book (કમી-બુક)
+          {lowStockCount > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800">
+              {lowStockCount}
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveInventoryTab('CSV_IMPORT')}
           className={`flex items-center px-5 py-2.5 font-bold text-xs rounded-xl transition-all ${
             activeInventoryTab === 'CSV_IMPORT'
@@ -432,6 +451,13 @@ export default function Inventory() {
 
       {activeInventoryTab === 'EXPIRY_RETURNS' ? (
         <ExpiryReturnModule fallbackMedicines={medicines} onStockUpdated={loadInitialData} />
+      ) : activeInventoryTab === 'SHORTAGE_BOOK' ? (
+        <ShortageBookModule 
+          medicines={medicines} 
+          distributors={distributors} 
+          pharmacyName={pharmacy?.name} 
+          onRefresh={loadInitialData} 
+        />
       ) : activeInventoryTab === 'CSV_IMPORT' ? (
         <DistributorCsvImport onSuccess={() => { loadInitialData(); setActiveInventoryTab('STOCK'); }} />
       ) : activeInventoryTab === 'DEAD_STOCK' ? (
@@ -451,7 +477,11 @@ export default function Inventory() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md hover:border-red-200 transition-all cursor-pointer group relative overflow-hidden">
+        <div 
+          onClick={() => setActiveInventoryTab('SHORTAGE_BOOK')}
+          className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md hover:border-red-200 transition-all cursor-pointer group relative overflow-hidden"
+          title="Click to open Shortage Book (કમી-બુક)"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-[2rem] -mr-8 -mt-8 transition-transform group-hover:scale-110 pointer-events-none"></div>
           <div className="p-3 bg-red-50 text-red-600 rounded-2xl group-hover:scale-110 transition-transform self-start relative z-10 shadow-sm border border-red-100">
             {lowStockCount > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>}

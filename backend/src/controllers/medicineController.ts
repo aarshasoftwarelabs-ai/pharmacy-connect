@@ -124,6 +124,16 @@ export class MedicineController {
     }
   }
 
+  static async getShortageMedicines(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = Number((req as any).user?.pharmacyId || req.query.pharmacyId || 1);
+      const shortage = await MedicineService.getShortageMedicines(pharmacyId);
+      res.json(shortage);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async scanBox(req: any, res: Response, next: NextFunction) {
     try {
       const pharmacyId = Number(req.body.pharmacyId || req.body.pharmacy_id || req.user?.pharmacyId || 1);

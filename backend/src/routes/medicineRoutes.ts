@@ -20,6 +20,7 @@ router.get('/', authenticate, requirePermission('MEDICINES_VIEW'), MedicineContr
 router.get('/lookup-barcode/:barcode', authenticate, MedicineController.lookupBarcode);
 router.get('/substitutes', authenticate, MedicineController.getSubstitutes);
 router.get('/near-expiry', authenticate, DistributorController.getExpiringMedicines);
+router.get('/shortage', authenticate, MedicineController.getShortageMedicines);
 router.get('/dead-stock', authenticate, requirePermission('MEDICINES_VIEW'), MedicineController.getDeadStock);
 router.post('/', authenticate, requirePermission('MEDICINES_CREATE'), MedicineController.createMedicine);
 router.post('/bulk-import', authenticate, MedicineController.bulkImport);
