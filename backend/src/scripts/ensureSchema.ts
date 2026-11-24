@@ -66,6 +66,7 @@ export const ensureSchema = async () => {
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS delivery_notes TEXT;
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE bills ADD COLUMN IF NOT EXISTS doctor_name VARCHAR(150);
       CREATE INDEX IF NOT EXISTS idx_bills_delivery_staff ON bills(delivery_staff_id);
     `);
 

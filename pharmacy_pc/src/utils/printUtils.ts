@@ -187,6 +187,7 @@ export const generateA4PrintHTML = (
             <h3>Billed To</h3>
             <p class="customer-name">${bill.customerName}</p>
             ${bill.customerPhone ? `<p>Phone: ${bill.customerPhone}</p>` : ''}
+            ${bill.doctorName ? `<p style="margin-top:4px;color:#1e40af;font-weight:600;">Doctor: Dr. ${bill.doctorName.replace(/^Dr\.?\s*/i, '')}</p>` : ''}
           </div>
         </div>
 
@@ -321,6 +322,7 @@ export const generateThermalPrintHTML = (
       <div class="divider"></div>
       <p style="margin: 1px 0;">Customer: <strong>${bill.customerName}</strong></p>
       ${bill.customerPhone ? `<p style="margin: 1px 0;">Phone: ${bill.customerPhone}</p>` : ''}
+      ${bill.doctorName ? `<p style="margin: 1px 0;">Doctor: <strong>Dr. ${bill.doctorName.replace(/^Dr\.?\s*/i, '')}</strong></p>` : ''}
       <div class="divider"></div>
 
       <table>

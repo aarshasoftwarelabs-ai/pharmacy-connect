@@ -23,17 +23,20 @@ class _BillingScreenState extends State<BillingScreen> {
   final _currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
   final _customerNameCtrl = TextEditingController();
   final _customerPhoneCtrl = TextEditingController();
+  final _doctorNameCtrl = TextEditingController();
 
   @override
   void dispose() {
     _customerNameCtrl.dispose();
     _customerPhoneCtrl.dispose();
+    _doctorNameCtrl.dispose();
     super.dispose();
   }
 
   void _showCustomerInfoDialog(BillingProvider billing) {
     _customerNameCtrl.text = billing.customerName;
     _customerPhoneCtrl.text = billing.customerPhone;
+    _doctorNameCtrl.text = billing.doctorName;
 
     showModalBottomSheet(
       context: context,
@@ -99,6 +102,15 @@ class _BillingScreenState extends State<BillingScreen> {
                   prefixIcon: Icon(Icons.phone_iphone_rounded),
                 ),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _doctorNameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Doctor Name (Schedule H / H1)',
+                  hintText: 'e.g. Dr. K. P. Sharma',
+                  prefixIcon: Icon(Icons.medical_services_outlined),
+                ),
+              ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -107,6 +119,7 @@ class _BillingScreenState extends State<BillingScreen> {
                     billing.setCustomerInfo(
                       name: _customerNameCtrl.text.trim().isNotEmpty ? _customerNameCtrl.text.trim() : 'Walk-in Customer',
                       phone: _customerPhoneCtrl.text.trim(),
+                      doctorName: _doctorNameCtrl.text.trim(),
                     );
                     Navigator.pop(ctx);
                   },
@@ -397,6 +410,10 @@ class _BillingScreenState extends State<BillingScreen> {
               child: Column(
                 children: [
                   _buildSummaryRow('Customer:', billing.customerName.isEmpty ? 'Walk-in Customer' : billing.customerName),
+                  if (billing.doctorName.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    _buildSummaryRow('Doctor:', 'Dr. ${billing.doctorName.replaceFirst(RegExp(r'^Dr\.?\s*', caseSensitive: false), '')}'),
+                  ],
                   const SizedBox(height: 6),
                   _buildSummaryRow('Total Items:', '${billing.itemCount} units (${billing.cartItems.length} products)'),
                   const SizedBox(height: 6),
@@ -797,7 +814,9 @@ _Thank you for choosing DavaSetu Pharmacy!_
                             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: AppColors.textPrimary),
                           ),
                           Text(
-                            billing.customerPhone.isEmpty ? 'Tap to enter customer name & phone for WhatsApp bill' : 'Phone: ${billing.customerPhone}',
+                            billing.doctorName.isNotEmpty
+                                ? 'Dr. ${billing.doctorName.replaceFirst(RegExp(r'^Dr\.?\s*', caseSensitive: false), '')}${billing.customerPhone.isNotEmpty ? " • ${billing.customerPhone}" : ""}'
+                                : (billing.customerPhone.isEmpty ? 'Tap to enter customer name, phone & doctor' : 'Phone: ${billing.customerPhone}'),
                             style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                           ),
                         ],

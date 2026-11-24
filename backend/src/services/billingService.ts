@@ -24,6 +24,7 @@ export interface CreateBillDTO {
   pharmacyId: number;
   customerName: string;
   customerPhone?: string;
+  doctorName?: string;
   subtotal: number;
   discount: number;
   total: number;
@@ -65,7 +66,8 @@ export class BillingService {
     const billQuery = `
       SELECT b.id, b.bill_number AS "billNumber", b.medicine_request_id AS "medicineRequestId",
              b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
-             COALESCE(b.customer_phone, u.phone, mr_u.phone) AS "customerPhone", b.bill_type AS "billType",
+             COALESCE(b.customer_phone, u.phone, mr_u.phone) AS "customerPhone",
+             b.doctor_name AS "doctorName", b.bill_type AS "billType",
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
              b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst", 
              b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst",
@@ -108,7 +110,8 @@ export class BillingService {
     const query = `
       SELECT b.id, b.bill_number AS "billNumber", b.medicine_request_id AS "medicineRequestId",
              b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
-             COALESCE(b.customer_phone, u.phone, mr_u.phone) AS "customerPhone", b.bill_type AS "billType",
+             COALESCE(b.customer_phone, u.phone, mr_u.phone) AS "customerPhone",
+             b.doctor_name AS "doctorName", b.bill_type AS "billType",
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
              b.created_at AS "createdAt",
              (
@@ -215,8 +218,8 @@ export class BillingService {
 
       // 3. Insert into bills
       const insertBillQuery = `
-        INSERT INTO bills (bill_number, medicine_request_id, user_id, pharmacy_id, customer_name, customer_phone, bill_type, subtotal, discount, total, total_taxable_amount, total_cgst, total_sgst, total_igst, total_gst, payment_status, total_profit, customer_profile_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'UNPAID', 0, $16)
+        INSERT INTO bills (bill_number, medicine_request_id, user_id, pharmacy_id, customer_name, customer_phone, bill_type, subtotal, discount, total, total_taxable_amount, total_cgst, total_sgst, total_igst, total_gst, payment_status, total_profit, customer_profile_id, doctor_name)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'UNPAID', 0, $16, $17)
         RETURNING id
       `;
       const billValues = [
@@ -235,7 +238,8 @@ export class BillingService {
         data.totalSgst || 0,
         data.totalIgst || 0,
         data.totalGst || 0,
-        customerProfileId
+        customerProfileId,
+        data.doctorName ? data.doctorName.trim() : null
       ];
       const newBill = await client.query(insertBillQuery, billValues);
       const newBillId = newBill.rows[0].id;

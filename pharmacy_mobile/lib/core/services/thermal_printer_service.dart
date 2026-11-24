@@ -181,6 +181,11 @@ class ThermalPrinterService {
     if (customerPhone.isNotEmpty) {
       bytes += generator.text('Phone: $customerPhone');
     }
+    final doctorName = billData['doctor_name'] ?? billData['doctorName'];
+    if (doctorName != null && doctorName.toString().trim().isNotEmpty) {
+      final docClean = doctorName.toString().trim().replaceFirst(RegExp(r'^Dr\.?\s*', caseSensitive: false), '');
+      bytes += generator.text('Doctor: Dr. $docClean', styles: const PosStyles(bold: true));
+    }
     bytes += generator.hr(ch: '-');
 
     // Items list header

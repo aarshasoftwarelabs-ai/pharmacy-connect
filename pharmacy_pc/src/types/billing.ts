@@ -22,6 +22,7 @@ export interface Bill {
   pharmacyId?: number;
   customerName: string;
   customerPhone?: string;
+  doctorName?: string;
   billDate?: string;
   subtotal: string | number;
   discount: string | number;

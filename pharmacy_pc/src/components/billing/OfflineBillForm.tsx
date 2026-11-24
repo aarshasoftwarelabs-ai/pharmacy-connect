@@ -22,6 +22,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
   const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [doctorName, setDoctorName] = useState('');
   const [items, setItems] = useState<Array<{ 
     medicineName: string; 
     quantity: number; 
@@ -433,6 +434,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const resetForm = () => {
     setCustomerName('Walk-in Customer');
     setCustomerPhone('');
+    setDoctorName('');
     setItems([]);
     setDiscount(0);
     setCreatedBill(null);
@@ -504,6 +506,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
         pharmacyId: getPharmacyId(),
         customerName,
         customerPhone,
+        doctorName: doctorName.trim() || undefined,
         billType: 'OFFLINE',
         subtotal,
         discount,
@@ -560,14 +563,14 @@ export default function OfflineBillForm({ onSuccess }: Props) {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">Customer Name</label>
             <input
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors text-sm"
               required
             />
           </div>
@@ -578,7 +581,22 @@ export default function OfflineBillForm({ onSuccess }: Props) {
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
               placeholder="e.g. 9876543210"
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center justify-between">
+              <span>Doctor Name</span>
+              <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded font-bold border border-blue-200">
+                Schedule H/H1
+              </span>
+            </label>
+            <input
+              type="text"
+              value={doctorName}
+              onChange={(e) => setDoctorName(e.target.value)}
+              placeholder="e.g. Dr. K. P. Sharma"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors text-sm"
             />
           </div>
         </div>

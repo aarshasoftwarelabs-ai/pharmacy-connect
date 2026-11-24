@@ -17,6 +17,7 @@ class BillingProvider extends ChangeNotifier {
 
   String _customerName = '';
   String _customerPhone = '';
+  String _doctorName = '';
   String _paymentMode = 'CASH'; // CASH, UPI, CARD, CREDIT
   double _generalDiscountPercent = 0.0;
   bool _isProcessing = false;
@@ -32,6 +33,7 @@ class BillingProvider extends ChangeNotifier {
   bool get isLoadingBills => _isLoadingBills;
   String get customerName => _customerName;
   String get customerPhone => _customerPhone;
+  String get doctorName => _doctorName;
   String get paymentMode => _paymentMode;
   double get generalDiscountPercent => _generalDiscountPercent;
   bool get isProcessing => _isProcessing;
@@ -54,9 +56,10 @@ class BillingProvider extends ChangeNotifier {
 
   double get grandTotal => (subtotal - totalDiscount) + taxAmount;
 
-  void setCustomerInfo({String? name, String? phone}) {
+  void setCustomerInfo({String? name, String? phone, String? doctorName}) {
     if (name != null) _customerName = name;
     if (phone != null) _customerPhone = phone;
+    if (doctorName != null) _doctorName = doctorName;
     notifyListeners();
   }
 
@@ -149,6 +152,7 @@ class BillingProvider extends ChangeNotifier {
     _cartItems.clear();
     _customerName = '';
     _customerPhone = '';
+    _doctorName = '';
     _generalDiscountPercent = 0.0;
     _paymentMode = 'CASH';
     _errorMessage = null;
@@ -180,6 +184,8 @@ class BillingProvider extends ChangeNotifier {
       'customerName': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
       'customer_phone': _customerPhone,
       'customerPhone': _customerPhone,
+      'doctor_name': _doctorName.trim().isEmpty ? null : _doctorName.trim(),
+      'doctorName': _doctorName.trim().isEmpty ? null : _doctorName.trim(),
       'payment_method': _paymentMode,
       'paymentMethod': _paymentMode,
       'bill_type': 'OFFLINE',
