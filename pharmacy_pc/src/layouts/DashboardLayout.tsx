@@ -24,6 +24,7 @@ export default function DashboardLayout() {
     if (path.includes('customers')) return { title: 'Customers', subtitle: 'View customer information and history.' };
     if (path.includes('prescriptions')) return { title: 'Prescriptions', subtitle: 'Manage customer uploaded prescriptions.' };
     if (path.includes('billing')) return { title: 'Billing', subtitle: 'Generate and manage invoices.' };
+    if (path.includes('schedule-h1')) return { title: 'Schedule H1 Register', subtitle: 'FDCA Statutory Drug Register under Rule 65 & 97.' };
     if (path.includes('reports')) return { title: 'Reports', subtitle: 'View sales and order reports.' };
     if (path.includes('pharmacy-profile')) return { title: 'Pharmacy Profile', subtitle: 'Manage your business settings.' };
     if (path.includes('settings')) return { title: 'Settings', subtitle: 'Manage your preferences and configurations.' };

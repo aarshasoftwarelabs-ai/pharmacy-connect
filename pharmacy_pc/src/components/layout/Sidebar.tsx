@@ -20,7 +20,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Pill,
-  Sparkles
+  Sparkles,
+  Scale
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 
@@ -37,6 +38,7 @@ const navigation: NavItem[] = [
   { name: 'Smart Inventory', href: '/inventory', icon: Package, perm: 'INVENTORY_VIEW' },
   { name: 'Suppliers', href: '/suppliers', icon: Building2, perm: 'SUPPLIERS_VIEW' },
   { name: 'Purchases', href: '/purchases', icon: Truck, perm: 'PURCHASES_VIEW' },
+  { name: 'Schedule H1 Register', href: '/schedule-h1', icon: Scale, perm: 'INVENTORY_VIEW' },
   { name: 'Customers', href: '/customers', icon: Users, perm: 'CUSTOMERS_VIEW' },
   { name: 'Prescriptions', href: '/prescriptions', icon: FileText, perm: 'PRESCRIPTIONS_VIEW' },
   { name: 'Billing', href: '/billing', icon: Receipt, perm: 'BILLING_VIEW' },

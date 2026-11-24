@@ -34,6 +34,8 @@ class ApiEndpoints {
 
   // Medicines / Inventory
   static String get medicines => '$baseUrl/medicines';
+  static String get scheduleH1 => '$baseUrl/schedule-h1';
+  static String get scheduleH1Stats => '$baseUrl/schedule-h1/stats';
   static String get scanMedicineBox => '$baseUrl/medicines/scan-box';
   static String medicineById(String id) => '$baseUrl/medicines/$id';
   static String updateMedicine(String id) => '$baseUrl/medicines/$id';

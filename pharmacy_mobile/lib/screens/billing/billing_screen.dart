@@ -254,6 +254,21 @@ class _BillingScreenState extends State<BillingScreen> {
                                                     ),
                                                   ),
                                                 ],
+                                                if (med.isScheduleH1) ...[
+                                                  const SizedBox(width: 4),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFFEF2F2),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      border: Border.all(color: const Color(0xFFFECACA)),
+                                                    ),
+                                                    child: const Text(
+                                                      'H1',
+                                                      style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                                                    ),
+                                                  ),
+                                                ],
                                               ],
                                             ),
                                             Text(
@@ -413,6 +428,31 @@ class _BillingScreenState extends State<BillingScreen> {
                   if (billing.doctorName.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     _buildSummaryRow('Doctor:', 'Dr. ${billing.doctorName.replaceFirst(RegExp(r'^Dr\.?\s*', caseSensitive: false), '')}'),
+                  ],
+                  if (billing.cartItems.any((it) => it.medicine.isScheduleH1)) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFFECACA)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.shield_outlined, size: 14, color: Color(0xFFDC2626)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              billing.doctorName.isNotEmpty
+                                  ? 'Schedule H1 Statutory Rx Logged (Dr. ${billing.doctorName})'
+                                  : '⚠️ Schedule H1 drug in cart: Doctor name required for statutory register.',
+                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 6),
                   _buildSummaryRow('Total Items:', '${billing.itemCount} units (${billing.cartItems.length} products)'),
@@ -1175,6 +1215,21 @@ _Thank you for choosing DavaSetu Pharmacy!_
                             child: Text(
                               item.medicine.strength!,
                               style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                            ),
+                          ),
+                        ],
+                        if (item.medicine.isScheduleH1) ...[
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFFECACA)),
+                            ),
+                            child: const Text(
+                              'H1',
+                              style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
                             ),
                           ),
                         ],

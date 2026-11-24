@@ -16,6 +16,7 @@ import Inventory from './pages/Inventory';
 import Suppliers from './pages/Suppliers';
 import Purchases from './pages/Purchases';
 import Staff from './pages/Staff';
+import ScheduleH1Register from './pages/ScheduleH1Register';
 
 import { AuthProvider, useAuth } from './components/auth/AuthContext';
 
@@ -59,6 +60,7 @@ function App() {
               <Route path="prescriptions" element={<PermissionRoute permissionKey="PRESCRIPTIONS_VIEW"><Prescriptions /></PermissionRoute>} />
               <Route path="suppliers" element={<PermissionRoute permissionKey="SUPPLIERS_VIEW"><Suppliers /></PermissionRoute>} />
               <Route path="purchases" element={<PermissionRoute permissionKey="PURCHASES_VIEW"><Purchases /></PermissionRoute>} />
+              <Route path="schedule-h1" element={<PermissionRoute permissionKey="INVENTORY_VIEW"><ScheduleH1Register /></PermissionRoute>} />
               <Route path="billing" element={<PermissionRoute permissionKey="BILLING_VIEW"><Billing /></PermissionRoute>} />
               <Route path="reports" element={<PermissionRoute permissionKey="REPORTS_VIEW"><Reports /></PermissionRoute>} />
               <Route path="pharmacy-profile" element={<PermissionRoute permissionKey="PHARMACY_PROFILE_VIEW"><PharmacyProfile /></PermissionRoute>} />

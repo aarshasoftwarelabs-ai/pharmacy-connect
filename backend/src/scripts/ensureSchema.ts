@@ -675,6 +675,51 @@ export const ensureSchema = async () => {
       console.warn('⚠️ Purchase seed note:', purchErr);
     }
 
+    // 8. Schedule H1 & Narcotic Digital Register (FDCA Inspection Ready)
+    try {
+      await pool.query(`
+        ALTER TABLE medicines ADD COLUMN IF NOT EXISTS is_schedule_h1 BOOLEAN DEFAULT false;
+        ALTER TABLE medicines ADD COLUMN IF NOT EXISTS schedule_type VARCHAR(50) DEFAULT 'SCHEDULE_H';
+
+        CREATE TABLE IF NOT EXISTS schedule_h1_register (
+            id SERIAL PRIMARY KEY,
+            pharmacy_id INTEGER NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+            bill_id INTEGER REFERENCES bills(id) ON DELETE SET NULL,
+            bill_number VARCHAR(100),
+            supply_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            patient_name VARCHAR(255) NOT NULL,
+            patient_phone VARCHAR(50),
+            patient_address TEXT,
+            doctor_name VARCHAR(255) NOT NULL,
+            doctor_reg_no VARCHAR(100),
+            doctor_address TEXT,
+            medicine_id INTEGER REFERENCES medicines(id) ON DELETE SET NULL,
+            medicine_name VARCHAR(255) NOT NULL,
+            generic_name VARCHAR(255),
+            batch_number VARCHAR(100) NOT NULL,
+            quantity INTEGER NOT NULL,
+            unit VARCHAR(50) DEFAULT 'Strip',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_sched_h1_pharmacy ON schedule_h1_register(pharmacy_id);
+        CREATE INDEX IF NOT EXISTS idx_sched_h1_date ON schedule_h1_register(supply_date);
+        CREATE INDEX IF NOT EXISTS idx_sched_h1_med ON schedule_h1_register(medicine_id);
+
+        -- Auto-flag known Schedule H1 active molecules in existing medicine catalogues
+        UPDATE medicines
+        SET is_schedule_h1 = true, schedule_type = 'SCHEDULE_H1'
+        WHERE is_schedule_h1 = false AND (
+          LOWER(name) ~* '(alprazolam|tramadol|cefixime|cefpodoxime|ceftriaxone|meropenem|faropenem|colistin|levofloxacin|moxifloxacin|clonazepam|lorazepam|diazepam|zolpidem|chlordiazepoxide|clobazam|nitrazepam|linezolid|rifampicin|isoniazid|pyrazinamide|ethambutol)'
+          OR LOWER(COALESCE(generic_name, '')) ~* '(alprazolam|tramadol|cefixime|cefpodoxime|ceftriaxone|meropenem|faropenem|colistin|levofloxacin|moxifloxacin|clonazepam|lorazepam|diazepam|zolpidem|chlordiazepoxide|clobazam|nitrazepam|linezolid|rifampicin|isoniazid|pyrazinamide|ethambutol)'
+        );
+      `);
+      console.log('✅ Schedule H1 & Narcotic Digital Register schema verified.');
+    } catch (schedErr) {
+      console.warn('⚠️ Schedule H1 schema note:', schedErr);
+    }
+
     console.log('✅ Database schema verified and updated successfully.');
   } catch (error) {
     console.error('⚠️ Note during schema check:', error);

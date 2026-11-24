@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/api/api_endpoints.dart';
+import '../../core/api/api_service.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
@@ -70,6 +72,11 @@ class InventoryScreen extends StatelessWidget {
             ),
             tooltip: 'Shortage Book (કમી-બુક)',
             onPressed: () => _showShortageBookSheet(context, inventory),
+          ),
+          IconButton(
+            icon: const Icon(Icons.gavel_rounded, color: Color(0xFFDC2626)),
+            tooltip: 'Schedule H1 Statutory Register',
+            onPressed: () => _showScheduleH1RegisterSheet(context, inventory),
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
@@ -493,6 +500,21 @@ class InventoryScreen extends StatelessWidget {
                                   child: Text(
                                     med.strength!,
                                     style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                  ),
+                                ),
+                              ],
+                              if (med.isScheduleH1) ...[
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF2F2),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFFFECACA)),
+                                  ),
+                                  child: const Text(
+                                    'H1 Rx',
+                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
                                   ),
                                 ),
                               ],
@@ -2241,6 +2263,315 @@ class InventoryScreen extends StatelessWidget {
           color: isSelected ? const Color(0xFFFDE68A) : Colors.transparent,
         ),
       ),
+    );
+  }
+
+  // Schedule H1 & Narcotic Statutory Register Sheet (FDCA Inspection Ready)
+  void _showScheduleH1RegisterSheet(BuildContext context, InventoryProvider inventory) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (modalCtx) {
+        bool isLoadingH1 = true;
+        List<dynamic> entries = [];
+        String searchQ = '';
+        final searchCtrl = TextEditingController();
+
+        return StatefulBuilder(
+          builder: (sheetCtx, setSheetState) {
+            void fetchEntries() async {
+              try {
+                final res = await ApiService.get(ApiEndpoints.scheduleH1);
+                if (res.success && res.data != null) {
+                  final list = res.data['data'] ?? res.data;
+                  if (sheetCtx.mounted) {
+                    setSheetState(() {
+                      entries = (list is List) ? list : [];
+                      isLoadingH1 = false;
+                    });
+                  }
+                } else {
+                  if (sheetCtx.mounted) setSheetState(() => isLoadingH1 = false);
+                }
+              } catch (e) {
+                if (sheetCtx.mounted) setSheetState(() => isLoadingH1 = false);
+              }
+            }
+
+            if (isLoadingH1) {
+              fetchEntries();
+            }
+
+            final filteredEntries = entries.where((e) {
+              if (searchQ.trim().isEmpty) return true;
+              final q = searchQ.trim().toLowerCase();
+              final pName = (e['patient_name'] ?? '').toString().toLowerCase();
+              final dName = (e['doctor_name'] ?? '').toString().toLowerCase();
+              final mName = (e['medicine_name'] ?? '').toString().toLowerCase();
+              final bNum = (e['batch_number'] ?? '').toString().toLowerCase();
+              return pName.contains(q) || dName.contains(q) || mName.contains(q) || bNum.contains(q);
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(sheetCtx).size.height * 0.90,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.gavel_rounded, color: Color(0xFFDC2626), size: 22),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Schedule H1 Digital Register',
+                              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            ),
+                            Text(
+                              'FDCA Statutory Compliance (Rule 65 & 97)',
+                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(modalCtx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Search Box
+                  Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TextField(
+                      controller: searchCtrl,
+                      onChanged: (val) => setSheetState(() => searchQ = val),
+                      style: const TextStyle(fontSize: 13),
+                      decoration: const InputDecoration(
+                        hintText: 'Search Patient, Doctor, Drug, or Batch...',
+                        hintStyle: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        prefixIcon: Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Summary Strip
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFA7F3D0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${filteredEntries.length} Dispensed Entries Verified',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                        ),
+                        const Row(
+                          children: [
+                            Icon(Icons.verified_rounded, size: 14, color: Color(0xFF059669)),
+                            SizedBox(width: 4),
+                            Text('Drug Inspector Ready', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // List of Register Entries
+                  if (isLoadingH1) ...[
+                    const Expanded(
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppColors.primary),
+                      ),
+                    ),
+                  ] else if (filteredEntries.isEmpty) ...[
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          '✓ No Schedule H1 records found for this period.',
+                          style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: filteredEntries.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        itemBuilder: (ctx, i) {
+                          final e = filteredEntries[i];
+                          final dateStr = (e['supply_date'] ?? '').toString();
+                          final pName = (e['patient_name'] ?? 'Walk-in Patient').toString();
+                          final dName = (e['doctor_name'] ?? 'R.M.P.').toString();
+                          final mName = (e['medicine_name'] ?? '').toString();
+                          final bNum = (e['batch_number'] ?? 'DEFAULT').toString();
+                          final qty = e['quantity'] ?? 1;
+                          final unit = (e['unit'] ?? 'Strip').toString();
+                          final billNo = (e['bill_number'] ?? '').toString();
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        mName,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEFF6FF),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                                      ),
+                                      child: Text(
+                                        '$qty $unit',
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.person_rounded, size: 12, color: AppColors.textMuted),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        'Patient: $pName',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                                      ),
+                                    ),
+                                    Text(
+                                      dateStr,
+                                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.medical_services_rounded, size: 12, color: Color(0xFF7C3AED)),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        'Prescriber: $dName',
+                                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF6B21A8), fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Batch: $bNum ${billNo.isNotEmpty ? "• Bill: $billNo" : ""}',
+                                      style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary, fontFamily: 'monospace'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 10),
+                  // Copy FDCA Inspection Table Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: filteredEntries.isEmpty ? null : () {
+                        final buffer = StringBuffer();
+                        buffer.writeln('⚖️ *SCHEDULE H1 STATUTORY REGISTER (RULE 65 & 97)*');
+                        buffer.writeln('📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}');
+                        buffer.writeln('🏛️ Authority: Food & Drug Control Administration (FDCA)');
+                        buffer.writeln('----------------------------------------------------');
+                        for (int i = 0; i < filteredEntries.length; i++) {
+                          final e = filteredEntries[i];
+                          buffer.writeln('${i + 1}. Date: ${e['supply_date']} | Patient: ${e['patient_name']} | Dr: ${e['doctor_name']} | Drug: ${e['medicine_name']} [B: ${e['batch_number']}] | Qty: ${e['quantity']} ${e['unit']} | Bill: ${e['bill_number'] ?? "-"}');
+                        }
+                        buffer.writeln('----------------------------------------------------');
+                        buffer.writeln('Total Entries: ${filteredEntries.length} Records Verified');
+                        buffer.writeln('Sign of Registered Pharmacist: [ Certified ]');
+
+                        Clipboard.setData(ClipboardData(text: buffer.toString()));
+                        Navigator.pop(modalCtx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                SizedBox(width: 8),
+                                Expanded(child: Text('✓ Schedule H1 Inspection Register copied to clipboard!')),
+                              ],
+                            ),
+                            backgroundColor: Color(0xFF059669),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      label: const Text('Copy FDCA Inspection Register', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F172A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

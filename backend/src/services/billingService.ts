@@ -1,5 +1,6 @@
 import pool from '../config/database';
 import { ApiError } from '../middleware/errorHandler';
+import { ScheduleH1Service } from './scheduleH1Service';
 
 export interface CreateBillItemDTO {
   medicineName: string;
@@ -376,6 +377,49 @@ export class BillingService {
             );
 
             remainingToDeduct -= deductQty;
+        }
+
+        // Automatic Schedule H1 Statutory Register Entry (FDCA Inspection Compliance)
+        try {
+          const medInfoRes = await client.query(
+            `SELECT generic_name, is_schedule_h1 FROM medicines WHERE id = $1`,
+            [medId]
+          );
+          const genericName = medInfoRes.rows[0]?.generic_name;
+          const isH1Flag = medInfoRes.rows[0]?.is_schedule_h1;
+
+          if (ScheduleH1Service.isScheduleH1Drug(item.medicineName, genericName, isH1Flag)) {
+            const chosenBatch = (batchResult.rows.length > 0 && batchResult.rows[0].batch_number) 
+                ? batchResult.rows[0].batch_number 
+                : 'DEFAULT';
+            
+            await client.query(`
+              INSERT INTO schedule_h1_register (
+                pharmacy_id, bill_id, bill_number, supply_date,
+                patient_name, patient_phone, patient_address,
+                doctor_name, doctor_reg_no,
+                medicine_id, medicine_name, generic_name,
+                batch_number, quantity, unit
+              ) VALUES ($1, $2, $3, CURRENT_DATE, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            `, [
+              data.pharmacyId,
+              newBillId,
+              billNumber,
+              (data.customerName || 'Walk-in Patient').trim(),
+              resolvedCustomerPhone || null,
+              'Local',
+              (data.doctorName || 'Dr. Registered Medical Practitioner').trim(),
+              null,
+              medId,
+              item.medicineName.trim(),
+              genericName || 'Schedule H1 Substance',
+              chosenBatch,
+              item.quantity,
+              item.isLooseTablet ? 'Tablet' : 'Strip'
+            ]);
+          }
+        } catch (h1LogErr) {
+          console.warn('⚠️ Schedule H1 auto-log notice:', h1LogErr);
         }
 
         if (remainingToDeduct > 0) {

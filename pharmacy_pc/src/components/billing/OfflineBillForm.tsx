@@ -10,6 +10,7 @@ import MedicineSearchDropdown from '../ui/MedicineSearchDropdown';
 import { AudioAlert } from '../../utils/audioAlertService';
 import { io } from 'socket.io-client';
 import { offlineSyncService } from '../../services/offlineSyncService';
+import { isScheduleH1MedicineName } from '../../services/scheduleH1Service';
 
 interface Props {
   onSuccess: () => void;
@@ -598,6 +599,14 @@ export default function OfflineBillForm({ onSuccess }: Props) {
               placeholder="e.g. Dr. K. P. Sharma"
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors text-sm"
             />
+            {items.some(it => {
+              const matched = catalogue.find(m => m.name.toLowerCase() === it.medicineName.trim().toLowerCase());
+              return isScheduleH1MedicineName(it.medicineName, matched?.genericName);
+            }) && !doctorName.trim() && (
+              <p className="text-[11px] text-amber-600 font-bold mt-1">
+                ⚠️ Required for Schedule H1 drug statutory register.
+              </p>
+            )}
           </div>
         </div>
 
@@ -789,6 +798,11 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                           {item.isLooseTablet && (
                             <span className="text-[10px] text-amber-700 font-semibold">
                               (₹{(item.stripPrice || (item.unitPrice * (item.packCount || 10))).toFixed(2)} / {item.packCount || 10} tabs)
+                            </span>
+                          )}
+                          {isScheduleH1MedicineName(item.medicineName, matchedMed?.genericName) && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-red-100 text-red-800 border border-red-200" title="Schedule H1 Prescription Drug - Requires Doctor Name">
+                              ⚠️ Sched H1
                             </span>
                           )}
                           {matchedMed && matchedMed.genericName && (

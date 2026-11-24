@@ -86,6 +86,17 @@ class MedicineModel {
   bool get isLowStock => stock <= minStockAlert;
   bool get isOutOfStock => stock <= 0;
 
+  static final RegExp _scheduleH1Regex = RegExp(
+    r'\b(alprazolam|balofloxacin|bedaquiline|buprenorphine|capreomycin|cefdinir|cefditoren|cefepime|cefixime|cefotaxime|cefpodoxime|ceftazidime|ceftriaxone|chlordiazepoxide|clofazimine|clobazam|clonazepam|clorazepate|cycloserine|delamanid|diazepam|diphenoxylate|doripenem|ertapenem|ethambutol|ethionamide|faropenem|flurazepam|gemifloxacin|imipenem|isoniazid|ketamine|levofloxacin|linezolid|lorazepam|meropenem|midazolam|moxifloxacin|nitrazepam|oxazepam|pentazocine|pyrazinamide|rifabutin|rifampicin|rifapentine|sparfloxacin|streptomycin|tigecycline|tramadol|zolpidem)\b',
+    caseSensitive: false,
+  );
+
+  bool get isScheduleH1 {
+    if (_scheduleH1Regex.hasMatch(name)) return true;
+    if (genericName != null && _scheduleH1Regex.hasMatch(genericName!)) return true;
+    return false;
+  }
+
   factory MedicineModel.fromJson(Map<String, dynamic> json) {
     final idStr = json['id']?.toString() ?? '';
     final pharmId = (json['pharmacyId'] is num)
