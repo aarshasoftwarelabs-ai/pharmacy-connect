@@ -16,6 +16,13 @@ export const ensureSchema = async () => {
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS image_url TEXT;
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS dosage_form VARCHAR(100);
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS pack_size VARCHAR(100);
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS unit VARCHAR(100) DEFAULT 'Strip';
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS units_per_pack INTEGER DEFAULT 10;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS pack_type VARCHAR(50) DEFAULT 'STRIP';
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS composition TEXT;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS salt_composition TEXT;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS is_prescription_required BOOLEAN DEFAULT false;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS rack_location VARCHAR(50);
       
       -- Drop obsolete global unique constraint on SKU so pharmacies can add items freely
       ALTER TABLE medicines DROP CONSTRAINT IF EXISTS medicines_sku_key;
