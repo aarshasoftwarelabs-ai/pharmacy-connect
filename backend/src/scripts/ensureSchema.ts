@@ -27,6 +27,10 @@ export const ensureSchema = async () => {
       -- Drop obsolete global unique constraint on SKU so pharmacies can add items freely
       ALTER TABLE medicines DROP CONSTRAINT IF EXISTS medicines_sku_key;
       ALTER TABLE medicines ALTER COLUMN sku DROP NOT NULL;
+      ALTER TABLE medicines ALTER COLUMN selling_price DROP NOT NULL;
+      ALTER TABLE medicines ALTER COLUMN selling_price SET DEFAULT 0.00;
+      ALTER TABLE medicines ALTER COLUMN mrp DROP NOT NULL;
+      ALTER TABLE medicines ALTER COLUMN mrp SET DEFAULT 0.00;
 
       CREATE INDEX IF NOT EXISTS idx_medicines_barcode ON medicines(barcode);
       CREATE INDEX IF NOT EXISTS idx_medicines_pharmacy ON medicines(pharmacy_id);
@@ -157,6 +161,37 @@ export const ensureSchema = async () => {
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS doctor_name VARCHAR(150);
       CREATE INDEX IF NOT EXISTS idx_bills_delivery_staff ON bills(delivery_staff_id);
+
+      -- Upgrade bills_user_id_fkey to ON DELETE SET NULL and ON UPDATE CASCADE
+      -- so updating or deleting users in Supabase Table Editor or via API never fails with 23503 foreign key violation
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bills_user_id_fkey') THEN
+          ALTER TABLE bills DROP CONSTRAINT bills_user_id_fkey;
+        END IF;
+        ALTER TABLE bills 
+          ADD CONSTRAINT bills_user_id_fkey 
+          FOREIGN KEY (user_id) 
+          REFERENCES users(id) 
+          ON DELETE SET NULL 
+          ON UPDATE CASCADE;
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END $$;
+
+      -- Upgrade bills_medicine_request_id_fkey to ON DELETE SET NULL and ON UPDATE CASCADE
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bills_medicine_request_id_fkey') THEN
+          ALTER TABLE bills DROP CONSTRAINT bills_medicine_request_id_fkey;
+        END IF;
+        ALTER TABLE bills 
+          ADD CONSTRAINT bills_medicine_request_id_fkey 
+          FOREIGN KEY (medicine_request_id) 
+          REFERENCES medicine_requests(id) 
+          ON DELETE SET NULL 
+          ON UPDATE CASCADE;
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END $$;
     `);
 
     // 3. Distributor Returns (Expiry & Return to Distributor Module)
@@ -633,15 +668,15 @@ export const ensureSchema = async () => {
             const sgId = sgRes.rows[0].id;
             // Ensure medicines exist
             const doloRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Dolo 650mg Tablets', 'Micro Labs Ltd', '30049099', 'Strip (15 Tab)', 55) ON CONFLICT DO NOTHING RETURNING id",
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Dolo 650mg Tablets', 'Micro Labs Ltd', '30049099', 'Strip (15 Tab)', 55, 34.00, 34.00) ON CONFLICT DO NOTHING RETURNING id",
               [pId]
             );
             const augRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Augmentin 625 Duo Tablet', 'GlaxoSmithKline (GSK)', '30042000', 'Strip (10 Tab)', 22) ON CONFLICT DO NOTHING RETURNING id",
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Augmentin 625 Duo Tablet', 'GlaxoSmithKline (GSK)', '30042000', 'Strip (10 Tab)', 22, 205.00, 205.00) ON CONFLICT DO NOTHING RETURNING id",
               [pId]
             );
             const panRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Pan 40 Gastro-Resistant Tablet', 'Alkem Laboratories Ltd', '30049099', 'Strip (15 Tab)', 33) ON CONFLICT DO NOTHING RETURNING id",
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Pan 40 Gastro-Resistant Tablet', 'Alkem Laboratories Ltd', '30049099', 'Strip (15 Tab)', 33, 155.00, 155.00) ON CONFLICT DO NOTHING RETURNING id",
               [pId]
             );
 
@@ -701,11 +736,11 @@ export const ensureSchema = async () => {
           if (ahRes.rows.length > 0) {
             const ahId = ahRes.rows[0].id;
             const azRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Azithral 500mg Tablet', 'Alembic Pharmaceuticals', '30042000', 'Strip (5 Tab)', 27) ON CONFLICT DO NOTHING RETURNING id",
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Azithral 500mg Tablet', 'Alembic Pharmaceuticals', '30042000', 'Strip (5 Tab)', 27, 132.00, 132.00) ON CONFLICT DO NOTHING RETURNING id",
               [pId]
             );
             const telRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock) VALUES ($1, 'Telma 40mg Tablet', 'Glenmark Pharmaceuticals', '30049099', 'Strip (15 Tab)', 44) ON CONFLICT DO NOTHING RETURNING id",
+              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Telma 40mg Tablet', 'Glenmark Pharmaceuticals', '30049099', 'Strip (15 Tab)', 44, 245.00, 245.00) ON CONFLICT DO NOTHING RETURNING id",
               [pId]
             );
 
