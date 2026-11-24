@@ -201,32 +201,62 @@ class BillingProvider extends ChangeNotifier {
       final response = await ApiService.post(ApiEndpoints.createBill, billPayload);
       _isProcessing = false;
 
-      final billNum = 'PC-2026-${(100000 + _recentBills.length + 1).toString().substring(1)}';
-      final billRecord = {
-        'bill_number': billNum,
-        'customer_name': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
-        'customer_phone': _customerPhone,
-        'items_count': itemCount,
-        'subtotal': subtotal,
-        'discount': totalDiscount,
-        'tax': taxAmount,
-        'total': grandTotal,
-        'date': 'Today, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-        'payment_mode': _paymentMode,
-        'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
-      };
-      _lastBill = billRecord;
-      _recentBills.insert(0, billRecord);
-      _todaySales += grandTotal;
-      _todayBillsCount += 1;
-
       if (response.success) {
+        final serverData = response.data is Map ? Map<String, dynamic>.from(response.data as Map) : null;
+        final billNum = serverData?['billNumber']?.toString() ??
+            serverData?['bill_number']?.toString() ??
+            'PC-${DateTime.now().year}-${(100000 + _recentBills.length + 1).toString().substring(1)}';
+        final billRecord = {
+          'id': serverData?['id'],
+          'bill_number': billNum,
+          'customer_name': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
+          'customer_phone': _customerPhone,
+          'items_count': itemCount,
+          'subtotal': subtotal,
+          'discount': totalDiscount,
+          'tax': taxAmount,
+          'total': grandTotal,
+          'date': 'Today, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+          'payment_mode': _paymentMode,
+          'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
+        };
+        _lastBill = billRecord;
+        _recentBills.insert(0, billRecord);
+        _todaySales += grandTotal;
+        _todayBillsCount += 1;
         clearCart();
+        return true;
+      } else if (response.statusCode == 0) {
+        // Network unreachable / timeout: auto-queue offline for later sync
+        debugPrint('[BillingProvider] Server unreachable (statusCode 0). Queuing bill offline.');
+        final offlineItem = await OfflineSyncService.instance.queueBill(billPayload);
+        final billNum = offlineItem['bill_number']?.toString() ?? 'OFFLINE-${DateTime.now().millisecondsSinceEpoch % 100000}';
+        final billRecord = {
+          'bill_number': billNum,
+          'customer_name': _customerName.isEmpty ? 'Walk-in Customer' : _customerName,
+          'customer_phone': _customerPhone,
+          'items_count': itemCount,
+          'subtotal': subtotal,
+          'discount': totalDiscount,
+          'tax': taxAmount,
+          'total': grandTotal,
+          'date': 'Today, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+          'payment_mode': _paymentMode,
+          'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
+          'is_offline': true,
+        };
+        _lastBill = billRecord;
+        _recentBills.insert(0, billRecord);
+        _todaySales += grandTotal;
+        _todayBillsCount += 1;
+        clearCart();
+        notifyListeners();
         return true;
       } else {
-        _errorMessage = response.message;
-        clearCart();
-        return true;
+        // Server rejected request (4xx/5xx): keep cart intact and surface error
+        _errorMessage = response.message ?? 'Checkout failed (HTTP ${response.statusCode})';
+        notifyListeners();
+        return false;
       }
     } catch (e) {
       // Network failure or server unreachable: Auto-queue offline!

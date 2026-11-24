@@ -37,7 +37,7 @@ app.use('/api', apiLimiter);
 app.use(express.json({ limit: '10mb' }));
 
 // Root endpoint
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'PharmacyConnect API is running'
@@ -45,7 +45,7 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Health check endpoint
-app.get('/health', async (req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response) => {
   const dbStatus = await checkDatabaseHealth();
   
   if (dbStatus.healthy) {

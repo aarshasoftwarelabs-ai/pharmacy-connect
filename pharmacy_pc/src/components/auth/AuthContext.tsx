@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { StaffService, StaffPermission } from '../../services/staffService';
-import { getPharmacyId } from '../../config/development';
 
 interface User {
   id: number;
@@ -32,36 +31,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadAuth = async () => {
-      try {
-        const userDataStr = localStorage.getItem('user');
-        if (userDataStr) {
-          const userData = JSON.parse(userDataStr);
-          setUser(userData);
-          
-          if (userData.isStaff) {
-            const staffId = userData.id;
-            try {
-              const perms = await StaffService.getPermissions(staffId);
-              setPermissions(perms.filter((p: StaffPermission) => p.granted).map((p: StaffPermission) => p.permission_key));
-            } catch (err) {
-              console.error('Failed to load permissions', err);
-            }
-          } else if (userData.role === 'OWNER') {
-             // OWNER has all permissions implicitly, or handled by isOwner()
-             // Not setting permissions string array
+  const loadAuth = useCallback(async () => {
+    try {
+      const userDataStr = localStorage.getItem('user');
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        setUser(userData);
+        
+        if (userData.isStaff) {
+          const staffId = userData.id;
+          try {
+            const perms = await StaffService.getPermissions(staffId);
+            setPermissions(perms.filter((p: StaffPermission) => p.granted).map((p: StaffPermission) => p.permission_key));
+          } catch (err) {
+            console.error('Failed to load permissions', err);
           }
+        } else {
+          setPermissions([]);
         }
-      } catch (err) {
-        console.error('Error parsing user data', err);
-      } finally {
-        setLoading(false);
+      } else {
+        setUser(null);
+        setPermissions([]);
       }
-    };
-
-    loadAuth();
+    } catch (err) {
+      console.error('Error parsing user data', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadAuth();
+    const handleAuthChange = () => { loadAuth(); };
+    window.addEventListener('auth_updated', handleAuthChange);
+    window.addEventListener('storage', handleAuthChange);
+    return () => {
+      window.removeEventListener('auth_updated', handleAuthChange);
+      window.removeEventListener('storage', handleAuthChange);
+    };
+  }, [loadAuth]);
 
   const hasPermission = (key: string) => {
     // If user is loaded and not a staff member, they are an owner/admin

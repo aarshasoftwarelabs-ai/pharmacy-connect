@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   X, 
   Printer, 
-  Download, 
-  Tag, 
-  Sliders, 
-  Layers, 
+  Tag,
   Copy, 
   Check, 
-  Store,
   Sparkles
 } from 'lucide-react';
 import { Medicine } from '../../types/medicine';
-import { generateBarcodeSvg, generateBarcodeDataUrl } from '../../utils/barcodeGenerator';
+import { generateBarcodeSvg } from '../../utils/barcodeGenerator';
 
 interface BarcodeStickerModalProps {
   medicine: Medicine;
@@ -54,12 +50,6 @@ export default function BarcodeStickerModal({
     moduleWidth: 2,
     includeText: true,
     fontSize: 10
-  });
-
-  const barcodeDataUrl = generateBarcodeDataUrl(barcodeText, {
-    height: 40,
-    moduleWidth: 2,
-    includeText: true
   });
 
   const handleCopyBarcode = () => {

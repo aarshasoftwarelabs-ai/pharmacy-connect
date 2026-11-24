@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { IndianRupee, TrendingDown, TrendingUp, Percent, ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
 import { ReportService, ReportDateRange, SalesReportData } from '../../services/reportService';
 import { getPharmacyId } from '../../config/development';

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Package, 
   AlertTriangle, 
@@ -12,12 +12,7 @@ import {
   Loader2,
   Trash2,
   ChevronDown,
-  Scan,
-  Tag,
   Flame,
-  X,
-  Camera,
-  Barcode,
   FolderSync,
   BookOpen
 } from 'lucide-react';
@@ -376,6 +371,18 @@ export default function Inventory() {
         </div>
       </div>
 
+      {barcodeStatus && (
+        <div className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 border ${
+          barcodeStatus.type === 'success'
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            : barcodeStatus.type === 'error'
+              ? 'bg-red-50 text-red-800 border-red-200'
+              : 'bg-blue-50 text-blue-800 border-blue-200'
+        }`}>
+          <span>{barcodeStatus.message}</span>
+        </div>
+      )}
+
       {/* Module Tabs Navigation */}
       <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit">
         <button
@@ -456,7 +463,6 @@ export default function Inventory() {
           medicines={medicines} 
           distributors={distributors} 
           pharmacyName={pharmacy?.name} 
-          onRefresh={loadInitialData} 
         />
       ) : activeInventoryTab === 'CSV_IMPORT' ? (
         <DistributorCsvImport onSuccess={() => { loadInitialData(); setActiveInventoryTab('STOCK'); }} />

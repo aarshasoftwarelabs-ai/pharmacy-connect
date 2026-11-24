@@ -131,8 +131,8 @@ export class MedicineRequestService {
    * Update the status of a request (Pharmacy response).
    */
   static async updateStatus(id: number, updateData: UpdateMedicineRequestStatusDTO) {
-    // 1. Fetch current request to check status transition
-    const request = await this.getRequestById(id);
+    // 1. Verify request exists
+    await this.getRequestById(id);
 
     // Removed restriction to allow pharmacy to update status anytime.
 

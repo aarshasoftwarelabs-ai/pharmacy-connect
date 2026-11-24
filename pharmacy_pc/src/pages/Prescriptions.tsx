@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Search, Filter, MoreVertical, Eye, Archive, Loader2, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileText, Search, Filter, Eye, Archive, Loader2 } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 import { PrescriptionService, Prescription } from '../services/prescriptionService';
 

@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   LayoutDashboard, 
-  ShoppingCart, 
   Package,
   Users, 
   Receipt, 
@@ -11,7 +10,6 @@ import {
   Store, 
   LogOut, 
   Settings, 
-  Inbox, 
   AlertTriangle, 
   HelpCircle,
   Building2,
@@ -20,7 +18,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Pill,
-  Sparkles,
   Scale
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
@@ -102,6 +99,7 @@ export default function Sidebar() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('pharmacy_profile_data');
+    window.dispatchEvent(new Event('auth_updated'));
     setShowLogoutModal(false);
     navigate('/login');
   };

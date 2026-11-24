@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Search, Loader2, AlertCircle, FileText, Printer, Download, Eye } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, Loader2, AlertCircle, FileText, Printer, Eye } from 'lucide-react';
 import { ReportService, ReportDateRange, BillingReportItem } from '../../services/reportService';
 import { BillingService } from '../../services/billingService';
 import { getPharmacyId } from '../../config/development';

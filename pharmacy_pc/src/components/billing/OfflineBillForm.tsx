@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText, Barcode, CheckCircle, AlertTriangle, Camera, Scan, Search, Video, Smartphone } from 'lucide-react';
+import { Plus, Trash2, Loader2, Store, IndianRupee, Sparkles, ScanLine, X, FileImage, FileText, Barcode, CheckCircle, AlertTriangle, Search, Smartphone } from 'lucide-react';
 import { BillingService } from '../../services/billingService';
 import { getPharmacyId } from '../../config/development';
 import { Bill } from '../../types/billing';
@@ -25,6 +25,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const [customerPhone, setCustomerPhone] = useState('');
   const [doctorName, setDoctorName] = useState('');
   const [items, setItems] = useState<Array<{ 
+    medicineId?: string | number;
+    barcode?: string;
     medicineName: string; 
     quantity: number; 
     unitPrice: number; 
@@ -37,7 +39,6 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const [discount, setDiscount] = useState(0);
   const [paymentMode, setPaymentMode] = useState('CASH');
   const [catalogue, setCatalogue] = useState<Medicine[]>([]);
-  const [isScanning, setIsScanning] = useState(false);
   const [scanStep, setScanStep] = useState(0); // 0: upload, 1: scanning, 2: success
   const [showAiModal, setShowAiModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,6 +109,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       }
 
       const newItem = {
+        medicineId: catMatch?.id,
+        barcode: scannedBarcode || catMatch?.barcode,
         medicineName: formattedName,
         quantity: scanItem.quantity || 1,
         unitPrice: effectivePrice,
@@ -144,9 +147,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
 
     socket.on('connect', () => {
-      socket.emit('join_pharmacy', (pharmacyId || 8).toString());
-      if (pharmacyId !== 8) socket.emit('join_pharmacy', '8');
-      if (pharmacyId !== 1) socket.emit('join_pharmacy', '1');
+      socket.emit('join_pharmacy', String(pharmacyId));
     });
 
     socket.on('mobile_item_scanned', (scanItem: any) => {
@@ -162,23 +163,14 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     // Secondary resilient polling fallback: checks pending mobile scans every 1.5 seconds
     const pollPendingScans = async () => {
       try {
-        const activeId = pharmacyId || 8;
-        const [pActive, p8, p1] = await Promise.all([
-          BillingService.getPendingLiveScans(activeId),
-          activeId !== 8 ? BillingService.getPendingLiveScans(8) : Promise.resolve([]),
-          activeId !== 1 ? BillingService.getPendingLiveScans(1) : Promise.resolve([])
-        ]);
+        const allPending = await BillingService.getPendingLiveScans(pharmacyId);
 
-        const allPending = [...(pActive || []), ...(p8 || []), ...(p1 || [])];
-
-        if (allPending.length > 0) {
+        if (allPending && allPending.length > 0) {
           for (const scan of allPending) {
             if (scan && scan.id && !processedScanIdsRef.current.has(scan.id)) {
               processedScanIdsRef.current.add(scan.id);
               handleIncomingMobileScan(scan);
-              BillingService.acknowledgeLiveScan(scan.pharmacyId || activeId, scan.id);
-              if (activeId !== 8) BillingService.acknowledgeLiveScan(8, scan.id);
-              if (activeId !== 1) BillingService.acknowledgeLiveScan(1, scan.id);
+              BillingService.acknowledgeLiveScan(scan.pharmacyId || pharmacyId, scan.id);
             }
           }
         }
@@ -231,6 +223,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
         }
         if (prev.length === 1 && !prev[0].medicineName.trim()) {
           return [{
+            medicineId: match.id,
+            barcode: match.barcode,
             medicineName: match.name,
             quantity: 1,
             unitPrice: match.sellingPrice || 0,
@@ -239,6 +233,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
           }];
         }
         return [...prev, {
+          medicineId: match.id,
+          barcode: match.barcode,
           medicineName: match.name,
           quantity: 1,
           unitPrice: match.sellingPrice || 0,
@@ -367,6 +363,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     // Auto-fill if medicine object is provided directly from the dropdown
     if (selectedMedicine) {
       const pack = parsePackCount(selectedMedicine.packSize);
+      newItems[index].medicineId = selectedMedicine.id;
+      newItems[index].barcode = selectedMedicine.barcode;
       newItems[index].unitPrice = selectedMedicine.sellingPrice || 0;
       newItems[index].stripPrice = selectedMedicine.sellingPrice || 0;
       newItems[index].packCount = pack;
@@ -378,6 +376,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       const match = catalogue.find(m => m.name.toLowerCase() === value.toLowerCase());
       if (match) {
         const pack = parsePackCount(match.packSize);
+        newItems[index].medicineId = match.id;
+        newItems[index].barcode = match.barcode;
         newItems[index].unitPrice = match.sellingPrice || 0;
         newItems[index].stripPrice = match.sellingPrice || 0;
         newItems[index].packCount = pack;
@@ -439,6 +439,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     setItems([]);
     setDiscount(0);
     setCreatedBill(null);
+    setLoading(false);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -523,6 +524,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       setCreatedBill(newBill);
     } catch (err: any) {
       setError(err.message || 'Failed to create bill');
+    } finally {
       setLoading(false);
     }
   };

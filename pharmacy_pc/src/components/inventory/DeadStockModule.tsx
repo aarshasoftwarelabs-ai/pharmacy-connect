@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   AlertTriangle, 
   Clock, 
@@ -13,9 +13,6 @@ import {
   IndianRupee, 
   Calendar, 
   Package, 
-  ArrowRight, 
-  ShieldAlert, 
-  Tag, 
   Copy, 
   Check, 
   X,

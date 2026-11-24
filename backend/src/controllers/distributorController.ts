@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { DistributorService } from '../services/distributorService';
 import { AuthenticatedRequest } from '../middleware/auth';
 

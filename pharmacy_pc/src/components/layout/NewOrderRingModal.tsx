@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Bell, Volume2, VolumeX, ArrowRight, X, FileText, Pill } from 'lucide-react';
+import { useEffect } from 'react';
+import { Bell, VolumeX, ArrowRight, X, FileText, Pill } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AudioAlert } from '../../utils/audioAlertService';
@@ -42,7 +42,7 @@ export default function NewOrderRingModal({ alert, onDismiss }: Props) {
     if (alert.type === 'PRESCRIPTION') {
       navigate('/prescriptions');
     } else {
-      navigate('/orders');
+      navigate('/billing');
     }
   };
 

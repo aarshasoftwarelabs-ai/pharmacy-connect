@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { HelpCircle, MessageSquare, Star, Phone, Mail, FileText, Send, ChevronRight, X, Loader2 } from 'lucide-react';
+import { HelpCircle, MessageSquare, Star, Phone, Mail, FileText, X, Loader2 } from 'lucide-react';
 import { ReviewService, SoftwareReview } from '../services/reviewService';
 
 const HelpSupport = () => {

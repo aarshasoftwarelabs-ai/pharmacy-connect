@@ -22,7 +22,7 @@ export class PharmacyController {
     }
   }
 
-  static async getAllPharmacies(req: Request, res: Response) {
+  static async getAllPharmacies(_req: Request, res: Response) {
     try {
       const pharmacies = await PharmacyService.getAllPharmacies();
       res.status(200).json({
@@ -214,7 +214,7 @@ export class PharmacyController {
     }
   }
 
-  static async getSubscriptionStats(req: Request, res: Response) {
+  static async getSubscriptionStats(_req: Request, res: Response) {
     try {
       const paidCount = await PharmacyService.getPaidPharmaciesCount();
       res.status(200).json({

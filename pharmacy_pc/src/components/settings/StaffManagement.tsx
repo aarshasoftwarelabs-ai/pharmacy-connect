@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Edit2, Trash2, Shield, KeyRound, Loader2, Search } from 'lucide-react';
+import { Users, UserPlus, Edit2, Trash2, Shield, KeyRound, Loader2 } from 'lucide-react';
 import { StaffService, StaffMember } from '../../services/staffService';
 import { getPharmacyId } from '../../config/development';
 

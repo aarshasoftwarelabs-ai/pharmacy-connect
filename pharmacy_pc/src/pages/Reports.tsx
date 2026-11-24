@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BarChart3, Calendar, IndianRupee, ShoppingBag, 
-  Users, Stethoscope, FileText, Activity, FileSpreadsheet 
+  Users, Stethoscope, FileText, FileSpreadsheet 
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { getPharmacyId } from '../config/development';
@@ -16,8 +16,6 @@ import CaTaxFilingTab from '../components/reports/CaTaxFilingTab';
 export type ReportTab = 'sales' | 'billing' | 'medicine-sales' | 'medicine-requests' | 'customers' | 'gst';
 
 export const getDateRange = (rangeType: string): ReportDateRange => {
-  const now = new Date();
-  
   // Format YYYY-MM-DD
   const format = (d: Date) => {
     const tzOffset = 5.5 * 60 * 60 * 1000; // IST

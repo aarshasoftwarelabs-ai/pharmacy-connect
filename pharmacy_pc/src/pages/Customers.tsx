@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Users, Search, Filter, MoreVertical, Phone, AlertCircle, Loader2, Calendar, DollarSign, Activity } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 import { CustomerService, CustomerProfile } from '../services/customerService';

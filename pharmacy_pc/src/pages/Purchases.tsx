@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { PurchaseService } from '../services/purchaseService';
 import { SupplierService } from '../services/supplierService';
 import {
-  Plus, Eye, Wand2, Calendar, FileText, Package, Layers, Hash, X,
-  Search, ShieldCheck, DollarSign, Clock, Building2, CheckCircle2,
-  AlertCircle, RefreshCw, Sparkles, Printer, Copy, Check, ArrowUpRight
+  Plus, Eye, Wand2, FileText, Package, X,
+  Search, ShieldCheck, DollarSign, Clock, CheckCircle2,
+  AlertCircle, RefreshCw, Sparkles, Printer, Copy, Check
 } from 'lucide-react';
 import { fetchMedicines } from '../services/medicineService';
 import MedicineSearchDropdown from '../components/ui/MedicineSearchDropdown';

@@ -67,11 +67,6 @@ class ApiEndpoints {
   static String salesReport(int pharmacyId) => '$baseUrl/reports/sales/$pharmacyId';
   static String customerReport(int pharmacyId) => '$baseUrl/reports/customers/$pharmacyId';
 
-  // Pharma Sponsored Banners & Deals
-  static String get sponsoredBanners => '$baseUrl/promotions/banners';
-  static String trackBannerClick(int id) => '$baseUrl/promotions/banners/$id/click';
-  static String trackBannerImpression(int id) => '$baseUrl/promotions/banners/$id/impression';
-
   // Subscriptions & License
   static String subscriptionStatus(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription-status';
   static String updateSubscription(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription';

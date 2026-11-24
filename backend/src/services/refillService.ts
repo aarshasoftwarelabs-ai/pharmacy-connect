@@ -1,5 +1,4 @@
 import pool from '../config/database';
-import { NotificationService, NotificationType } from './notificationService';
 
 export class RefillService {
   /**

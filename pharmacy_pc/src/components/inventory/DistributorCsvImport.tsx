@@ -1,25 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { 
-  FileSpreadsheet, 
   Upload, 
   Download, 
   CheckCircle2, 
   AlertCircle, 
   Loader2, 
   Trash2, 
-  Sparkles, 
-  ArrowRight,
   Database,
-  Building2,
   X,
   MessageSquare,
   Phone,
   HelpCircle,
   Layers,
-  Check,
   ArrowUpRight,
-  ShieldCheck,
-  RefreshCw,
   FolderSync
 } from 'lucide-react';
 import { bulkImportMedicines } from '../../services/medicineService';

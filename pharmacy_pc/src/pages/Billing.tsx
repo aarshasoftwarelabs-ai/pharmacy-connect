@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Printer, Clock, Store, MessageCircle, Receipt, User, CalendarDays, IndianRupee, RefreshCw, Loader2, AlertCircle, X, Smartphone, Sparkles, CheckCircle2 } from 'lucide-react';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { Printer, MessageCircle, Receipt, User, CalendarDays, IndianRupee, RefreshCw, Loader2, AlertCircle, X, Smartphone, Sparkles, CheckCircle2 } from 'lucide-react';
+import { motion, Variants } from 'framer-motion';
 import { BillingService } from '../services/billingService';
 import { Bill } from '../types/billing';
 import { getPharmacyId } from '../config/development';

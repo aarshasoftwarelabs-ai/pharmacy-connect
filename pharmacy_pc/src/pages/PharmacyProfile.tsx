@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Building2, Phone, MapPin, Mail, Clock, Award, Shield, FileText, IndianRupee, Loader2, AlertCircle, Edit, Save, X, CheckCircle2, XCircle } from 'lucide-react';
 import { PharmacyService, PharmacyProfile as IPharmacyProfile } from '../services/pharmacyService';
 import { MedicineRequestService } from '../services/medicineRequestService';
@@ -170,8 +170,8 @@ export default function PharmacyProfile() {
 
         const [profData, reqData, billsData] = await Promise.all([
           PharmacyService.getPharmacyProfile(actualPharmacyId).catch(() => null),
-          MedicineRequestService.getPharmacyRequests(actualPharmacyId),
-          BillingService.getPharmacyBills(actualPharmacyId)
+          MedicineRequestService.getPharmacyRequests(actualPharmacyId).catch(() => []),
+          BillingService.getPharmacyBills(actualPharmacyId).catch(() => [])
         ]);
         
         // Merge server data with local cache (server takes precedence)

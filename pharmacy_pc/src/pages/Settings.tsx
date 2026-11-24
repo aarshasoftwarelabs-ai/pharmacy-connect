@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import { PharmacyService } from '../services/pharmacyService';
 import { PaymentService } from '../services/paymentService';
 import { BillingService } from '../services/billingService';
@@ -11,7 +10,6 @@ import {
   Printer, 
   Volume2,
   CheckCircle2,
-  Save,
   Crown,
   CreditCard,
   Sparkles,
@@ -71,7 +69,6 @@ export default function Settings() {
     return init;
   });
   const [isSaved, setIsSaved] = useState(false);
-  const [paidCount, setPaidCount] = useState<number>(0);
   const [isEarlyAdopter, setIsEarlyAdopter] = useState<boolean>(true); // default true before load
   const [spotsLeft, setSpotsLeft] = useState<number>(3);
   const [profile, setProfile] = useState<any>(null);
@@ -153,13 +150,11 @@ export default function Settings() {
 
   // Automated WhatsApp & SMS Messaging Gateway states
   const [msgSettings, setMsgSettings] = useState<MessagingSettings | null>(null);
-  const [isLoadingMsg, setIsLoadingMsg] = useState<boolean>(false);
   const [msgLogs, setMsgLogs] = useState<MessageLogItem[]>([]);
   const [showLogsModal, setShowLogsModal] = useState<boolean>(false);
   const [isLoadingLogs, setIsLoadingLogs] = useState<boolean>(false);
 
   const fetchMessagingSettings = async () => {
-    setIsLoadingMsg(true);
     // Initial populate from localStorage for instant display
     const cached = localStorage.getItem('pharmacy_messaging_settings');
     if (cached) {
@@ -184,8 +179,6 @@ export default function Settings() {
           isActive: true
         });
       }
-    } finally {
-      setIsLoadingMsg(false);
     }
   };
 
@@ -249,7 +242,6 @@ export default function Settings() {
       try {
         const stats = await PharmacyService.getSubscriptionStats();
         const count = stats.paidCount;
-        setPaidCount(count);
         setIsEarlyAdopter(count < 20);
         setSpotsLeft(Math.max(0, 20 - count));
       } catch (e) {

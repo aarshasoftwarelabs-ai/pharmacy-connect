@@ -47,7 +47,7 @@ export class MessagingController {
   /**
    * Send a test WhatsApp message
    */
-  static async sendTestMessage(req: Request, res: Response, next: NextFunction) {
+  static async sendTestMessage(req: Request, res: Response, _next: NextFunction) {
     try {
       const pharmacyId = (req as any).user?.pharmacyId || Number(req.body.pharmacyId) || 1;
       const { phone } = req.body;

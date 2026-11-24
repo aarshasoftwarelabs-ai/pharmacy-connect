@@ -1,24 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Scale, 
   Search, 
   Printer, 
   Plus, 
-  Calendar, 
   ShieldCheck, 
   FileText, 
   User, 
   Stethoscope, 
   Pill, 
-  Building2, 
   CheckCircle2, 
-  AlertTriangle,
   RefreshCw,
-  X,
-  Clock,
-  ArrowUpRight
+  X
 } from 'lucide-react';
-import { ScheduleH1Service, ScheduleH1Entry, ScheduleH1Stats, isScheduleH1MedicineName } from '../services/scheduleH1Service';
+import { ScheduleH1Service, ScheduleH1Entry, ScheduleH1Stats } from '../services/scheduleH1Service';
 import { PharmacyService, PharmacyProfile } from '../services/pharmacyService';
 import { getPharmacyId } from '../config/development';
 
@@ -43,7 +38,7 @@ export default function ScheduleH1Register() {
   const [newGeneric, setNewGeneric] = useState('');
   const [newBatch, setNewBatch] = useState('');
   const [newQty, setNewQty] = useState<number>(10);
-  const [newUnit, setNewUnit] = useState('Strip');
+  const newUnit = 'Strip';
   const [newSupplyDate, setNewSupplyDate] = useState(new Date().toISOString().split('T')[0]);
   const [savingManual, setSavingManual] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -210,6 +205,12 @@ export default function ScheduleH1Register() {
           </button>
         </div>
       </div>
+
+      {errorMsg && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold">
+          {errorMsg}
+        </div>
+      )}
 
       {successToast && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-2">

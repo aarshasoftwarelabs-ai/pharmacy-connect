@@ -4,9 +4,10 @@ import crypto from 'crypto';
 import { env } from '../config/env';
 
 // Initialize Razorpay
+const razorpaySecret = env.RAZORPAY_KEY_SECRET || 'QOZE9mshfcjYJ9h3cU6uNIsC';
 const razorpay = new Razorpay({
-  key_id: 'rzp_live_Tj0ccml38XqvgQ',
-  key_secret: 'QOZE9mshfcjYJ9h3cU6uNIsC'
+  key_id: env.RAZORPAY_KEY_ID || 'rzp_live_Tj0ccml38XqvgQ',
+  key_secret: razorpaySecret
 });
 
 /**
@@ -59,7 +60,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 
     const expectedSignature = crypto
-      .createHmac('sha256', 'QOZE9mshfcjYJ9h3cU6uNIsC')
+      .createHmac('sha256', razorpaySecret)
       .update(body.toString())
       .digest('hex');
 

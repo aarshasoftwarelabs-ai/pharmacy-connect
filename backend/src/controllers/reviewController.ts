@@ -3,7 +3,7 @@ import pool from '../config/database';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 export const reviewController = {
-  getPublicReviews: async (req: Request, res: Response) => {
+  getPublicReviews: async (_req: Request, res: Response) => {
     try {
       const result = await pool.query(`
         SELECT r.*, p.name as pharmacy_name 

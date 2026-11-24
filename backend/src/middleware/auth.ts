@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import pool from '../config/database';
 import { env } from '../config/env';
-import { sendSecurityAlertEmail } from '../services/emailService';
 
 const JWT_SECRET = env.JWT_SECRET as string;
 

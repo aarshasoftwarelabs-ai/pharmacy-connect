@@ -66,11 +66,24 @@ export class BillingController {
         customer_name,
         customerPhone, 
         customer_phone,
+        doctorName,
+        doctor_name,
         billType, 
         bill_type,
         subtotal, 
         discount, 
-        total, 
+        total,
+        totalTaxableAmount,
+        total_taxable_amount,
+        totalCgst,
+        total_cgst,
+        totalSgst,
+        total_sgst,
+        totalIgst,
+        total_igst,
+        totalGst,
+        total_gst,
+        tax,
         items 
       } = req.body;
 
@@ -83,10 +96,16 @@ export class BillingController {
 
       const resolvedCustomerName = (customerName || customer_name || 'Walk-in Customer').trim();
       const resolvedCustomerPhone = (customerPhone || customer_phone || '').trim();
+      const resolvedDoctorName = (doctorName || doctor_name || '').trim() || undefined;
       const resolvedBillType = billType || bill_type || (medicineRequestId ? 'ONLINE' : 'OFFLINE');
       const resolvedSubtotal = Math.max(0, Number(subtotal ?? 0));
       const resolvedDiscount = Math.max(0, Number(discount ?? 0));
       const resolvedTotal = Math.max(0, Number(total ?? 0));
+      const resolvedTotalGst = Math.max(0, Number(totalGst ?? total_gst ?? tax ?? 0));
+      const resolvedTotalTaxable = Math.max(0, Number(totalTaxableAmount ?? total_taxable_amount ?? 0));
+      const resolvedTotalCgst = Math.max(0, Number(totalCgst ?? total_cgst ?? 0));
+      const resolvedTotalSgst = Math.max(0, Number(totalSgst ?? total_sgst ?? 0));
+      const resolvedTotalIgst = Math.max(0, Number(totalIgst ?? total_igst ?? 0));
 
       const normalizedItems = rawItems.map((item: any) => ({
         medicineName: item.medicineName || item.medicine_name || item.name || 'Medicine',
@@ -99,7 +118,10 @@ export class BillingController {
         taxableAmount: Number(item.taxableAmount ?? item.taxable_amount ?? 0),
         cgst: Number(item.cgst ?? 0),
         sgst: Number(item.sgst ?? 0),
-        igst: Number(item.igst ?? 0)
+        igst: Number(item.igst ?? 0),
+        isLooseTablet: Boolean(item.isLooseTablet ?? item.is_loose_tablet ?? false),
+        packCount: item.packCount ?? item.pack_count ? Number(item.packCount ?? item.pack_count) : undefined,
+        packSize: item.packSize ?? item.pack_size
       }));
 
       const result = await BillingService.createBill({
@@ -108,10 +130,16 @@ export class BillingController {
         pharmacyId: Number(pharmacyId),
         customerName: resolvedCustomerName,
         customerPhone: resolvedCustomerPhone,
+        doctorName: resolvedDoctorName,
         billType: resolvedBillType,
         subtotal: resolvedSubtotal,
         discount: resolvedDiscount,
         total: resolvedTotal,
+        totalTaxableAmount: resolvedTotalTaxable,
+        totalCgst: resolvedTotalCgst,
+        totalSgst: resolvedTotalSgst,
+        totalIgst: resolvedTotalIgst,
+        totalGst: resolvedTotalGst,
         items: normalizedItems
       });
 
@@ -328,14 +356,11 @@ If any field cannot be found, use null or 0.`;
         scannedBy: scannedBy || 'Mobile Staff/Owner'
       });
 
-      // Instantly broadcast via Socket.io to PC POS
+      // Instantly broadcast via Socket.io to the target pharmacy's PC POS room
       try {
         const io = getIo();
         if (io) {
           io.to(`pharmacy_${pharmacyId}`).emit('mobile_item_scanned', scanItem);
-          io.to('pharmacy_8').emit('mobile_item_scanned', scanItem);
-          io.to('pharmacy_1').emit('mobile_item_scanned', scanItem);
-          io.emit('mobile_item_scanned', scanItem); // Global broadcast fallback
         }
       } catch (err) {
         console.error('Socket broadcast error:', err);

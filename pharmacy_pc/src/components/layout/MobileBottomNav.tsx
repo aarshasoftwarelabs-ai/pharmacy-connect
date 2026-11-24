@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Package, 
   Receipt, 
-  ShoppingCart, 
   MoreHorizontal, 
   X, 
-  Inbox, 
   FileText, 
   Building2, 
   Truck, 
@@ -41,6 +39,7 @@ export default function MobileBottomNav() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('pharmacy_profile_data');
+    window.dispatchEvent(new Event('auth_updated'));
     setShowLogoutConfirm(false);
     setIsMoreOpen(false);
     navigate('/login');
@@ -116,9 +115,9 @@ export default function MobileBottomNav() {
             </button>
           </div>
 
-          {/* 4. Orders / Requests */}
+          {/* 4. Reports */}
           <NavLink
-            to="/orders"
+            to="/reports"
             className={({ isActive }) =>
               `flex flex-col items-center justify-center flex-1 py-1 px-1 transition-all rounded-xl ${
                 isActive 
@@ -127,10 +126,10 @@ export default function MobileBottomNav() {
               }`
             }
           >
-            <div className={`p-1 rounded-xl transition-all ${currentPath.includes('orders') ? 'bg-pharmacy-50 text-pharmacy-600' : ''}`}>
-              <ShoppingCart className="w-5 h-5" />
+            <div className={`p-1 rounded-xl transition-all ${currentPath.includes('reports') ? 'bg-pharmacy-50 text-pharmacy-600' : ''}`}>
+              <BarChart3 className="w-5 h-5" />
             </div>
-            <span className="text-[11px] tracking-tight mt-0.5">Orders</span>
+            <span className="text-[11px] tracking-tight mt-0.5">Reports</span>
           </NavLink>
 
           {/* 5. More Menu Drawer Trigger */}

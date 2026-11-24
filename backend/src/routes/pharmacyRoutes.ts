@@ -26,7 +26,7 @@ router.post('/:id/subscription', (req, res, next) => {
   const user = (req as any).user;
   if (!user) return res.status(401).json({ success: false, message: 'Authentication required' });
   const role = (user.role || '').toUpperCase();
-  if (role === 'OWNER' || role === 'ADMIN' || user.pharmacyId === pharmacyId) {
+  if (role === 'ADMIN' || (user.pharmacyId === pharmacyId && (role === 'OWNER' || !user.isStaff))) {
     return next();
   }
   return requirePermission('SETTINGS_EDIT')(req as any, res, next);

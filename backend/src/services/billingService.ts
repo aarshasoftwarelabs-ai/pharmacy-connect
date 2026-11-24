@@ -178,10 +178,15 @@ export class BillingService {
         }
       }
 
-      // 2. Generate a unique bill number (PC-YYYY-XXXXXX)
+      // 2. Generate a collision-safe unique bill number (PC-YYYY-XXXXXX)
       const year = new Date().getFullYear();
-      const countQuery = await client.query(`SELECT COUNT(*) FROM bills WHERE EXTRACT(YEAR FROM created_at) = $1`, [year]);
-      const nextNum = parseInt(countQuery.rows[0].count, 10) + 1;
+      const maxSeqQuery = await client.query(
+        `SELECT COALESCE(MAX(SPLIT_PART(bill_number, '-', 3)::INTEGER), 0) AS max_num
+         FROM bills
+         WHERE bill_number ~ $1`,
+        [`^PC-${year}-[0-9]+$`]
+      );
+      const nextNum = parseInt(maxSeqQuery.rows[0].max_num, 10) + 1;
       const billNumber = `PC-${year}-${nextNum.toString().padStart(6, '0')}`;
 
       // 2.5 Link or Create Customer Profile & Resolve Phone
@@ -253,6 +258,7 @@ export class BillingService {
         // Fetch current purchase price and stock from DB (by ID, Barcode, or Name)
         const medIdParam = item.medicineId ? String(item.medicineId) : '';
         const barcodeParam = item.barcode ? String(item.barcode).trim() : '';
+        const baseMedicineName = item.medicineName.replace(/\s*\(Loose\s+\d+\s+Tabs?\)$/i, '').trim();
         
         let medResult = await client.query(
           `SELECT id, purchase_price, current_stock, selling_price, barcode 
@@ -260,11 +266,12 @@ export class BillingService {
            WHERE pharmacy_id = $1 AND (
              (id::text = $2) OR
              ($3 <> '' AND barcode = $3) OR
-             (LOWER(TRIM(name)) = LOWER(TRIM($4)))
+             (LOWER(TRIM(name)) = LOWER(TRIM($4))) OR
+             (LOWER(TRIM(name)) = LOWER(TRIM($5)))
            ) 
            FOR UPDATE 
            LIMIT 1`,
-          [data.pharmacyId, medIdParam, barcodeParam, item.medicineName]
+          [data.pharmacyId, medIdParam, barcodeParam, item.medicineName, baseMedicineName]
         );
 
         let medId: number;
@@ -469,13 +476,13 @@ export class BillingService {
             remainingToDeduct = 0;
         }
 
-        // Deduct medicine current_stock
+        // Deduct medicine current_stock (strip-equivalent units for loose tablets)
         const updateStockQuery = `
           UPDATE medicines
           SET current_stock = GREATEST(current_stock - $1, 0)
           WHERE id = $2 AND pharmacy_id = $3
         `;
-        await client.query(updateStockQuery, [item.quantity, medId, data.pharmacyId]);
+        await client.query(updateStockQuery, [deductStripUnits, medId, data.pharmacyId]);
       }
 
       // 5. Update total_profit on the bill

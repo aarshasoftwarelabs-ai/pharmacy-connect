@@ -33,12 +33,13 @@ export const apiFetch = async (url: string, options: RequestInit = {}) => {
   });
 
   if (response.status === 401) {
-    // Clear invalid auth state and redirect to login
+    // Clear invalid auth state and redirect to login (HashRouter compatible)
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('pharmacy_profile_data');
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
+    window.dispatchEvent(new Event('auth_updated'));
+    if (!window.location.hash.includes('#/login')) {
+      window.location.hash = '#/login';
     }
   }
 

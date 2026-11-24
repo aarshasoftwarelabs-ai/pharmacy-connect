@@ -6,15 +6,11 @@ import {
   CheckSquare, 
   Square, 
   Printer, 
-  Plus, 
   FileText, 
   Search, 
-  ArrowRight, 
   RotateCcw, 
   Loader2, 
-  IndianRupee, 
   CheckCircle2, 
-  Store,
   X
 } from 'lucide-react';
 import { 
@@ -282,6 +278,13 @@ export default function ExpiryReturnModule({ fallbackMedicines = [], onStockUpda
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 text-red-800 border border-red-200 rounded-xl flex items-center shadow-sm">
+          <AlertTriangle className="w-5 h-5 mr-2 text-red-600 shrink-0" />
+          <span className="font-bold text-sm">{error}</span>
+        </div>
+      )}
 
       {successMessage && (
         <div className="p-4 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl flex items-center shadow-sm">

@@ -1,8 +1,6 @@
 import { app, BrowserWindow, dialog, shell, ipcMain, nativeImage } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn, fork, ChildProcess } from 'node:child_process';
-import fs from 'node:fs';
 
 // Set Application User Model ID on Windows for custom taskbar icon & notifications
 if (process.platform === 'win32') {

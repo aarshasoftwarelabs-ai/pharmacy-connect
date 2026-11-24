@@ -8,14 +8,11 @@ import {
   Sparkles, 
   CheckCircle, 
   AlertCircle, 
-  Clock, 
   Loader2, 
   Package, 
-  ShieldCheck,
   Copy,
   Check,
-  Barcode as BarcodeIcon,
-  IndianRupee
+  Barcode as BarcodeIcon
 } from 'lucide-react';
 import { Medicine } from '../../types/medicine';
 import { BatchService, BatchItem } from '../../services/batchService';

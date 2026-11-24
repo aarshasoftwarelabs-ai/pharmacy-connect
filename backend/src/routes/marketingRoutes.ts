@@ -1,7 +1,6 @@
 import express from 'express';
 import pool from '../config/database';
-import { authenticate } from '../middleware/auth';
-import { requirePermission } from '../middleware/requirePermission';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -41,16 +40,17 @@ router.post('/offers/:pharmacyId', async (req, res) => {
 });
 
 // UPDATE offer
-router.put('/offers/:id', async (req, res) => {
+router.put('/offers/:id', async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
+  const pharmacyId = req.user!.pharmacyId;
   const { title, description, coupon_code, discount_percentage, max_discount_amount, min_order_value, valid_from, valid_until, is_active } = req.body;
   
   try {
     const result = await pool.query(
       `UPDATE offers 
        SET title=$1, description=$2, coupon_code=$3, discount_percentage=$4, max_discount_amount=$5, min_order_value=$6, valid_from=$7, valid_until=$8, is_active=$9, updated_at=CURRENT_TIMESTAMP
-       WHERE id = $10 RETURNING *`,
-      [title, description, coupon_code, discount_percentage, max_discount_amount, min_order_value, valid_from, valid_until, is_active, id]
+       WHERE id = $10 AND pharmacy_id = $11 RETURNING *`,
+      [title, description, coupon_code, discount_percentage, max_discount_amount, min_order_value, valid_from, valid_until, is_active, id, pharmacyId]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Offer not found' });
     res.json(result.rows[0]);
@@ -61,10 +61,12 @@ router.put('/offers/:id', async (req, res) => {
 });
 
 // DELETE offer
-router.delete('/offers/:id', async (req, res) => {
+router.delete('/offers/:id', async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
+  const pharmacyId = req.user!.pharmacyId;
   try {
-    await pool.query('DELETE FROM offers WHERE id = $1', [id]);
+    const result = await pool.query('DELETE FROM offers WHERE id = $1 AND pharmacy_id = $2 RETURNING id', [id, pharmacyId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Offer not found' });
     res.json({ message: 'Offer deleted successfully' });
   } catch (error) {
     console.error('Error deleting offer:', error);

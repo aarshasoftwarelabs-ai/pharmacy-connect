@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Loader2, AlertCircle, Users, UserPlus, UserCheck } from 'lucide-react';
 import { ReportService, ReportDateRange, CustomerReportData } from '../../services/reportService';
 import { getPharmacyId } from '../../config/development';

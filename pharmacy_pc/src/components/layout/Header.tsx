@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, UserCircle, ChevronDown, Menu, ShoppingCart, Pill, Info, CheckCircle2, PanelLeft, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Bell, UserCircle, Menu, ShoppingCart, Pill, Info, CheckCircle2, PanelLeft, WifiOff, RefreshCw } from 'lucide-react';
 import { PharmacyService } from '../../services/pharmacyService';
 import { NotificationService, Notification } from '../../services/notificationService';
 import { getPharmacyId } from '../../config/development';
@@ -55,7 +55,7 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
     fetchNotifications();
 
     // Listen to real-time events from DashboardLayout
-    const handleAppNotification = (e: any) => {
+    const handleAppNotification = () => {
       // Just re-fetch notifications when a real-time event hits
       fetchNotifications();
     };

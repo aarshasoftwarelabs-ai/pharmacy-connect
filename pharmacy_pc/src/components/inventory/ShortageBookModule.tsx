@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   BookOpen, 
   Search, 
@@ -10,7 +10,6 @@ import {
   ArrowUpRight,
   TrendingDown,
   Building2,
-  Copy,
   Check
 } from 'lucide-react';
 import { Medicine } from '../../types/medicine';
@@ -20,14 +19,12 @@ interface ShortageBookModuleProps {
   medicines: Medicine[];
   distributors: Distributor[];
   pharmacyName?: string;
-  onRefresh?: () => void;
 }
 
 export default function ShortageBookModule({ 
   medicines = [], 
   distributors = [], 
-  pharmacyName = 'My Pharmacy',
-  onRefresh
+  pharmacyName = 'My Pharmacy'
 }: ShortageBookModuleProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'OUT_OF_STOCK' | 'CRITICAL'>('ALL');

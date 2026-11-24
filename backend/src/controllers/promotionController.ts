@@ -5,7 +5,7 @@ export class PromotionController {
   /**
    * Get all active sponsored banners for mobile/PC apps
    */
-  static async getActiveBanners(req: Request, res: Response, next: NextFunction) {
+  static async getActiveBanners(_req: Request, res: Response, next: NextFunction) {
     try {
       const query = `
         SELECT 
@@ -33,7 +33,7 @@ export class PromotionController {
   /**
    * Get all banners including inactive ones for Admin management
    */
-  static async getAllBanners(req: Request, res: Response, next: NextFunction) {
+  static async getAllBanners(_req: Request, res: Response, next: NextFunction) {
     try {
       const query = `
         SELECT 

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Download, Printer, FileText, MessageCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, Printer, FileText, MessageCircle } from 'lucide-react';
 import { Bill } from '../../types/billing';
 import { printBill } from '../../utils/printUtils';
 import { sendWhatsAppBill } from '../../utils/whatsappUtils';

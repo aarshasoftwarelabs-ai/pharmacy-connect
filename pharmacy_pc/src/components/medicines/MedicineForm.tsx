@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Medicine } from '../../types/medicine';
 import { MEDICINE_CATEGORIES } from '../../constants/medicine';
-import { X, Save, Sparkles, Wand2, Loader2, Image as ImageIcon, ChevronDown, Barcode, Scan } from 'lucide-react';
+import { X, Save, Sparkles, Wand2, Loader2, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import ModernDatePicker from '../ui/ModernDatePicker';
 import { lookupMedicineByBarcode } from '../../services/medicineService';
 

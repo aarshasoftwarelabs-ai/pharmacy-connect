@@ -276,7 +276,7 @@ export class PurchaseController {
     }
   }
 
-  static async cancelPurchase(req: AuthenticatedRequest, res: Response) {
+  static async cancelPurchase(_req: AuthenticatedRequest, res: Response) {
     // Left empty, or basic soft delete.
     // The prompt says POST /cancel but also says do not implement dangerous logic.
     res.status(501).json({ success: false, message: 'Cancel purchase not fully implemented in Step 2' });

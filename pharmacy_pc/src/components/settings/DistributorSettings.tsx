@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Truck, Plus, Mail, MessageCircle, MoreVertical, Edit2, Trash2, X, MapPin } from 'lucide-react';
+import { Truck, Plus, Mail, MessageCircle, Edit2, Trash2, X, MapPin } from 'lucide-react';
 import { Distributor, fetchDistributors, createDistributor, updateDistributor, deleteDistributor } from '../../services/distributorService';
 
 export default function DistributorSettings() {

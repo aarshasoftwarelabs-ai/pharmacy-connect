@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { ReportService, ReportDateRange } from '../services/reportService';
-import { ApiError } from '../middleware/errorHandler';
 
 const extractDateRange = (req: Request): ReportDateRange => {
   return {

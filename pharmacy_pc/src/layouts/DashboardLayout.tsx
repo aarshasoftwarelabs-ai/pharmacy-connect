@@ -16,11 +16,9 @@ export default function DashboardLayout() {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path.includes('dashboard')) return { title: 'Dashboard', subtitle: 'Manage your pharmacy operations from one place.' };
-    if (path.includes('medicine-requests')) return { title: 'Medicine Requests', subtitle: 'Review and respond to customer requests.' };
-    if (path.includes('orders')) return { title: 'Orders', subtitle: 'Manage and track customer orders.' };
     if (path.includes('inventory')) return { title: 'Smart Inventory', subtitle: 'AI-powered insights to optimize your pharmacy inventory.' };
-    if (path.includes('medicines')) return { title: 'Medicine Catalogue', subtitle: 'Manage your medicine inventory and pricing.' };
-    if (path.includes('inventory')) return { title: 'Inventory', subtitle: 'Track stock levels and updates.' };
+    if (path.includes('suppliers')) return { title: 'Suppliers', subtitle: 'Manage your wholesale stockists and suppliers.' };
+    if (path.includes('purchases')) return { title: 'Purchases', subtitle: 'Record and track purchase invoices and stock inward.' };
     if (path.includes('customers')) return { title: 'Customers', subtitle: 'View customer information and history.' };
     if (path.includes('prescriptions')) return { title: 'Prescriptions', subtitle: 'Manage customer uploaded prescriptions.' };
     if (path.includes('billing')) return { title: 'Billing', subtitle: 'Generate and manage invoices.' };
@@ -28,6 +26,7 @@ export default function DashboardLayout() {
     if (path.includes('reports')) return { title: 'Reports', subtitle: 'View sales and order reports.' };
     if (path.includes('pharmacy-profile')) return { title: 'Pharmacy Profile', subtitle: 'Manage your business settings.' };
     if (path.includes('settings')) return { title: 'Settings', subtitle: 'Manage your preferences and configurations.' };
+    if (path.includes('help-support')) return { title: 'Help & Support', subtitle: 'Get assistance and share your feedback.' };
     return { title: 'DavaSetu', subtitle: '' };
   };
 
@@ -272,11 +271,11 @@ export default function DashboardLayout() {
               <button 
                 onClick={() => {
                   setNotification(null);
-                  navigate('/medicine-requests');
+                  navigate('/prescriptions');
                 }}
                 className="text-xs font-bold text-pharmacy-600 mt-2 hover:underline"
               >
-                View Request
+                View Details
               </button>
             </div>
             <button onClick={() => setNotification(null)} className="ml-2 text-slate-400 hover:text-slate-600">

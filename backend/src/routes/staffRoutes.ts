@@ -1,15 +1,9 @@
 import express from 'express';
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
-import path from 'path';
+import pool from '../config/database';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { requirePermission } from '../middleware/requirePermission';
 
-dotenv.config({ path: path.join(__dirname, '../../../.env') });
-
 const router = express.Router();
-
-import pool from '../config/database';
 
 router.use(authenticate);
 
@@ -74,10 +68,13 @@ router.put('/:id', requirePermission('STAFF_EDIT'), async (req: AuthenticatedReq
   const pharmacyId = req.user!.pharmacyId;
   const { name, phone, email, role, pin, is_active } = req.body;
   try {
+    const cleanName = (name || '').trim();
+    const firstName = cleanName.split(' ')[0] || 'Staff';
+    const lastName = cleanName.split(' ').slice(1).join(' ') || 'Member';
     // Only update if it belongs to the same pharmacy
     const result = await pool.query(
-      'UPDATE staff_members SET name = $1, phone = $2, email = $3, role = $4, pin = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 AND pharmacy_id = $8 RETURNING id, name, phone, email, role, pin, is_active, created_at',
-      [name, phone, email, role, pin, is_active, id, pharmacyId]
+      'UPDATE staff_members SET name = $1, first_name = $2, last_name = $3, phone = $4, email = $5, role = $6, pin = $7, is_active = $8, updated_at = CURRENT_TIMESTAMP WHERE id = $9 AND pharmacy_id = $10 RETURNING id, name, phone, email, role, pin, is_active, created_at',
+      [cleanName || name, firstName, lastName, phone, email, role, pin, is_active, id, pharmacyId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Staff member not found or unauthorized' });

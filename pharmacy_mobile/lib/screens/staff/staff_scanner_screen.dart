@@ -1076,15 +1076,32 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               ? null
                               : () async {
                                   billing.setCustomerInfo(name: customerCtrl.text, phone: phoneCtrl.text);
+                                  final itemsToDeduct = billing.cartItems
+                                      .map((item) => MapEntry(
+                                            item.medicine.id,
+                                            item.isLooseTablet
+                                                ? (item.quantity / item.packCount).ceil().clamp(1, item.quantity)
+                                                : item.quantity,
+                                          ))
+                                      .toList();
                                   final ok = await billing.processCheckout();
-                                  if (context.mounted && ok) {
-                                    // Deduct stock in real-time
-                                    for (final item in billing.cartItems) {
-                                      inventory.updateStockLocal(item.medicine.id, item.quantity);
+                                  if (context.mounted) {
+                                    if (ok) {
+                                      // Deduct stock in real-time
+                                      for (final entry in itemsToDeduct) {
+                                        inventory.updateStockLocal(entry.key, entry.value);
+                                      }
+                                      Navigator.pop(ctx);
+                                      HapticFeedback.mediumImpact();
+                                      _showBillSuccessDialog(billing.lastBill);
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          backgroundColor: AppColors.error,
+                                          content: Text(billing.errorMessage ?? 'Checkout failed'),
+                                        ),
+                                      );
                                     }
-                                    Navigator.pop(ctx);
-                                    HapticFeedback.mediumImpact();
-                                    _showBillSuccessDialog(billing.lastBill);
                                   }
                                 },
                           style: ElevatedButton.styleFrom(

@@ -7,12 +7,12 @@ import { checkDatabaseHealth } from '../config/database';
 const router = Router();
 
 // Health check endpoint
-router.get('/health', async (req, res) => {
+router.get('/health', async (_req, res) => {
   const dbHealth = await checkDatabaseHealth();
-  if (dbHealth) {
+  if (dbHealth.healthy) {
     res.status(200).json({ status: 'ok', database: 'connected' });
   } else {
-    res.status(503).json({ status: 'error', database: 'disconnected' });
+    res.status(503).json({ status: 'error', database: 'disconnected', error: dbHealth.error });
   }
 });
 

@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, BarChart3, LineChart, Sparkles, Layers, ArrowUpRight, IndianRupee, Receipt } from 'lucide-react';
+import { TrendingUp, BarChart3, LineChart, Sparkles, Layers, IndianRupee, Receipt } from 'lucide-react';
 import { Bill } from '../../types/billing';
 
 interface SalesOverviewChartProps {
@@ -88,9 +88,6 @@ export default function SalesOverviewChart({ bills, className = '' }: SalesOverv
   const formatCurrency = (val: number) => {
     return '₹' + Number(val || 0).toLocaleString('en-IN');
   };
-
-  const activeIndex = hoveredIdx !== null ? hoveredIdx : (chartData.findIndex(d => d.sales === peakDay.sales) || 6);
-  const activeItem = chartData[activeIndex];
 
   return (
     <div className={`bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-200/90 flex flex-col group hover:shadow-md transition-all relative overflow-hidden ${className}`}>
@@ -366,7 +363,6 @@ export default function SalesOverviewChart({ bills, className = '' }: SalesOverv
         <div className="absolute bottom-0 left-12 right-0 flex justify-between items-center pt-2 border-t border-slate-100">
           {chartData.map((d, i) => {
             const isHovered = hoveredIdx === i;
-            const isPeak = d.sales === peakDay.sales && peakDay.sales > 0;
 
             return (
               <div 

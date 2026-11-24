@@ -1,5 +1,4 @@
 import pool from '../config/database';
-import { ApiError } from '../middleware/errorHandler';
 
 export interface ReportDateRange {
   startDate?: string;

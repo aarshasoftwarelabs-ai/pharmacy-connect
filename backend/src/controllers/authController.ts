@@ -450,7 +450,7 @@ export class AuthController {
   // 3. Register (with verified OTP)
   static async register(req: Request, res: Response) {
     try {
-      const { phone, password, ownerName, pharmacyName, address, email, businessType } = req.body;
+      const { phone, password, ownerName, pharmacyName, address, email } = req.body;
 
       if (!phone || !password || !ownerName || !pharmacyName || !address) {
         return res.status(400).json({ success: false, message: 'All fields are required' });

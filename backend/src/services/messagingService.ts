@@ -1,5 +1,4 @@
 import pool from '../config/database';
-import { env } from '../config/env';
 
 export interface MessagingSettings {
   id?: number;

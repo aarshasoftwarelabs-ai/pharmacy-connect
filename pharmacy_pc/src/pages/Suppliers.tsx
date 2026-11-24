@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { SupplierService, Supplier } from '../services/supplierService';
 import {
   Plus, Edit2, Trash2, Search, Building2, Phone, Mail, MapPin,
-  CreditCard, FileText, CheckCircle2, AlertCircle, Copy, Check,
-  Eye, X, ShieldCheck, Calendar, DollarSign, Sparkles, Clock,
-  Landmark, ExternalLink, RefreshCw, Layers
+  CreditCard, CheckCircle2, AlertCircle, Copy, Check,
+  Eye, X, ShieldCheck, DollarSign, Sparkles, Clock,
+  Landmark, RefreshCw, Layers
 } from 'lucide-react';
 
 const REAL_STOCKIST_SAMPLES: Partial<Supplier>[] = [

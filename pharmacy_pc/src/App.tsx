@@ -2,8 +2,6 @@ import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import MedicineRequests from './pages/MedicineRequests';
-import Orders from './pages/Orders';
 
 import Customers from './pages/Customers';
 import Prescriptions from './pages/Prescriptions';
@@ -15,7 +13,6 @@ import HelpSupport from './pages/HelpSupport';
 import Inventory from './pages/Inventory';
 import Suppliers from './pages/Suppliers';
 import Purchases from './pages/Purchases';
-import Staff from './pages/Staff';
 import ScheduleH1Register from './pages/ScheduleH1Register';
 
 import { AuthProvider, useAuth } from './components/auth/AuthContext';

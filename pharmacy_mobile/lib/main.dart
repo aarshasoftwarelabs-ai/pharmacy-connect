@@ -6,7 +6,6 @@ import 'core/services/offline_sync_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/billing_provider.dart';
 import 'providers/inventory_provider.dart';
-import 'providers/promotion_provider.dart';
 import 'providers/subscription_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/navigation/main_nav_screen.dart';
@@ -30,7 +29,6 @@ class DavaSetuApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => InventoryProvider()),
         ChangeNotifierProvider(create: (_) => BillingProvider()),
-        ChangeNotifierProvider(create: (_) => PromotionProvider()),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
       ],
       child: Consumer<AuthProvider>(

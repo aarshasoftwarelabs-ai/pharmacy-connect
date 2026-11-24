@@ -17,7 +17,6 @@ class OfflineSyncService {
   private catalogKey = 'offline_medicines_catalog';
   private listeners: Set<SyncListener> = new Set();
   private isSyncing = false;
-  private syncInterval: any = null;
 
   private constructor() {
     this.initListeners();
@@ -43,7 +42,7 @@ class OfflineSyncService {
     });
 
     // Background auto-sync worker every 25 seconds
-    this.syncInterval = setInterval(() => {
+    setInterval(() => {
       if (navigator.onLine && this.getQueue().length > 0) {
         this.syncQueue();
       }

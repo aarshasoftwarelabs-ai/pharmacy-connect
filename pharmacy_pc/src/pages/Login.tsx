@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound, Mail, Sparkles, Clipboard, Copy } from 'lucide-react';
+import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound, Mail, Sparkles, Clipboard } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import OtpVerificationAnimation from '../components/auth/OtpVerificationAnimation';
 
@@ -180,6 +180,7 @@ export default function Login() {
           localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
         }
         localStorage.setItem('business_type', businessType);
+        window.dispatchEvent(new Event('auth_updated'));
         
         setIsRedirecting(true);
         setTimeout(() => {
@@ -215,6 +216,7 @@ export default function Login() {
           localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
         }
         localStorage.setItem('business_type', businessType);
+        window.dispatchEvent(new Event('auth_updated'));
         
         setIsRedirecting(true);
         setTimeout(() => {
@@ -272,6 +274,7 @@ export default function Login() {
               localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
             }
             localStorage.setItem('business_type', businessType);
+        window.dispatchEvent(new Event('auth_updated'));
             setIsRedirecting(true);
             setTimeout(() => {
               navigate('/dashboard');
@@ -352,6 +355,7 @@ export default function Login() {
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
         localStorage.setItem('business_type', businessType);
+        window.dispatchEvent(new Event('auth_updated'));
         
         setIsRedirecting(true);
         setTimeout(() => {

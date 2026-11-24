@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { MedicineService } from '../services/medicineService';
 import { ReportService } from '../services/reportService';
-import { ApiError } from '../middleware/errorHandler';
 
 export class MedicineController {
   static async getMedicines(req: Request, res: Response, next: NextFunction) {
