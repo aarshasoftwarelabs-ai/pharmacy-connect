@@ -107,9 +107,11 @@ export const ensureSchema = async () => {
         notes TEXT,
         status VARCHAR(50) DEFAULT 'ACTIVE',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (pharmacy_id, supplier_name)
       );
       CREATE INDEX IF NOT EXISTS idx_suppliers_pharmacy ON suppliers(pharmacy_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS unq_supplier_name_pharmacy ON suppliers(pharmacy_id, supplier_name);
     `);
 
     // 4. Delivery assignment columns on bills
@@ -430,6 +432,7 @@ export const ensureSchema = async () => {
         ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS branch_name VARCHAR(100);
         ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS upi_id VARCHAR(100);
         ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS deals_in_brands TEXT;
+        CREATE UNIQUE INDEX IF NOT EXISTS unq_supplier_name_pharmacy ON suppliers(pharmacy_id, supplier_name);
       `);
 
       // Seed real, authentic DavaSetu pharma distributor records for pharmacies
