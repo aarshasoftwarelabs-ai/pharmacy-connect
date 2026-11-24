@@ -179,15 +179,18 @@ export class MessagingService {
     const isCloud = !!(data.whatsappAccessToken && data.whatsappPhoneNumberId);
     const resolvedGateway = isCloud ? 'WHATSAPP_CLOUD' : (data.gatewayProvider || 'SIMULATED');
 
+    const resolvedIsActive = data.isActive !== undefined ? Boolean(data.isActive) : (data.autoSendBillWhatsapp !== undefined ? Boolean(data.autoSendBillWhatsapp) : true);
+    const resolvedAutoSend = data.autoSendBillWhatsapp !== undefined ? Boolean(data.autoSendBillWhatsapp) : resolvedIsActive;
+
     const values = [
       pharmacyId,
-      data.autoSendBillWhatsapp !== undefined ? data.autoSendBillWhatsapp : true,
+      resolvedAutoSend,
       resolvedGateway,
       data.whatsappPhoneNumberId || '',
       data.whatsappAccessToken || '',
       data.whatsappTemplateName || 'bill_invoice',
       data.customWhatsappTemplate || null,
-      data.isActive !== undefined ? data.isActive : true
+      resolvedIsActive
     ];
 
     try {

@@ -13,7 +13,23 @@ interface Props {
 }
 
 export default function ReceiptAnimation({ bill, onClose }: Props) {
-  const [stage, setStage] = useState<'printing' | 'ready'>('printing');
+  // Check if auto-print receipt is explicitly enabled in Settings
+  const isAutoPrintActive = () => {
+    try {
+      const saved = localStorage.getItem('auto_print_receipt');
+      if (saved !== null) return saved === 'true';
+      const appSettings = localStorage.getItem('pharmacy_app_settings');
+      if (appSettings) {
+        const parsed = JSON.parse(appSettings);
+        return parsed.autoPrintReceipts === true;
+      }
+    } catch (_) {}
+    return false;
+  };
+
+  const autoPrintEnabled = isAutoPrintActive();
+  // When Auto-Print is OFF, immediately be 'ready' (no fake printing animation or delay)
+  const [stage, setStage] = useState<'printing' | 'ready'>(() => autoPrintEnabled ? 'printing' : 'ready');
   const [printFormat, setPrintFormat] = useState<'A4' | 'THERMAL_80MM' | 'THERMAL_58MM'>(() => {
     const defaultFormat = localStorage.getItem('default_printer_format');
     if (defaultFormat === 'THERMAL_58MM') return 'THERMAL_58MM';
@@ -44,19 +60,17 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
       })
       .catch(() => {});
 
-    const timer = setTimeout(() => {
-      setStage('ready');
-
-      // Auto-print receipt if enabled in settings
-      const autoPrint = localStorage.getItem('auto_print_receipt') === 'true';
-      if (autoPrint) {
+    // Only run printing timer and auto-print call if Auto-Print toggle is ON
+    if (autoPrintEnabled) {
+      const timer = setTimeout(() => {
+        setStage('ready');
         setTimeout(() => {
           printBill(bill, printFormat, pharmacyName, ownerName);
         }, 300);
-      }
-    }, 1800); // 1.8s animation
-    return () => clearTimeout(timer);
-  }, []);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrintEnabled]);
 
   const isThermal = printFormat === 'THERMAL_80MM' || printFormat === 'THERMAL_58MM';
 
@@ -71,7 +85,7 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
               
               {/* Receipt Wrapper */}
               <div className="w-56 h-[300px] overflow-hidden relative z-10 bg-transparent flex justify-center">
-                 <div className="w-full bg-white shadow-lg border border-slate-200 p-4 absolute top-0" style={{ animation: 'printSlideDown 1.2s ease-out forwards' }}>
+                 <div className="w-full bg-white shadow-lg border border-slate-200 p-4 absolute top-0" style={{ animation: autoPrintEnabled ? 'printSlideDown 1.2s ease-out forwards' : 'none' }}>
                     <div className="text-center mb-3">
                       <h4 className="font-bold text-slate-900 text-lg leading-tight">{pharmacyName}</h4>
                       <p className="text-xs text-slate-500 font-mono mt-1">{bill.billNumber}</p>
@@ -193,14 +207,20 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
           {stage === 'printing' ? (
              <div className="flex items-center text-indigo-600 animate-pulse mt-4">
                 <Printer className="w-5 h-5 mr-2 animate-bounce" />
-                <span className="font-medium">Processing Bill & Receipt...</span>
+                <span className="font-medium">Auto-Printing Thermal Slip...</span>
              </div>
           ) : (
                 <div className="flex flex-col items-center w-full animate-fade-in" style={{ animation: 'fadeIn 0.5s ease-out forwards' }}>
-                   <div className="flex items-center text-emerald-600 mb-3">
+                   <div className="flex items-center text-emerald-600 mb-1">
                       <CheckCircle2 className="w-5 h-5 mr-2" />
                       <span className="font-bold text-base">Bill Generated Successfully!</span>
                    </div>
+                   {!autoPrintEnabled && (
+                      <p className="text-xs text-slate-500 mb-3 flex items-center gap-1.5 font-medium">
+                        <span className="w-2 h-2 rounded-full bg-slate-400" />
+                        Auto-Print is OFF • Click "Print Slip" below if a paper slip is needed
+                      </p>
+                   )}
                    
                    {/* Format Switcher */}
                    <div className="flex bg-slate-100 p-1 rounded-xl mb-4 w-full max-w-md">

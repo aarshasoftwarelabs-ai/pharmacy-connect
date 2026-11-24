@@ -81,12 +81,25 @@ export default function DashboardLayout() {
         timestamp: new Date()
       });
 
-      if (Notification.permission === 'granted') {
-        new Notification(data.title, {
-          body: data.message,
-        });
-      } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission();
+      let pushEnabled = true;
+      try {
+        const savedSettings = localStorage.getItem('pharmacy_app_settings');
+        if (savedSettings) {
+          const parsed = JSON.parse(savedSettings);
+          if (parsed.pushNotifications !== undefined) {
+            pushEnabled = parsed.pushNotifications;
+          }
+        }
+      } catch (_) {}
+
+      if (pushEnabled) {
+        if (Notification.permission === 'granted') {
+          new Notification(data.title, {
+            body: data.message,
+          });
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission();
+        }
       }
     };
 

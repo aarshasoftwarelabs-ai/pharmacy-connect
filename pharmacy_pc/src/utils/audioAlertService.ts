@@ -136,6 +136,9 @@ class AudioAlertEngine {
 
   // Quick crisp barcode scanner beep (50ms sharp high beep at 1800Hz)
   public playBarcodeBeep() {
+    const settings = this.getSettings();
+    if (!settings.enabled) return;
+
     const ctx = this.getAudioContext();
     if (!ctx) return;
     try {
@@ -154,6 +157,9 @@ class AudioAlertEngine {
 
   // Success chime for billing complete
   public playSuccessChime() {
+    const settings = this.getSettings();
+    if (!settings.enabled) return;
+
     const ctx = this.getAudioContext();
     if (!ctx) return;
     this.playToneSequence(ctx, [
