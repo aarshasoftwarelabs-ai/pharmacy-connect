@@ -22,7 +22,16 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
   const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [items, setItems] = useState<Array<{ medicineName: string; quantity: number; unitPrice: number; hsnCode: string; gstRate: number }>>([]);
+  const [items, setItems] = useState<Array<{ 
+    medicineName: string; 
+    quantity: number; 
+    unitPrice: number; 
+    hsnCode: string; 
+    gstRate: number;
+    isLooseTablet?: boolean;
+    stripPrice?: number;
+    packCount?: number;
+  }>>([]);
   const [discount, setDiscount] = useState(0);
   const [paymentMode, setPaymentMode] = useState('CASH');
   const [catalogue, setCatalogue] = useState<Medicine[]>([]);
@@ -323,20 +332,53 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     setItems([]);
   };
 
+  const parsePackCount = (packSize?: string | number): number => {
+    if (!packSize) return 10;
+    const match = String(packSize).match(/\b(\d+)\b/);
+    return match ? (parseInt(match[1], 10) || 10) : 10;
+  };
+
+  const handleToggleLooseTablet = (index: number) => {
+    const newItems = [...items];
+    const it = newItems[index];
+    const isLoose = !it.isLooseTablet;
+    const currentPrice = it.unitPrice || 0;
+    const stripPrice = it.stripPrice ?? (it.isLooseTablet ? currentPrice * (it.packCount || 10) : currentPrice);
+    const pack = it.packCount || 10;
+    
+    it.isLooseTablet = isLoose;
+    it.stripPrice = stripPrice;
+    it.packCount = pack;
+    if (isLoose) {
+      it.unitPrice = Number((stripPrice / pack).toFixed(2));
+    } else {
+      it.unitPrice = stripPrice;
+    }
+    setItems(newItems);
+  };
+
   const handleItemChange = (index: number, field: string, value: string | number, selectedMedicine?: Medicine) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     
     // Auto-fill if medicine object is provided directly from the dropdown
     if (selectedMedicine) {
+      const pack = parsePackCount(selectedMedicine.packSize);
       newItems[index].unitPrice = selectedMedicine.sellingPrice || 0;
+      newItems[index].stripPrice = selectedMedicine.sellingPrice || 0;
+      newItems[index].packCount = pack;
+      newItems[index].isLooseTablet = false;
       newItems[index].hsnCode = selectedMedicine.hsnCode || '';
       newItems[index].gstRate = selectedMedicine.gstRate || 0;
     } else if (field === 'medicineName' && typeof value === 'string') {
       // Fallback exact match if typed manually without selecting
       const match = catalogue.find(m => m.name.toLowerCase() === value.toLowerCase());
       if (match) {
+        const pack = parsePackCount(match.packSize);
         newItems[index].unitPrice = match.sellingPrice || 0;
+        newItems[index].stripPrice = match.sellingPrice || 0;
+        newItems[index].packCount = pack;
+        newItems[index].isLooseTablet = false;
         newItems[index].hsnCode = match.hsnCode || '';
         newItems[index].gstRate = match.gstRate || 0;
       }
@@ -371,8 +413,13 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     totalSgst += sgst;
     totalGst += (cgst + sgst);
 
+    const displayName = item.isLooseTablet 
+      ? `${item.medicineName} (Loose ${item.quantity} Tab${item.quantity > 1 ? 's' : ''})`
+      : item.medicineName;
+
     return {
       ...item,
+      medicineName: displayName,
       taxableAmount,
       cgst,
       sgst,
@@ -686,6 +733,27 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                       placeholder="Medicine / Product Name"
                       className="w-full"
                     />
+                    {item.medicineName && (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleLooseTablet(index)}
+                          className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all inline-flex items-center gap-1 ${
+                            item.isLooseTablet 
+                              ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200 shadow-2xs' 
+                              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 shadow-2xs'
+                          }`}
+                          title="Click to switch between Full Strip and Loose Tablet cut"
+                        >
+                          {item.isLooseTablet ? '💊 Loose Tab' : '📦 Full Strip'}
+                        </button>
+                        {item.isLooseTablet && (
+                          <span className="text-[10px] text-amber-700 font-semibold">
+                            (₹{(item.stripPrice || (item.unitPrice * (item.packCount || 10))).toFixed(2)} / {item.packCount || 10} tabs)
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="col-span-3 xl:col-span-2">
                     <input

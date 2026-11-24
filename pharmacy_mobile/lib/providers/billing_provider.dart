@@ -137,6 +137,14 @@ class BillingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleLooseTablet(String medicineId) {
+    final index = _cartItems.indexWhere((item) => item.medicine.id == medicineId);
+    if (index >= 0) {
+      _cartItems[index].isLooseTablet = !_cartItems[index].isLooseTablet;
+      notifyListeners();
+    }
+  }
+
   void clearCart() {
     _cartItems.clear();
     _customerName = '';

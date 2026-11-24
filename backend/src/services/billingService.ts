@@ -13,6 +13,9 @@ export interface CreateBillItemDTO {
   cgst?: number;
   sgst?: number;
   igst?: number;
+  isLooseTablet?: boolean;
+  packCount?: number;
+  packSize?: string | number;
 }
 
 export interface CreateBillDTO {
@@ -291,7 +294,17 @@ export class BillingService {
             : Math.round(item.unitPrice * 0.75 * 100) / 100;
         }
 
-        const itemProfit = (item.unitPrice - purchasePrice) * item.quantity;
+        // Normalize purchase price and stock deduction for loose tablets cut
+        const isLoose = item.isLooseTablet || (item.unitPrice < purchasePrice && purchasePrice > 0);
+        let effectivePurchasePrice = purchasePrice;
+        let deductStripUnits = item.quantity;
+        if (isLoose) {
+          const packCount = Number(item.packCount || item.packSize) || 10;
+          effectivePurchasePrice = Math.round((purchasePrice / packCount) * 100) / 100;
+          deductStripUnits = Math.max(1, Math.ceil(item.quantity / packCount));
+        }
+
+        const itemProfit = (item.unitPrice - effectivePurchasePrice) * item.quantity;
         totalBillProfit += itemProfit;
 
         const insertItemQuery = `
@@ -310,13 +323,13 @@ export class BillingService {
           item.cgst || 0,
           item.sgst || 0,
           item.igst || 0,
-          purchasePrice,
+          effectivePurchasePrice,
           itemProfit
         ]);
         const billItemId = billItemRes.rows[0].id;
 
         // FEFO Batch Deduction
-        let remainingToDeduct = item.quantity;
+        let remainingToDeduct = deductStripUnits;
         
         // Find valid batches ordered by expiry date (FEFO)
         const batchResult = await client.query(`

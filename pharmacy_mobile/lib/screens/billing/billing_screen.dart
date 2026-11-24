@@ -1126,10 +1126,48 @@ _Thank you for choosing DavaSetu Pharmacy!_
                         ],
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${_currency.format(item.unitPrice)} each',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Text(
+                          '${_currency.format(item.unitPrice)} each',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () => billing.toggleLooseTablet(item.medicine.id),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: item.isLooseTablet ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: item.isLooseTablet ? const Color(0xFFF59E0B) : const Color(0xFFCBD5E1),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  item.isLooseTablet ? Icons.pie_chart_rounded : Icons.inventory_2_rounded,
+                                  size: 11,
+                                  color: item.isLooseTablet ? const Color(0xFFB45309) : const Color(0xFF475569),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  item.isLooseTablet ? 'Loose Tab' : 'Strip',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: item.isLooseTablet ? const Color(0xFFB45309) : const Color(0xFF475569),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
