@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import DashboardLayout from './layouts/DashboardLayout';
-import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import MedicineRequests from './pages/MedicineRequests';
@@ -45,18 +44,14 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Showcase & Marketing Website */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           
-          {/* Direct Quick-Access Routes to POS */}
-          <Route path="/pos" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/app" element={<Navigate to="/dashboard" replace />} />
-          
-          {/* Protected Routes (In-Built Pharmacy-POS System) */}
+          {/* Protected Routes (Pharmacy PC Software) */}
           <Route element={<ProtectedRoute />}>
             {/* RETAIL ROUTES */}
-            <Route element={<DashboardLayout />}>
+            <Route path="/" element={<DashboardLayout />}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<PermissionRoute permissionKey="DASHBOARD_VIEW"><Dashboard /></PermissionRoute>} />
               <Route path="medicine-requests" element={<Navigate to="/dashboard" replace />} />
               <Route path="orders" element={<Navigate to="/dashboard" replace />} />

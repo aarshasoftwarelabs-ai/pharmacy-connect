@@ -1,5 +1,6 @@
 import { API_BASE_URL, apiFetch } from '../config/api';
 import { Bill, BillingQueueItem } from '../types/billing';
+import { offlineSyncService } from './offlineSyncService';
 
 export class BillingService {
   /**
@@ -48,8 +49,6 @@ export class BillingService {
    * Create a new bill (with offline resilience and auto-queue)
    */
   static async createBill(billData: any): Promise<Bill> {
-    const { offlineSyncService } = await import('./offlineSyncService');
-
     // If device is offline, instantly queue locally
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       console.warn('Network offline: queuing bill locally for cloud auto-sync.');

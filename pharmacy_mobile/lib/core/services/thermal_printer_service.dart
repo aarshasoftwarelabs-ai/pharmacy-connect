@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,8 +14,6 @@ class ThermalPrinterService {
   static const String _keyPrinterMac = 'default_bluetooth_printer_mac';
   static const String _keyPrinterName = 'default_bluetooth_printer_name';
   static const String _keyPaperSize = 'thermal_paper_size'; // '58mm' or '80mm'
-
-  final NumberFormat _currency = NumberFormat.currency(locale: 'en_IN', symbol: 'Rs.', decimalDigits: 2);
 
   /// Check whether Bluetooth permissions are granted on the phone
   Future<bool> checkPermissions() async {

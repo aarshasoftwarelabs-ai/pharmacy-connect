@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_endpoints.dart';
 import '../api/api_service.dart';
 import '../../models/medicine_model.dart';
-import 'storage_service.dart';
 
 class OfflineSyncService {
   OfflineSyncService._();

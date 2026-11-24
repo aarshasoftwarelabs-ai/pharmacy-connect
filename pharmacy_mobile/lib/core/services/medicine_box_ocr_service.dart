@@ -515,7 +515,7 @@ class MedicineBoxOcrService {
       );
 
       // Sync to PC Billing table if requested and valid data exists
-      if (syncToPc && hasData && (medicineName != null || batchNumber != null)) {
+      if (syncToPc && hasData && (medicineName != null || batchNumber.isNotEmpty)) {
         await syncBoxItemToPc(
           pharmacyId: pharmacyId,
           medicineName: medicineName ?? 'Scanned Medicine',
