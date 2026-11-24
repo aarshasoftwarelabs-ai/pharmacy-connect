@@ -1,5 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { Analytics } from '@vercel/analytics/react';
+import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -42,7 +41,7 @@ const PermissionRoute = ({ permissionKey, children }: { permissionKey: string, c
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
@@ -71,8 +70,7 @@ function App() {
           {/* Fallback to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
-      <Analytics />
+      </HashRouter>
     </AuthProvider>
   );
 }
