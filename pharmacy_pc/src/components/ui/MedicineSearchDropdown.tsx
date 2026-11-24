@@ -83,10 +83,15 @@ export default function MedicineSearchDropdown({ catalogue, value, onChange, pla
                     className="px-4 py-2 hover:bg-emerald-50 cursor-pointer flex justify-between items-center group border-b border-slate-50 last:border-0"
                   >
                     <div>
-                      <div className="font-semibold text-slate-800 text-sm group-hover:text-emerald-700 transition-colors">
-                        {med.name}
+                      <div className="font-semibold text-slate-800 text-sm group-hover:text-emerald-700 transition-colors flex items-center gap-1.5 flex-wrap">
+                        <span>{med.name}</span>
+                        {med.strength && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-extrabold rounded-md bg-blue-100 text-blue-700 border border-blue-200">
+                            {med.strength}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-xs text-slate-500">{med.manufacturer || 'Generic'} • {med.strength || '-'}</div>
+                      <div className="text-xs text-slate-500">{med.manufacturer || 'Generic'} • {med.dosageForm || med.category || 'Medicine'}</div>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-emerald-600 text-sm">₹{med.sellingPrice}</div>

@@ -560,6 +560,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     final nameCtrl = TextEditingController(text: initialName);
     final mfgCompanyCtrl = TextEditingController(text: initialManufacturer);
     final genericCtrl = TextEditingController(text: initialGeneric);
+    final strengthCtrl = TextEditingController(text: auto.strength ?? '');
     final categoryCtrl = TextEditingController(text: initialCategory);
     final batchCtrl = TextEditingController(text: initialBatch);
     final mfgCtrl = TextEditingController(text: initialMfg);
@@ -710,6 +711,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     ),
                     const SizedBox(height: 10),
 
+                    // Strength / Power Field
+                    TextField(
+                      controller: strengthCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Strength / Power (દવાનો પાવર)',
+                        hintText: 'e.g. 500 mg, 650 mg, 40 mg, 100 ml',
+                        prefixIcon: Icon(Icons.bolt_rounded, color: Colors.amber),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
                     // Batch No, MFG Date, Expiry Date
                     Row(
                       children: [
@@ -833,6 +845,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             name: medName,
                             genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
                             category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'Tablets',
+                            strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
                             manufacturer: compVal.isNotEmpty ? compVal : auto.manufacturer,
                             mrp: mrp,
                             sellingPrice: sp,
@@ -855,6 +868,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                   name: medName,
                                   genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
                                   category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'Tablets',
+                                  strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
                                   manufacturer: compVal.isNotEmpty ? compVal : auto.manufacturer,
                                   mrp: mrp,
                                   sellingPrice: sp,
@@ -1592,6 +1606,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       text: res.manufacturer ?? (res.medicineName != null ? (BarcodeMedicineService.deriveManufacturer(res.medicineName!) ?? '') : ''),
     );
     final genericCtrl = TextEditingController(text: res.genericName ?? '');
+    final strengthCtrl = TextEditingController(text: res.strength ?? '');
     final packCtrl = TextEditingController(text: res.packSize ?? '');
     final batchCtrl = TextEditingController(text: res.batchNumber ?? '');
     final mfgCtrl = TextEditingController(text: res.mfgDate ?? '');
@@ -1750,6 +1765,29 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                         filled: true,
                                         fillColor: Colors.white,
                                         hintText: 'Composition',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 1,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Strength (પાવર):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: strengthCtrl,
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        hintText: 'e.g. 650 mg',
                                       ),
                                     ),
                                   ],
@@ -2035,6 +2073,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 unitPrice: mrpVal,
                                 quantity: count,
                                 genericName: genSalt.isNotEmpty ? genSalt : null,
+                                strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
                                 packSize: packVal.isNotEmpty ? packVal : null,
                               );
 
@@ -2043,6 +2082,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 name: medName,
                                 genericName: genSalt.isNotEmpty ? genSalt : null,
                                 category: 'Tablets',
+                                strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
                                 manufacturer: compVal.isNotEmpty ? compVal : res.manufacturer,
                                 mrp: mrpVal,
                                 sellingPrice: mrpVal * 0.9,
@@ -2060,6 +2100,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 genericName: genSalt.isNotEmpty ? genSalt : null,
                                 manufacturer: compVal.isNotEmpty ? compVal : res.manufacturer,
                                 category: 'Tablets',
+                                strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
                                 mrp: mrpVal,
                                 sellingPrice: mrpVal * 0.9,
                                 stock: 10,

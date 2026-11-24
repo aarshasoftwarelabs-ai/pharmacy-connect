@@ -216,9 +216,32 @@ class _BillingScreenState extends State<BillingScreen> {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              med.name,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    med.name,
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (med.strength != null && med.strength!.isNotEmpty) ...[
+                                                  const SizedBox(width: 6),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFEFF6FF),
+                                                      borderRadius: BorderRadius.circular(5),
+                                                      border: Border.all(color: const Color(0xFF93C5FD)),
+                                                    ),
+                                                    child: Text(
+                                                      med.strength!,
+                                                      style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                             Text(
                                               '${med.category ?? "Medicine"} • Stock: ${med.stock}',
@@ -949,9 +972,32 @@ _Thank you for choosing DavaSetu Pharmacy!_
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  med.name,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        med.name,
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (med.strength != null && med.strength!.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: const Color(0xFF93C5FD)),
+                        ),
+                        child: Text(
+                          med.strength!,
+                          style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text(
                   '${med.category ?? "Medicine"} • Stock: ${med.stock}',
@@ -1053,9 +1099,32 @@ _Thank you for choosing DavaSetu Pharmacy!_
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.medicine.name,
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: AppColors.textPrimary),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            item.medicine.name,
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: AppColors.textPrimary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (item.medicine.strength != null && item.medicine.strength!.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(color: const Color(0xFF93C5FD)),
+                            ),
+                            child: Text(
+                              item.medicine.strength!,
+                              style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(

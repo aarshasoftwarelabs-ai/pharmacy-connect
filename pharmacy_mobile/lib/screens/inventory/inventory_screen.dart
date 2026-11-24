@@ -441,14 +441,37 @@ class InventoryScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            med.name,
-                            style: const TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.2,
-                            ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  med.name,
+                                  style: const TextStyle(
+                                    fontSize: 15.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                    letterSpacing: -0.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (med.strength != null && med.strength!.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEFF6FF),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFF93C5FD)),
+                                  ),
+                                  child: Text(
+                                    med.strength!,
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           if (med.genericName != null && med.genericName!.trim().isNotEmpty) ...[
                             const SizedBox(height: 2),
@@ -1065,6 +1088,7 @@ class InventoryScreen extends StatelessWidget {
   void _showAddMedicineSheet(BuildContext context, {ScannedMedicineData? initialData}) {
     final nameCtrl = TextEditingController(text: initialData?.name ?? '');
     final genericCtrl = TextEditingController(text: initialData?.genericName ?? '');
+    final strengthCtrl = TextEditingController(text: initialData?.strength ?? '');
     final mfgCtrl = TextEditingController(text: initialData?.manufacturer ?? '');
     final categoryCtrl = TextEditingController(text: initialData?.category ?? 'General');
     final mrpCtrl = TextEditingController(text: initialData != null ? initialData.mrp.toStringAsFixed(2) : '');
@@ -1088,6 +1112,9 @@ class InventoryScreen extends StatelessWidget {
                 nameCtrl.text = data.name;
                 if (data.genericName != null && data.genericName!.isNotEmpty) {
                   genericCtrl.text = data.genericName!;
+                }
+                if (data.strength != null && data.strength!.isNotEmpty) {
+                  strengthCtrl.text = data.strength!;
                 }
                 categoryCtrl.text = data.category;
                 if (data.manufacturer != null && data.manufacturer!.isNotEmpty) {
@@ -1186,6 +1213,16 @@ class InventoryScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: TextField(
+                            controller: strengthCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Strength / Power (પાવર)',
+                              hintText: 'e.g. 500 mg, 650 mg',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
                             controller: mfgCtrl,
                             decoration: const InputDecoration(
                               labelText: 'Manufacturer',
@@ -1193,7 +1230,11 @@ class InventoryScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
                         Expanded(
                           child: TextField(
                             controller: stockCtrl,
@@ -1327,6 +1368,7 @@ class InventoryScreen extends StatelessWidget {
                                 name: nameCtrl.text.trim(),
                                 genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
                                 category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'General',
+                                strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
                                 manufacturer: mfgCtrl.text.trim().isNotEmpty ? mfgCtrl.text.trim() : null,
                                 mrp: mrp,
                                 sellingPrice: sp,

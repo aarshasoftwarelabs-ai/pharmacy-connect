@@ -202,6 +202,7 @@ class InventoryProvider extends ChangeNotifier {
     required String name,
     String? genericName,
     String? category,
+    String? strength,
     String? manufacturer,
     required double mrp,
     required double sellingPrice,
@@ -214,6 +215,7 @@ class InventoryProvider extends ChangeNotifier {
     try {
       final cleanExpiry = normalizeDateToIso(expiryDate);
       final cleanMfg = normalizeDateToIso(mfgDate);
+      final cleanStrength = (strength != null && strength.trim().isNotEmpty) ? strength.trim() : null;
 
       // 1. Optimistic instant local update so it shows immediately in Inventory UI
       final localMed = MedicineModel(
@@ -221,6 +223,7 @@ class InventoryProvider extends ChangeNotifier {
         name: name.trim(),
         genericName: genericName?.trim(),
         category: category?.trim() ?? 'Tablets',
+        strength: cleanStrength,
         manufacturer: manufacturer?.trim(),
         mrp: mrp,
         sellingPrice: sellingPrice,
@@ -244,6 +247,7 @@ class InventoryProvider extends ChangeNotifier {
         'currentStock': stock,
         'barcode': barcode?.trim(),
         'batchNumber': batchNumber?.trim(),
+        'strength': ?cleanStrength,
         if (cleanMfg != null && cleanMfg.isNotEmpty) 'mfgDate': cleanMfg,
         if (cleanExpiry != null && cleanExpiry.isNotEmpty) 'expiryDate': cleanExpiry,
       };

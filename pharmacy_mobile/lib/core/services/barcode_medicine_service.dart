@@ -6,6 +6,7 @@ class ScannedMedicineData {
   final String name;
   final String? genericName;
   final String category;
+  final String? strength;
   final String? manufacturer;
   final double mrp;
   final double sellingPrice;
@@ -20,6 +21,7 @@ class ScannedMedicineData {
     required this.name,
     this.genericName,
     required this.category,
+    this.strength,
     this.manufacturer,
     required this.mrp,
     required this.sellingPrice,
@@ -59,11 +61,13 @@ class ScannedMedicineData {
 
     final rawBatch = json['batchNumber']?.toString() ?? json['batch_number']?.toString();
     final rawMfg = json['mfgDate']?.toString() ?? json['mfg_date']?.toString();
+    final rawStrength = json['strength']?.toString();
 
     return ScannedMedicineData(
       name: cleanName,
       genericName: cleanGen,
       category: json['category']?.toString() ?? 'Tablets',
+      strength: rawStrength,
       manufacturer: json['manufacturer']?.toString(),
       mrp: mrpVal,
       sellingPrice: sp,

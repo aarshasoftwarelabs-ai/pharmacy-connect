@@ -47,6 +47,7 @@ class MedicineModel {
   final String? genericName;
   final String? manufacturer;
   final String? category;
+  final String? strength;
   final String? sku;
   final String? batchNumber;
   final String? mfgDate;
@@ -66,6 +67,7 @@ class MedicineModel {
     this.genericName,
     this.manufacturer,
     this.category,
+    this.strength,
     this.sku,
     this.batchNumber,
     this.mfgDate,
@@ -148,6 +150,7 @@ class MedicineModel {
       genericName: json['genericName'] ?? json['generic_name'],
       manufacturer: json['manufacturer'] ?? json['brand'],
       category: json['category'] ?? 'General',
+      strength: json['strength']?.toString(),
       sku: json['sku']?.toString(),
       batchNumber: json['batchNumber'] ?? json['batch_number'] ?? (parsedBatches.isNotEmpty ? parsedBatches.first.batchNumber : null),
       mfgDate: json['mfgDate'] ?? json['mfg_date'],
@@ -174,6 +177,7 @@ class MedicineModel {
       'generic_name': genericName,
       'manufacturer': manufacturer,
       'category': category,
+      'strength': strength,
       'sku': sku,
       'batch_number': batchNumber,
       'mfg_date': mfgDate,

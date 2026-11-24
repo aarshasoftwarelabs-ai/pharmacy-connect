@@ -18,6 +18,7 @@ class BoxOcrResult {
   final String expiryStatus; // HEALTHY, NEAR_EXPIRY, EXPIRED
   final double mrp;
   final String? packSize;
+  final String? strength;
   final String? mfgLicNo;
   final String? manufacturer;
   final double confidence;
@@ -36,6 +37,7 @@ class BoxOcrResult {
     this.expiryStatus = 'HEALTHY',
     this.mrp = 0.0,
     this.packSize,
+    this.strength,
     this.mfgLicNo,
     this.manufacturer,
     this.confidence = 0.95,
@@ -56,6 +58,7 @@ class BoxOcrResult {
       expiryStatus: json['expiry_status'] ?? 'HEALTHY',
       mrp: (json['mrp'] as num?)?.toDouble() ?? 0.0,
       packSize: json['pack_size'],
+      strength: json['strength'] ?? json['dosage'],
       mfgLicNo: json['mfg_lic_no'],
       manufacturer: json['manufacturer'],
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.95,
@@ -389,6 +392,7 @@ class MedicineBoxOcrService {
     required double unitPrice,
     int quantity = 1,
     String? genericName,
+    String? strength,
     String? packSize,
     String scannedBy = 'Mobile Staff/Owner',
   }) async {
@@ -403,6 +407,7 @@ class MedicineBoxOcrService {
           'expiryDate': expiryDate,
           'mfgDate': mfgDate,
           'packSize': packSize,
+          if (strength != null && strength.isNotEmpty) 'strength': strength,
           'mrp': mrp,
           'unitPrice': unitPrice > 0 ? unitPrice : mrp,
           'quantity': quantity,
@@ -478,6 +483,9 @@ class MedicineBoxOcrService {
       // 6. Extract Mfg Lic No
       String? mfgLicNo = _extractMfgLicNo(rawText, lines);
 
+      // 7. Extract Strength / Power (e.g. 500 mg, 650 mg, 40 mg, 100 ml)
+      String? strength = _extractStrength(rawText, lines, medicineName);
+
       // Expiry Health Status
       String expiryStatus = 'HEALTHY';
       int daysUntilExpiry = 999;
@@ -504,6 +512,7 @@ class MedicineBoxOcrService {
         mfgDate: mfgDate,
         mrp: mrp,
         packSize: packSize,
+        strength: strength,
         mfgLicNo: mfgLicNo,
         manufacturer: manufacturer,
         daysUntilExpiry: daysUntilExpiry,
@@ -523,6 +532,7 @@ class MedicineBoxOcrService {
           mrp: mrp,
           unitPrice: mrp,
           genericName: genericName,
+          strength: strength,
           packSize: packSize,
         );
       }
@@ -576,13 +586,14 @@ class MedicineBoxOcrService {
       String? mfgLicNo = _extractMfgLicNo(frontRawText, frontLines);
 
       // 2. Process Back Side (if provided)
+      String backRawText = '';
+      List<String> backLines = <String>[];
       if (backImagePath != null && backImagePath.isNotEmpty) {
         final backFile = File(backImagePath);
         if (await backFile.exists()) {
           final backInput = InputImage.fromFilePath(backImagePath);
           final backRecognized = await textRecognizer.processImage(backInput);
-          final backRawText = backRecognized.text;
-          final backLines = <String>[];
+          backRawText = backRecognized.text;
           for (final block in backRecognized.blocks) {
             for (final line in block.lines) {
               final t = line.text.trim();
@@ -665,6 +676,10 @@ class MedicineBoxOcrService {
       final hasData = (medicineName != null && medicineName.isNotEmpty) ||
           (batchNumber != null && batchNumber.isNotEmpty);
 
+      final combinedRaw = '$frontRawText\n$backRawText';
+      final combinedLines = [...frontLines, ...backLines];
+      final strength = _extractStrength(combinedRaw, combinedLines, medicineName);
+
       final result = BoxOcrResult(
         medicineName: medicineName ?? 'Scanned Medicine',
         genericName: genericName,
@@ -674,6 +689,7 @@ class MedicineBoxOcrService {
         mfgDate: mfgDate,
         mrp: mrp > 0 ? mrp : 0.0,
         packSize: packSize,
+        strength: strength,
         mfgLicNo: mfgLicNo,
         manufacturer: manufacturer,
         daysUntilExpiry: daysUntilExpiry,
@@ -692,6 +708,7 @@ class MedicineBoxOcrService {
           mrp: mrp > 0 ? mrp : 0.0,
           unitPrice: mrp > 0 ? mrp : 0.0,
           genericName: genericName,
+          strength: strength,
           packSize: packSize,
         );
       }
@@ -728,6 +745,44 @@ class MedicineBoxOcrService {
   // -------------------------------------------------------------
   // REGEX PARSERS FOR INDIAN MEDICINE PACKAGING & LABELS
   // -------------------------------------------------------------
+
+  static String? _extractStrength(String rawText, List<String> lines, String? medicineName) {
+    // 1. If brand name already has standard power suffix (e.g. "Dolo 650", "Telma 40", "Augmentin 625", "Pan 40", "Azee 500", "Calpol 250", "Azithral 500")
+    if (medicineName != null && medicineName.isNotEmpty) {
+      final matchSuffix = RegExp(r'\b([0-9]{2,4})\s*(?:mg|ml|gm)?\b', caseSensitive: false).firstMatch(medicineName);
+      if (matchSuffix != null && matchSuffix.group(1) != null) {
+        final numVal = int.tryParse(matchSuffix.group(1)!);
+        if (numVal != null && (numVal == 5 || numVal == 10 || numVal == 20 || numVal == 25 || numVal == 40 || numVal == 50 || numVal == 75 || numVal == 100 || numVal == 150 || numVal == 200 || numVal == 250 || numVal == 300 || numVal == 375 || numVal == 400 || numVal == 500 || numVal == 625 || numVal == 650 || numVal == 800 || numVal == 1000)) {
+          return '$numVal mg';
+        }
+      }
+    }
+
+    // 2. Explicit strength patterns on packaging lines (e.g. "650 mg", "500 mg", "40 mg", "10 mg", "250 mg", "100 ml", "5 mg")
+    final regexStrength = RegExp(
+      r'\b([0-9]+(?:\.[0-9]+)?)\s*(mg|mcg|gm|g|ml|iu)\b',
+      caseSensitive: false,
+    );
+
+    for (final line in lines) {
+      if (RegExp(r'(?:MRP|RS|\b202[0-9]\b|EXP|MFG|BATCH|B\.NO)', caseSensitive: false).hasMatch(line) && !line.toLowerCase().contains('mg')) {
+        continue;
+      }
+      final match = regexStrength.firstMatch(line);
+      if (match != null && match.group(1) != null && match.group(2) != null) {
+        final val = match.group(1)!;
+        final unit = match.group(2)!.toLowerCase();
+        return '$val $unit';
+      }
+    }
+
+    final rawMatch = regexStrength.firstMatch(rawText);
+    if (rawMatch != null && rawMatch.group(1) != null && rawMatch.group(2) != null) {
+      return '${rawMatch.group(1)} ${rawMatch.group(2)!.toLowerCase()}';
+    }
+
+    return null;
+  }
 
   static String? _extractBatchNumber(String rawText, List<String> lines) {
     // Pattern 1: Same line match: "B.No. T260241", "B.No: CO92604", "B.NO.-24A102", "Batch: 24B01", "B.N0.: XYZ"

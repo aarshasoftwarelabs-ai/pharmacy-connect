@@ -59,6 +59,11 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       (m.name && m.name.toLowerCase() === scannedName.toLowerCase())
     );
 
+    const strengthStr = scanItem.strength ? String(scanItem.strength).trim() : (catMatch?.strength ? String(catMatch.strength).trim() : '');
+    const formattedName = (strengthStr && !scannedName.toLowerCase().includes(strengthStr.toLowerCase()))
+      ? `${scannedName} ${strengthStr}`
+      : scannedName;
+
     const effectivePrice = Number(scanItem.unitPrice) > 0 
       ? Number(scanItem.unitPrice) 
       : (catMatch?.sellingPrice || catMatch?.mrp || 50);
@@ -67,7 +72,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
     AudioAlert.playBarcodeBeep();
     setMobileScanAlert({
-      medicineName: scannedName,
+      medicineName: formattedName,
       quantity: scanItem.quantity || 1,
       unitPrice: effectivePrice,
       scannedBy: scanItem.scannedBy || 'Mobile Staff/Owner'
@@ -78,7 +83,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       // Check if this item already exists in the cart
       const existingIdx = prevItems.findIndex(it => {
         const itemLower = it.medicineName.trim().toLowerCase();
-        return itemLower === scannedName.toLowerCase() || (scannedBarcode && it.hsnCode === scannedBarcode);
+        return itemLower === formattedName.toLowerCase() || itemLower === scannedName.toLowerCase() || (scannedBarcode && it.hsnCode === scannedBarcode);
       });
 
       if (existingIdx !== -1) {
@@ -91,7 +96,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       }
 
       const newItem = {
-        medicineName: scannedName,
+        medicineName: formattedName,
         quantity: scanItem.quantity || 1,
         unitPrice: effectivePrice,
         hsnCode: effectiveHsn,
