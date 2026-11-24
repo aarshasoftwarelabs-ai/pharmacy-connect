@@ -33,9 +33,13 @@ router.post('/pharmacy/:pharmacyId', requirePermission('STAFF_CREATE'), async (r
   const pharmacyId = req.user!.pharmacyId; // Use JWT pharmacyId
   const { name, phone, email, role, pin } = req.body;
   try {
+    const cleanName = (name || '').trim();
+    const firstName = cleanName.split(' ')[0] || 'Staff';
+    const lastName = cleanName.split(' ').slice(1).join(' ') || 'Member';
+
     const result = await pool.query(
-      'INSERT INTO staff_members (pharmacy_id, name, phone, email, role, pin) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, phone, email, role, pin, is_active, created_at',
-      [pharmacyId, name, phone, email, role, pin]
+      'INSERT INTO staff_members (pharmacy_id, name, first_name, last_name, phone, email, role, pin) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, phone, email, role, pin, is_active, created_at',
+      [pharmacyId, cleanName, firstName, lastName, phone, email, role, pin]
     );
     
     // Add default permissions for new staff

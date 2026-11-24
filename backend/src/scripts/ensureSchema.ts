@@ -63,6 +63,8 @@ export const ensureSchema = async () => {
         id SERIAL PRIMARY KEY,
         pharmacy_id INTEGER REFERENCES pharmacies(id) ON DELETE CASCADE,
         name VARCHAR(255),
+        first_name VARCHAR(100) DEFAULT 'Counter',
+        last_name VARCHAR(100) DEFAULT 'Staff',
         phone VARCHAR(20),
         email VARCHAR(255),
         role VARCHAR(50) NOT NULL DEFAULT 'BILLER',
@@ -72,9 +74,32 @@ export const ensureSchema = async () => {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
       ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) DEFAULT 'Counter';
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) DEFAULT 'Staff';
       ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS pin VARCHAR(10) DEFAULT '1234';
       ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'BILLER';
       ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+      -- Safely drop legacy NOT NULL on first_name/last_name to avoid 23502 constraint errors
+      DO $$ 
+      BEGIN
+        BEGIN
+          ALTER TABLE staff_members ALTER COLUMN first_name DROP NOT NULL;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+        BEGIN
+          ALTER TABLE staff_members ALTER COLUMN last_name DROP NOT NULL;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+        BEGIN
+          ALTER TABLE staff_members ALTER COLUMN first_name SET DEFAULT 'Counter';
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+        BEGIN
+          ALTER TABLE staff_members ALTER COLUMN last_name SET DEFAULT 'Staff';
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+      END $$;
     `);
 
     // 3. Ensure Master Suppliers Table exists before altering distributor_returns
@@ -179,8 +204,8 @@ export const ensureSchema = async () => {
       const staffCheck = await pool.query(`SELECT id FROM staff_members WHERE pharmacy_id = $1 LIMIT 1`, [p.id]);
       if (staffCheck.rows.length === 0) {
         await pool.query(`
-          INSERT INTO staff_members (pharmacy_id, name, phone, role, pin, is_active)
-          VALUES ($1, 'Counter Staff', COALESCE($2, '9876543210'), 'BILLER', '1234', true)
+          INSERT INTO staff_members (pharmacy_id, name, first_name, last_name, phone, role, pin, is_active)
+          VALUES ($1, 'Counter Staff', 'Counter', 'Staff', COALESCE($2, '9876543210'), 'BILLER', '1234', true)
         `, [p.id, p.phone]);
         console.log(`👤 Auto-created default staff (PIN: 1234) for pharmacy ${p.name} (ID: ${p.id})`);
       }

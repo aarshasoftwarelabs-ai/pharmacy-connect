@@ -627,8 +627,8 @@ export class AuthController {
               staff = anyStaff.rows[0];
             } else {
               const newStaff = await pool.query(
-                `INSERT INTO staff_members (pharmacy_id, name, phone, role, pin, is_active)
-                 VALUES ($1, 'Counter Staff', $2, 'BILLER', $3, true)
+                `INSERT INTO staff_members (pharmacy_id, name, first_name, last_name, phone, role, pin, is_active)
+                 VALUES ($1, 'Counter Staff', 'Counter', 'Staff', $2, 'BILLER', $3, true)
                  RETURNING id, name, phone, role, is_active`,
                 [pharmacy.id, rawPhone, rawPin]
               );
