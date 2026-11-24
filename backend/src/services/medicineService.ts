@@ -309,6 +309,7 @@ export class MedicineService {
            SET current_stock = $1, 
                selling_price = COALESCE(NULLIF($2, 0), selling_price), 
                mrp = COALESCE(NULLIF($3, 0), mrp), 
+               expiry_date = COALESCE($5, expiry_date),
                updated_at = CURRENT_TIMESTAMP
            WHERE id = $4
            RETURNING id, pharmacy_id as "pharmacyId", name, generic_name as "genericName", 
@@ -316,17 +317,38 @@ export class MedicineService {
                      minimum_stock as "minimumStock", COALESCE(mrp, selling_price) as "mrp", selling_price as "sellingPrice",
                      image_url as "imageUrl", hsn_code as "hsnCode", gst_rate as "gstRate",
                      manufacturer, expiry_date as "expiryDate", created_at as "createdAt", updated_at as "updatedAt"`,
-          [newStock, sellingPrice, mrp, exMed.id]
+          [newStock, sellingPrice, mrp, exMed.id, parsedExpiry]
         );
 
         if (currentStock > 0) {
+          const batchNum = data.batchNumber ? String(data.batchNumber).trim() : null;
           try {
-            await client.query(
-              `UPDATE medicine_batches 
-               SET stock = stock + $1, available_quantity = available_quantity + $1, quantity = quantity + $1, updated_at = CURRENT_TIMESTAMP 
-               WHERE medicine_id = $2`,
-              [currentStock, exMed.id]
-            );
+            if (batchNum) {
+              const purchasePrice = Number(data.purchasePrice) || Math.round(mrp * 0.75 * 100) / 100;
+              await client.query(
+                `INSERT INTO medicine_batches (
+                  pharmacy_id, medicine_id, batch_number, expiry_date,
+                  quantity, available_quantity, stock, purchase_price, mrp, selling_price, barcode
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ON CONFLICT (medicine_id, pharmacy_id, batch_number) DO UPDATE
+                SET quantity = medicine_batches.quantity + EXCLUDED.quantity,
+                    available_quantity = medicine_batches.available_quantity + EXCLUDED.available_quantity,
+                    stock = medicine_batches.stock + EXCLUDED.stock,
+                    expiry_date = COALESCE(EXCLUDED.expiry_date, medicine_batches.expiry_date),
+                    updated_at = CURRENT_TIMESTAMP`,
+                [
+                  targetPharmacyId, exMed.id, batchNum, parsedExpiry,
+                  currentStock, currentStock, currentStock, purchasePrice, mrp, sellingPrice, cleanBarcode
+                ]
+              );
+            } else {
+              await client.query(
+                `UPDATE medicine_batches 
+                 SET stock = stock + $1, available_quantity = available_quantity + $1, quantity = quantity + $1, updated_at = CURRENT_TIMESTAMP 
+                 WHERE medicine_id = $2`,
+                [currentStock, exMed.id]
+              );
+            }
           } catch (bErr) {
             console.warn('Batch stock update note:', bErr);
           }
@@ -491,15 +513,40 @@ export class MedicineService {
     const result = await pool.query(query, values);
     const updated = result.rows[0];
 
-    // Sync batches if currentStock was updated
-    if (updated && data.currentStock !== undefined) {
+    // Sync batches if batchNumber or currentStock was updated
+    if (updated && (data.batchNumber !== undefined || data.currentStock !== undefined)) {
       try {
-        await pool.query(
-          `UPDATE medicine_batches 
-           SET stock = $1, available_quantity = $1, quantity = $1, updated_at = CURRENT_TIMESTAMP 
-           WHERE medicine_id = $2`,
-          [data.currentStock, id]
-        );
+        const batchNum = data.batchNumber ? String(data.batchNumber).trim() : null;
+        if (batchNum) {
+          const parsedExp = data.expiryDate ? parseExpiryDate(data.expiryDate) : null;
+          const mrp = Number(updated.mrp) || 0;
+          const sp = Number(updated.sellingPrice) || 0;
+          const purchasePrice = Number(data.purchasePrice) || Math.round(mrp * 0.75 * 100) / 100;
+          const stockVal = data.currentStock !== undefined ? Number(data.currentStock) : (Number(updated.currentStock) || 0);
+
+          await pool.query(
+            `INSERT INTO medicine_batches (
+              pharmacy_id, medicine_id, batch_number, expiry_date,
+              quantity, available_quantity, stock, purchase_price, mrp, selling_price, barcode
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (medicine_id, pharmacy_id, batch_number) DO UPDATE
+            SET stock = EXCLUDED.stock,
+                available_quantity = EXCLUDED.available_quantity,
+                expiry_date = COALESCE(EXCLUDED.expiry_date, medicine_batches.expiry_date),
+                updated_at = CURRENT_TIMESTAMP`,
+            [
+              pharmacyId, id, batchNum, parsedExp,
+              stockVal, stockVal, stockVal, purchasePrice, mrp, sp, updated.barcode
+            ]
+          );
+        } else if (data.currentStock !== undefined) {
+          await pool.query(
+            `UPDATE medicine_batches 
+             SET stock = $1, available_quantity = $1, quantity = $1, updated_at = CURRENT_TIMESTAMP 
+             WHERE medicine_id = $2`,
+            [data.currentStock, id]
+          );
+        }
       } catch (bErr) {
         console.warn('Batch stock sync note:', bErr);
       }

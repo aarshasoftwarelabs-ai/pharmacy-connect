@@ -12,6 +12,8 @@ class ScannedMedicineData {
   final int stock;
   final String barcode;
   final String expiryDate;
+  final String? batchNumber;
+  final String? mfgDate;
   final bool isKnown;
 
   ScannedMedicineData({
@@ -24,6 +26,8 @@ class ScannedMedicineData {
     this.stock = 10,
     required this.barcode,
     required this.expiryDate,
+    this.batchNumber,
+    this.mfgDate,
     this.isKnown = true,
   });
 
@@ -53,6 +57,9 @@ class ScannedMedicineData {
     final rawExp = json['expiryDate']?.toString() ?? '';
     final cleanExp = (rawExp == '2028-12-31' && isDummyName) ? '' : rawExp;
 
+    final rawBatch = json['batchNumber']?.toString() ?? json['batch_number']?.toString();
+    final rawMfg = json['mfgDate']?.toString() ?? json['mfg_date']?.toString();
+
     return ScannedMedicineData(
       name: cleanName,
       genericName: cleanGen,
@@ -63,6 +70,8 @@ class ScannedMedicineData {
       stock: st > 0 ? st : 10,
       barcode: code,
       expiryDate: cleanExp,
+      batchNumber: rawBatch,
+      mfgDate: rawMfg,
       isKnown: !isDummyName && cleanName.isNotEmpty,
     );
   }

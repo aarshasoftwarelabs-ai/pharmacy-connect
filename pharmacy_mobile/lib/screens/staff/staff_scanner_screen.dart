@@ -431,6 +431,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                     medicineId: medicine.id,
                                     addedUnits: addCount,
                                     newSellingPrice: sp,
+                                    batchNumber: scannedBatch,
+                                    expiryDate: scannedExp,
                                   );
                               if (mounted) {
                                 if (ok) {
@@ -495,8 +497,6 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
           prefilledExp: prefilledExp,
         );
 
-    final now = DateTime.now();
-
     // 1. Resolve medicine name (check prefilledName, QR barcode and offline masters)
     String initialName = (prefilledName != null && prefilledName.trim().isNotEmpty)
         ? prefilledName.trim()
@@ -531,32 +531,32 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
             ? auto.manufacturer!
             : (initialName.isNotEmpty ? (BarcodeMedicineService.deriveManufacturer(initialName) ?? '') : ''));
 
-    // 4. Resolve Batch Number (prioritize scanned batch from Barcode/QR)
+    // 4. Resolve Batch Number (prioritize true scanned batch from Barcode/QR/OCR)
     String initialBatch = (prefilledBatch != null && prefilledBatch.isNotEmpty)
         ? prefilledBatch
-        : (initialName.isNotEmpty
-            ? '${initialName.replaceAll(RegExp(r'[^A-Za-z]'), '').padRight(2, 'X').substring(0, 2).toUpperCase()}${now.year.toString().substring(2)}${now.month.toString().padLeft(2, '0')}'
-            : 'B${now.year.toString().substring(2)}${now.month.toString().padLeft(2, '0')}');
+        : (auto.batchNumber != null && auto.batchNumber!.isNotEmpty
+            ? auto.batchNumber!
+            : '');
 
-    // 5. Resolve MFG Date (prioritize scanned mfg from Barcode/QR)
+    // 5. Resolve MFG Date
     String initialMfg = (prefilledMfg != null && prefilledMfg.isNotEmpty)
         ? prefilledMfg
-        : '${now.month.toString().padLeft(2, '0')}/${(now.year - 1).toString().substring(2)}';
+        : (auto.mfgDate != null && auto.mfgDate!.isNotEmpty ? auto.mfgDate! : '');
 
-    // 6. Resolve Expiry Date (prioritize scanned expiry from Barcode/QR)
+    // 6. Resolve Expiry Date
     String initialExp = (prefilledExp != null && prefilledExp.isNotEmpty)
         ? prefilledExp
         : (auto.expiryDate.isNotEmpty && auto.expiryDate != '2028-12-31'
             ? auto.expiryDate
-            : '${now.month.toString().padLeft(2, '0')}/${(now.year + 2).toString().substring(2)}');
+            : '');
 
-    // 7. Resolve MRP and Selling Price (prioritize scanned MRP from Barcode/QR)
+    // 7. Resolve MRP and Selling Price
     double effectiveMrp = (prefilledMrp != null && prefilledMrp > 0)
         ? prefilledMrp
-        : ((auto.mrp > 0 && auto.mrp != 60.0) ? auto.mrp : 48.00);
+        : ((auto.mrp > 0 && auto.mrp != 60.0) ? auto.mrp : 0.0);
     double effectiveSp = (auto.sellingPrice > 0 && auto.sellingPrice != 52.0)
         ? auto.sellingPrice
-        : (effectiveMrp * 0.9);
+        : (effectiveMrp > 0 ? (effectiveMrp * 0.9) : 0.0);
 
     final nameCtrl = TextEditingController(text: initialName);
     final mfgCompanyCtrl = TextEditingController(text: initialManufacturer);

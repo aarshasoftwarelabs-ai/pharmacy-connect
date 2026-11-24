@@ -270,7 +270,10 @@ class MedicineBoxOcrService {
   /// Parse 2D GS1 DataMatrix barcodes directly on device without any AI
   static BoxOcrResult? parseGs1DataMatrix(String raw) {
     if (raw.isEmpty) return null;
-    final clean = raw.trim();
+    var clean = raw.trim();
+
+    // Standardize delimiters: replace GS (0x1D), RS (0x1E), and other separators with GS
+    clean = clean.replaceAll(RegExp(r'[\x1d\x1e\u001d_]+'), '\x1d');
 
     String? gtin;
     String? batch;
@@ -298,7 +301,7 @@ class MedicineBoxOcrService {
         mfgFormatted = '$mm/20$yy';
       }
 
-      final batchMatch = RegExp(r'\(10\)([A-Za-z0-9\-\/]+?)(?:\(|$|\s)').firstMatch(clean);
+      final batchMatch = RegExp(r'\(10\)([A-Za-z0-9\-\/]+?)(?:\(|$|\s|\x1d)').firstMatch(clean);
       if (batchMatch != null) batch = batchMatch.group(1);
 
       if (batch != null || expFormatted != null || gtin != null || mfgFormatted != null) {
@@ -318,7 +321,11 @@ class MedicineBoxOcrService {
     if (clean.startsWith('01') && clean.length >= 16) {
       gtin = clean.substring(2, 16);
       int idx = 16;
-      while (idx < clean.length - 1) {
+      while (idx < clean.length) {
+        if (clean[idx] == '\x1d') {
+          idx++;
+          continue;
+        }
         if (idx + 2 > clean.length) break;
         final ai = clean.substring(idx, idx + 2);
         idx += 2;
@@ -342,13 +349,18 @@ class MedicineBoxOcrService {
             batch = rest.substring(0, sepIdx);
             idx += sepIdx + 1;
           } else {
-            batch = rest;
+            final sMatch = RegExp(r'^(.*?)21[A-Za-z0-9]+$').firstMatch(rest);
+            if (sMatch != null && sMatch.group(1)!.isNotEmpty) {
+              batch = sMatch.group(1);
+            } else {
+              batch = rest;
+            }
             break;
           }
         } else if (ai == '21') {
           break;
         } else {
-          idx++;
+          idx += 2;
         }
       }
 
@@ -449,30 +461,16 @@ class MedicineBoxOcrService {
         genericName = BarcodeMedicineService.deriveGenericSalt(medicineName);
       }
 
-      // 2. Extract Batch Number (with realistic auto-generated fallback)
+      // 2. Extract Batch Number (exact scanned truth - NO fake fabrication)
       String? batchNumber = _extractBatchNumber(rawText, lines);
-      if (batchNumber == null || batchNumber.isEmpty) {
-        final prefix = (medicineName != null && medicineName.isNotEmpty)
-            ? medicineName.replaceAll(RegExp(r'[^A-Za-z]'), '').padRight(2, 'B').substring(0, 2).toUpperCase()
-            : 'B';
-        batchNumber = '$prefix${now.year.toString().substring(2)}${now.month.toString().padLeft(2, '0')}';
-      }
 
-      // 3. Extract MFG and Expiry Dates (with realistic auto-defaults)
+      // 3. Extract MFG and Expiry Dates
       final dates = _extractMfgAndExpDates(rawText, lines);
       String? mfgDate = dates['mfg'];
       String? expiryDate = dates['exp'];
 
-      if (mfgDate == null || mfgDate.isEmpty) {
-        mfgDate = '${now.month.toString().padLeft(2, '0')}/${(now.year - 1).toString().substring(2)}';
-      }
-      if (expiryDate == null || expiryDate.isEmpty) {
-        expiryDate = '${now.month.toString().padLeft(2, '0')}/${(now.year + 2).toString().substring(2)}';
-      }
-
-      // 4. Extract MRP (realistic default so user never sees 0.00)
+      // 4. Extract MRP
       double mrp = _extractMrp(rawText, lines);
-      if (mrp <= 0) mrp = 48.00;
 
       // 5. Extract Pack Size
       String? packSize = _extractPackSize(rawText, lines);
@@ -483,7 +481,7 @@ class MedicineBoxOcrService {
       // Expiry Health Status
       String expiryStatus = 'HEALTHY';
       int daysUntilExpiry = 999;
-      if (expiryDate.isNotEmpty) {
+      if (expiryDate != null && expiryDate.isNotEmpty) {
         final parsed = _parseDateForHealth(expiryDate);
         if (parsed != null) {
           daysUntilExpiry = parsed.difference(now).inDays;
@@ -495,7 +493,7 @@ class MedicineBoxOcrService {
         }
       }
 
-      final hasData = (medicineName != null && medicineName.isNotEmpty) || (batchNumber.isNotEmpty);
+      final hasData = (medicineName != null && medicineName.isNotEmpty) || (batchNumber != null && batchNumber.isNotEmpty);
 
       final result = BoxOcrResult(
         medicineName: medicineName ?? 'Scanned Medicine',
@@ -515,7 +513,7 @@ class MedicineBoxOcrService {
       );
 
       // Sync to PC Billing table if requested and valid data exists
-      if (syncToPc && hasData && (medicineName != null || batchNumber.isNotEmpty)) {
+      if (syncToPc && hasData && (medicineName != null || (batchNumber != null && batchNumber.isNotEmpty))) {
         await syncBoxItemToPc(
           pharmacyId: pharmacyId,
           medicineName: medicineName ?? 'Scanned Medicine',
@@ -732,34 +730,57 @@ class MedicineBoxOcrService {
   // -------------------------------------------------------------
 
   static String? _extractBatchNumber(String rawText, List<String> lines) {
-    // Pattern 1: Same line "B.No. T260241" or "Batch No: CO92604"
+    // Pattern 1: Same line match: "B.No. T260241", "B.No: CO92604", "B.NO.-24A102", "Batch: 24B01", "B.N0.: XYZ"
     final regexSameLine = RegExp(
-      r'(?:B\.?\s*No\.?|Batch(?:\s*No\.?)?|Lot(?:\s*No\.?)?|B\.?\s*Num(?:ber)?)[ \t:]*([A-Za-z0-9\-\/]{3,18})',
+      r'(?:B\.?\s*N[o0]\.?|Batch(?:\s*N[o0]\.?)?|Lot(?:\s*N[o0]\.?)?|B\.?\s*Num(?:ber)?|B\/N[o0]?|B\.N\.)[ \t:.\-\/]*([A-Za-z0-9\-\/]{2,18})',
       caseSensitive: false,
     );
-    final match = regexSameLine.firstMatch(rawText);
-    if (match != null && match.group(1) != null) {
-      final val = match.group(1)!.trim().toUpperCase();
-      if (!_isCommonFalseBatch(val)) return val;
-    }
-
-    // Pattern 2: Look across adjacent lines where label and value are split
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i].trim();
-      final isBatchLabel = RegExp(r'^(?:B\.?\s*No\.?|Batch(?:\s*No\.?)?|Lot)$', caseSensitive: false).hasMatch(line);
-      if (isBatchLabel && i + 1 < lines.length) {
-        final next = lines[i + 1].trim().toUpperCase();
-        if (RegExp(r'^[A-Za-z0-9\-\/]{3,18}$').hasMatch(next) && !_isCommonFalseBatch(next)) {
-          return next;
+    final matches = regexSameLine.allMatches(rawText);
+    for (final match in matches) {
+      if (match.group(1) != null) {
+        var val = match.group(1)!.trim().toUpperCase();
+        val = val.replaceAll(RegExp(r'(?:MFG|MFD|EXP|MRP|USE|DT|DATE).*$', caseSensitive: false), '');
+        val = val.replaceAll(RegExp(r'[\s.\-\/]+$'), '');
+        if (val.length >= 2 && !_isCommonFalseBatch(val)) {
+          return val;
         }
       }
     }
 
-    // Pattern 3: Common dot-matrix batch formats (e.g. T260241, CO92604, AG2401)
-    final looseMatch = RegExp(r'\b([A-Z]{1,3}\d{4,9})\b').firstMatch(rawText);
-    if (looseMatch != null) {
-      final val = looseMatch.group(1)!.trim();
-      if (!_isCommonFalseBatch(val)) return val;
+    // Pattern 2: Look across adjacent lines where label and value are on separate lines
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      final isBatchLabel = RegExp(
+        r'^(?:B\.?\s*N[o0]\.?|Batch(?:\s*N[o0]\.?)?|Lot(?:\s*N[o0]\.?)?|B\/N[o0]?|B\.N\.)[ \t:.\-\/]*$',
+        caseSensitive: false,
+      ).hasMatch(line);
+
+      if (isBatchLabel && i + 1 < lines.length) {
+        final nextLine = lines[i + 1].trim();
+        final tokens = nextLine.split(RegExp(r'[\s,]+'));
+        for (var token in tokens) {
+          token = token.trim().toUpperCase();
+          token = token.replaceAll(RegExp(r'(?:MFG|MFD|EXP|MRP|USE|DT|DATE).*$', caseSensitive: false), '');
+          token = token.replaceAll(RegExp(r'[\s.\-\/]+$'), '');
+          if (RegExp(r'^[A-Za-z0-9\-\/]{2,18}$').hasMatch(token) && !_isCommonFalseBatch(token)) {
+            return token;
+          }
+        }
+      }
+    }
+
+    // Pattern 3: Common dot-matrix & printed batch formats
+    final loosePatterns = [
+      RegExp(r'\b([A-Z]{1,3}\d{3,9}[A-Z]?)\b'),
+      RegExp(r'\b(\d{2}[A-Z]{1,2}\d{2,7})\b'),
+      RegExp(r'\b([A-Z0-9]{2,4}\/\d{2,6})\b'),
+    ];
+    for (final p in loosePatterns) {
+      final match = p.firstMatch(rawText);
+      if (match != null && match.group(1) != null) {
+        final val = match.group(1)!.trim().toUpperCase();
+        if (!_isCommonFalseBatch(val)) return val;
+      }
     }
 
     return null;
@@ -767,13 +788,24 @@ class MedicineBoxOcrService {
 
   static bool _isCommonFalseBatch(String text) {
     final upper = text.toUpperCase();
+    if (upper.length < 2) return true;
+    if (RegExp(r'^\d+$').hasMatch(upper) && upper.length > 8) return true;
     return upper.contains('TABLET') ||
         upper.contains('CAPSULE') ||
         upper.contains('STRIP') ||
         upper.contains('PRICE') ||
         upper.contains('EXPIRY') ||
         upper.contains('TAXES') ||
-        upper.contains('ONLY');
+        upper.contains('ONLY') ||
+        upper.contains('INCL') ||
+        upper.contains('M.R.P') ||
+        upper.contains('MRP') ||
+        upper.contains('MFG') ||
+        upper.contains('DATE') ||
+        upper.contains('EACH') ||
+        upper.contains('STORE') ||
+        upper.contains('DOSAGE') ||
+        upper.contains('WARNING');
   }
 
   static Map<String, String?> _extractMfgAndExpDates(String rawText, List<String> lines) {

@@ -174,6 +174,30 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  static String? normalizeDateToIso(String? raw) {
+    if (raw == null) return null;
+    final clean = raw.trim().replaceAll('.', '/').replaceAll('-', '/');
+    if (clean.isEmpty) return null;
+
+    if (RegExp(r'^\d{4}\/\d{1,2}\/\d{1,2}$').hasMatch(clean)) {
+      final p = clean.split('/');
+      return '${p[0]}-${p[1].padLeft(2, '0')}-${p[2].padLeft(2, '0')}';
+    }
+    if (RegExp(r'^\d{1,2}\/\d{1,2}\/\d{4}$').hasMatch(clean)) {
+      final p = clean.split('/');
+      return '${p[2]}-${p[1].padLeft(2, '0')}-${p[0].padLeft(2, '0')}';
+    }
+    if (RegExp(r'^\d{1,2}\/\d{4}$').hasMatch(clean)) {
+      final p = clean.split('/');
+      return '${p[1]}-${p[0].padLeft(2, '0')}-01';
+    }
+    if (RegExp(r'^\d{1,2}\/\d{2}$').hasMatch(clean)) {
+      final p = clean.split('/');
+      return '20${p[1]}-${p[0].padLeft(2, '0')}-01';
+    }
+    return clean;
+  }
+
   Future<bool> addMedicine({
     required String name,
     String? genericName,
@@ -188,25 +212,8 @@ class InventoryProvider extends ChangeNotifier {
     String? expiryDate,
   }) async {
     try {
-      String? cleanExpiry = expiryDate?.trim();
-      if (cleanExpiry != null && cleanExpiry.isNotEmpty) {
-        final parts = cleanExpiry.split('/');
-        if (parts.length == 2) {
-          final m = parts[0].padLeft(2, '0');
-          final y = parts[1].length == 2 ? '20${parts[1]}' : parts[1];
-          cleanExpiry = '$y-$m-01';
-        }
-      }
-
-      String? cleanMfg = mfgDate?.trim();
-      if (cleanMfg != null && cleanMfg.isNotEmpty) {
-        final parts = cleanMfg.split('/');
-        if (parts.length == 2) {
-          final m = parts[0].padLeft(2, '0');
-          final y = parts[1].length == 2 ? '20${parts[1]}' : parts[1];
-          cleanMfg = '$y-$m-01';
-        }
-      }
+      final cleanExpiry = normalizeDateToIso(expiryDate);
+      final cleanMfg = normalizeDateToIso(mfgDate);
 
       // 1. Optimistic instant local update so it shows immediately in Inventory UI
       final localMed = MedicineModel(
@@ -258,6 +265,8 @@ class InventoryProvider extends ChangeNotifier {
     required String medicineId,
     required int addedUnits,
     double? newSellingPrice,
+    String? batchNumber,
+    String? expiryDate,
   }) async {
     final index = _medicines.indexWhere((m) => m.id == medicineId);
     if (index == -1) return false;
@@ -265,6 +274,8 @@ class InventoryProvider extends ChangeNotifier {
     final old = _medicines[index];
     final updatedStock = (old.stock + addedUnits).clamp(0, 999999);
     final sp = newSellingPrice ?? old.sellingPrice;
+    final cleanExp = normalizeDateToIso(expiryDate);
+    final cleanBatch = (batchNumber != null && batchNumber.trim().isNotEmpty) ? batchNumber.trim() : null;
 
     // Optimistically update local state
     _medicines[index] = MedicineModel(
@@ -275,8 +286,8 @@ class InventoryProvider extends ChangeNotifier {
       manufacturer: old.manufacturer,
       category: old.category,
       sku: old.sku,
-      batchNumber: old.batchNumber,
-      expiryDate: old.expiryDate,
+      batchNumber: cleanBatch ?? old.batchNumber,
+      expiryDate: cleanExp ?? old.expiryDate,
       mrp: old.mrp,
       sellingPrice: sp,
       stock: updatedStock,
@@ -291,6 +302,8 @@ class InventoryProvider extends ChangeNotifier {
       final payload = {
         'currentStock': updatedStock,
         if (newSellingPrice != null) 'sellingPrice': newSellingPrice,
+        if (cleanBatch != null) 'batchNumber': cleanBatch,
+        if (cleanExp != null) 'expiryDate': cleanExp,
       };
       final res = await ApiService.put(ApiEndpoints.updateMedicine(medicineId), payload);
       if (!res.success) {
