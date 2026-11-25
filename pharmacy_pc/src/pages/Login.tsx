@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound, Mail, Sparkles, Clipboard } from 'lucide-react';
+import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Phone, KeyRound, Mail, Sparkles, Clipboard } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import OtpVerificationAnimation from '../components/auth/OtpVerificationAnimation';
 import { useAuth } from '../components/auth/AuthContext';
@@ -40,16 +40,13 @@ export default function Login() {
     { code: '+61', label: 'AU', flagUrl: 'https://flagcdn.com/au.svg' }
   ];
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [pharmacyName, setPharmacyName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [address, setAddress] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [latestOtp, setLatestOtp] = useState<string>('123456');
   const [timer, setTimer] = useState(60);
   const [otpVerificationStatus, setOtpVerificationStatus] = useState<'idle' | 'verifying' | 'success'>('idle');
   const businessType = 'RETAIL';
-  const [isExistingUser, setIsExistingUser] = useState(false);
   const [hasExistingProfileData, setHasExistingProfileData] = useState(false);
   const [staffPin, setStaffPin] = useState('');
 
@@ -143,61 +140,25 @@ export default function Login() {
       
       setTimer(60); // Reset timer
       setOtp(['', '', '', '', '', '']); // Clear old OTP
-      if (data.otp) {
-        setLatestOtp(data.otp);
-      } else {
-        setLatestOtp('123456');
-      }
 
       if (data.exists) {
         setPharmacyName(data.pharmacyName);
-        setIsExistingUser(true);
-        // Navigate directly to OTP page per user request
         transitionToStep(3); // Go to OTP verification
       } else {
         if (data.userExists) {
-            setIsExistingUser(true);
             setOwnerName(data.userData?.name || '');
             setAddress(data.userData?.address || '');
-            setPassword('ExistingUserDummyPass!123'); // So form validation passes
             setHasExistingProfileData(!!(data.userData?.name && data.userData?.address));
         } else {
-            setIsExistingUser(false);
             setHasExistingProfileData(false);
             setOwnerName('');
             setAddress('');
-            setPassword('');
         }
         transitionToStep(3); // Go to OTP verification
       }
     } catch (err: any) {
       console.error(err);
       setError(`Connection Error: ${err.message || 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, email, identifier: email || phone, password, businessType })
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        await completeAuthAndGoDashboard(data);
-      } else {
-        setError(data.message || 'Invalid credentials');
-      }
-    } catch (err) {
-      setError('Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -325,7 +286,7 @@ export default function Login() {
       const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, email, password, ownerName, pharmacyName, address, businessType })
+        body: JSON.stringify({ phone, email, ownerName, pharmacyName, address, businessType })
       });
       const data = await response.json();
 
@@ -469,17 +430,6 @@ export default function Login() {
                 </div>
               </>
             )}
-            {step === 2 && (
-              <>
-                <div className="w-16 h-16 bg-pharmacy-100 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-pharmacy-200">
-                  <Store className="w-8 h-8 text-pharmacy-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{pharmacyName}</h2>
-                <p className="mt-1 text-slate-500 font-medium text-sm">
-                  Retail Account • {phone}
-                </p>
-              </>
-            )}
             {step === 3 && (
               <>
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Verify Email OTP</h2>
@@ -603,65 +553,17 @@ export default function Login() {
               </form>
             )}
 
-            {/* STEP 2: LOGIN */}
-            {step === 2 && (
-              <form className="space-y-4" onSubmit={handleLogin}>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <input 
-                    type="password" 
-                    required 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pharmacy-500 focus:border-transparent transition-all shadow-sm" 
-                    placeholder="Enter password" 
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full flex justify-center items-center py-3.5 px-4 rounded-xl shadow-lg shadow-pharmacy-500/30 text-base font-bold text-white bg-pharmacy-600 hover:bg-pharmacy-700 focus:outline-none transition-all transform hover:-translate-y-0.5 disabled:opacity-70"
-                >
-                  {loading ? 'Logging in...' : 'Login'}
-                </button>
-                <div className="flex justify-between items-center mt-4">
-                  <button type="button" onClick={() => transitionToStep(1)} className="text-sm font-semibold text-slate-500 hover:text-slate-800 flex items-center">
-                    <ArrowLeft className="w-4 h-4 mr-1" /> Back
-                  </button>
-                  <button type="button" onClick={() => transitionToStep(3)} className="text-sm font-semibold text-pharmacy-600 hover:text-pharmacy-800">
-                    Login with OTP instead
-                  </button>
-                </div>
-              </form>
-            )}
-
             {/* STEP 3: VERIFY OTP */}
             {step === 3 && (
               <form className="space-y-5" onSubmit={handleVerifyOTP} onPaste={handleOtpPaste}>
                 {otpVerificationStatus === 'idle' ? (
                   <>
-                    {/* Auto-Fill & Clipboard Paste Controls */}
+                    {/* Clipboard Paste Control */}
                     <div className="flex flex-col gap-2">
                       <button
                         type="button"
-                        onClick={() => handleAutoFillOtp(latestOtp || '123456')}
-                        className="group w-full flex items-center justify-between py-2.5 px-4 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/80 rounded-xl text-xs sm:text-sm font-semibold text-emerald-800 transition-all shadow-sm hover:shadow"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
-                          <span>⚡ Auto-Fill OTP ({latestOtp || '123456'})</span>
-                        </div>
-                        <span className="text-xs bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full group-hover:scale-105 transition-transform shadow-xs">
-                          1-Click Fill
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
                         onClick={handlePasteFromClipboard}
-                        className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-medium text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200/70"
+                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-medium text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200/70"
                       >
                         <Clipboard className="w-3.5 h-3.5 text-slate-400" />
                         <span>ઈમેઈલમાંથી કોપી કરેલ OTP પેસ્ટ કરો (Paste from Clipboard / Ctrl+V)</span>
@@ -733,11 +635,6 @@ export default function Login() {
                         )}
                       </div>
                       <div className="flex flex-col gap-2 pt-1">
-                        {pharmacyName && (
-                          <button type="button" onClick={() => transitionToStep(2)} className="text-sm font-semibold text-pharmacy-600 hover:text-pharmacy-800">
-                            Prefer password? Sign in with Password
-                          </button>
-                        )}
                         <button type="button" onClick={() => transitionToStep(1)} className="text-sm font-semibold text-slate-500 hover:text-slate-800 flex items-center justify-center w-full">
                           <ArrowLeft className="w-4 h-4 mr-1" /> Change Details
                         </button>
@@ -779,14 +676,6 @@ export default function Login() {
                       </div>
                       <textarea required value={address} onChange={e => setAddress(e.target.value)} placeholder="Full Address" rows={2} className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500 resize-none"></textarea>
                     </div>
-                    {!isExistingUser && (
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-slate-400" />
-                        </div>
-                        <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a strong password" className="block w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pharmacy-500" />
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="bg-emerald-50 text-emerald-800 text-xs font-medium p-3 rounded-lg border border-emerald-200 text-center mb-2">
@@ -866,7 +755,7 @@ export default function Login() {
               <CheckCircle className="w-10 h-10 text-emerald-500" />
             </div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">
-              {step === 2 ? 'Welcome Back!' : 'Account Created!'}
+              {step === 4 ? 'Account Created!' : 'Welcome Back!'}
             </h2>
             <p className="text-slate-500 font-medium text-sm animate-pulse text-center">
               Taking you to your dashboard...

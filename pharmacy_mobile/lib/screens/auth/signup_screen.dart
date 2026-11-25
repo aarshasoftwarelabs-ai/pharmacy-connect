@@ -27,9 +27,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
-  final _passwordController = TextEditingController();
 
-  bool _obscurePassword = true;
   final String _businessType = 'RETAIL'; // 'RETAIL' or 'WHOLESALE'
 
   @override
@@ -50,7 +48,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     _addressController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -63,7 +60,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ownerName: _ownerNameController.text.trim(),
       phone: _phoneController.text.trim(),
       email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
       address: _addressController.text.trim(),
       businessType: _businessType,
     );
@@ -347,36 +343,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
                             return 'સરનામું અથવા શહેર દાખલ કરો';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Password
-                      _buildFieldLabel('Create Password (ગુપ્ત પાસવર્ડ)', required: true),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: _inputDecoration(
-                          hint: 'Min 6 characters',
-                          icon: Icons.lock_outline_rounded,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                              color: AppColors.textMuted,
-                              size: 20,
-                            ),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                          ),
-                        ),
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return 'પાસવર્ડ બનાવો';
-                          }
-                          if (val.trim().length < 6) {
-                            return 'પાસવર્ડ ઓછામાં ઓછો 6 અક્ષરનો હોવો જોઈએ';
                           }
                           return null;
                         },

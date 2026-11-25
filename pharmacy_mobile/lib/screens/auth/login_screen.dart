@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/inventory_provider.dart';
-import '../navigation/main_nav_screen.dart';
 import '../staff/staff_scanner_screen.dart';
 import 'otp_verification_screen.dart';
 import 'signup_screen.dart';
@@ -21,9 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   // Store Owner controllers (Mobile + Email OTP flow)
   final _ownerPhoneController = TextEditingController();
   final _ownerEmailController = TextEditingController();
-  bool _usePasswordLogin = false;
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
 
   // Counter Scanner controllers
   final _staffPhoneController = TextEditingController(text: '');
@@ -80,7 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _staffPhoneController.removeListener(_onStaffPhoneChanged);
     _ownerPhoneController.dispose();
     _ownerEmailController.dispose();
-    _passwordController.dispose();
     _staffPhoneController.dispose();
     _staffPinController.dispose();
     super.dispose();
@@ -164,56 +159,6 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           content: Text(auth.errorMessage ?? 'ચકાસણી નિષ્ફળ રહી. ફરી પ્રયાસ કરો.'),
-        ),
-      );
-    }
-  }
-
-  Future<void> _handleOwnerPasswordLogin() async {
-    final phone = _ownerPhoneController.text.trim();
-    final email = _ownerEmailController.text.trim();
-    final id = email.isNotEmpty ? email : phone;
-    final password = _passwordController.text.trim();
-
-    if (id.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          content: Text('કૃપા કરીને મોબાઈલ અથવા ઈમેઈલ દાખલ કરો'),
-        ),
-      );
-      return;
-    }
-
-    if (password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          content: Text('કૃપા કરીને પાસવર્ડ દાખલ કરો'),
-        ),
-      );
-      return;
-    }
-
-    final auth = context.read<AuthProvider>();
-    final success = await auth.login(id, password);
-
-    if (!mounted) return;
-
-    if (success) {
-      context.read<InventoryProvider>().fetchMedicines();
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MainNavScreen()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          content: Text(auth.errorMessage ?? 'Login failed. Please check credentials.'),
         ),
       );
     }
@@ -685,39 +630,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       hintText: 'e.g. owner@davasetu.com',
                     ),
                   ),
-                  
-                  // Optional Password field if user toggles "Sign in with password"
-                  if (_usePasswordLogin) ...[
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Password (ગુપ્ત પાસવર્ડ)',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textMuted),
-                        hintText: 'Enter your password',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            color: AppColors.textMuted,
-                          ),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                    ),
-                  ],
 
                   const SizedBox(height: 24),
 
-                  // Action Button: Continue (or Sign in with Password)
+                  // Action Button: Continue with OTP
                   ElevatedButton(
-                    onPressed: auth.isLoading
-                        ? null
-                        : (_usePasswordLogin ? _handleOwnerPasswordLogin : _handleOwnerContinue),
+                    onPressed: auth.isLoading ? null : _handleOwnerContinue,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: AppColors.primary,
@@ -732,30 +650,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : Text(
-                            _usePasswordLogin ? 'Sign In with Password (લોગિન)' : 'Continue (આગળ વધો)',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        : const Text(
+                            'Continue with OTP (ઓટીપી થી આગળ વધો)',
+                            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Toggle between OTP and Password
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () => setState(() => _usePasswordLogin = !_usePasswordLogin),
-                      icon: Icon(
-                        _usePasswordLogin ? Icons.mark_email_read_rounded : Icons.lock_outline_rounded,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      label: Text(
-                        _usePasswordLogin
-                            ? 'Switch to Mobile & Email OTP (ઓટીપીથી આગળ વધો)'
-                            : 'Or Sign In with Password (પાસવર્ડથી લોગિન કરો)',
-                        style: const TextStyle(fontSize: 12.5, color: AppColors.primary, fontWeight: FontWeight.w600),
-                      ),
-                    ),
                   ),
 
                   const SizedBox(height: 20),

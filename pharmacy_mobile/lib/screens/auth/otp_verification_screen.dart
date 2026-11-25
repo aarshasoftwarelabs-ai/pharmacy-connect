@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -66,15 +65,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   String get _otpCode => _controllers.map((c) => c.text.trim()).join();
-
-  void _fillMasterOtp() {
-    const master = '123456';
-    for (int i = 0; i < 6; i++) {
-      _controllers[i].text = master[i];
-    }
-    setState(() {});
-    _handleVerify();
-  }
 
   Future<void> _handleResendOtp() async {
     final auth = context.read<AuthProvider>();
@@ -295,37 +285,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 }),
               ),
               const SizedBox(height: 24),
-
-              // Dev Mode Helper Pill (only shown in debug builds, never in release APK)
-              if (kDebugMode) ...[
-                GestureDetector(
-                  onTap: _fillMasterOtp,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFBFDBFE)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.flash_on_rounded, size: 16, color: Color(0xFF2563EB)),
-                        SizedBox(width: 6),
-                        Text(
-                          'Dev Mode: Master OTP is 123456 (Tap to Fill)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF1D4ED8),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
 
               // Verify Button
               ElevatedButton(

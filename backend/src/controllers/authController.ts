@@ -135,8 +135,7 @@ export class AuthController {
                 exists: true,
                 pharmacyName: pharmacyName,
                 userName: user.name,
-                message: 'OTP sent successfully',
-                otp: generatedOtp
+                message: 'OTP sent successfully'
             });
         }
         
@@ -166,8 +165,7 @@ export class AuthController {
         exists: false,
         userExists: userExists,
         userData: userData,
-        message: 'OTP sent successfully',
-        otp: generatedOtp
+        message: 'OTP sent successfully'
       });
     } catch (error) {
       console.error('Check mobile error:', error);
@@ -437,13 +435,13 @@ export class AuthController {
     }
   }
 
-  // 3. Register (with verified OTP)
+  // 3. Register (with verified OTP - password optional for OTP-only flow)
   static async register(req: Request, res: Response) {
     try {
       const { phone, password, ownerName, pharmacyName, address, email } = req.body;
 
-      if (!phone || !password || !ownerName || !pharmacyName || !address) {
-        return res.status(400).json({ success: false, message: 'All fields are required' });
+      if (!phone || !ownerName || !pharmacyName || !address) {
+        return res.status(400).json({ success: false, message: 'Phone, owner name, pharmacy name, and address are required' });
       }
 
       const cleanEmail = email && String(email).trim().length > 0 ? String(email).trim() : null;
@@ -469,7 +467,8 @@ export class AuthController {
             user.email = cleanEmail;
           }
         } else {
-          const hashedPassword = await bcrypt.hash(password, 10);
+          const cleanPassword = password && String(password).trim().length > 0 ? String(password).trim() : null;
+          const hashedPassword = cleanPassword ? await bcrypt.hash(cleanPassword, 10) : null;
           // Create User
           const insertUserQuery = `
             INSERT INTO users (name, phone, password_hash, email) 

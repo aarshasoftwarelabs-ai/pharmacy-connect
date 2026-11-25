@@ -32,61 +32,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> login(String identifier, String password) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      final cleanId = identifier.trim();
-      final response = await ApiService.post(ApiEndpoints.login, {
-        'phone': cleanId,
-        'email': cleanId,
-        'identifier': cleanId,
-        'password': password.trim(),
-      });
-
-      _isLoading = false;
-
-      if (response.success && response.data != null) {
-        final data = response.data as Map<String, dynamic>;
-        final token = data['token']?.toString() ?? data['accessToken']?.toString() ?? '';
-        final userMap = Map<String, dynamic>.from((data['user'] as Map<String, dynamic>?) ?? {});
-        final pharmacyMap = data['pharmacy'] as Map<String, dynamic>?;
-
-        if (token.isNotEmpty) {
-          await StorageService.setToken(token);
-        }
-        if (cleanId.contains('@') && (userMap['email'] == null || userMap['email'].toString().isEmpty)) {
-          userMap['email'] = cleanId;
-        }
-        if (pharmacyMap != null) {
-          await StorageService.setPharmacy(pharmacyMap);
-          if (pharmacyMap['name'] != null) {
-            userMap['pharmacyName'] = pharmacyMap['name'];
-          }
-          if (pharmacyMap['id'] != null) {
-            userMap['pharmacyId'] = pharmacyMap['id'].toString();
-          }
-        }
-        _user = UserModel.fromJson(userMap);
-        await StorageService.setUser(_user!.toJson());
-
-        notifyListeners();
-        return true;
-      } else {
-        _errorMessage = response.message ?? 'Login failed. Please check credentials.';
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = 'An unexpected error occurred: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
   Future<Map<String, dynamic>?> checkMobile(String phone, String email) async {
     _isLoading = true;
     _errorMessage = null;
@@ -173,7 +118,7 @@ class AuthProvider extends ChangeNotifier {
     required String pharmacyName,
     required String phone,
     required String email,
-    required String password,
+    String? password,
     required String address,
     String businessType = 'RETAIL',
   }) async {
@@ -182,12 +127,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final cleanPassword = password?.trim();
       final response = await ApiService.post(ApiEndpoints.register, {
         'ownerName': ownerName.trim(),
         'pharmacyName': pharmacyName.trim(),
         'phone': phone.trim(),
         'email': email.trim().isEmpty ? '${phone.trim()}@davasetu.com' : email.trim(),
-        'password': password.trim(),
+        if (cleanPassword != null && cleanPassword.isNotEmpty) 'password': cleanPassword,
         'address': address.trim().isEmpty ? 'India' : address.trim(),
         'businessType': businessType,
       });
