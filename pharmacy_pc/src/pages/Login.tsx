@@ -197,12 +197,6 @@ export default function Login() {
       return;
     }
 
-    // Smart frontend expiration check
-    if (timer === 0 && otpCode !== '123456') {
-      setError('OTP Expired. Please click "Resend OTP Now" below.');
-      return;
-    }
-
     setOtpVerificationStatus('verifying');
     setLoading(true);
     setError('');

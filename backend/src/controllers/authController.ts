@@ -6,66 +6,234 @@ import { env } from '../config/env';
 
 const JWT_SECRET = env.JWT_SECRET as string;
 const BREVO_API_KEY = env.BREVO_API_KEY || '';
+const OTP_TTL_SECONDS = 300; // 5 minutes validity in PostgreSQL
+const MAX_OTP_ATTEMPTS = 5;
 
-const otpStore: Record<string, string> = {}; // In-memory store for OTPs (phone -> otp)
+const otpFallbackStore: Record<string, { otp: string; expiresAt: number; attempts: number }> = {};
+let otpTableEnsured = false;
+
+function normalizePhone10(raw: string): string {
+  const digits = String(raw || '').replace(/\D/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : String(raw || '').trim();
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '***';
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}***@${domain}`;
+}
+
+async function ensureOtpTable(): Promise<void> {
+  if (otpTableEnsured) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS auth_otps (
+        phone VARCHAR(20) PRIMARY KEY,
+        email VARCHAR(255),
+        otp_code VARCHAR(12) NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    otpTableEnsured = true;
+  } catch (err) {
+    console.warn('[Auth] auth_otps table ensure note:', err);
+  }
+}
+
+async function saveOtpRecord(phone: string, email: string, otp: string): Promise<void> {
+  const expiresAtMs = Date.now() + OTP_TTL_SECONDS * 1000;
+  otpFallbackStore[phone] = { otp, expiresAt: expiresAtMs, attempts: 0 };
+  try {
+    await ensureOtpTable();
+    await pool.query(
+      `INSERT INTO auth_otps (phone, email, otp_code, attempts, expires_at, created_at)
+       VALUES ($1, $2, $3, 0, NOW() + ($4 || ' seconds')::interval, CURRENT_TIMESTAMP)
+       ON CONFLICT (phone) DO UPDATE
+       SET email = EXCLUDED.email,
+           otp_code = EXCLUDED.otp_code,
+           attempts = 0,
+           expires_at = EXCLUDED.expires_at,
+           created_at = CURRENT_TIMESTAMP`,
+      [phone, email, otp, String(OTP_TTL_SECONDS)]
+    );
+  } catch (err) {
+    console.warn('[Auth] DB OTP persist note (using RAM fallback):', err);
+  }
+}
+
+async function clearOtpRecord(phone: string): Promise<void> {
+  delete otpFallbackStore[phone];
+  try {
+    await ensureOtpTable();
+    await pool.query('DELETE FROM auth_otps WHERE phone = $1', [phone]);
+  } catch (_) {}
+}
+
+function isDemoBypassAllowed(phone10: string, otp: string): boolean {
+  if (otp !== '123456') return false;
+  const demoPhone = process.env.DEMO_REVIEW_PHONE ? normalizePhone10(process.env.DEMO_REVIEW_PHONE) : '';
+  if (demoPhone && phone10 === demoPhone) return true;
+
+  const hasDeliveryChannel = Boolean(
+    BREVO_API_KEY ||
+    env.FAST2SMS_API_KEY ||
+    (env.WHATSAPP_PHONE_NUMBER_ID && env.WHATSAPP_ACCESS_TOKEN)
+  );
+  // In production with active OTP delivery, block master 123456 on real accounts
+  if (env.NODE_ENV === 'production' && hasDeliveryChannel) {
+    return false;
+  }
+  return true;
+}
 
 /**
- * Dispatch OTP verification email via Brevo in the background with a strict timeout
- * so login/signup HTTP responses never stall waiting on external SMTP/HTTPS.
+ * Send OTP across available channels (Brevo Email + optional WhatsApp Cloud + optional Fast2SMS)
+ * in the background with strict timeouts so login/signup responses stay instant.
  */
-function dispatchOtpEmailInBackground(email: string, generatedOtp: string): void {
-  if (!BREVO_API_KEY || !email) return;
-  try {
-    const https = require('https');
-    const senderEmail = process.env.SENDER_EMAIL || 'davasetu.otp@gmail.com';
-    const data = JSON.stringify({
-      sender: { name: 'PharmacyConnect', email: senderEmail },
-      to: [{ email }],
-      subject: 'Your DavaSetu Verification Code',
-      htmlContent: `<div style="font-family: sans-serif; text-align: center; padding: 20px;">
-        <h1 style="color: #059669;">DavaSetu Pharmacy</h1>
-        <h2>Your Verification Code</h2>
-        <p>Please use the following 6-digit code to verify your pharmacy account.</p>
-        <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; margin: 20px 0;">${generatedOtp}</div>
-        <p>This code will expire in 60 seconds.</p>
-        <p style="color: #64748b; font-size: 12px;">If you did not request this, please ignore this email.</p>
-      </div>`
-    });
+function dispatchOtpChannelsInBackground(phone10: string, email: string, generatedOtp: string): void {
+  const https = require('https');
 
-    const options = {
-      hostname: 'api.brevo.com',
-      port: 443,
-      path: '/v3/smtp/email',
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': BREVO_API_KEY,
-        'content-type': 'application/json',
-        'Content-Length': Buffer.byteLength(data)
-      }
-    };
+  // 1. Primary: Brevo Email OTP
+  if (BREVO_API_KEY && email) {
+    try {
+      const senderEmail = process.env.SENDER_EMAIL || 'davasetu.otp@gmail.com';
+      const data = JSON.stringify({
+        sender: { name: 'DavaSetu Pharmacy', email: senderEmail },
+        to: [{ email }],
+        subject: 'Your DavaSetu Verification Code',
+        htmlContent: `<div style="font-family: sans-serif; text-align: center; padding: 20px;">
+          <h1 style="color: #059669;">DavaSetu Pharmacy</h1>
+          <h2>Your Verification Code</h2>
+          <p>Please use the following 6-digit code to verify your pharmacy account.</p>
+          <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; margin: 20px 0;">${generatedOtp}</div>
+          <p>This code is valid for 5 minutes.</p>
+          <p style="color: #64748b; font-size: 12px;">If you did not request this, please ignore this email.</p>
+        </div>`
+      });
 
-    const req = https.request(options, (res: any) => {
-      let resData = '';
-      res.on('data', (chunk: any) => resData += chunk);
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          console.log(`[Brevo] OTP Email delivered to ${email}`);
-        } else {
-          console.error(`[Brevo API Error ${res.statusCode}]:`, resData);
+      const req = https.request(
+        {
+          hostname: 'api.brevo.com',
+          port: 443,
+          path: '/v3/smtp/email',
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'api-key': BREVO_API_KEY,
+            'content-type': 'application/json',
+            'Content-Length': Buffer.byteLength(data)
+          }
+        },
+        (res: any) => {
+          let resData = '';
+          res.on('data', (chunk: any) => (resData += chunk));
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              console.log(`[Brevo] OTP Email delivered to ${email}`);
+            } else {
+              console.error(`[Brevo API Error ${res.statusCode}]:`, resData);
+            }
+          });
+        }
+      );
+      req.setTimeout(5000, () => req.destroy(new Error('Brevo OTP request timed out')));
+      req.on('error', (e: any) => console.error('Error calling Brevo API:', e?.message || e));
+      req.write(data);
+      req.end();
+    } catch (err: any) {
+      console.error('Brevo dispatch note:', err?.message || err);
+    }
+  }
+
+  // 2. Backup Channel: WhatsApp Cloud API (if configured in env)
+  if (env.WHATSAPP_PHONE_NUMBER_ID && env.WHATSAPP_ACCESS_TOKEN && /^[6-9]\d{9}$/.test(phone10)) {
+    try {
+      const waPayload = JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: `91${phone10}`,
+        type: 'text',
+        text: {
+          preview_url: false,
+          body: `Your DavaSetu verification code is *${generatedOtp}*. Valid for 5 minutes. Do not share this code with anyone.`
         }
       });
-    });
-    req.setTimeout(5000, () => {
-      req.destroy(new Error('Brevo OTP request timed out'));
-    });
-    req.on('error', (e: any) => {
-      console.error('Error calling Brevo API:', e?.message || e);
-    });
-    req.write(data);
-    req.end();
-  } catch (err: any) {
-    console.error('Brevo dispatch note:', err?.message || err);
+
+      const req = https.request(
+        {
+          hostname: 'graph.facebook.com',
+          port: 443,
+          path: `/v19.0/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(waPayload)
+          }
+        },
+        (res: any) => {
+          let resData = '';
+          res.on('data', (chunk: any) => (resData += chunk));
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              console.log(`[WhatsApp OTP] Delivered to +91${phone10}`);
+            } else {
+              console.warn(`[WhatsApp OTP ${res.statusCode}]:`, resData);
+            }
+          });
+        }
+      );
+      req.setTimeout(5000, () => req.destroy(new Error('WhatsApp OTP request timed out')));
+      req.on('error', (e: any) => console.warn('WhatsApp OTP error:', e?.message || e));
+      req.write(waPayload);
+      req.end();
+    } catch (err: any) {
+      console.warn('WhatsApp OTP dispatch note:', err?.message || err);
+    }
+  }
+
+  // 3. Backup Channel: Fast2SMS OTP (if configured in env)
+  if (env.FAST2SMS_API_KEY && /^[6-9]\d{9}$/.test(phone10)) {
+    try {
+      const smsPayload = JSON.stringify({
+        route: 'otp',
+        variables_values: generatedOtp,
+        numbers: phone10
+      });
+
+      const req = https.request(
+        {
+          hostname: 'www.fast2sms.com',
+          port: 443,
+          path: '/dev/bulkV2',
+          method: 'POST',
+          headers: {
+            'authorization': env.FAST2SMS_API_KEY,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(smsPayload)
+          }
+        },
+        (res: any) => {
+          let resData = '';
+          res.on('data', (chunk: any) => (resData += chunk));
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              console.log(`[Fast2SMS OTP] Delivered to ${phone10}`);
+            } else {
+              console.warn(`[Fast2SMS OTP ${res.statusCode}]:`, resData);
+            }
+          });
+        }
+      );
+      req.setTimeout(5000, () => req.destroy(new Error('Fast2SMS OTP request timed out')));
+      req.on('error', (e: any) => console.warn('Fast2SMS OTP error:', e?.message || e));
+      req.write(smsPayload);
+      req.end();
+    } catch (err: any) {
+      console.warn('Fast2SMS OTP dispatch note:', err?.message || err);
+    }
   }
 }
 
@@ -76,8 +244,7 @@ export class AuthController {
     try {
       const { businessType } = req.body;
       const rawPhone = (req.body.phone || '').toString().trim();
-      const digitsOnly = rawPhone.replace(/\D/g, '');
-      const phone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : rawPhone;
+      const phone = normalizePhone10(rawPhone);
       const email = (req.body.email || '').trim();
 
       if (!phone) {
@@ -93,7 +260,7 @@ export class AuthController {
       let userData: any = null;
 
       const userQuery = `
-        SELECT id, name FROM users
+        SELECT id, name, email FROM users
         WHERE phone = $1 OR (LENGTH($2) >= 10 AND phone LIKE '%' || $2)
         ORDER BY id ASC LIMIT 1
       `;
@@ -105,7 +272,7 @@ export class AuthController {
         userData = { name: user.name };
         
         // Get their pharmacy for the requested business type
-        let pharmacyQuery = `SELECT id, name, address, phone, business_type FROM pharmacies WHERE owner_id = $1`;
+        let pharmacyQuery = `SELECT id, name, address, phone, email, business_type FROM pharmacies WHERE owner_id = $1`;
         const queryParams: any[] = [user.id];
         
         if (businessType) {
@@ -117,18 +284,22 @@ export class AuthController {
         const pharmacyResult = await pool.query(pharmacyQuery, queryParams);
         
         if (pharmacyResult.rows.length > 0) {
-            const pharmacyName = pharmacyResult.rows[0].name;
+            const pharmRow = pharmacyResult.rows[0];
+            const pharmacyName = pharmRow.name;
+            const registeredEmail = String(user.email || pharmRow.email || '').trim();
 
-            // Generate OTP so existing store owners can login via OTP immediately
+            // Prevent OTP hijack: registered store owners must enter their registered email
+            if (registeredEmail && registeredEmail.toLowerCase() !== email.toLowerCase()) {
+              return res.status(400).json({
+                success: false,
+                message: `Entered email does not match registered store email (${maskEmail(registeredEmail)}).`
+              });
+            }
+
+            const targetEmail = registeredEmail || email;
             const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-            otpStore[phone] = generatedOtp;
-            otpStore[rawPhone] = generatedOtp;
-            setTimeout(() => {
-              if (otpStore[phone] === generatedOtp) delete otpStore[phone];
-              if (otpStore[rawPhone] === generatedOtp) delete otpStore[rawPhone];
-            }, 60000);
-
-            dispatchOtpEmailInBackground(email, generatedOtp);
+            await saveOtpRecord(phone, targetEmail, generatedOtp);
+            dispatchOtpChannelsInBackground(phone, targetEmail, generatedOtp);
 
             return res.json({
                 success: true,
@@ -139,7 +310,15 @@ export class AuthController {
             });
         }
         
-        // If they exist but don't have a pharmacy of this type, we fetch their first pharmacy to get the address
+        // If they exist but don't have a pharmacy of this type, verify email if already registered
+        const userRegEmail = String(user.email || '').trim();
+        if (userRegEmail && userRegEmail.toLowerCase() !== email.toLowerCase()) {
+          return res.status(400).json({
+            success: false,
+            message: `Entered email does not match registered account email (${maskEmail(userRegEmail)}).`
+          });
+        }
+
         const firstPharmQuery = `SELECT address FROM pharmacies WHERE owner_id = $1 LIMIT 1`;
         const firstPharmResult = await pool.query(firstPharmQuery, [user.id]);
         if (firstPharmResult.rows.length > 0) {
@@ -147,18 +326,10 @@ export class AuthController {
         }
       }
 
-      // User does not exist, generate OTP and send email without blocking response
+      // User does not exist (new signup) -> persist OTP in PostgreSQL and dispatch in background
       const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      otpStore[phone] = generatedOtp;
-      otpStore[rawPhone] = generatedOtp;
-
-      // Auto-expire OTP after 60 seconds
-      setTimeout(() => {
-        if (otpStore[phone] === generatedOtp) delete otpStore[phone];
-        if (otpStore[rawPhone] === generatedOtp) delete otpStore[rawPhone];
-      }, 60000);
-
-      dispatchOtpEmailInBackground(email, generatedOtp);
+      await saveOtpRecord(phone, email, generatedOtp);
+      dispatchOtpChannelsInBackground(phone, email, generatedOtp);
 
       return res.json({
         success: true,
@@ -176,29 +347,83 @@ export class AuthController {
   // 1.5 Verify OTP
   static async verifyOtp(req: Request, res: Response) {
     try {
-      const { phone, otp } = req.body;
+      const rawPhone = (req.body.phone || '').toString().trim();
+      const phone = normalizePhone10(rawPhone);
+      const otp = (req.body.otp || '').toString().trim();
+
       if (!phone || !otp) {
         return res.status(400).json({ success: false, message: 'Phone and OTP are required' });
       }
 
-      if (!otpStore[phone] && otp !== '123456') {
-        return res.status(400).json({ success: false, message: 'OTP Expired. Please click Resend OTP.' });
+      let isVerified = isDemoBypassAllowed(phone, otp);
+
+      if (!isVerified) {
+        let matchedRecord: { otp_code: string; attempts: number; expired: boolean } | null = null;
+        let usedDb = false;
+
+        try {
+          await ensureOtpTable();
+          const otpRes = await pool.query(
+            `SELECT otp_code, attempts, (expires_at <= NOW()) AS expired
+             FROM auth_otps
+             WHERE phone = $1
+             LIMIT 1`,
+            [phone]
+          );
+          if (otpRes.rows.length > 0) {
+            matchedRecord = otpRes.rows[0];
+          }
+          usedDb = true;
+        } catch (dbErr) {
+          console.warn('[Auth] DB OTP lookup note:', dbErr);
+        }
+
+        if (!matchedRecord && !usedDb && otpFallbackStore[phone]) {
+          const ram = otpFallbackStore[phone];
+          matchedRecord = {
+            otp_code: ram.otp,
+            attempts: ram.attempts,
+            expired: Date.now() > ram.expiresAt
+          };
+        }
+
+        if (!matchedRecord || matchedRecord.expired) {
+          await clearOtpRecord(phone);
+          return res.status(400).json({ success: false, message: 'OTP expired. Please click Resend OTP.' });
+        }
+
+        if (matchedRecord.attempts >= MAX_OTP_ATTEMPTS) {
+          await clearOtpRecord(phone);
+          return res.status(429).json({ success: false, message: 'Too many invalid attempts. Please request a new OTP.' });
+        }
+
+        if (matchedRecord.otp_code !== otp) {
+          try {
+            await pool.query('UPDATE auth_otps SET attempts = attempts + 1 WHERE phone = $1', [phone]);
+          } catch (_) {}
+          if (otpFallbackStore[phone]) {
+            otpFallbackStore[phone].attempts += 1;
+          }
+          return res.status(400).json({ success: false, message: 'Invalid OTP' });
+        }
+
+        isVerified = true;
       }
 
-      if (otpStore[phone] === otp || otp === '123456') { // Kept 123456 as master password for easy dev
-        delete otpStore[phone];
+      if (isVerified) {
+        await clearOtpRecord(phone);
 
-        // Check if user already exists with an active pharmacy
+        // Check if user already exists with an active pharmacy (exact or last-10 digits)
         const userQuery = `
           SELECT u.id, u.name, u.phone, u.email,
                  p.id as pharmacy_id, p.name as pharmacy_name, p.address as pharmacy_address
           FROM users u
           LEFT JOIN pharmacies p ON p.owner_id = u.id
-          WHERE u.phone = $1
+          WHERE u.phone = $1 OR (LENGTH($2) >= 10 AND u.phone LIKE '%' || $2)
           ORDER BY (p.id IS NOT NULL) DESC, p.id ASC
           LIMIT 1
         `;
-        const userRes = await pool.query(userQuery, [phone]);
+        const userRes = await pool.query(userQuery, [rawPhone, phone]);
 
         if (userRes.rows.length > 0 && userRes.rows[0].pharmacy_id) {
           const u = userRes.rows[0];
@@ -230,9 +455,9 @@ export class AuthController {
         }
 
         return res.json({ success: true, exists: false, message: 'OTP verified successfully' });
-      } else {
-        return res.status(400).json({ success: false, message: 'Invalid OTP' });
       }
+
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
     } catch (error) {
       console.error('Verify OTP error:', error);
       res.status(500).json({ success: false, message: 'Internal server error' });
