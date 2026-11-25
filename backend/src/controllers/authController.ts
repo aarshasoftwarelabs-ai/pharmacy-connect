@@ -9,15 +9,78 @@ const BREVO_API_KEY = env.BREVO_API_KEY || '';
 
 const otpStore: Record<string, string> = {}; // In-memory store for OTPs (phone -> otp)
 
+/**
+ * Dispatch OTP verification email via Brevo in the background with a strict timeout
+ * so login/signup HTTP responses never stall waiting on external SMTP/HTTPS.
+ */
+function dispatchOtpEmailInBackground(email: string, generatedOtp: string): void {
+  if (!BREVO_API_KEY || !email) return;
+  try {
+    const https = require('https');
+    const senderEmail = process.env.SENDER_EMAIL || 'davasetu.otp@gmail.com';
+    const data = JSON.stringify({
+      sender: { name: 'PharmacyConnect', email: senderEmail },
+      to: [{ email }],
+      subject: 'Your DavaSetu Verification Code',
+      htmlContent: `<div style="font-family: sans-serif; text-align: center; padding: 20px;">
+        <h1 style="color: #059669;">DavaSetu Pharmacy</h1>
+        <h2>Your Verification Code</h2>
+        <p>Please use the following 6-digit code to verify your pharmacy account.</p>
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; margin: 20px 0;">${generatedOtp}</div>
+        <p>This code will expire in 60 seconds.</p>
+        <p style="color: #64748b; font-size: 12px;">If you did not request this, please ignore this email.</p>
+      </div>`
+    });
+
+    const options = {
+      hostname: 'api.brevo.com',
+      port: 443,
+      path: '/v3/smtp/email',
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': BREVO_API_KEY,
+        'content-type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+      }
+    };
+
+    const req = https.request(options, (res: any) => {
+      let resData = '';
+      res.on('data', (chunk: any) => resData += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          console.log(`[Brevo] OTP Email delivered to ${email}`);
+        } else {
+          console.error(`[Brevo API Error ${res.statusCode}]:`, resData);
+        }
+      });
+    });
+    req.setTimeout(5000, () => {
+      req.destroy(new Error('Brevo OTP request timed out'));
+    });
+    req.on('error', (e: any) => {
+      console.error('Error calling Brevo API:', e?.message || e);
+    });
+    req.write(data);
+    req.end();
+  } catch (err: any) {
+    console.error('Brevo dispatch note:', err?.message || err);
+  }
+}
+
 export class AuthController {
   
   // 1. Check Mobile (To determine if user exists and show pharmacy name)
   static async checkMobile(req: Request, res: Response) {
     try {
-      const { phone, businessType } = req.body;
+      const { businessType } = req.body;
+      const rawPhone = (req.body.phone || '').toString().trim();
+      const digitsOnly = rawPhone.replace(/\D/g, '');
+      const phone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : rawPhone;
       const email = (req.body.email || '').trim();
 
-      if (!phone || !phone.toString().trim()) {
+      if (!phone) {
         return res.status(400).json({ success: false, message: 'Please enter your mobile number' });
       }
 
@@ -25,12 +88,16 @@ export class AuthController {
         return res.status(400).json({ success: false, message: 'Please enter your email address' });
       }
 
-      // Check user
+      // Check user (exact match or last 10 digits)
       let userExists = false;
       let userData: any = null;
 
-      const userQuery = `SELECT id, name FROM users WHERE phone = $1`;
-      const userResult = await pool.query(userQuery, [phone]);
+      const userQuery = `
+        SELECT id, name FROM users
+        WHERE phone = $1 OR (LENGTH($2) >= 10 AND phone LIKE '%' || $2)
+        ORDER BY id ASC LIMIT 1
+      `;
+      const userResult = await pool.query(userQuery, [rawPhone, phone]);
 
       if (userResult.rows.length > 0) {
         const user = userResult.rows[0];
@@ -52,23 +119,23 @@ export class AuthController {
         if (pharmacyResult.rows.length > 0) {
             const pharmacyName = pharmacyResult.rows[0].name;
 
-            // Generate OTP so existing store owners can also login via OTP seamlessly
+            // Generate OTP so existing store owners can login via OTP immediately
             const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
             otpStore[phone] = generatedOtp;
+            otpStore[rawPhone] = generatedOtp;
             setTimeout(() => {
               if (otpStore[phone] === generatedOtp) delete otpStore[phone];
+              if (otpStore[rawPhone] === generatedOtp) delete otpStore[rawPhone];
             }, 60000);
 
-            console.log(`\n========================================`);
-            console.log(`[DEV MODE - Pharmacy Login] OTP for ${phone} (${email}) is: ${generatedOtp} (Master OTP: 123456)`);
-            console.log(`========================================\n`);
+            dispatchOtpEmailInBackground(email, generatedOtp);
 
             return res.json({
                 success: true,
                 exists: true,
                 pharmacyName: pharmacyName,
                 userName: user.name,
-                message: 'OTP sent successfully (Development Mode: use 123456)',
+                message: 'OTP sent successfully',
                 otp: generatedOtp
             });
         }
@@ -81,104 +148,27 @@ export class AuthController {
         }
       }
 
-      // User does not exist, send OTP for registration
-      if (!email) {
-        return res.status(400).json({ success: false, message: 'Please enter your email address' });
-      }
+      // User does not exist, generate OTP and send email without blocking response
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      otpStore[phone] = generatedOtp;
+      otpStore[rawPhone] = generatedOtp;
 
-        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        otpStore[phone] = generatedOtp;
+      // Auto-expire OTP after 60 seconds
+      setTimeout(() => {
+        if (otpStore[phone] === generatedOtp) delete otpStore[phone];
+        if (otpStore[rawPhone] === generatedOtp) delete otpStore[rawPhone];
+      }, 60000);
 
-        // Auto-expire OTP after 60 seconds
-        setTimeout(() => {
-          if (otpStore[phone] === generatedOtp) {
-            delete otpStore[phone];
-          }
-        }, 60000);
+      dispatchOtpEmailInBackground(email, generatedOtp);
 
-        if (!BREVO_API_KEY) {
-          console.log(`\n========================================`);
-          console.log(`[DEV MODE - Pharmacy] OTP for ${phone} is: ${generatedOtp} (Master OTP: 123456)`);
-          console.log(`========================================\n`);
-          return res.json({ 
-            success: true, 
-            exists: false,
-            userExists: userExists,
-            userData: userData,
-            message: 'OTP sent successfully (Development Mode: use 123456)',
-            otp: generatedOtp
-          });
-        }
-
-        try {
-          const https = require('https');
-          const senderEmail = process.env.SENDER_EMAIL || 'davasetu.otp@gmail.com'; 
-          const data = JSON.stringify({
-            sender: { name: 'PharmacyConnect', email: senderEmail },
-            to: [{ email: email }],
-            subject: 'Your PharmacyConnect Verification Code',
-            htmlContent: `<div style="font-family: sans-serif; text-align: center; padding: 20px;">
-              <h1 style="color: #059669;">PharmacyConnect</h1>
-              <h2>Your Verification Code</h2>
-              <p>Please use the following 6-digit code to verify your pharmacy account.</p>
-              <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; margin: 20px 0;">${generatedOtp}</div>
-              <p>This code will expire in 60 seconds.</p>
-              <p style="color: #64748b; font-size: 12px;">If you did not request this, please ignore this email.</p>
-            </div>`
-          });
-
-          const options = {
-            hostname: 'api.brevo.com',
-            port: 443,
-            path: '/v3/smtp/email',
-            method: 'POST',
-            headers: {
-              'accept': 'application/json',
-              'api-key': BREVO_API_KEY,
-              'content-type': 'application/json',
-              'Content-Length': Buffer.byteLength(data)
-            }
-          };
-
-          await new Promise((resolve, reject) => {
-            const req = https.request(options, (res: any) => {
-              let resData = '';
-              res.on('data', (chunk: any) => resData += chunk);
-              res.on('end', () => {
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                  console.log(`[Brevo] OTP Email successfully delivered to ${email}`);
-                  resolve(resData);
-                } else {
-                  console.error(`[Brevo API Error ${res.statusCode}]:`, resData);
-                  reject(new Error(`Brevo API returned status ${res.statusCode}: ${resData}`));
-                }
-              });
-            });
-            req.on('error', (e: any) => reject(e));
-            req.write(data);
-            req.end();
-          });
-        } catch (emailError: any) {
-          console.error('Error calling Brevo API:', emailError?.message || emailError);
-          console.log(`[FALLBACK] Using Master OTP 123456 or generated OTP ${generatedOtp} for ${phone}`);
-          // Don't crash signup if email provider is throttled or unverified sender; allow master OTP 123456
-          return res.json({
-            success: true,
-            exists: false,
-            userExists: userExists,
-            userData: userData,
-            message: 'OTP initiated. (Email service pending: Master OTP 123456 active)',
-            otp: generatedOtp
-          });
-        }
-
-        return res.json({
-          success: true,
-          exists: false,
-          userExists: userExists,
-          userData: userData,
-          otp: generatedOtp
-        });
+      return res.json({
+        success: true,
+        exists: false,
+        userExists: userExists,
+        userData: userData,
+        message: 'OTP sent successfully',
+        otp: generatedOtp
+      });
     } catch (error) {
       console.error('Check mobile error:', error);
       res.status(500).json({ success: false, message: 'Internal server error' });
@@ -215,9 +205,9 @@ export class AuthController {
         if (userRes.rows.length > 0 && userRes.rows[0].pharmacy_id) {
           const u = userRes.rows[0];
           const token = jwt.sign(
-            { id: u.id, email: u.email, role: 'PHARMACIST', pharmacyId: u.pharmacy_id },
+            { userId: u.id, id: u.id, phone: u.phone, email: u.email, role: 'OWNER', pharmacyId: u.pharmacy_id },
             JWT_SECRET,
-            { expiresIn: '7d' }
+            { expiresIn: '30d' }
           );
           return res.json({
             success: true,
@@ -229,7 +219,7 @@ export class AuthController {
               name: u.name,
               email: u.email,
               phone: u.phone,
-              role: 'PHARMACIST',
+              role: 'OWNER',
               pharmacyId: u.pharmacy_id,
               pharmacyName: u.pharmacy_name
             },

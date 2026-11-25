@@ -25,20 +25,24 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
 
   useEffect(() => {
     // Read logged-in user details from local storage immediately
-    try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const u = JSON.parse(userStr);
-        if (u.email) setUserEmail(u.email);
-        if (u.name) setUserName(u.name);
-        if (u.pharmacyName) setPharmacyName(u.pharmacyName);
-      }
-      const localData = localStorage.getItem('pharmacy_profile_data');
-      if (localData) {
-        const parsed = JSON.parse(localData);
-        if (parsed.name) setPharmacyName(parsed.name);
-      }
-    } catch (e) {}
+    const syncLocalUser = () => {
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          if (u.email) setUserEmail(u.email);
+          if (u.name) setUserName(u.name);
+          if (u.pharmacyName) setPharmacyName(u.pharmacyName);
+        }
+        const localData = localStorage.getItem('pharmacy_profile_data');
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          if (parsed.name) setPharmacyName(parsed.name);
+        }
+      } catch (e) {}
+    };
+    syncLocalUser();
+    window.addEventListener('auth_updated', syncLocalUser);
 
     // Pharmacy Profile sync from server if available
     const pharmId = getPharmacyId();
@@ -70,6 +74,7 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
     });
 
     return () => {
+      window.removeEventListener('auth_updated', syncLocalUser);
       window.removeEventListener('app_notification', handleAppNotification);
       window.removeEventListener('new_pharmacy_notification', handleAppNotification);
       unsubscribeSync();

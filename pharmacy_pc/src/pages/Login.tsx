@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPulse, Pill, ArrowLeft, Store, User, Users, Lock, Phone, KeyRound, Mail, Sparkles, Clipboard } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import OtpVerificationAnimation from '../components/auth/OtpVerificationAnimation';
+import { useAuth } from '../components/auth/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://pharmacy-backend-e210.onrender.com/api';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { refreshAuth } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [authMode, setAuthMode] = useState<'login' | 'signup'>(() => {
     return searchParams.get('mode') === 'signup' ? 'signup' : 'login';
@@ -76,12 +78,28 @@ export default function Login() {
   }, [step]);
 
   const transitionToStep = (newStep: 1 | 2 | 3 | 4 | 5) => {
-    setIsAnimating(true);
+    setStep(newStep);
+    setError('');
+    setIsAnimating(false);
+  };
+
+  const completeAuthAndGoDashboard = async (data: any) => {
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user));
+    }
+    if (data.pharmacy) {
+      localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
+    }
+    localStorage.setItem('business_type', businessType);
+    window.dispatchEvent(new Event('auth_updated'));
+    await refreshAuth();
+    setIsRedirecting(true);
     setTimeout(() => {
-      setStep(newStep);
-      setError('');
-      setIsAnimating(false);
-    }, 300);
+      navigate('/dashboard', { replace: true });
+    }, 250);
   };
 
   const handleCheckMobile = async (e: React.FormEvent) => {
@@ -174,18 +192,7 @@ export default function Login() {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        if (data.pharmacy) {
-          localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
-        }
-        localStorage.setItem('business_type', businessType);
-        window.dispatchEvent(new Event('auth_updated'));
-        
-        setIsRedirecting(true);
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1500);
+        await completeAuthAndGoDashboard(data);
       } else {
         setError(data.message || 'Invalid credentials');
       }
@@ -210,18 +217,7 @@ export default function Login() {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        if (data.pharmacy) {
-          localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
-        }
-        localStorage.setItem('business_type', businessType);
-        window.dispatchEvent(new Event('auth_updated'));
-        
-        setIsRedirecting(true);
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1500);
+        await completeAuthAndGoDashboard(data);
       } else {
         setError(data.message || 'Invalid PIN');
         setLoading(false);
@@ -251,38 +247,21 @@ export default function Login() {
     setError('');
 
     try {
-      const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-      const apiRequest = fetch(`${API_BASE}/auth/verify-otp`, {
+      const response = await fetch(`${API_BASE}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, otp: otpCode })
-      }).then(res => res.json());
-      
-      const [_, data] = await Promise.all([minDelay, apiRequest]);
-      
+      });
+      const data = await response.json();
+
       if (data.success) {
-        setOtpVerificationStatus('success');
-        setTimeout(() => {
-          setOtpVerificationStatus('idle');
-          setLoading(false);
-          if (data.exists && data.token) {
-            localStorage.setItem('token', data.token);
-            if (data.user) {
-              localStorage.setItem('user', JSON.stringify(data.user));
-            }
-            if (data.pharmacy) {
-              localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
-            }
-            localStorage.setItem('business_type', businessType);
-        window.dispatchEvent(new Event('auth_updated'));
-            setIsRedirecting(true);
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 1000);
-          } else {
-            transitionToStep(4);
-          }
-        }, 1200);
+        setOtpVerificationStatus('idle');
+        setLoading(false);
+        if (data.exists && data.token) {
+          await completeAuthAndGoDashboard(data);
+        } else {
+          transitionToStep(4);
+        }
       } else {
         setOtpVerificationStatus('idle');
         setLoading(false);
@@ -351,16 +330,7 @@ export default function Login() {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('pharmacy_profile_data', JSON.stringify(data.pharmacy));
-        localStorage.setItem('business_type', businessType);
-        window.dispatchEvent(new Event('auth_updated'));
-        
-        setIsRedirecting(true);
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1500);
+        await completeAuthAndGoDashboard(data);
       } else {
         setError(data.message || 'Registration failed');
       }

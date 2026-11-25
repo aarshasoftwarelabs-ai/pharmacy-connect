@@ -6,63 +6,84 @@ interface User {
   name: string;
   role: string;
   isStaff?: boolean;
+  pharmacyId?: number;
+  pharmacyName?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   permissions: string[];
   loading: boolean;
+  refreshAuth: () => Promise<void>;
   hasPermission: (key: string) => boolean;
   isOwner: () => boolean;
+}
+
+function readStoredUser(): User | null {
+  try {
+    const userDataStr = localStorage.getItem('user');
+    if (userDataStr && userDataStr !== 'undefined' && userDataStr !== 'null') {
+      return JSON.parse(userDataStr);
+    }
+  } catch (err) {
+    console.error('Error parsing stored user data', err);
+  }
+  return null;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   permissions: [],
   loading: true,
+  refreshAuth: async () => {},
   hasPermission: () => false,
-  isOwner: () => false
+  isOwner: () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => readStoredUser());
   const [permissions, setPermissions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    const initial = readStoredUser();
+    return Boolean(initial?.isStaff);
+  });
 
   const loadAuth = useCallback(async () => {
-    try {
-      const userDataStr = localStorage.getItem('user');
-      if (userDataStr) {
-        const userData = JSON.parse(userDataStr);
-        setUser(userData);
-        
-        if (userData.isStaff) {
-          const staffId = userData.id;
-          try {
-            const perms = await StaffService.getPermissions(staffId);
-            setPermissions(perms.filter((p: StaffPermission) => p.granted).map((p: StaffPermission) => p.permission_key));
-          } catch (err) {
-            console.error('Failed to load permissions', err);
-          }
-        } else {
-          setPermissions([]);
-        }
-      } else {
-        setUser(null);
+    const userData = readStoredUser();
+    setUser(userData);
+
+    if (!userData) {
+      setPermissions([]);
+      setLoading(false);
+      return;
+    }
+
+    if (userData.isStaff) {
+      setLoading(true);
+      try {
+        const perms = await StaffService.getPermissions(userData.id);
+        setPermissions(
+          perms.filter((p: StaffPermission) => p.granted).map((p: StaffPermission) => p.permission_key)
+        );
+      } catch (err) {
+        console.error('Failed to load staff permissions', err);
         setPermissions([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error parsing user data', err);
-    } finally {
+    } else {
+      setPermissions([]);
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     loadAuth();
-    const handleAuthChange = () => { loadAuth(); };
+    const handleAuthChange = () => {
+      void loadAuth();
+    };
     window.addEventListener('auth_updated', handleAuthChange);
     window.addEventListener('storage', handleAuthChange);
     return () => {
@@ -72,21 +93,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [loadAuth]);
 
   const hasPermission = (key: string) => {
-    // If user is loaded and not a staff member, they are an owner/admin
-    if (user && !user.isStaff) return true;
-    if (user?.role === 'OWNER' || user?.role?.toUpperCase() === 'ADMIN') return true;
-    
-    // For staff members, check their specific permissions
+    const activeUser = user ?? readStoredUser();
+    if (!activeUser) return false;
+    if (!activeUser.isStaff) return true;
+    if (activeUser.role === 'OWNER' || activeUser.role?.toUpperCase() === 'ADMIN') return true;
     return permissions.includes(key);
   };
 
   const isOwner = () => {
-    if (user && !user.isStaff) return true;
-    return user?.role === 'OWNER' || user?.role?.toUpperCase() === 'ADMIN';
+    const activeUser = user ?? readStoredUser();
+    if (activeUser && !activeUser.isStaff) return true;
+    return activeUser?.role === 'OWNER' || activeUser?.role?.toUpperCase() === 'ADMIN';
   };
 
   return (
-    <AuthContext.Provider value={{ user, permissions, loading, hasPermission, isOwner }}>
+    <AuthContext.Provider value={{ user, permissions, loading, refreshAuth: loadAuth, hasPermission, isOwner }}>
       {children}
     </AuthContext.Provider>
   );

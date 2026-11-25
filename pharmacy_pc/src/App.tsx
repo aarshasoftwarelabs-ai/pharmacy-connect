@@ -28,8 +28,17 @@ const ProtectedRoute = () => {
 const PermissionRoute = ({ permissionKey, children }: { permissionKey: string, children: React.ReactNode }) => {
   const { loading, hasPermission } = useAuth();
   
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pharmacy-600"></div>
+      </div>
+    );
+  }
   if (!hasPermission(permissionKey)) {
+    if (permissionKey === 'DASHBOARD_VIEW') {
+      return <>{children}</>;
+    }
     return <Navigate to="/dashboard" replace />;
   }
   

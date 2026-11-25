@@ -18,14 +18,6 @@ import { Medicine } from '../types/medicine';
 import { Bill } from '../types/billing';
 import SalesOverviewChart from '../components/dashboard/SalesOverviewChart';
 
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 }
-  }
-};
-
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   show: { 
@@ -47,7 +39,21 @@ export default function Dashboard() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [activeHubTab, setActiveHubTab] = useState<'alerts' | 'counter'>('alerts');
-  const [pharmacyName, setPharmacyName] = useState('K.Y Pharmacy');
+  const [pharmacyName, setPharmacyName] = useState<string>(() => {
+    try {
+      const localData = localStorage.getItem('pharmacy_profile_data');
+      if (localData) {
+        const p = JSON.parse(localData);
+        if (p?.name) return p.name;
+      }
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (u?.pharmacyName) return u.pharmacyName;
+      }
+    } catch (_) {}
+    return 'DavaSetu Pharmacy';
+  });
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -196,7 +202,7 @@ export default function Dashboard() {
       >
         <div>
           <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pharmacy-600 to-blue-600 tracking-tight w-fit">
-            Good morning, Pharmacy Owner
+            Welcome, {pharmacyName}
           </h1>
           <p className="text-slate-500 font-medium flex items-center mt-1">
             <Clock className="w-4 h-4 mr-1.5 text-slate-400" />
@@ -206,10 +212,7 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
+      <div
         className="grid grid-cols-1 md:grid-cols-12 gap-6"
       >
         {/* 2. PRIMARY BENTO METRICS */}
@@ -891,7 +894,7 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-      </motion.div>
+      </div>
     </div>
   );
 }
