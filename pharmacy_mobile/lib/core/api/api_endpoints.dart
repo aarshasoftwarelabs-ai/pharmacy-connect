@@ -50,8 +50,6 @@ class ApiEndpoints {
 
   // Subscriptions & License
   static String subscriptionStatus(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription-status';
-  static String updateSubscription(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription';
-  static String subscriptionPayments(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription-payments';
 
   // Messaging Gateway & Automated Invoicing
   static String get messagingSettings => '$baseUrl/messaging/settings';

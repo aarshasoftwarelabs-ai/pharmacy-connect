@@ -238,8 +238,8 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                             const SizedBox(height: 2),
                             Text(
                               sub.isExpired
-                                  ? 'Renew your Mobile-Only 1-Year Pass to keep billing active.'
-                                  : 'Renew Mobile-Only 1-Year Pass now at ₹1,499 (Save 40%).',
+                                  ? 'Your store license has expired. Contact your administrator to reactivate.'
+                                  : 'Store license expires soon. Manage plan from DavaSetu PC Software or contact admin.',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: sub.isExpired ? const Color(0xFFB91C1C) : const Color(0xFFB45309),
@@ -265,7 +265,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           elevation: 0,
                         ),
-                        child: const Text('Renew', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        child: const Text('Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                       ),
                     ],
                   ),

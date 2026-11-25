@@ -300,8 +300,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 4),
                             Text(
                               sub?.subscriptionEndDate != null
-                                  ? 'Valid till: ${sub!.subscriptionEndDate!.split('T')[0]} • Smartphone Only (No PC)'
-                                  : '1-Year Pass • Smartphone Billing Only (No PC required)',
+                                  ? 'Valid till: ${sub!.subscriptionEndDate!.split('T')[0]} • Managed via DavaSetu PC / Admin'
+                                  : 'Managed by Pharmacy Administrator',
                               style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                             ),
                           ],
@@ -319,13 +319,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.flash_on_rounded, size: 14, color: Color(0xFFD97706)),
-                              SizedBox(width: 4),
+                              const Icon(Icons.verified_user_rounded, size: 14, color: Color(0xFF059669)),
+                              const SizedBox(width: 6),
                               Text(
-                                '₹1,499 / Year (₹4.10/day)',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                'Store ID #${auth.pharmacyId}',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                               ),
                             ],
                           ),
@@ -340,10 +340,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             pharmacyName: auth.pharmacyName,
                           );
                         },
-                        icon: const Icon(Icons.autorenew_rounded, size: 14),
-                        label: Text(
-                          (sub?.isExpired ?? false) ? 'Renew Now' : 'Renew / Extend',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        icon: const Icon(Icons.info_outline_rounded, size: 14),
+                        label: const Text(
+                          'License Details',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF059669),
