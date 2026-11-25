@@ -435,15 +435,23 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildModernKpiCard(
-                      title: 'Total Stock',
-                      value: '$totalInventoryCount items',
-                      trend: '98% catalog active',
-                      isPositiveTrend: true,
-                      icon: Icons.medication_rounded,
-                      color: AppColors.info,
-                      bgColor: AppColors.infoBg,
-                      onTap: () => widget.onNavigateTab?.call(2),
+                    child: Builder(
+                      builder: (context) {
+                        final outOfStock = inventory.medicines.where((m) => m.stock <= 0).length;
+                        final trendText = inventory.medicines.isEmpty
+                            ? '0 medicines'
+                            : (outOfStock > 0 ? '$outOfStock out of stock' : 'All stocked');
+                        return _buildModernKpiCard(
+                          title: 'Total Stock',
+                          value: '$totalInventoryCount items',
+                          trend: trendText,
+                          isPositiveTrend: outOfStock == 0,
+                          icon: Icons.medication_rounded,
+                          color: AppColors.info,
+                          bgColor: AppColors.infoBg,
+                          onTap: () => widget.onNavigateTab?.call(2),
+                        );
+                      },
                     ),
                   ),
                 ],

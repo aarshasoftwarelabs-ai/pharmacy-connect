@@ -2277,17 +2277,21 @@ class InventoryScreen extends StatelessWidget {
       ),
       builder: (modalCtx) {
         bool isLoadingH1 = true;
+        bool fetchStarted = false;
         List<dynamic> entries = [];
         String searchQ = '';
         final searchCtrl = TextEditingController();
 
         return StatefulBuilder(
           builder: (sheetCtx, setSheetState) {
-            void fetchEntries() async {
+            Future<void> fetchEntries() async {
               try {
                 final res = await ApiService.get(ApiEndpoints.scheduleH1);
                 if (res.success && res.data != null) {
-                  final list = res.data['data'] ?? res.data;
+                  final raw = res.data;
+                  final list = raw is List
+                      ? raw
+                      : (raw is Map ? raw['data'] : const []);
                   if (sheetCtx.mounted) {
                     setSheetState(() {
                       entries = (list is List) ? list : [];
@@ -2302,7 +2306,8 @@ class InventoryScreen extends StatelessWidget {
               }
             }
 
-            if (isLoadingH1) {
+            if (!fetchStarted) {
+              fetchStarted = true;
               fetchEntries();
             }
 

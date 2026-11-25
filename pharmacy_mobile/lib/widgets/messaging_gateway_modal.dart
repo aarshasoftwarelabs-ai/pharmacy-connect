@@ -32,8 +32,6 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
   bool _autoSendWhatsapp = true;
   bool _isActive = true;
   String _gatewayProvider = 'SIMULATED';
-  final TextEditingController _phoneNumberIdController = TextEditingController();
-  final TextEditingController _accessTokenController = TextEditingController();
   final TextEditingController _testPhoneController = TextEditingController();
 
   String? _testFeedbackMessage;
@@ -47,8 +45,6 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
 
   @override
   void dispose() {
-    _phoneNumberIdController.dispose();
-    _accessTokenController.dispose();
     _testPhoneController.dispose();
     super.dispose();
   }
@@ -57,8 +53,11 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
     setState(() => _isLoading = true);
     try {
       final res = await ApiService.get(ApiEndpoints.messagingSettings);
-      if (res.success && res.data != null) {
-        final data = res.data is Map ? res.data : (res.data['data'] ?? {});
+      if (res.success && res.data != null && res.data is Map) {
+        final rawMap = Map<String, dynamic>.from(res.data as Map);
+        final data = rawMap['data'] is Map
+            ? Map<String, dynamic>.from(rawMap['data'] as Map)
+            : rawMap;
         setState(() {
           _isActive = data['isActive'] ?? true;
           _autoSendWhatsapp = data['autoSendBillWhatsapp'] ?? true;

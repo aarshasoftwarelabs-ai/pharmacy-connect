@@ -20,7 +20,7 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   final _currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
   String _searchQuery = '';
-  String _selectedPaymentFilter = 'All'; // 'All', 'CASH', 'UPI'
+  String _selectedPaymentFilter = 'All'; // 'All', 'COUNTER', 'ONLINE'
 
   @override
   void initState() {
@@ -84,6 +84,63 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
   }
 
+  /// Sends or resends a bill invoice via WhatsApp/SMS with honest feedback.
+  Future<void> _resendInvoiceWhatsApp(Map<String, dynamic> bill) async {
+    final billNo = bill['bill_number']?.toString() ?? 'Invoice';
+    final billId = int.tryParse(bill['id']?.toString() ?? '');
+    if (billId == null || billId <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Offline bill is not synced to cloud yet.'),
+          backgroundColor: AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final phone = (bill['customer_phone'] ?? '').toString().trim();
+    if (phone.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No customer phone number on this bill.'),
+          backgroundColor: AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final res = await ApiService.post(ApiEndpoints.resendBillMessage(billId), {});
+    if (!mounted) return;
+    if (res.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Invoice $billNo dispatched via WhatsApp!')),
+            ],
+          ),
+          backgroundColor: const Color(0xFF059669),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res.message ?? 'Failed to send WhatsApp invoice'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final billing = context.watch<BillingProvider>();
@@ -100,6 +157,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
           customer.contains(_searchQuery.toLowerCase().trim());
 
       final matchesPayment = _selectedPaymentFilter == 'All' ||
+          (_selectedPaymentFilter == 'COUNTER' &&
+              (paymentMode.contains('CASH') ||
+                  paymentMode.contains('CARD') ||
+                  paymentMode.contains('OFFLINE') ||
+                  paymentMode.contains('POS'))) ||
+          (_selectedPaymentFilter == 'ONLINE' &&
+              (paymentMode.contains('UPI') || paymentMode.contains('ONLINE'))) ||
           paymentMode.contains(_selectedPaymentFilter);
 
       return matchesSearch && matchesPayment;
@@ -239,7 +303,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
                 const SizedBox(height: 10),
 
-                // Payment Filters (All / Cash / UPI)
+                // Payment Filters (All / Counter Cash / Online UPI)
                 Row(
                   children: [
                     const Text(
@@ -249,9 +313,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     const SizedBox(width: 8),
                     _buildFilterChip('All', 'All (${recentBills.length})'),
                     const SizedBox(width: 6),
-                    _buildFilterChip('CASH', 'Cash'),
+                    _buildFilterChip('COUNTER', 'Counter / Cash'),
                     const SizedBox(width: 6),
-                    _buildFilterChip('UPI', 'UPI / Online'),
+                    _buildFilterChip('ONLINE', 'UPI / Online'),
                   ],
                 ),
               ],
@@ -602,29 +666,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           color: Colors.transparent,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(10),
-                            onTap: () async {
-                              final billId = bill['id'];
-                              if (billId != null) {
-                                ApiService.post(
-                                  ApiEndpoints.resendBillMessage(int.tryParse(billId.toString()) ?? 0),
-                                  {},
-                                ).catchError((_) => ApiResponse(success: false, statusCode: 500));
-                              }
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      const Icon(Icons.send_rounded, color: Colors.white, size: 18),
-                                      const SizedBox(width: 8),
-                                      Text('Invoice $billNo dispatched via SMS & WhatsApp!'),
-                                    ],
-                                  ),
-                                  backgroundColor: const Color(0xFF059669),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                              );
-                            },
+                            onTap: () => _resendInvoiceWhatsApp(bill),
                             child: const Padding(
                               padding: EdgeInsets.symmetric(vertical: 9),
                               child: Row(
@@ -762,16 +804,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        final billId = bill['id'];
-                        if (billId != null) {
-                          ApiService.post(
-                            ApiEndpoints.resendBillMessage(int.tryParse(billId.toString()) ?? 0),
-                            {},
-                          ).catchError((_) => ApiResponse(success: false, statusCode: 500));
-                        }
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('WhatsApp receipt dispatched for $billNo!')),
-                        );
+                        _resendInvoiceWhatsApp(bill);
                       },
                       icon: const Icon(Icons.share_rounded, size: 16),
                       label: const Text('WhatsApp'),

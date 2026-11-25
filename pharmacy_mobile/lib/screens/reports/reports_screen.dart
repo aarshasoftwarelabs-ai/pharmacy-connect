@@ -27,12 +27,32 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _fetchReport();
   }
 
+  Map<String, String> _computeDateRange() {
+    final now = DateTime.now();
+    String fmt(DateTime d) =>
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+    if (_range == 'yesterday') {
+      final y = now.subtract(const Duration(days: 1));
+      return {'from': fmt(y), 'to': fmt(y)};
+    } else if (_range == 'this-week') {
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      return {'from': fmt(startOfWeek), 'to': fmt(now)};
+    } else if (_range == 'this-month') {
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      return {'from': fmt(startOfMonth), 'to': fmt(now)};
+    }
+    return {'from': fmt(now), 'to': fmt(now)};
+  }
+
   Future<void> _fetchReport() async {
     setState(() => _isLoading = true);
     final pharmacyId = context.read<AuthProvider>().pharmacyId;
+    final range = _computeDateRange();
 
     try {
-      final res = await ApiService.get('${ApiEndpoints.salesReport(pharmacyId)}?range=$_range');
+      final url = '${ApiEndpoints.salesReport(pharmacyId)}?from=${range['from']}&to=${range['to']}';
+      final res = await ApiService.get(url);
       if (res.success && res.data != null) {
         if (mounted) {
           setState(() {

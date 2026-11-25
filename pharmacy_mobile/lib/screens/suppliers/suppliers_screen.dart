@@ -355,11 +355,12 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) return;
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
               Navigator.pop(ctx);
               final newSup = SupplierModel(
                 id: DateTime.now().millisecondsSinceEpoch,
-                supplierName: nameCtrl.text.trim(),
+                supplierName: name,
                 contactPerson: contactCtrl.text.trim().isNotEmpty ? contactCtrl.text.trim() : null,
                 mobile: mobileCtrl.text.trim().isNotEmpty ? mobileCtrl.text.trim() : null,
                 city: cityCtrl.text.trim().isNotEmpty ? cityCtrl.text.trim() : null,
@@ -368,9 +369,24 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 creditPeriodDays: int.tryParse(creditDaysCtrl.text.trim()) ?? 21,
                 dealsInBrands: brandsCtrl.text.trim().isNotEmpty ? brandsCtrl.text.trim() : null,
               );
-              setState(() => _suppliers.insert(0, newSup));
-              await ApiService.post(ApiEndpoints.suppliers, newSup.toJson());
-              _fetchSuppliers();
+              final res = await ApiService.post(ApiEndpoints.suppliers, newSup.toJson());
+              if (!mounted) return;
+              if (res.success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Supplier "$name" saved!'),
+                    backgroundColor: const Color(0xFF059669),
+                  ),
+                );
+                await _fetchSuppliers();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(res.message ?? 'Failed to save supplier'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: const Text('Save Supplier', style: TextStyle(color: Colors.white)),

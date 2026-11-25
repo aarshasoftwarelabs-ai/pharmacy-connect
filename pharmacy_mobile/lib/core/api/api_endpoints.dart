@@ -30,53 +30,31 @@ class ApiEndpoints {
   static String get register => '$baseUrl/auth/register';
   static String get staffLogin => '$baseUrl/auth/staff-login';
   static String get lookupCounterUser => '$baseUrl/auth/lookup-counter-user';
-  static String get me => '$baseUrl/auth/me';
 
   // Medicines / Inventory
   static String get medicines => '$baseUrl/medicines';
   static String get scheduleH1 => '$baseUrl/schedule-h1';
-  static String get scheduleH1Stats => '$baseUrl/schedule-h1/stats';
-  static String get scanMedicineBox => '$baseUrl/medicines/scan-box';
-  static String medicineById(String id) => '$baseUrl/medicines/$id';
   static String updateMedicine(String id) => '$baseUrl/medicines/$id';
 
   // Billing / POS
-  static String get bills => '$baseUrl/billing';
   static String pharmacyBills(int pharmacyId) => '$baseUrl/billing/pharmacy/$pharmacyId';
   static String get createBill => '$baseUrl/billing';
   static String get liveScanItem => '$baseUrl/billing/live-scan';
-  static String pendingScans(int pharmacyId) => '$baseUrl/billing/pending-scans/$pharmacyId';
 
-  // Dashboard / Reports
-  static String get dashboardSummary => '$baseUrl/reports/dashboard';
-
-  // Refills & Prescriptions
-  static String get refills => '$baseUrl/refills';
-  static String get prescriptions => '$baseUrl/prescriptions';
-
-  // Customers
+  // Customers & Suppliers
   static String get customers => '$baseUrl/customers';
-  static String customerById(int id) => '$baseUrl/customers/$id';
-
-  // Suppliers & Purchases
   static String get suppliers => '$baseUrl/suppliers';
-  static String supplierById(int id) => '$baseUrl/suppliers/$id';
-  static String get purchases => '$baseUrl/purchases';
 
   // Reports
   static String salesReport(int pharmacyId) => '$baseUrl/reports/sales/$pharmacyId';
-  static String customerReport(int pharmacyId) => '$baseUrl/reports/customers/$pharmacyId';
 
   // Subscriptions & License
   static String subscriptionStatus(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription-status';
   static String updateSubscription(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription';
   static String subscriptionPayments(int pharmacyId) => '$baseUrl/pharmacies/$pharmacyId/subscription-payments';
-  static String get createPaymentOrder => '$baseUrl/payments/create-order';
-  static String get verifyPayment => '$baseUrl/payments/verify';
 
   // Messaging Gateway & Automated Invoicing
   static String get messagingSettings => '$baseUrl/messaging/settings';
   static String get sendTestMessage => '$baseUrl/messaging/test';
-  static String get messagingLogs => '$baseUrl/messaging/logs';
   static String resendBillMessage(int billId) => '$baseUrl/billing/$billId/send-message';
 }
