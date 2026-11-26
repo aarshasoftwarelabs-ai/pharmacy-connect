@@ -211,7 +211,7 @@ export class ReportService {
         COUNT(id) as "totalBills",
         SUM(total) as "totalSpent"
       FROM bills
-      WHERE ${billDateFilter} ${searchFilter}
+      WHERE ${billDateFilter} ${searchFilter} AND payment_status != 'CANCELLED'
       GROUP BY customer_name, customer_phone
       ORDER BY "totalSpent" DESC
     `;
@@ -314,15 +314,15 @@ export class ReportService {
     const billValues: any[] = [];
     const billFilter = buildDateFilter(pharmacyId, 'b.bill_date', params, billValues, 'b.pharmacy_id');
 
-    // 2. B2B Sales (Wholesale bills or bills with B2B clients) - GSTR-1
+    // 2. B2B Sales (Wholesale bills if any exist; retail stores use B2CS below) - GSTR-1
     const b2bQuery = `
       SELECT 
         b.id,
         b.bill_number as "invoiceNumber",
         b.bill_date as "invoiceDate",
         b.customer_name as "receiverName",
-        COALESCE(c.gstin, '') as "receiverGstin",
-        COALESCE(c.business_name, b.customer_name) as "tradeName",
+        '' as "receiverGstin",
+        b.customer_name as "tradeName",
         COALESCE(b.total_taxable_amount, b.subtotal) as "taxableValue",
         COALESCE(b.total_cgst, 0) as "cgst",
         COALESCE(b.total_sgst, 0) as "sgst",
@@ -330,10 +330,9 @@ export class ReportService {
         b.total as "invoiceValue",
         b.payment_status as "paymentStatus"
       FROM bills b
-      LEFT JOIN b2b_clients c ON b.b2b_client_id = c.id
       WHERE ${billFilter} 
         AND b.payment_status != 'CANCELLED'
-        AND (b.bill_type = 'WHOLESALE' OR b.b2b_client_id IS NOT NULL)
+        AND b.bill_type = 'WHOLESALE'
       ORDER BY b.bill_date DESC
     `;
     const b2bRes = await pool.query(b2bQuery, billValues);
@@ -352,7 +351,6 @@ export class ReportService {
       WHERE ${billFilter}
         AND b.payment_status != 'CANCELLED'
         AND (b.bill_type != 'WHOLESALE' OR b.bill_type IS NULL)
-        AND b.b2b_client_id IS NULL
       GROUP BY bi.gst_rate
       ORDER BY bi.gst_rate ASC
     `;

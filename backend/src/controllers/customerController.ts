@@ -15,7 +15,7 @@ export const CustomerController = {
                COALESCE(SUM(b.total), 0) as total_spend,
                MAX(b.bill_date) as last_purchase_date
         FROM customer_profiles c
-        LEFT JOIN bills b ON b.customer_profile_id = c.id
+        LEFT JOIN bills b ON b.customer_profile_id = c.id AND b.payment_status != 'CANCELLED'
         WHERE c.pharmacy_id = $1
       `;
       const queryParams: any[] = [pharmacyId];
@@ -53,7 +53,7 @@ export const CustomerController = {
                COALESCE(SUM(b.total), 0) as total_spend,
                MAX(b.bill_date) as last_purchase_date
         FROM customer_profiles c
-        LEFT JOIN bills b ON b.customer_profile_id = c.id
+        LEFT JOIN bills b ON b.customer_profile_id = c.id AND b.payment_status != 'CANCELLED'
         WHERE c.pharmacy_id = $1 AND c.id = $2
         GROUP BY c.id
       `, [pharmacyId, customerId]);

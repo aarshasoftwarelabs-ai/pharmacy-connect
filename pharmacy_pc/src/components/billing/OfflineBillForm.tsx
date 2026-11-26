@@ -945,8 +945,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
             {/* Left Side: Payment Details */}
             <div className="flex-1 max-w-md">
               <h4 className="text-sm font-bold text-slate-800 mb-3">Payment Details</h4>
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {['CASH', 'UPI', 'CARD'].map((mode) => (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+                {['CASH', 'UPI', 'CARD', 'CREDIT'].map((mode) => (
                   <button
                     key={mode}
                     type="button"
@@ -957,7 +957,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                         : 'border-slate-200 bg-white text-slate-500 hover:border-emerald-200'
                     }`}
                   >
-                    {mode}
+                    {mode === 'CREDIT' ? 'UDHAR' : mode}
                   </button>
                 ))}
               </div>

@@ -1,10 +1,24 @@
-import express from 'express';
+import express, { Response, NextFunction } from 'express';
 import pool from '../config/database';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth';
+import { authenticate, AuthenticatedRequest, resolveScopedPharmacyId } from '../middleware/auth';
 
 const router = express.Router();
 
-router.use(authenticate);
+const requireStoreContext = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const role = (req.user?.role || '').toUpperCase();
+  if (!req.user || role === 'USER') {
+    return res.status(403).json({ error: 'Forbidden: Store operator access required' });
+  }
+  try {
+    const pharmacyId = resolveScopedPharmacyId(req, req.params.pharmacyId);
+    req.params.pharmacyId = String(pharmacyId);
+    next();
+  } catch (err: any) {
+    return res.status(err.statusCode || 401).json({ error: err.message });
+  }
+};
+
+router.use(authenticate, requireStoreContext);
 
 // GET all offers
 router.get('/offers/:pharmacyId', async (req, res) => {

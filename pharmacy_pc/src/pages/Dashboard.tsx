@@ -112,9 +112,10 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Compute stats
+  // Compute stats (exclude CANCELLED/returned bills from active sales & bill counts)
   const todayStr = new Date().toDateString();
-  const todaysBills = bills.filter(b => new Date(b.createdAt).toDateString() === todayStr);
+  const activeBills = bills.filter(b => b.paymentStatus !== 'CANCELLED');
+  const todaysBills = activeBills.filter(b => new Date(b.createdAt).toDateString() === todayStr);
   const todaysSalesValue = todaysBills.reduce((sum, b) => sum + Number(b.total), 0);
   
   // Inventory stats
@@ -809,7 +810,7 @@ export default function Dashboard() {
                   <FileText className="w-4 h-4 text-slate-400 mr-2.5" />
                   <span className="text-xs font-bold text-slate-700">Total Lifetime Bills</span>
                 </div>
-                <span className="text-sm font-extrabold text-slate-900">{bills.length}</span>
+                <span className="text-sm font-extrabold text-slate-900">{activeBills.length}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-emerald-50/70 rounded-2xl border border-emerald-100">
                 <div className="flex items-center">

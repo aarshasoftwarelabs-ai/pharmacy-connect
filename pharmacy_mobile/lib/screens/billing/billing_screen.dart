@@ -1485,7 +1485,7 @@ _Thank you for choosing DavaSetu Pharmacy!_
         borderRadius: BorderRadius.circular(10),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           decoration: BoxDecoration(
             color: isSelected ? AppColors.primarySubtle : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(10),
@@ -1497,8 +1497,10 @@ _Thank you for choosing DavaSetu Pharmacy!_
           child: Center(
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
               ),

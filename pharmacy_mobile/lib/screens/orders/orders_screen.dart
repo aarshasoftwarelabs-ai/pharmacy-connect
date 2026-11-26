@@ -170,8 +170,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
       return matchesSearch && matchesPayment;
     }).toList();
 
-    final totalSales = recentBills.fold(0.0, (sum, b) => sum + ((b['total'] as num?)?.toDouble() ?? 0.0));
-    final averageBill = recentBills.isNotEmpty ? totalSales / recentBills.length : 0.0;
+    final activeBills = recentBills
+        .where((b) => (b['payment_status'] ?? 'PAID').toString().toUpperCase() != 'CANCELLED')
+        .toList();
+    final totalSales = activeBills.fold(0.0, (sum, b) => sum + ((b['total'] as num?)?.toDouble() ?? 0.0));
+    final averageBill = activeBills.isNotEmpty ? totalSales / activeBills.length : 0.0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -247,7 +250,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   flex: 3,
                   child: _buildKpiBox(
                     title: 'Total Invoices',
-                    value: '${recentBills.length} Bills',
+                    value: '${activeBills.length} Bills',
                     icon: Icons.receipt_long_rounded,
                     color: const Color(0xFF2563EB),
                     bgColor: const Color(0xFFEFF6FF),
@@ -723,8 +726,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final customer = bill['customer_name'] ?? 'Walk-in Customer';
     final total = (bill['total'] as num?)?.toDouble() ?? 0.0;
     final date = bill['date'] ?? 'Today';
-    final subtotal = total / 1.05;
-    final tax = total - subtotal;
+    final storedTax = (bill['total_gst'] as num?)?.toDouble() ?? (bill['tax'] as num?)?.toDouble() ?? 0.0;
+    final storedTaxable = (bill['total_taxable_amount'] as num?)?.toDouble() ?? 0.0;
+    final subtotal = storedTaxable > 0
+        ? storedTaxable
+        : (storedTax > 0 ? (total - storedTax).clamp(0.0, total) : total / 1.05);
+    final tax = storedTax > 0 ? storedTax : (total - subtotal);
 
     showModalBottomSheet(
       context: context,
@@ -778,9 +785,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
               const SizedBox(height: 14),
 
               // Breakdown
-              _buildReceiptRow('Subtotal:', _currency.format(subtotal)),
+              _buildReceiptRow('Taxable Subtotal:', _currency.format(subtotal)),
               const SizedBox(height: 6),
-              _buildReceiptRow('GST (5%):', _currency.format(tax)),
+              _buildReceiptRow('GST Tax:', _currency.format(tax)),
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

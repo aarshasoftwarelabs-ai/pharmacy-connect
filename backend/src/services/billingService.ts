@@ -125,6 +125,8 @@ export class BillingService {
              COALESCE(b.customer_phone, u.phone, mr_u.phone) AS "customerPhone",
              b.doctor_name AS "doctorName", b.bill_type AS "billType",
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
+             b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst",
+             b.total_sgst AS "totalSgst", b.total_gst AS "totalGst",
              b.created_at AS "createdAt",
              (
                SELECT COALESCE(json_agg(
@@ -509,6 +511,16 @@ export class BillingService {
           WHERE id = $3 AND pharmacy_id = $4
         `;
         await client.query(updateStockQuery, [deductStripUnits, newLooseTablets, medId, data.pharmacyId]);
+
+        if (isLoose && deductStripUnits === 0) {
+          await client.query(
+            `INSERT INTO stock_movements (
+               pharmacy_id, medicine_id, batch_id, movement_type, reference_type,
+               reference_id, quantity, previous_quantity, new_quantity, created_by
+             ) VALUES ($1, $2, NULL, 'SALE_LOOSE', 'BILL', $3, $4, $5, $6, $7)`,
+            [data.pharmacyId, medId, newBillId, -item.quantity, looseTabletsAvailable, newLooseTablets, data.userId || null]
+          );
+        }
       }
 
       // 5. Update total_profit on the bill
@@ -674,6 +686,33 @@ export class BillingService {
         await client.query(
           `UPDATE medicines SET current_stock = COALESCE(current_stock, 0) + $1 WHERE id = $2 AND pharmacy_id = $3`,
           [totalRestore, medId, bill.pharmacy_id]
+        );
+      }
+
+      // Restore loose tablet sales that were served from already-open strips (SALE_LOOSE)
+      const looseMovements = await client.query(
+        `SELECT medicine_id, ABS(quantity)::int AS qty
+         FROM stock_movements
+         WHERE pharmacy_id = $1 AND reference_type = 'BILL' AND reference_id = $2 AND movement_type = 'SALE_LOOSE'`,
+        [bill.pharmacy_id, billId]
+      );
+      for (const lm of looseMovements.rows) {
+        const restoreTabs = Number(lm.qty || 0);
+        if (restoreTabs <= 0) continue;
+        const medUpd = await client.query(
+          `UPDATE medicines
+           SET loose_tablets = COALESCE(loose_tablets, 0) + $1
+           WHERE id = $2 AND pharmacy_id = $3
+           RETURNING loose_tablets`,
+          [restoreTabs, lm.medicine_id, bill.pharmacy_id]
+        );
+        const updatedLoose = Number(medUpd.rows[0]?.loose_tablets || restoreTabs);
+        await client.query(
+          `INSERT INTO stock_movements (
+             pharmacy_id, medicine_id, batch_id, movement_type, reference_type,
+             reference_id, quantity, previous_quantity, new_quantity, created_by
+           ) VALUES ($1, $2, NULL, 'RETURN_LOOSE', 'BILL_CANCEL', $3, $4, $5, $6, $7)`,
+          [bill.pharmacy_id, lm.medicine_id, billId, restoreTabs, Math.max(0, updatedLoose - restoreTabs), updatedLoose, bill.user_id || null]
         );
       }
 
