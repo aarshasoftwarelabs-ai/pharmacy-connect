@@ -273,11 +273,14 @@ class InventoryProvider extends ChangeNotifier {
     String? batchNumber,
     String? mfgDate,
     String? expiryDate,
+    double gstRate = 5.0,
+    String? hsnCode,
   }) async {
     try {
       final cleanExpiry = normalizeDateToIso(expiryDate);
       final cleanMfg = normalizeDateToIso(mfgDate);
       final cleanStrength = (strength != null && strength.trim().isNotEmpty) ? strength.trim() : null;
+      final cleanHsn = (hsnCode != null && hsnCode.trim().isNotEmpty) ? hsnCode.trim() : '30049099';
 
       // 1. Optimistic instant local update so it shows immediately in Inventory UI
       final localMed = MedicineModel(
@@ -294,6 +297,8 @@ class InventoryProvider extends ChangeNotifier {
         batchNumber: batchNumber?.trim(),
         mfgDate: cleanMfg,
         expiryDate: cleanExpiry,
+        gstRate: gstRate,
+        hsnCode: cleanHsn,
       );
       _medicines.insert(0, localMed);
       _errorMessage = null;
@@ -311,6 +316,8 @@ class InventoryProvider extends ChangeNotifier {
         'barcode': barcode?.trim(),
         'batchNumber': batchNumber?.trim(),
         'strength': ?cleanStrength,
+        'gstRate': gstRate,
+        'hsnCode': cleanHsn,
         if (cleanMfg != null && cleanMfg.isNotEmpty) 'mfgDate': cleanMfg,
         if (cleanExpiry != null && cleanExpiry.isNotEmpty) 'expiryDate': cleanExpiry,
       };

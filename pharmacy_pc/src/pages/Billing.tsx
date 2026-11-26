@@ -103,7 +103,7 @@ export default function Billing() {
 
   const handleWhatsAppBill = (bill: Bill) => {
     if (bill.customerPhone && bill.customerPhone.trim().length >= 10) {
-      sendWhatsAppBill(bill, pharmacyName);
+      sendWhatsAppBill(bill, undefined, pharmacyName);
     } else {
       setManualPhone('');
       setWhatsAppModalBill(bill);
@@ -152,7 +152,7 @@ export default function Billing() {
       return;
     }
     const cleanPhone = manualPhone.trim().replace(/\D/g, '');
-    sendWhatsAppBill(whatsAppModalBill, pharmacyName, cleanPhone);
+    sendWhatsAppBill(whatsAppModalBill, cleanPhone, pharmacyName);
     setWhatsAppModalBill(null);
     setManualPhone('');
   };

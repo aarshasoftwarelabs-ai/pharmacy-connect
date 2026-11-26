@@ -76,7 +76,7 @@ export const openExternalLink = (url: string) => {
 export const sendWhatsAppBill = (
   bill: Bill,
   recipientPhone?: string,
-  pharmacyName: string = 'K.Y Pharmacy'
+  pharmacyName: string = 'DavaSetu Pharmacy'
 ): boolean => {
   let targetPhone = recipientPhone || bill.customerPhone || '';
   targetPhone = sanitizeIndianPhoneNumber(targetPhone);

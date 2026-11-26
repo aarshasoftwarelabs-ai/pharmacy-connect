@@ -1178,6 +1178,8 @@ class InventoryScreen extends StatelessWidget {
     final purchasePriceCtrl = TextEditingController(text: '');
     final barcodeCtrl = TextEditingController(text: initialData?.barcode ?? '');
     final expiryCtrl = TextEditingController(text: initialData?.expiryDate ?? '12/2028');
+    final hsnCtrl = TextEditingController();
+    double selectedGstRate = 5.0;
 
     showModalBottomSheet(
       context: context,
@@ -1504,6 +1506,77 @@ class InventoryScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'GST Rate',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [0.0, 5.0, 12.0, 18.0].map((rate) {
+                                  final isSelected = selectedGstRate == rate;
+                                  return Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 6),
+                                      child: InkWell(
+                                        onTap: () => setSheetState(() => selectedGstRate = rate),
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? AppColors.primary
+                                                : AppColors.primary.withValues(alpha: 0.08),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? AppColors.primary
+                                                  : AppColors.primary.withValues(alpha: 0.2),
+                                            ),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            '${rate.toInt()}%',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected ? Colors.white : AppColors.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: hsnCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'HSN Code',
+                              hintText: '30049099',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 18),
                     SizedBox(
                       width: double.infinity,
@@ -1524,8 +1597,17 @@ class InventoryScreen extends StatelessWidget {
                             return;
                           }
 
-                          final mrp = double.tryParse(mrpCtrl.text) ?? 50.0;
-                          final sp = double.tryParse(spCtrl.text) ?? (mrp * 0.9);
+                          final parsedMrp = double.tryParse(mrpCtrl.text.trim());
+                          final parsedSp = double.tryParse(spCtrl.text.trim());
+                          if (parsedMrp == null || parsedMrp <= 0) {
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(content: Text('Please enter a valid MRP (₹)')),
+                            );
+                            return;
+                          }
+
+                          final mrp = parsedMrp;
+                          final sp = (parsedSp != null && parsedSp > 0) ? parsedSp : mrp;
                           final billedStock = int.tryParse(stockCtrl.text) ?? 10;
                           final freeStock = int.tryParse(freeSchemeCtrl.text) ?? 0;
                           final totalStock = billedStock + freeStock;
@@ -1547,6 +1629,8 @@ class InventoryScreen extends StatelessWidget {
                                 stock: totalStock,
                                 barcode: barcodeCtrl.text.trim().isNotEmpty ? barcodeCtrl.text.trim() : null,
                                 expiryDate: expiryCtrl.text.trim().isNotEmpty ? expiryCtrl.text.trim() : '12/2028',
+                                gstRate: selectedGstRate,
+                                hsnCode: hsnCtrl.text.trim().isNotEmpty ? hsnCtrl.text.trim() : null,
                               );
                           if (context.mounted) {
                             final schemeBadge = freeStock > 0 ? ' ($billedStock + $freeStock Free = $totalStock units)' : '';

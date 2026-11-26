@@ -172,12 +172,12 @@ export class BatchController {
         ]
       );
 
-      // Recalculate medicine stock
+      // Recalculate medicine stock scoped strictly to this pharmacy
       await client.query(
         `UPDATE medicines 
-         SET current_stock = (SELECT COALESCE(SUM(available_quantity), 0) FROM medicine_batches WHERE medicine_id = $1)
-         WHERE id = $1`,
-        [medicineId]
+         SET current_stock = (SELECT COALESCE(SUM(available_quantity), 0) FROM medicine_batches WHERE medicine_id = $1 AND pharmacy_id = $2)
+         WHERE id = $1 AND pharmacy_id = $2`,
+        [medicineId, pharmacyId]
       );
 
       await client.query('COMMIT');
@@ -210,12 +210,12 @@ export class BatchController {
 
       await client.query('DELETE FROM medicine_batches WHERE id = $1 AND pharmacy_id = $2', [batchId, pharmacyId]);
 
-      // Recalculate medicine stock
+      // Recalculate medicine stock scoped strictly to this pharmacy
       await client.query(
         `UPDATE medicines 
-         SET current_stock = (SELECT COALESCE(SUM(available_quantity), 0) FROM medicine_batches WHERE medicine_id = $1)
-         WHERE id = $1`,
-        [medicineId]
+         SET current_stock = (SELECT COALESCE(SUM(available_quantity), 0) FROM medicine_batches WHERE medicine_id = $1 AND pharmacy_id = $2)
+         WHERE id = $1 AND pharmacy_id = $2`,
+        [medicineId, pharmacyId]
       );
 
       await client.query('COMMIT');

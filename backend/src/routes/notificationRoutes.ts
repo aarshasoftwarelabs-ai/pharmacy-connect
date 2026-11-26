@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { NotificationService } from '../services/notificationService';
 
 const router = Router();
 
 // Get all notifications for the authenticated user
-router.get('/', authenticate, async (req: any, res: any) => {
+router.get('/', authenticate, async (req: AuthenticatedRequest, res: any) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user!.userId;
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
 
@@ -20,9 +20,9 @@ router.get('/', authenticate, async (req: any, res: any) => {
 });
 
 // Get unread count
-router.get('/unread-count', authenticate, async (req: any, res: any) => {
+router.get('/unread-count', authenticate, async (req: AuthenticatedRequest, res: any) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user!.userId;
     const count = await NotificationService.getUnreadCount(userId);
     res.json({ count });
   } catch (error) {
@@ -32,9 +32,9 @@ router.get('/unread-count', authenticate, async (req: any, res: any) => {
 });
 
 // Mark single notification as read
-router.post('/:id/read', authenticate, async (req: any, res: any) => {
+router.post('/:id/read', authenticate, async (req: AuthenticatedRequest, res: any) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user!.userId;
     const notificationId = parseInt(req.params.id);
 
     const notification = await NotificationService.markAsRead(userId, notificationId);
@@ -50,9 +50,9 @@ router.post('/:id/read', authenticate, async (req: any, res: any) => {
 });
 
 // Mark all as read
-router.post('/read-all', authenticate, async (req: any, res: any) => {
+router.post('/read-all', authenticate, async (req: AuthenticatedRequest, res: any) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user!.userId;
     await NotificationService.markAllAsRead(userId);
     res.json({ success: true });
   } catch (error) {

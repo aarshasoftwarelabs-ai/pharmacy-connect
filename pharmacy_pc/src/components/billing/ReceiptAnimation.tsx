@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Printer, FileText, MessageCircle } from 'lucide-react';
 import { Bill } from '../../types/billing';
 import { printBill } from '../../utils/printUtils';
@@ -38,14 +38,29 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
   });
   const [pharmacyName, setPharmacyName] = useState('DavaSetu Pharmacy');
   const [ownerName, setOwnerName] = useState('Admin');
+  const storeMetaRef = useRef({ pharmacyName: 'DavaSetu Pharmacy', ownerName: 'Admin' });
 
   useEffect(() => {
     AudioAlert.playSuccessChime();
+    const syncLocalStoreMeta = () => {
+      const localData = localStorage.getItem('pharmacy_profile_data');
+      if (localData) {
+        try {
+          const parsed = JSON.parse(localData);
+          if (parsed.name) storeMetaRef.current.pharmacyName = parsed.name;
+          if (parsed.ownerName) storeMetaRef.current.ownerName = parsed.ownerName;
+          setPharmacyName(storeMetaRef.current.pharmacyName);
+          setOwnerName(storeMetaRef.current.ownerName);
+        } catch(e) {}
+      }
+    };
+    syncLocalStoreMeta();
+
     // Load Pharmacy details
     PharmacyService.getPharmacyProfile(getPharmacyId())
       .then(profile => {
-        let pName = profile?.name || 'DavaSetu Pharmacy';
-        let oName = profile?.ownerName || 'Admin';
+        let pName = profile?.name || storeMetaRef.current.pharmacyName;
+        let oName = profile?.ownerName || storeMetaRef.current.ownerName;
         
         const localData = localStorage.getItem('pharmacy_profile_data');
         if (localData) {
@@ -55,6 +70,7 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
             if (parsed.ownerName) oName = parsed.ownerName;
           } catch(e) {}
         }
+        storeMetaRef.current = { pharmacyName: pName, ownerName: oName };
         setPharmacyName(pName);
         setOwnerName(oName);
       })
@@ -65,7 +81,7 @@ export default function ReceiptAnimation({ bill, onClose }: Props) {
       const timer = setTimeout(() => {
         setStage('ready');
         setTimeout(() => {
-          printBill(bill, printFormat, pharmacyName, ownerName);
+          printBill(bill, printFormat, storeMetaRef.current.pharmacyName, storeMetaRef.current.ownerName);
         }, 300);
       }, 1500);
       return () => clearTimeout(timer);

@@ -75,18 +75,18 @@ export const NotificationService = {
 
   notifyPharmacyUsers: async (pharmacyId: number, permissionKey: string, payloadTemplate: Omit<NotificationPayload, 'recipient_user_id' | 'pharmacy_id'>) => {
     try {
-      // Find all owners for the pharmacy
+      // Find owner for the pharmacy
       const ownerResult = await pool.query(
-        `SELECT id FROM users WHERE pharmacy_id = $1 AND role = 'OWNER'`,
+        `SELECT owner_id AS id FROM pharmacies WHERE id = $1 AND owner_id IS NOT NULL`,
         [pharmacyId]
       );
       
-      // Find all staff who have the specific permission
+      // Find all active staff who have the specific permission
       const staffResult = await pool.query(
         `SELECT u.id FROM users u 
-         JOIN staff_members sm ON sm.phone = u.phone OR sm.email = u.email
+         JOIN staff_members sm ON (sm.phone = u.phone OR sm.email = u.email)
          JOIN staff_permissions sp ON sp.staff_id = sm.id 
-         WHERE sm.pharmacy_id = $1 AND sp.permission_key = $2 AND sp.granted = TRUE AND u.is_staff = TRUE`,
+         WHERE sm.pharmacy_id = $1 AND sm.is_active = TRUE AND sp.permission_key = $2 AND sp.granted = TRUE`,
         [pharmacyId, permissionKey]
       );
 
@@ -111,7 +111,7 @@ export const NotificationService = {
       const userResult = await pool.query(
         `SELECT u.id FROM users u
          JOIN staff_members sm ON (sm.phone = u.phone OR sm.email = u.email)
-         WHERE sm.id = $1 AND sm.pharmacy_id = $2 AND u.is_staff = TRUE`,
+         WHERE sm.id = $1 AND sm.pharmacy_id = $2 AND sm.is_active = TRUE`,
         [staffId, pharmacyId]
       );
 
