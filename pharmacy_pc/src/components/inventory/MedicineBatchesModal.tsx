@@ -15,6 +15,7 @@ import {
   Barcode as BarcodeIcon
 } from 'lucide-react';
 import { Medicine } from '../../types/medicine';
+import { getPharmacyId } from '../../config/development';
 import { BatchService, BatchItem } from '../../services/batchService';
 import BarcodeStickerModal from './BarcodeStickerModal';
 
@@ -68,7 +69,7 @@ export default function MedicineBatchesModal({
         setBatches(medicine.batches.map(b => ({
           ...b,
           medicineId: Number(medicine.id),
-          pharmacyId: Number(medicine.pharmacyId || 1)
+          pharmacyId: Number(medicine.pharmacyId || getPharmacyId())
         })));
       } else {
         setBatches([]);
@@ -96,7 +97,7 @@ export default function MedicineBatchesModal({
     setPurchasePrice(Math.round((medicine.sellingPrice || 100) * 0.75));
     setMrp(medicine.mrp || Math.round((medicine.sellingPrice || 100) * 1.15));
     setSellingPrice(medicine.sellingPrice || 100);
-    setBarcode(medicine.barcode || `890${String(medicine.pharmacyId || 1).padStart(3, '0').slice(-3)}${String(medicine.id).padStart(5, '0').slice(-5)}0`);
+    setBarcode(medicine.barcode || `890${String(medicine.pharmacyId || getPharmacyId()).padStart(3, '0').slice(-3)}${String(medicine.id).padStart(5, '0').slice(-5)}0`);
     setShowAddForm(false);
   };
 
@@ -348,7 +349,7 @@ export default function MedicineBatchesModal({
                     />
                     <button
                       type="button"
-                      onClick={() => setBarcode(`890${String(medicine.pharmacyId || 1).padStart(3, '0').slice(-3)}${String(medicine.id).padStart(5, '0').slice(-5)}${Math.floor(Math.random() * 10)}`)}
+                      onClick={() => setBarcode(`890${String(medicine.pharmacyId || getPharmacyId()).padStart(3, '0').slice(-3)}${String(medicine.id).padStart(5, '0').slice(-5)}${Math.floor(Math.random() * 10)}`)}
                       className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
                     >
                       Regenerate

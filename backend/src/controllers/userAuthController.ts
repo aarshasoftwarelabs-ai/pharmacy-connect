@@ -119,9 +119,9 @@ export class UserAuthController {
         });
       } catch (emailError: any) {
         console.error('Error calling Brevo API:', emailError.message || emailError);
-        return res.status(200).json({ 
-          success: true, 
-          message: 'Email service issue. Use master OTP 123456 to continue.' 
+        return res.status(503).json({ 
+          success: false, 
+          message: 'Unable to deliver verification email right now. Please try again shortly.' 
         });
       }
 
@@ -148,11 +148,11 @@ export class UserAuthController {
 
       const identifier = email || phone;
 
-      if (!userOtpStore[identifier] && otp !== '123456') { // 123456 is master OTP for testing
+      if (!userOtpStore[identifier]) {
         return res.status(400).json({ success: false, message: 'OTP Expired. Please resend.' });
       }
 
-      if (userOtpStore[identifier] !== otp && otp !== '123456') {
+      if (userOtpStore[identifier] !== otp) {
         return res.status(400).json({ success: false, message: 'Invalid OTP' });
       }
 

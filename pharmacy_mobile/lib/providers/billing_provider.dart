@@ -52,9 +52,18 @@ class BillingProvider extends ChangeNotifier {
 
   double get totalDiscount => itemDiscounts + generalDiscountAmount;
 
-  double get taxAmount => (subtotal - totalDiscount) * 0.05; // 5% GST on medicines
+  double get totalTaxableAmount => _cartItems.fold(
+      0.0, (sum, item) => sum + item.taxableAmount(_generalDiscountPercent));
 
-  double get grandTotal => (subtotal - totalDiscount) + taxAmount;
+  double get totalCgst => _cartItems.fold(
+      0.0, (sum, item) => sum + item.cgstAmount(_generalDiscountPercent));
+
+  double get totalSgst => _cartItems.fold(
+      0.0, (sum, item) => sum + item.sgstAmount(_generalDiscountPercent));
+
+  double get taxAmount => totalCgst + totalSgst;
+
+  double get grandTotal => totalTaxableAmount + taxAmount;
 
   void setCustomerInfo({String? name, String? phone, String? doctorName}) {
     if (name != null) _customerName = name;
@@ -107,8 +116,8 @@ class BillingProvider extends ChangeNotifier {
         'quantity': quantity,
         'unitPrice': medicine.sellingPrice,
         'barcode': medicine.barcode ?? '',
-        'hsnCode': '30049099',
-        'gstRate': 5.0,
+        'hsnCode': medicine.hsnCode,
+        'gstRate': medicine.gstRate,
         'mrp': medicine.mrp,
         'scannedBy': scannedBy,
       };
@@ -184,6 +193,8 @@ class BillingProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    final resolvedPaymentStatus = _paymentMode == 'CREDIT' ? 'UNPAID' : 'PAID';
+
     final billPayload = {
       'pharmacy_id': effectivePharmacyId,
       'pharmacyId': effectivePharmacyId,
@@ -195,13 +206,19 @@ class BillingProvider extends ChangeNotifier {
       'doctorName': _doctorName.trim().isEmpty ? null : _doctorName.trim(),
       'payment_method': _paymentMode,
       'paymentMethod': _paymentMode,
+      'paymentStatus': resolvedPaymentStatus,
       'bill_type': 'OFFLINE',
       'billType': 'OFFLINE',
       'subtotal': subtotal,
       'discount': totalDiscount,
-      'tax': taxAmount,
-      'total': grandTotal,
-      'items': _cartItems.map((item) => item.toJson()).toList(),
+      'totalTaxableAmount': double.parse(totalTaxableAmount.toStringAsFixed(2)),
+      'totalCgst': double.parse(totalCgst.toStringAsFixed(2)),
+      'totalSgst': double.parse(totalSgst.toStringAsFixed(2)),
+      'totalIgst': 0.0,
+      'totalGst': double.parse(taxAmount.toStringAsFixed(2)),
+      'tax': double.parse(taxAmount.toStringAsFixed(2)),
+      'total': double.parse(grandTotal.toStringAsFixed(2)),
+      'items': _cartItems.map((item) => item.toJson(_generalDiscountPercent)).toList(),
     };
 
     try {

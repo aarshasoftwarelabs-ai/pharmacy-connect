@@ -1,18 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import { MedicineRequestService } from '../services/medicineRequestService';
 import { ApiError } from '../middleware/errorHandler';
+import { AuthenticatedRequest } from '../middleware/auth';
 
 import { getIo } from '../socket';
 import { NotificationService, NotificationType } from '../services/notificationService';
 
 export class MedicineRequestController {
-  
+  private static assertRequestAccess(req: AuthenticatedRequest, record: { user_id?: number; pharmacy_id?: number }): void {
+    const user = req.user;
+    if (!user) {
+      const error = new Error('Authentication required') as ApiError;
+      error.statusCode = 401;
+      throw error;
+    }
+    const role = (user.role || '').toUpperCase();
+    if (role === 'ADMIN') return;
+    if (role === 'USER' && Number(record.user_id) === Number(user.userId)) return;
+    if (role !== 'USER' && Number(record.pharmacy_id) === Number(user.pharmacyId)) return;
+
+    const error = new Error('Forbidden: You do not have access to this medicine request') as ApiError;
+    error.statusCode = 403;
+    throw error;
+  }
+
   static async createRequest(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId, pharmacyId, medicineName, imageReference } = req.body;
+      const authUser = (req as AuthenticatedRequest).user;
+      const role = (authUser?.role || '').toUpperCase();
+      const userId = role === 'ADMIN' && req.body.userId ? Number(req.body.userId) : authUser?.userId;
+      const { pharmacyId, medicineName, imageReference } = req.body;
 
       if (!userId || !pharmacyId) {
-        const error = new Error('userId and pharmacyId are required') as ApiError;
+        const error = new Error('Authenticated userId and pharmacyId are required') as ApiError;
         error.statusCode = 400;
         throw error;
       }
@@ -65,6 +85,12 @@ export class MedicineRequestController {
         error.statusCode = 400;
         throw error;
       }
+      const authUser = (req as AuthenticatedRequest).user;
+      if (!authUser || ((authUser.role || '').toUpperCase() !== 'ADMIN' && Number(authUser.userId) !== userId)) {
+        const error = new Error('Forbidden: Cannot view another customer requests') as ApiError;
+        error.statusCode = 403;
+        throw error;
+      }
 
       const result = await MedicineRequestService.getUserRequests(userId);
       
@@ -111,6 +137,7 @@ export class MedicineRequestController {
       }
 
       const result = await MedicineRequestService.getRequestById(requestId);
+      MedicineRequestController.assertRequestAccess(req as AuthenticatedRequest, result);
 
       res.json({
         success: true,
@@ -129,6 +156,9 @@ export class MedicineRequestController {
         error.statusCode = 400;
         throw error;
       }
+
+      const existing = await MedicineRequestService.getRequestById(requestId);
+      MedicineRequestController.assertRequestAccess(req as AuthenticatedRequest, existing);
 
       const { status, responseMessage } = req.body;
 
@@ -184,6 +214,9 @@ export class MedicineRequestController {
         throw error;
       }
 
+      const existing = await MedicineRequestService.getRequestById(requestId);
+      MedicineRequestController.assertRequestAccess(req as AuthenticatedRequest, existing);
+
       const result = await MedicineRequestService.confirmRequest(requestId);
 
       // Notify Pharmacy Users
@@ -216,6 +249,9 @@ export class MedicineRequestController {
         error.statusCode = 400;
         throw error;
       }
+
+      const existing = await MedicineRequestService.getRequestById(requestId);
+      MedicineRequestController.assertRequestAccess(req as AuthenticatedRequest, existing);
 
       const result = await MedicineRequestService.cancelRequest(requestId);
 

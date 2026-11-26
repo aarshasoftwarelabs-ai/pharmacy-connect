@@ -59,11 +59,13 @@ class MedicineModel {
   final int minStockAlert;
   final String? barcode;
   final String? storeBarcode;
+  final double gstRate;
+  final String hsnCode;
   final List<MedicineBatchModel> batches;
 
   MedicineModel({
     required this.id,
-    this.pharmacyId = 1,
+    this.pharmacyId = 0,
     required this.name,
     this.genericName,
     this.manufacturer,
@@ -80,6 +82,8 @@ class MedicineModel {
     this.minStockAlert = 10,
     this.barcode,
     this.storeBarcode,
+    this.gstRate = 5.0,
+    this.hsnCode = '30049099',
     this.batches = const [],
   });
 
@@ -103,7 +107,7 @@ class MedicineModel {
         ? (json['pharmacyId'] as num).toInt()
         : (json['pharmacy_id'] is num)
             ? (json['pharmacy_id'] as num).toInt()
-            : int.tryParse(json['pharmacyId']?.toString() ?? json['pharmacy_id']?.toString() ?? '1') ?? 1;
+            : int.tryParse(json['pharmacyId']?.toString() ?? json['pharmacy_id']?.toString() ?? '0') ?? 0;
 
     // Selling price resolution
     double parsedSellingPrice = 0.0;
@@ -156,6 +160,13 @@ class MedicineModel {
 
     final primaryBarcode = json['barcode']?.toString() ?? storeBarcodeCalc;
 
+    final double parsedGstRate = (json['gstRate'] is num)
+        ? (json['gstRate'] as num).toDouble()
+        : (json['gst_rate'] is num)
+            ? (json['gst_rate'] as num).toDouble()
+            : (double.tryParse(json['gstRate']?.toString() ?? json['gst_rate']?.toString() ?? '5') ?? 5.0);
+    final String parsedHsnCode = (json['hsnCode']?.toString() ?? json['hsn_code']?.toString() ?? '').trim();
+
     return MedicineModel(
       id: idStr,
       pharmacyId: pharmId,
@@ -179,6 +190,8 @@ class MedicineModel {
               : 10,
       barcode: primaryBarcode,
       storeBarcode: storeBarcodeCalc,
+      gstRate: parsedGstRate >= 0 ? parsedGstRate : 5.0,
+      hsnCode: parsedHsnCode.isNotEmpty ? parsedHsnCode : '30049099',
       batches: parsedBatches,
     );
   }
@@ -204,6 +217,8 @@ class MedicineModel {
       'currentStock': stock,
       'barcode': barcode,
       'storeBarcode': storeBarcode,
+      'gstRate': gstRate,
+      'hsnCode': hsnCode,
     };
   }
 }

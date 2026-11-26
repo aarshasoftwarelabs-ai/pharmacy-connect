@@ -224,13 +224,8 @@ export default function Settings() {
     try {
       let latestBill: any = null;
       try {
-        let pId = 1;
-        const localData = localStorage.getItem('pharmacy_profile_data');
-        if (localData) {
-          const p = JSON.parse(localData);
-          if (p.id) pId = p.id;
-        }
-        const bills = await BillingService.getPharmacyBills(pId);
+        const pId = getPharmacyId();
+        const bills = pId > 0 ? await BillingService.getPharmacyBills(pId) : [];
         if (bills && bills.length > 0) {
           latestBill = bills[0];
         }
@@ -278,7 +273,7 @@ export default function Settings() {
       console.warn('Could not fetch remote messaging settings, using local cache:', err);
       if (!cached) {
         setMsgSettings({
-          pharmacyId: 1,
+          pharmacyId: getPharmacyId(),
           autoSendBillWhatsapp: true,
           gatewayProvider: 'SIMULATED',
           isActive: true
@@ -294,7 +289,7 @@ export default function Settings() {
   const toggleAutoSendWhatsapp = async () => {
     const nextState = !(msgSettings?.isActive ?? true);
     const updated: MessagingSettings = {
-      ...(msgSettings || { pharmacyId: 1 }),
+      ...(msgSettings || { pharmacyId: getPharmacyId() }),
       isActive: nextState,
       autoSendBillWhatsapp: nextState,
       gatewayProvider: msgSettings?.gatewayProvider || 'SIMULATED'
@@ -413,7 +408,7 @@ export default function Settings() {
       }
 
       const options = {
-        key: 'rzp_live_Tj0ccml38XqvgQ',
+        key: orderData.keyId,
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: 'DavaSetu',
@@ -439,6 +434,9 @@ export default function Settings() {
                   amount,
                   paymentMethod: 'RAZORPAY',
                   transactionId: response.razorpay_payment_id,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
                 }
               );
               alert(`Payment successful! Welcome to ${plan.title}.\nPayment ID: ${response.razorpay_payment_id}`);

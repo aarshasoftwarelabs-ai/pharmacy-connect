@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PromotionController } from '../controllers/promotionController';
+import { authenticate, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -9,9 +10,9 @@ router.post('/banners/:id/click', PromotionController.trackClick);
 router.post('/banners/:id/impression', PromotionController.trackImpression);
 
 // Admin / Management endpoints for managing banners
-router.get('/banners/all', PromotionController.getAllBanners);
-router.post('/banners', PromotionController.createBanner);
-router.patch('/banners/:id', PromotionController.updateBanner);
-router.delete('/banners/:id', PromotionController.deleteBanner);
+router.get('/banners/all', authenticate, requireAdmin, PromotionController.getAllBanners);
+router.post('/banners', authenticate, requireAdmin, PromotionController.createBanner);
+router.patch('/banners/:id', authenticate, requireAdmin, PromotionController.updateBanner);
+router.delete('/banners/:id', authenticate, requireAdmin, PromotionController.deleteBanner);
 
 export default router;

@@ -58,7 +58,14 @@ export class PharmacyService {
     pharmacyId: number,
     planType: string,
     durationMonths?: number,
-    paymentDetails?: { amount?: number; paymentMethod?: string; transactionId?: string }
+    paymentDetails?: {
+      amount?: number;
+      paymentMethod?: string;
+      transactionId?: string;
+      razorpayOrderId?: string;
+      razorpayPaymentId?: string;
+      razorpaySignature?: string;
+    }
   ): Promise<PharmacyProfile> {
     const response = await apiFetch(`${API_BASE_URL}/pharmacies/${pharmacyId}/subscription`, {
       method: 'POST',

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PharmacyService } from '../services/pharmacyService';
+import { verifyRazorpaySignature } from './paymentController';
 
 export class PharmacyController {
   private static isAuthorizedForPharmacy(req: Request, pharmacyId: number): boolean {
@@ -155,10 +156,39 @@ export class PharmacyController {
   static async updateSubscription(req: Request, res: Response) {
     try {
       const pharmacyId = parseInt(req.params.id, 10);
-      const { planType, durationMonths, amount, paymentMethod, transactionId, upiId, agentNote } = req.body;
+      const {
+        planType,
+        durationMonths,
+        amount,
+        paymentMethod,
+        transactionId,
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature,
+        upiId,
+        agentNote
+      } = req.body;
 
       if (isNaN(pharmacyId) || !planType) {
         return res.status(400).json({ success: false, message: 'Invalid parameters' });
+      }
+      if (!PharmacyController.isAuthorizedForPharmacy(req, pharmacyId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Store access denied' });
+      }
+
+      const role = ((req as any).user?.role || '').toUpperCase();
+      if (role !== 'ADMIN') {
+        const isPaidValid = verifyRazorpaySignature(
+          String(razorpayOrderId || ''),
+          String(razorpayPaymentId || transactionId || ''),
+          String(razorpaySignature || '')
+        );
+        if (!isPaidValid) {
+          return res.status(402).json({
+            success: false,
+            message: 'Verified Razorpay payment signature is required to activate or upgrade subscription'
+          });
+        }
       }
 
       const current = await PharmacyService.getPharmacyById(pharmacyId);

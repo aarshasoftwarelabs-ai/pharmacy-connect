@@ -51,7 +51,7 @@ class SubscriptionModel {
     final hasPcSupport = json['supportsPc'] != null ? json['supportsPc'] == true : (plan != 'MOBILE_YEARLY');
 
     return SubscriptionModel(
-      pharmacyId: json['pharmacyId'] is int ? json['pharmacyId'] : int.tryParse(json['pharmacyId']?.toString() ?? '1') ?? 1,
+      pharmacyId: json['pharmacyId'] is int ? json['pharmacyId'] : int.tryParse(json['pharmacyId']?.toString() ?? '0') ?? 0,
       pharmacyName: json['pharmacyName']?.toString() ?? 'Pharmacy Store',
       planType: plan,
       planName: plan == 'MOBILE_YEARLY'

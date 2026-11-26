@@ -25,7 +25,9 @@ export interface CreateBillDTO {
   pharmacyId: number;
   customerName: string;
   customerPhone?: string;
+  patientAddress?: string;
   doctorName?: string;
+  doctorRegNo?: string;
   subtotal: number;
   discount: number;
   total: number;
@@ -36,6 +38,7 @@ export interface CreateBillDTO {
   totalGst?: number;
   items: CreateBillItemDTO[];
   billType?: 'ONLINE' | 'OFFLINE';
+  paymentStatus?: 'PAID' | 'UNPAID' | 'PARTIAL' | string;
 }
 
 export class BillingService {
@@ -229,10 +232,12 @@ export class BillingService {
         }
       }
 
+      const paymentStatus = data.paymentStatus || (billType === 'OFFLINE' ? 'PAID' : 'UNPAID');
+
       // 3. Insert into bills
       const insertBillQuery = `
         INSERT INTO bills (bill_number, medicine_request_id, user_id, pharmacy_id, customer_name, customer_phone, bill_type, subtotal, discount, total, total_taxable_amount, total_cgst, total_sgst, total_igst, total_gst, payment_status, total_profit, customer_profile_id, doctor_name)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'UNPAID', 0, $16, $17)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 0, $17, $18)
         RETURNING id
       `;
       const billValues = [
@@ -251,6 +256,7 @@ export class BillingService {
         data.totalSgst || 0,
         data.totalIgst || 0,
         data.totalGst || 0,
+        paymentStatus,
         customerProfileId,
         data.doctorName ? data.doctorName.trim() : null
       ];
@@ -268,7 +274,7 @@ export class BillingService {
         const baseMedicineName = item.medicineName.replace(/\s*\(Loose\s+\d+\s+Tabs?\)$/i, '').trim();
         
         let medResult = await client.query(
-          `SELECT id, purchase_price, current_stock, selling_price, barcode 
+          `SELECT id, purchase_price, current_stock, COALESCE(loose_tablets, 0) AS loose_tablets, selling_price, barcode 
            FROM medicines 
            WHERE pharmacy_id = $1 AND (
              (id::text = $2) OR
@@ -283,44 +289,55 @@ export class BillingService {
 
         let medId: number;
         let currentStock = 0;
+        let looseTabletsAvailable = 0;
         let purchasePrice = 0;
 
         if (medResult.rows.length === 0) {
-          // If the medicine doesn't exist in pharmacy catalogue yet, auto-create it with stock
+          // If the medicine doesn't exist in pharmacy catalogue yet, register it at 0 stock (do not fabricate phantom 10-strip stock)
           const autoInsert = await client.query(
             `INSERT INTO medicines (
-               pharmacy_id, name, generic_name, category, selling_price, mrp, current_stock, minimum_stock, barcode, hsn_code, gst_rate
-             ) VALUES ($1, $2, 'General Formulation', 'Tablets', $3, $3, $4, 5, $5, $6, $7)
+               pharmacy_id, name, generic_name, category, selling_price, mrp, current_stock, loose_tablets, minimum_stock, barcode, hsn_code, gst_rate
+             ) VALUES ($1, $2, 'General Formulation', 'Tablets', $3, $3, 0, 0, 5, $4, $5, $6)
              RETURNING id, current_stock, purchase_price`,
             [
               data.pharmacyId, 
               item.medicineName, 
               item.unitPrice, 
-              Math.max(10, item.quantity),
               barcodeParam || null, 
               item.hsnCode || '30049099', 
               item.gstRate || 5
             ]
           );
           medId = autoInsert.rows[0].id;
-          currentStock = Number(autoInsert.rows[0].current_stock || 10);
+          currentStock = 0;
+          looseTabletsAvailable = 0;
           purchasePrice = Math.round(item.unitPrice * 0.75 * 100) / 100;
         } else {
           medId = medResult.rows[0].id;
           currentStock = Number(medResult.rows[0].current_stock || 0);
+          looseTabletsAvailable = Number(medResult.rows[0].loose_tablets || 0);
           purchasePrice = medResult.rows[0].purchase_price 
             ? parseFloat(medResult.rows[0].purchase_price) 
             : Math.round(item.unitPrice * 0.75 * 100) / 100;
         }
 
-        // Normalize purchase price and stock deduction for loose tablets cut
+        // Exact Strip + Loose-Tablet remainder accounting (avoids losing 1 full strip on every small loose sale)
         const isLoose = item.isLooseTablet || (item.unitPrice < purchasePrice && purchasePrice > 0);
         let effectivePurchasePrice = purchasePrice;
         let deductStripUnits = item.quantity;
+        let newLooseTablets = looseTabletsAvailable;
         if (isLoose) {
           const packCount = Number(item.packCount || item.packSize) || 10;
           effectivePurchasePrice = Math.round((purchasePrice / packCount) * 100) / 100;
-          deductStripUnits = Math.max(1, Math.ceil(item.quantity / packCount));
+          if (looseTabletsAvailable >= item.quantity) {
+            deductStripUnits = 0;
+            newLooseTablets = looseTabletsAvailable - item.quantity;
+          } else {
+            const remainingTabsNeeded = item.quantity - looseTabletsAvailable;
+            const stripsToOpen = Math.ceil(remainingTabsNeeded / packCount);
+            deductStripUnits = stripsToOpen;
+            newLooseTablets = (looseTabletsAvailable + stripsToOpen * packCount) - item.quantity;
+          }
         }
 
         const itemProfit = (item.unitPrice - effectivePurchasePrice) * item.quantity;
@@ -421,9 +438,9 @@ export class BillingService {
               billNumber,
               (data.customerName || 'Walk-in Patient').trim(),
               resolvedCustomerPhone || null,
-              'Local',
+              data.patientAddress ? data.patientAddress.trim() : null,
               (data.doctorName || 'Dr. Registered Medical Practitioner').trim(),
-              null,
+              data.doctorRegNo ? data.doctorRegNo.trim() : null,
               medId,
               item.medicineName.trim(),
               genericName || 'Schedule H1 Substance',
@@ -436,8 +453,8 @@ export class BillingService {
           console.warn('⚠️ Schedule H1 auto-log notice:', h1LogErr);
         }
 
-        if (remainingToDeduct > 0) {
-            // Handle legacy stock that doesn't have an associated batch record yet
+        if (remainingToDeduct > 0 && currentStock > 0) {
+            // Handle only genuine positive unbatched opening stock (do not fabricate 2099 batches for zero-stock items)
             const legacyBatchRes = await client.query(
                 `SELECT id, available_quantity FROM medicine_batches 
                  WHERE medicine_id = $1 AND batch_number = 'LEGACY-OPENING-STOCK' AND pharmacy_id = $2 FOR UPDATE`,
@@ -447,16 +464,16 @@ export class BillingService {
             let legacyBatchId;
             let legacyPrevQty = 0;
             
+            const legacyDeduct = Math.min(remainingToDeduct, currentStock);
             if (legacyBatchRes.rows.length > 0) {
                 legacyBatchId = legacyBatchRes.rows[0].id;
                 legacyPrevQty = legacyBatchRes.rows[0].available_quantity;
-                await client.query(`UPDATE medicine_batches SET available_quantity = GREATEST(available_quantity - $1, 0) WHERE id = $2`, [remainingToDeduct, legacyBatchId]);
+                await client.query(`UPDATE medicine_batches SET available_quantity = GREATEST(available_quantity - $1, 0) WHERE id = $2`, [legacyDeduct, legacyBatchId]);
             } else {
-                // Create legacy batch with currentStock - remainingToDeduct because we are deducting right now
                 const newLegacy = await client.query(
                     `INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, quantity, available_quantity) 
                      VALUES ($1, $2, 'LEGACY-OPENING-STOCK', '2099-12-31', $3, $4) RETURNING id`,
-                     [medId, data.pharmacyId, Math.max(currentStock, remainingToDeduct), Math.max(0, currentStock - remainingToDeduct)]
+                     [medId, data.pharmacyId, currentStock, Math.max(0, currentStock - legacyDeduct)]
                 );
                 legacyBatchId = newLegacy.rows[0].id;
                 legacyPrevQty = currentStock;
@@ -465,7 +482,7 @@ export class BillingService {
             // Record in bill_item_batches
             await client.query(
                 `INSERT INTO bill_item_batches (bill_item_id, batch_id, quantity) VALUES ($1, $2, $3)`,
-                [billItemId, legacyBatchId, remainingToDeduct]
+                [billItemId, legacyBatchId, legacyDeduct]
             );
 
             // Create stock movement
@@ -476,20 +493,21 @@ export class BillingService {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
                 [
                     data.pharmacyId, medId, legacyBatchId, 'SALE', 'BILL',
-                    newBillId, -remainingToDeduct, legacyPrevQty, legacyPrevQty - remainingToDeduct, data.userId || null
+                    newBillId, -legacyDeduct, legacyPrevQty, Math.max(0, legacyPrevQty - legacyDeduct), data.userId || null
                 ]
             );
             
             remainingToDeduct = 0;
         }
 
-        // Deduct medicine current_stock (strip-equivalent units for loose tablets)
+        // Deduct medicine current_stock (strip units) and persist remaining loose tablets
         const updateStockQuery = `
           UPDATE medicines
-          SET current_stock = GREATEST(current_stock - $1, 0)
-          WHERE id = $2 AND pharmacy_id = $3
+          SET current_stock = GREATEST(current_stock - $1, 0),
+              loose_tablets = $2
+          WHERE id = $3 AND pharmacy_id = $4
         `;
-        await client.query(updateStockQuery, [deductStripUnits, medId, data.pharmacyId]);
+        await client.query(updateStockQuery, [deductStripUnits, newLooseTablets, medId, data.pharmacyId]);
       }
 
       // 5. Update total_profit on the bill

@@ -78,10 +78,20 @@ export class BillingController {
         customer_name,
         customerPhone, 
         customer_phone,
+        patientAddress,
+        patient_address,
         doctorName,
         doctor_name,
+        doctorRegNo,
+        doctor_reg_no,
         billType, 
         bill_type,
+        paymentMode,
+        payment_mode,
+        paymentMethod,
+        payment_method,
+        paymentStatus,
+        payment_status,
         subtotal, 
         discount, 
         total,
@@ -108,8 +118,15 @@ export class BillingController {
 
       const resolvedCustomerName = (customerName || customer_name || 'Walk-in Customer').trim();
       const resolvedCustomerPhone = (customerPhone || customer_phone || '').trim();
+      const resolvedPatientAddress = (patientAddress || patient_address || '').trim() || undefined;
       const resolvedDoctorName = (doctorName || doctor_name || '').trim() || undefined;
+      const resolvedDoctorRegNo = (doctorRegNo || doctor_reg_no || '').trim() || undefined;
       const resolvedBillType = billType || bill_type || (medicineRequestId ? 'ONLINE' : 'OFFLINE');
+      const resolvedPaymentMode = (paymentMode || payment_mode || paymentMethod || payment_method || 'CASH').toString().trim().toUpperCase();
+      const explicitPaymentStatus = (paymentStatus || payment_status || '').toString().trim().toUpperCase();
+      const resolvedPaymentStatus = explicitPaymentStatus === 'PAID' || explicitPaymentStatus === 'UNPAID' || explicitPaymentStatus === 'PARTIAL'
+        ? explicitPaymentStatus
+        : (resolvedBillType === 'OFFLINE' && resolvedPaymentMode !== 'CREDIT' && resolvedPaymentMode !== 'UDHAR' ? 'PAID' : 'UNPAID');
       const resolvedSubtotal = Math.max(0, Number(subtotal ?? 0));
       const resolvedDiscount = Math.max(0, Number(discount ?? 0));
       const resolvedTotal = Math.max(0, Number(total ?? 0));
@@ -142,8 +159,11 @@ export class BillingController {
         pharmacyId: Number(pharmacyId),
         customerName: resolvedCustomerName,
         customerPhone: resolvedCustomerPhone,
+        patientAddress: resolvedPatientAddress,
         doctorName: resolvedDoctorName,
+        doctorRegNo: resolvedDoctorRegNo,
         billType: resolvedBillType,
+        paymentStatus: resolvedPaymentStatus,
         subtotal: resolvedSubtotal,
         discount: resolvedDiscount,
         total: resolvedTotal,

@@ -8,6 +8,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Medicine } from '../../types/medicine';
+import { getPharmacyId } from '../../config/development';
 import { generateBarcodeSvg } from '../../utils/barcodeGenerator';
 
 interface BarcodeStickerModalProps {
@@ -32,8 +33,8 @@ export default function BarcodeStickerModal({
 
   if (!isOpen) return null;
 
-  const effectivePharmacyId = pharmacyId ?? medicine.pharmacyId ?? 1;
-  const barcodeText = medicine.barcode || `890${String(effectivePharmacyId).padStart(3, '0')}${String(medicine.id).padStart(5, '0')}0`;
+  const effectivePharmacyId = pharmacyId ?? medicine.pharmacyId ?? getPharmacyId();
+  const barcodeText = medicine.barcode || `890${String(effectivePharmacyId || 0).padStart(3, '0')}${String(medicine.id).padStart(5, '0')}0`;
   const selectedBatch = medicine.batches && medicine.batches.length > 0 
     ? medicine.batches[selectedBatchIndex] 
     : null;

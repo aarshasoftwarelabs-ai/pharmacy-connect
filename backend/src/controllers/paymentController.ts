@@ -3,12 +3,34 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { env } from '../config/env';
 
-// Initialize Razorpay
-const razorpaySecret = env.RAZORPAY_KEY_SECRET || 'QOZE9mshfcjYJ9h3cU6uNIsC';
-const razorpay = new Razorpay({
-  key_id: env.RAZORPAY_KEY_ID || 'rzp_live_Tj0ccml38XqvgQ',
-  key_secret: razorpaySecret
-});
+// Initialize Razorpay strictly from environment configuration (never hardcode live secrets)
+const razorpayKeyId = env.RAZORPAY_KEY_ID || '';
+const razorpaySecret = env.RAZORPAY_KEY_SECRET || '';
+const razorpay = razorpayKeyId && razorpaySecret
+  ? new Razorpay({
+      key_id: razorpayKeyId,
+      key_secret: razorpaySecret
+    })
+  : null;
+
+export function verifyRazorpaySignature(
+  razorpayOrderId: string,
+  razorpayPaymentId: string,
+  razorpaySignature: string
+): boolean {
+  if (!razorpaySecret || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    return false;
+  }
+  const body = `${razorpayOrderId}|${razorpayPaymentId}`;
+  const expectedSignature = crypto
+    .createHmac('sha256', razorpaySecret)
+    .update(body)
+    .digest('hex');
+
+  const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+  const providedBuf = Buffer.from(razorpaySignature, 'utf8');
+  return expectedBuf.length === providedBuf.length && crypto.timingSafeEqual(expectedBuf, providedBuf);
+}
 
 /**
  * Create a new Razorpay order
@@ -16,6 +38,9 @@ const razorpay = new Razorpay({
  */
 export const createOrder = async (req: Request, res: Response) => {
   try {
+    if (!razorpay) {
+      return res.status(503).json({ success: false, message: 'Payment gateway is not configured on server' });
+    }
     const { amount, currency, receipt, notes } = req.body;
 
     if (!amount) {
@@ -33,6 +58,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
+      keyId: razorpayKeyId,
       order,
     });
   } catch (error: any) {
@@ -51,20 +77,20 @@ export const createOrder = async (req: Request, res: Response) => {
  */
 export const verifyPayment = async (req: Request, res: Response) => {
   try {
+    if (!razorpaySecret) {
+      return res.status(503).json({ success: false, message: 'Payment gateway secret is not configured' });
+    }
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ success: false, message: 'Missing payment details' });
     }
 
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
-
-    const expectedSignature = crypto
-      .createHmac('sha256', razorpaySecret)
-      .update(body.toString())
-      .digest('hex');
-
-    const isAuthentic = expectedSignature === razorpay_signature;
+    const isAuthentic = verifyRazorpaySignature(
+      String(razorpay_order_id),
+      String(razorpay_payment_id),
+      String(razorpay_signature)
+    );
 
     if (isAuthentic) {
       // Payment is successful

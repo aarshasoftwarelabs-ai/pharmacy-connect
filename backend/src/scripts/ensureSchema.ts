@@ -18,6 +18,7 @@ export const ensureSchema = async () => {
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS pack_size VARCHAR(100);
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS unit VARCHAR(100) DEFAULT 'Strip';
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS units_per_pack INTEGER DEFAULT 10;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS loose_tablets INTEGER DEFAULT 0;
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS pack_type VARCHAR(50) DEFAULT 'STRIP';
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS composition TEXT;
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS salt_composition TEXT;
@@ -253,36 +254,21 @@ export const ensureSchema = async () => {
       }
     }
 
-    // Ensure owner user for deeplodaliya007@gmail.com exists with password Jenish009@@@ and is linked to Pharmacy 8
+    // Ensure default owner linkage without forcing a hardcoded password overwrite
     try {
-      const bcrypt = require('bcrypt');
-      const deepHash = await bcrypt.hash('Jenish009@@@', 10);
       const existingDeep = await pool.query(`
-        SELECT id, email FROM users 
+        SELECT id FROM users 
         WHERE LOWER(TRIM(COALESCE(email, ''))) = 'deeplodaliya007@gmail.com' 
            OR id = 9 
         ORDER BY id ASC LIMIT 1
       `);
-      let ownerUserId: number;
-      if (existingDeep.rows.length === 0) {
-        const newUser = await pool.query(`
-          INSERT INTO users (name, email, phone, password_hash)
-          VALUES ('Deep Lodaliya', 'deeplodaliya007@gmail.com', '9484535043', $1)
-          RETURNING id
-        `, [deepHash]);
-        ownerUserId = newUser.rows[0].id;
-        console.log(`👤 Created user deeplodaliya007@gmail.com (ID: ${ownerUserId})`);
-      } else {
-        ownerUserId = existingDeep.rows[0].id;
-        await pool.query(`UPDATE users SET email = 'deeplodaliya007@gmail.com', name = 'Deep Lodaliya', password_hash = $1 WHERE id = $2`, [deepHash, ownerUserId]);
-        console.log(`🔑 Verified/Updated password hash for deeplodaliya007@gmail.com (ID: ${ownerUserId})`);
+      if (existingDeep.rows.length > 0) {
+        const ownerUserId = existingDeep.rows[0].id;
+        await pool.query(
+          `UPDATE pharmacies SET owner_id = COALESCE(owner_id, $1) WHERE id = 8`,
+          [ownerUserId]
+        );
       }
-
-      // Ensure Pharmacy 8 is linked to owner
-      await pool.query(
-        `UPDATE pharmacies SET owner_id = $1, email = 'deeplodaliya007@gmail.com' WHERE id = 8`,
-        [ownerUserId]
-      );
     } catch (userErr) {
       console.warn('⚠️ User/Staff provision note:', userErr);
     }

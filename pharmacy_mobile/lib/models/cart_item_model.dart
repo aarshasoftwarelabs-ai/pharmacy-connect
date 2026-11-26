@@ -37,6 +37,18 @@ class CartItemModel {
   double get discountAmount => grossTotal * (discountPercent / 100);
   double get netTotal => grossTotal - discountAmount;
 
+  double taxableAmount([double generalDiscountPercent = 0.0]) =>
+      netTotal * (1 - (generalDiscountPercent / 100.0));
+
+  double gstAmount([double generalDiscountPercent = 0.0]) =>
+      taxableAmount(generalDiscountPercent) * (medicine.gstRate / 100.0);
+
+  double cgstAmount([double generalDiscountPercent = 0.0]) =>
+      gstAmount(generalDiscountPercent) / 2.0;
+
+  double sgstAmount([double generalDiscountPercent = 0.0]) =>
+      gstAmount(generalDiscountPercent) / 2.0;
+
   String get displayName {
     if (isLooseTablet) {
       return '${medicine.name} (Loose $quantity Tab${quantity > 1 ? 's' : ''})';
@@ -44,7 +56,10 @@ class CartItemModel {
     return medicine.name;
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson([double generalDiscountPercent = 0.0]) {
+    final taxable = double.parse(taxableAmount(generalDiscountPercent).toStringAsFixed(2));
+    final cgst = double.parse(cgstAmount(generalDiscountPercent).toStringAsFixed(2));
+    final sgst = double.parse(sgstAmount(generalDiscountPercent).toStringAsFixed(2));
     return {
       'medicine_id': medicine.id,
       'medicineId': medicine.id,
@@ -61,6 +76,12 @@ class CartItemModel {
       'unitPrice': unitPrice,
       'discount_percent': discountPercent,
       'discount_amount': discountAmount,
+      'hsnCode': medicine.hsnCode,
+      'gstRate': medicine.gstRate,
+      'taxableAmount': taxable,
+      'cgst': cgst,
+      'sgst': sgst,
+      'igst': 0.0,
       'total': netTotal,
       'barcode': medicine.barcode,
     };

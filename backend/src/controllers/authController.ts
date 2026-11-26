@@ -525,11 +525,8 @@ export class AuthController {
 
         let isMatch = false;
 
-        // 1. Check known master passwords
-        if (password === 'Jenish009@@@' || password === 'admin123' || password === 'Lodaliya009@@') {
-          isMatch = true;
-        } else if (user.password_hash) {
-          // 2. Standard bcrypt compare
+        if (user.password_hash) {
+          // Strictly verify against stored bcrypt hash (no hardcoded backdoor passwords)
           try {
             isMatch = await bcrypt.compare(password, user.password_hash);
           } catch (e) {
@@ -537,33 +534,8 @@ export class AuthController {
           }
         }
 
-        // 3. For store owner / master user, NEVER lock them out!
-        // Automatically accept the entered password and sync password hash to DB
-        if (!isMatch && isOwnerOrMaster && password && password.length >= 4) {
-          isMatch = true;
-          try {
-            const updatedHash = await bcrypt.hash(password, 10);
-            await pool.query(
-              'UPDATE users SET password_hash = $1, email = COALESCE(email, $2) WHERE id = $3',
-              [updatedHash, 'deeplodaliya007@gmail.com', user.id]
-            );
-            console.log(`🔑 Automatically synchronized owner password hash for user ${user.id} (${cleanId})`);
-          } catch (updateErr) {
-            console.warn('Could not auto-sync password hash:', updateErr);
-          }
-        }
-
-        // 4. If user had no password hash yet, set it now
-        if (!isMatch && !user.password_hash && password && password.length >= 4) {
-          isMatch = true;
-          try {
-            const newHash = await bcrypt.hash(password, 10);
-            await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, user.id]);
-          } catch (e) {}
-        }
-
         if (!isMatch) {
-          return res.status(401).json({ success: false, message: 'Invalid credentials' });
+          return res.status(401).json({ success: false, message: 'Invalid credentials or OTP login required' });
         }
 
         // Get their specific dedicated pharmacy (isolated per user)
@@ -616,40 +588,6 @@ export class AuthController {
             role: 'OWNER'
           },
           pharmacy: pharmacy
-        });
-      }
-
-      // If user still not found, but it is deeplodaliya007@gmail.com or store owner:
-      if (isMasterOwner || cleanId.toLowerCase().includes('deeplodaliya')) {
-        const newHash = await bcrypt.hash(password, 10);
-        const newUser = await pool.query(`
-          INSERT INTO users (name, email, phone, password_hash)
-          VALUES ('Deep Lodaliya', 'deeplodaliya007@gmail.com', '9484535043', $1)
-          ON CONFLICT (phone) DO UPDATE SET email = EXCLUDED.email, password_hash = EXCLUDED.password_hash
-          RETURNING *
-        `, [newHash]);
-        const user = newUser.rows[0];
-        await pool.query('UPDATE pharmacies SET owner_id = $1, email = $2 WHERE id = 8', [user.id, 'deeplodaliya007@gmail.com']);
-        const pharmRes = await pool.query('SELECT * FROM pharmacies WHERE id = 8');
-        const pharmacy = pharmRes.rows[0];
-        const token = jwt.sign(
-          { userId: user.id, phone: user.phone, email: 'deeplodaliya007@gmail.com', pharmacyId: pharmacy?.id, role: 'OWNER' },
-          JWT_SECRET,
-          { expiresIn: '30d' }
-        );
-        return res.json({
-          success: true,
-          token,
-          user: {
-            id: user.id,
-            name: user.name,
-            phone: user.phone,
-            email: 'deeplodaliya007@gmail.com',
-            pharmacyId: pharmacy?.id,
-            pharmacyName: pharmacy?.name,
-            role: 'OWNER'
-          },
-          pharmacy
         });
       }
 
@@ -829,39 +767,12 @@ export class AuthController {
         console.warn('Querying staff_members by pin failed (table schema check):', colErr);
       }
 
-      // If no staff found by exact pin
+      // Require exact PIN match in staff_members (no hardcoded 1234/0000 master bypass)
       if (!staff) {
-        if (rawPin === '1234' || rawPin === '0000') {
-          // Allow default master PINs (1234 or 0000)
-          try {
-            const anyStaff = await pool.query(
-              `SELECT id, name, phone, role, is_active FROM staff_members WHERE pharmacy_id = $1 ORDER BY id ASC LIMIT 1`,
-              [pharmacy.id]
-            );
-            if (anyStaff.rows.length > 0) {
-              staff = anyStaff.rows[0];
-            } else {
-              const newStaff = await pool.query(
-                `INSERT INTO staff_members (pharmacy_id, name, first_name, last_name, phone, role, pin, is_active)
-                 VALUES ($1, 'Counter Staff', 'Counter', 'Staff', $2, 'BILLER', $3, true)
-                 RETURNING id, name, phone, role, is_active`,
-                [pharmacy.id, rawPhone, rawPin]
-              );
-              staff = newStaff.rows[0];
-            }
-          } catch (insertErr) {
-            console.warn('Staff member auto-creation note:', insertErr);
-            staff = {
-              id: 1,
-              name: 'Counter Staff',
-              phone: rawPhone,
-              role: 'BILLER',
-              is_active: true
-            };
-          }
-        } else {
-          return res.status(401).json({ success: false, message: 'Invalid Staff PIN. Default PIN is 1234.' });
-        }
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid Staff PIN. Please ask the pharmacy owner for your registered PIN.'
+        });
       }
 
       if (staff && staff.is_active === false) {
