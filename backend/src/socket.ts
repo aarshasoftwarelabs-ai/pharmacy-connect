@@ -9,9 +9,13 @@ const JWT_SECRET = env.JWT_SECRET as string;
 let io: SocketIOServer;
 
 export const initializeSocket = (server: HttpServer) => {
+  const allowedOrigins = env.CORS_ORIGINS === '*'
+    ? '*'
+    : (env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean) : '*');
+
   io = new SocketIOServer(server, {
     cors: {
-      origin: '*', // Adjust this for production (e.g., specific domains)
+      origin: allowedOrigins,
       methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
     },
   });
@@ -43,6 +47,10 @@ export const initializeSocket = (server: HttpServer) => {
   io.on('connection', (socket) => {
     const user = socket.data.user as AuthUser | undefined;
     console.log(`🔌 Client connected to Socket: ${socket.id} (pharmacy=${user?.pharmacyId || 'none'})`);
+
+    if (user?.userId && Number(user.userId) > 0 && !user.isStaff) {
+      socket.join(`user_${user.userId}`);
+    }
 
     // Pharmacy PC will join only the room matching its authenticated JWT pharmacy ID
     socket.on('join_pharmacy', (requestedPharmacyId?: string | number) => {

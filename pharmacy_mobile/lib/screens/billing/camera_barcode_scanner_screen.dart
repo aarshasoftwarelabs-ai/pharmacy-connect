@@ -119,55 +119,50 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
     // 1. Check local inventory first
     MedicineModel? matched = inventory.findByBarcode(cleanCode);
 
-    // 2. If not found in local memory, lookup via BarcodeMedicineService
+    // 2. If not found in local memory, lookup via BarcodeMedicineService (never save unnamed/fake-priced medicines)
     if (matched == null) {
       try {
         final autoData = await BarcodeMedicineService.lookup(cleanCode);
-
-        // Auto-add to inventory with stock so it gets synced with server
-        await inventory.addMedicine(
-          name: autoData.name,
-          genericName: autoData.genericName,
-          category: autoData.category,
-          manufacturer: autoData.manufacturer,
-          mrp: autoData.mrp,
-          sellingPrice: autoData.sellingPrice,
-          stock: autoData.stock > 0 ? autoData.stock : 10,
-          barcode: cleanCode,
-          expiryDate: autoData.expiryDate,
-        );
-
-        matched = inventory.findByBarcode(cleanCode);
-
-        matched ??= MedicineModel(
-          id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
-          name: autoData.name,
-          genericName: autoData.genericName,
-          category: autoData.category,
-          manufacturer: autoData.manufacturer,
-          mrp: autoData.mrp,
-          sellingPrice: autoData.sellingPrice,
-          stock: autoData.stock > 0 ? autoData.stock : 10,
-          barcode: cleanCode,
-        );
-      } catch (_) {
-        matched = MedicineModel(
-          id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
-          name: 'Medicine ($cleanCode)',
-          genericName: 'Pharmaceutical Salt',
-          category: 'Tablets',
-          manufacturer: 'Indian Pharma Co.',
-          mrp: 60.00,
-          sellingPrice: 50.00,
-          stock: 10,
-          barcode: cleanCode,
-        );
-      }
+        if (autoData.name.trim().isNotEmpty && autoData.sellingPrice > 0) {
+          final added = await inventory.addMedicine(
+            name: autoData.name,
+            genericName: autoData.genericName,
+            category: autoData.category,
+            manufacturer: autoData.manufacturer,
+            mrp: autoData.mrp > 0 ? autoData.mrp : autoData.sellingPrice,
+            sellingPrice: autoData.sellingPrice,
+            stock: autoData.stock > 0 ? autoData.stock : 1,
+            barcode: cleanCode,
+            expiryDate: autoData.expiryDate,
+          );
+          if (added) {
+            matched = inventory.findByBarcode(cleanCode);
+          }
+          matched ??= MedicineModel(
+            id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
+            name: autoData.name,
+            genericName: autoData.genericName,
+            category: autoData.category,
+            manufacturer: autoData.manufacturer,
+            mrp: autoData.mrp > 0 ? autoData.mrp : autoData.sellingPrice,
+            sellingPrice: autoData.sellingPrice,
+            stock: autoData.stock > 0 ? autoData.stock : 1,
+            barcode: cleanCode,
+          );
+        }
+      } catch (_) {}
     }
 
     if (!mounted) return;
 
-    // 3. Guaranteed add to cart!
+    if (matched == null) {
+      setState(() {
+        _errorMessage = 'Barcode "$cleanCode" is not in Inventory. Please add medicine & MRP in Inventory first.';
+      });
+      return;
+    }
+
+    // 3. Add verified medicine to cart
     billing.addToCart(matched);
 
     setState(() {

@@ -23,6 +23,7 @@ export interface CreateBillItemDTO {
 export interface CreateBillDTO {
   medicineRequestId?: number;
   userId?: number;
+  operatorUserId?: number;
   pharmacyId: number;
   customerName: string;
   customerPhone?: string;
@@ -39,6 +40,7 @@ export interface CreateBillDTO {
   totalGst?: number;
   items: CreateBillItemDTO[];
   billType?: 'ONLINE' | 'OFFLINE';
+  paymentMode?: string;
   paymentStatus?: 'PAID' | 'UNPAID' | 'PARTIAL' | string;
 }
 
@@ -79,7 +81,7 @@ export class BillingService {
       SELECT b.id, b.bill_number AS "billNumber", b.medicine_request_id AS "medicineRequestId",
              b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
              COALESCE(b.customer_phone, u.phone, mr_u.phone) AS "customerPhone",
-             b.doctor_name AS "doctorName", b.bill_type AS "billType",
+             b.doctor_name AS "doctorName", b.bill_type AS "billType", COALESCE(b.payment_mode, 'CASH') AS "paymentMode",
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
              b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst", 
              b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst",
@@ -123,10 +125,10 @@ export class BillingService {
       SELECT b.id, b.bill_number AS "billNumber", b.medicine_request_id AS "medicineRequestId",
              b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
              COALESCE(b.customer_phone, u.phone, mr_u.phone) AS "customerPhone",
-             b.doctor_name AS "doctorName", b.bill_type AS "billType",
+             b.doctor_name AS "doctorName", b.bill_type AS "billType", COALESCE(b.payment_mode, 'CASH') AS "paymentMode",
              b.bill_date AS "billDate", b.subtotal, b.discount, b.total, b.payment_status AS "paymentStatus",
              b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst",
-             b.total_sgst AS "totalSgst", b.total_gst AS "totalGst",
+             b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst",
              b.created_at AS "createdAt",
              (
                SELECT COALESCE(json_agg(
@@ -146,8 +148,7 @@ export class BillingService {
                ), '[]'::json)
                FROM bill_items bi
                WHERE bi.bill_id = b.id
-             ) as items,
-             b.total_taxable_amount AS "totalTaxableAmount", b.total_cgst AS "totalCgst", b.total_sgst AS "totalSgst", b.total_igst AS "totalIgst", b.total_gst AS "totalGst"
+             ) as items
       FROM bills b
       LEFT JOIN users u ON b.user_id = u.id
       LEFT JOIN medicine_requests mr ON b.medicine_request_id = mr.id
@@ -191,8 +192,9 @@ export class BillingService {
         }
       }
 
-      // 2. Generate a collision-safe unique bill number (PC-YYYY-XXXXXX)
+      // 2. Generate a concurrency-safe unique bill number (PC-YYYY-XXXXXX) under xact advisory lock
       const year = new Date().getFullYear();
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext('bill_seq_' || $1))`, [String(year)]);
       const maxSeqQuery = await client.query(
         `SELECT COALESCE(MAX(SPLIT_PART(bill_number, '-', 3)::INTEGER), 0) AS max_num
          FROM bills
@@ -236,11 +238,13 @@ export class BillingService {
       }
 
       const paymentStatus = data.paymentStatus || (billType === 'OFFLINE' ? 'PAID' : 'UNPAID');
+      const paymentMode = (data.paymentMode || 'CASH').toUpperCase();
+      const movementActorId = data.operatorUserId || null;
 
       // 3. Insert into bills
       const insertBillQuery = `
-        INSERT INTO bills (bill_number, medicine_request_id, user_id, pharmacy_id, customer_name, customer_phone, bill_type, subtotal, discount, total, total_taxable_amount, total_cgst, total_sgst, total_igst, total_gst, payment_status, total_profit, customer_profile_id, doctor_name)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 0, $17, $18)
+        INSERT INTO bills (bill_number, medicine_request_id, user_id, pharmacy_id, customer_name, customer_phone, bill_type, payment_mode, subtotal, discount, total, total_taxable_amount, total_cgst, total_sgst, total_igst, total_gst, payment_status, total_profit, customer_profile_id, doctor_name)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 0, $18, $19)
         RETURNING id
       `;
       const billValues = [
@@ -251,6 +255,7 @@ export class BillingService {
         data.customerName, 
         resolvedCustomerPhone || null,
         billType,
+        paymentMode,
         data.subtotal, 
         data.discount, 
         data.total,
@@ -269,7 +274,7 @@ export class BillingService {
       // 4. Insert items and calculate profit
       let totalBillProfit = 0;
       for (const item of data.items) {
-        const lineTotal = item.quantity * item.unitPrice;
+        const lineTotal = Number((item.quantity * item.unitPrice).toFixed(2));
         
         // Fetch current purchase price and stock from DB (by ID, Barcode, or Name)
         const medIdParam = item.medicineId ? String(item.medicineId) : '';
@@ -325,7 +330,7 @@ export class BillingService {
         }
 
         // Exact Strip + Loose-Tablet remainder accounting (avoids losing 1 full strip on every small loose sale)
-        const isLoose = item.isLooseTablet || (item.unitPrice < purchasePrice && purchasePrice > 0);
+        const isLoose = Boolean(item.isLooseTablet);
         let effectivePurchasePrice = purchasePrice;
         let deductStripUnits = item.quantity;
         let newLooseTablets = looseTabletsAvailable;
@@ -343,7 +348,7 @@ export class BillingService {
           }
         }
 
-        const itemProfit = (item.unitPrice - effectivePurchasePrice) * item.quantity;
+        const itemProfit = Number(((item.unitPrice - effectivePurchasePrice) * item.quantity).toFixed(2));
         totalBillProfit += itemProfit;
 
         const insertItemQuery = `
@@ -406,7 +411,7 @@ export class BillingService {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
                 [
                     data.pharmacyId, medId, batch.id, 'SALE', 'BILL',
-                    newBillId, -deductQty, batch.available_quantity, batch.available_quantity - deductQty, data.userId || null
+                    newBillId, -deductQty, batch.available_quantity, batch.available_quantity - deductQty, movementActorId
                 ]
             );
 
@@ -496,7 +501,7 @@ export class BillingService {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
                 [
                     data.pharmacyId, medId, legacyBatchId, 'SALE', 'BILL',
-                    newBillId, -legacyDeduct, legacyPrevQty, Math.max(0, legacyPrevQty - legacyDeduct), data.userId || null
+                    newBillId, -legacyDeduct, legacyPrevQty, Math.max(0, legacyPrevQty - legacyDeduct), movementActorId
                 ]
             );
             
@@ -512,13 +517,14 @@ export class BillingService {
         `;
         await client.query(updateStockQuery, [deductStripUnits, newLooseTablets, medId, data.pharmacyId]);
 
-        if (isLoose && deductStripUnits === 0) {
+        const looseDelta = newLooseTablets - looseTabletsAvailable;
+        if (isLoose && looseDelta !== 0) {
           await client.query(
             `INSERT INTO stock_movements (
                pharmacy_id, medicine_id, batch_id, movement_type, reference_type,
                reference_id, quantity, previous_quantity, new_quantity, created_by
-             ) VALUES ($1, $2, NULL, 'SALE_LOOSE', 'BILL', $3, $4, $5, $6, $7)`,
-            [data.pharmacyId, medId, newBillId, -item.quantity, looseTabletsAvailable, newLooseTablets, data.userId || null]
+             ) VALUES ($1, $2, NULL, 'LOOSE_REMAINDER', 'BILL', $3, $4, $5, $6, $7)`,
+            [data.pharmacyId, medId, newBillId, looseDelta, looseTabletsAvailable, newLooseTablets, movementActorId]
           );
         }
       }
@@ -566,6 +572,11 @@ export class BillingService {
     }
 
     const currentBill = billCheck.rows[0];
+    if ((currentBill.payment_status || '').toUpperCase() === 'CANCELLED') {
+      const error = new Error('Cannot update delivery or payment on a cancelled/returned bill') as ApiError;
+      error.statusCode = 400;
+      throw error;
+    }
     const deliveryStatus = data.deliveryStatus || 'DIRECT_PICKUP';
     const cashCollectionStatus = data.cashCollectionStatus || (currentBill.payment_status === 'PAID' ? 'PAID' : 'COD_PENDING');
     const cashCollectedAmount = data.cashCollectedAmount !== undefined 
@@ -675,8 +686,8 @@ export class BillingService {
           `INSERT INTO stock_movements (
              pharmacy_id, medicine_id, batch_id, movement_type, reference_type,
              reference_id, quantity, previous_quantity, new_quantity, created_by
-           ) VALUES ($1, $2, $3, 'RETURN', 'BILL_CANCEL', $4, $5, $6, $7, $8)`,
-          [bill.pharmacy_id, row.medicine_id, row.batch_id, billId, qty, prevQty, prevQty + qty, bill.user_id || null]
+           ) VALUES ($1, $2, $3, 'RETURN', 'BILL_CANCEL', $4, $5, $6, $7, NULL)`,
+          [bill.pharmacy_id, row.medicine_id, row.batch_id, billId, qty, prevQty, prevQty + qty]
         );
 
         medicineTotals.set(row.medicine_id, (medicineTotals.get(row.medicine_id) || 0) + qty);
@@ -689,30 +700,34 @@ export class BillingService {
         );
       }
 
-      // Restore loose tablet sales that were served from already-open strips (SALE_LOOSE)
+      // Revert exact loose-tablet remainder / deduction changes recorded on createBill
       const looseMovements = await client.query(
-        `SELECT medicine_id, ABS(quantity)::int AS qty
+        `SELECT medicine_id, movement_type, quantity
          FROM stock_movements
-         WHERE pharmacy_id = $1 AND reference_type = 'BILL' AND reference_id = $2 AND movement_type = 'SALE_LOOSE'`,
+         WHERE pharmacy_id = $1 AND reference_type = 'BILL' AND reference_id = $2
+           AND movement_type IN ('SALE_LOOSE', 'LOOSE_REMAINDER')`,
         [bill.pharmacy_id, billId]
       );
       for (const lm of looseMovements.rows) {
-        const restoreTabs = Number(lm.qty || 0);
-        if (restoreTabs <= 0) continue;
+        const rawQty = Number(lm.quantity || 0);
+        if (rawQty === 0) continue;
+        // For SALE_LOOSE, quantity was negative sold tabs -> restore +ABS(rawQty).
+        // For LOOSE_REMAINDER, quantity is (newLoose - oldLoose) -> subtract rawQty to restore exact prior loose count.
+        const adjustment = lm.movement_type === 'SALE_LOOSE' ? Math.abs(rawQty) : -rawQty;
         const medUpd = await client.query(
           `UPDATE medicines
-           SET loose_tablets = COALESCE(loose_tablets, 0) + $1
+           SET loose_tablets = GREATEST(0, COALESCE(loose_tablets, 0) + $1)
            WHERE id = $2 AND pharmacy_id = $3
            RETURNING loose_tablets`,
-          [restoreTabs, lm.medicine_id, bill.pharmacy_id]
+          [adjustment, lm.medicine_id, bill.pharmacy_id]
         );
-        const updatedLoose = Number(medUpd.rows[0]?.loose_tablets || restoreTabs);
+        const updatedLoose = Number(medUpd.rows[0]?.loose_tablets || 0);
         await client.query(
           `INSERT INTO stock_movements (
              pharmacy_id, medicine_id, batch_id, movement_type, reference_type,
              reference_id, quantity, previous_quantity, new_quantity, created_by
-           ) VALUES ($1, $2, NULL, 'RETURN_LOOSE', 'BILL_CANCEL', $3, $4, $5, $6, $7)`,
-          [bill.pharmacy_id, lm.medicine_id, billId, restoreTabs, Math.max(0, updatedLoose - restoreTabs), updatedLoose, bill.user_id || null]
+           ) VALUES ($1, $2, NULL, 'RETURN_LOOSE', 'BILL_CANCEL', $3, $4, $5, $6, NULL)`,
+          [bill.pharmacy_id, lm.medicine_id, billId, adjustment, Math.max(0, updatedLoose - adjustment), updatedLoose]
         );
       }
 

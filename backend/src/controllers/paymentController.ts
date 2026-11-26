@@ -33,6 +33,45 @@ export function verifyRazorpaySignature(
 }
 
 /**
+ * Verify Razorpay signature and (when Razorpay client is active) verify with Razorpay API
+ * that the payment matches the order, is captured/authorized, and meets expectedMinInr.
+ */
+export async function verifyRazorpayOrderPayment(
+  razorpayOrderId: string,
+  razorpayPaymentId: string,
+  razorpaySignature: string,
+  expectedMinInr: number
+): Promise<{ valid: boolean; reason?: string; paidAmountInr?: number }> {
+  if (!verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)) {
+    return { valid: false, reason: 'Invalid Razorpay signature' };
+  }
+
+  if (!razorpay) {
+    return { valid: false, reason: 'Payment gateway is not configured on server' };
+  }
+
+  try {
+    const payment: any = await razorpay.payments.fetch(razorpayPaymentId);
+    if (!payment || payment.order_id !== razorpayOrderId) {
+      return { valid: false, reason: 'Payment order mismatch' };
+    }
+    const status = String(payment.status || '').toLowerCase();
+    if (status !== 'captured' && status !== 'authorized') {
+      return { valid: false, reason: `Payment not completed (status: ${status})` };
+    }
+    const paidPaise = Number(payment.amount || 0);
+    const expectedPaise = Math.round(expectedMinInr * 100);
+    if (paidPaise < expectedPaise) {
+      return { valid: false, reason: 'Paid amount is less than selected plan price' };
+    }
+    return { valid: true, paidAmountInr: paidPaise / 100 };
+  } catch (err: any) {
+    console.error('Razorpay payment fetch verification error:', err);
+    return { valid: false, reason: 'Could not confirm payment with Razorpay' };
+  }
+}
+
+/**
  * Create a new Razorpay order
  * POST /api/payments/create-order
  */
@@ -42,13 +81,14 @@ export const createOrder = async (req: Request, res: Response) => {
       return res.status(503).json({ success: false, message: 'Payment gateway is not configured on server' });
     }
     const { amount, currency, receipt, notes } = req.body;
+    const numericAmount = Number(amount);
 
-    if (!amount) {
-      return res.status(400).json({ success: false, message: 'Amount is required' });
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid positive amount is required' });
     }
 
     const options = {
-      amount: amount * 100, // amount in the smallest currency unit
+      amount: Math.round(numericAmount * 100), // integer paise to avoid floating-point drift
       currency: currency || "INR",
       receipt: receipt || `receipt_${Date.now()}`,
       notes: notes || {}
@@ -66,7 +106,7 @@ export const createOrder = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to create order',
-      error: error.message
+      ...(env.NODE_ENV === 'development' ? { error: error.message } : {}),
     });
   }
 };

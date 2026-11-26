@@ -31,6 +31,7 @@ import {
 import StaffManagement from '../components/settings/StaffManagement';
 import DistributorSettings from '../components/settings/DistributorSettings';
 import { MessagingService, MessagingSettings, MessageLogItem } from '../services/messagingService';
+import { useAuth } from '../components/auth/AuthContext';
 
 interface SettingsState {
   acceptingOrders: boolean;
@@ -470,6 +471,10 @@ export default function Settings() {
         }
       };
       
+      if (typeof (window as any).Razorpay !== 'function') {
+        alert('Razorpay checkout script failed to load. Please check your internet connection and reload.');
+        return;
+      }
       // @ts-ignore - Razorpay is loaded via script tag
       const rzp = new window.Razorpay(options);
       
@@ -1238,7 +1243,7 @@ export default function Settings() {
           </div>
 
           {/* Staff & Distributor Settings (Owner Only) */}
-          {(JSON.parse(localStorage.getItem('user') || '{}').role || 'OWNER') === 'OWNER' && (
+          {useAuth().isOwner() && (
             <div className="space-y-6">
               <StaffManagement />
               <DistributorSettings />

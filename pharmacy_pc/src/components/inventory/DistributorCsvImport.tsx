@@ -270,7 +270,7 @@ export default function DistributorCsvImport({ onSuccess }: Props) {
         name,
         genericName: idxGeneric !== -1 ? values[idxGeneric]?.trim() : '',
         category: idxCategory !== -1 ? values[idxCategory]?.trim() || 'General Pharma' : 'General Pharma',
-        batchNumber: (idxBatch !== -1 && values[idxBatch]?.trim()) ? values[idxBatch]?.trim() : `BAT-${Date.now().toString().slice(-4)}`,
+        batchNumber: (idxBatch !== -1 && values[idxBatch]?.trim()) ? values[idxBatch]?.trim() : `BAT-${Date.now().toString().slice(-4)}-${rows.length + 1}`,
         expiryDate: expDate || undefined,
         quantity: qty >= 0 ? qty : 0,
         purchasePrice: purchasePrice,

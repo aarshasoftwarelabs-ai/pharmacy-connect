@@ -9,6 +9,7 @@ class AuthProvider extends ChangeNotifier {
   UserModel? _user;
   bool _isLoading = false;
   String? _errorMessage;
+  VoidCallback? onSessionCleared;
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
@@ -257,10 +258,34 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteAccount() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.delete(ApiEndpoints.deleteAccount);
+      _isLoading = false;
+      if (response.success) {
+        await logout();
+        return true;
+      }
+      _errorMessage = response.message ?? 'Could not delete account.';
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Account deletion error: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     _user = null;
     await StorageService.clearAll();
     await OfflineSyncService.instance.refreshForCurrentStore();
+    onSessionCleared?.call();
     notifyListeners();
   }
 }

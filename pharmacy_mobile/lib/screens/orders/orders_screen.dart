@@ -84,6 +84,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
         context,
         autoPrintBill: bill,
         storeName: pharmacyName,
+        gstin: gstin,
+        dlNo: dlNo,
+        phone: phone,
+        address: address,
       );
     }
   }
@@ -733,8 +737,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final storedTaxable = (bill['total_taxable_amount'] as num?)?.toDouble() ?? 0.0;
     final subtotal = storedTaxable > 0
         ? storedTaxable
-        : (storedTax > 0 ? (total - storedTax).clamp(0.0, total) : total / 1.05);
-    final tax = storedTax > 0 ? storedTax : (total - subtotal);
+        : (storedTax > 0 ? (total - storedTax).clamp(0.0, total) : total);
+    final tax = storedTax;
 
     showModalBottomSheet(
       context: context,

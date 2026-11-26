@@ -70,16 +70,23 @@ export class DistributorService {
     try {
       const query = `
         UPDATE distributors
-        SET name = $1,
-            email = $2,
-            whatsapp_number = $3,
-            address = $4,
+        SET name = COALESCE($1, name),
+            email = COALESCE($2, email),
+            whatsapp_number = COALESCE($3, whatsapp_number),
+            address = COALESCE($4, address),
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $5 AND pharmacy_id = $6
         RETURNING id, name, email, whatsapp_number as "whatsappNumber", address,
                   created_at as "createdAt", updated_at as "updatedAt";
       `;
-      const values = [data.name, data.email || null, data.whatsappNumber || null, data.address || null, id, pharmacyId];
+      const values = [
+        data.name !== undefined ? data.name : null,
+        data.email !== undefined ? (data.email || null) : null,
+        data.whatsappNumber !== undefined ? (data.whatsappNumber || null) : null,
+        data.address !== undefined ? (data.address || null) : null,
+        id,
+        pharmacyId
+      ];
       const result = await pool.query(query, values);
       return result.rows[0];
     } catch (err: any) {
@@ -120,7 +127,7 @@ export class DistributorService {
         COALESCE(mb.id, 0) as "batchId",
         COALESCE(mb.batch_number, 'BATCH-DEF') as "batchNumber",
         COALESCE(mb.expiry_date, m.expiry_date) as "expiryDate",
-        COALESCE(mb.quantity, m.current_stock) as "quantity",
+        COALESCE(mb.available_quantity, m.current_stock) as "quantity",
         COALESCE(mb.purchase_price, m.selling_price * 0.7) as "purchasePrice",
         COALESCE(mb.mrp, m.selling_price) as "mrp",
         COALESCE(mb.selling_price, m.selling_price) as "sellingPrice",
@@ -132,9 +139,9 @@ export class DistributorService {
           ELSE 'UPCOMING_90'
         END as "expiryStatus"
       FROM medicines m
-      LEFT JOIN medicine_batches mb ON mb.medicine_id = m.id AND mb.quantity > 0
+      LEFT JOIN medicine_batches mb ON mb.medicine_id = m.id AND mb.available_quantity > 0
       WHERE m.pharmacy_id = $1
-        AND COALESCE(mb.quantity, m.current_stock) > 0
+        AND COALESCE(mb.available_quantity, m.current_stock) > 0
         AND COALESCE(mb.expiry_date, m.expiry_date) IS NOT NULL
         AND COALESCE(mb.expiry_date, m.expiry_date) <= (CURRENT_DATE + ($2 * INTERVAL '1 day'))
       ORDER BY COALESCE(mb.expiry_date, m.expiry_date) ASC;
@@ -165,10 +172,19 @@ export class DistributorService {
     try {
       await client.query('BEGIN');
 
+      if (data.distributorId) {
+        const dCheck = await client.query('SELECT id FROM distributors WHERE id = $1 AND pharmacy_id = $2', [data.distributorId, pharmacyId]);
+        if (dCheck.rows.length === 0) throw new Error('Distributor not found in this pharmacy store');
+      }
+      if (data.supplierId) {
+        const sCheck = await client.query('SELECT id FROM suppliers WHERE id = $1 AND pharmacy_id = $2', [data.supplierId, pharmacyId]);
+        if (sCheck.rows.length === 0) throw new Error('Supplier not found in this pharmacy store');
+      }
+
       const challanNumber = data.challanNumber || `RET-${Date.now().toString().slice(-6)}`;
       const returnDate = data.returnDate || new Date().toISOString().split('T')[0];
-      const totalItems = data.items.reduce((sum, it) => sum + (it.quantity || 0), 0);
-      const totalAmount = data.items.reduce((sum, it) => sum + ((it.quantity || 0) * (it.purchasePrice || 0)), 0);
+      const totalItems = data.items.reduce((sum, it) => sum + Math.max(0, Number(it.quantity) || 0), 0);
+      const totalAmount = data.items.reduce((sum, it) => sum + (Math.max(0, Number(it.quantity) || 0) * Math.max(0, Number(it.purchasePrice) || 0)), 0);
 
       const returnRes = await client.query(`
         INSERT INTO distributor_returns (
@@ -192,7 +208,9 @@ export class DistributorService {
       // Insert items and adjust stock
       const insertedItems = [];
       for (const item of data.items) {
-        const lineTotal = (item.quantity || 0) * (item.purchasePrice || 0);
+        const returnQty = Math.max(0, Number(item.quantity) || 0);
+        if (returnQty <= 0) throw new Error('Return item quantity must be positive');
+        const lineTotal = returnQty * Math.max(0, Number(item.purchasePrice) || 0);
         const itemRes = await client.query(`
           INSERT INTO distributor_return_items (
             return_id, medicine_id, medicine_name, batch_number, expiry_date, quantity, purchase_price, total_amount, reason
@@ -204,21 +222,28 @@ export class DistributorService {
           item.medicineName,
           item.batchNumber,
           item.expiryDate,
-          item.quantity,
-          item.purchasePrice,
+          returnQty,
+          Math.max(0, Number(item.purchasePrice) || 0),
           lineTotal,
           item.reason || data.reason || 'EXPIRED'
         ]);
         insertedItems.push(itemRes.rows[0]);
 
-        // Decrement stock from batch if batchId provided
+        // Decrement stock from batch (by batchId or fallback to medicineId + batchNumber)
         if (item.batchId && item.batchId > 0) {
           await client.query(`
             UPDATE medicine_batches 
             SET quantity = GREATEST(0, quantity - $1),
                 available_quantity = GREATEST(0, available_quantity - $1)
             WHERE id = $2 AND pharmacy_id = $3
-          `, [item.quantity, item.batchId, pharmacyId]);
+          `, [returnQty, item.batchId, pharmacyId]);
+        } else if (item.medicineId && item.batchNumber) {
+          await client.query(`
+            UPDATE medicine_batches 
+            SET quantity = GREATEST(0, quantity - $1),
+                available_quantity = GREATEST(0, available_quantity - $1)
+            WHERE medicine_id = $2 AND pharmacy_id = $3 AND UPPER(TRIM(batch_number)) = UPPER(TRIM($4))
+          `, [returnQty, item.medicineId, pharmacyId, item.batchNumber]);
         }
 
         // Decrement stock from medicines table
@@ -227,7 +252,7 @@ export class DistributorService {
             UPDATE medicines
             SET current_stock = GREATEST(0, current_stock - $1)
             WHERE id = $2 AND pharmacy_id = $3
-          `, [item.quantity, item.medicineId, pharmacyId]);
+          `, [returnQty, item.medicineId, pharmacyId]);
         }
       }
 

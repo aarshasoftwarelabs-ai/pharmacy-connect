@@ -166,7 +166,9 @@ class OfflineSyncService {
       totalGst: Number(billData.totalGst || 0),
       total: Number(billData.total || 0),
       paymentMode: billData.paymentMode || 'CASH',
-      paymentStatus: 'PAID',
+      paymentStatus:
+        billData.paymentStatus ||
+        (billData.paymentMode === 'CREDIT' || billData.paymentMode === 'UDHAR' ? 'UNPAID' : 'PAID'),
       createdAt: queuedItem.createdAt,
       // Flag for UI identification
       isOfflineQueued: true
@@ -200,7 +202,11 @@ class OfflineSyncService {
         } else {
           item.retryCount = (item.retryCount || 0) + 1;
           item.lastError = `Server returned status ${response.status}`;
-          remainingQueue.push(item);
+          // Drop permanently rejected client errors (4xx except 429) after 5 retries to prevent infinite loops
+          const isPermanentReject = response.status >= 400 && response.status < 500 && response.status !== 429;
+          if (!isPermanentReject || item.retryCount < 5) {
+            remainingQueue.push(item);
+          }
         }
       } catch (err: any) {
         item.retryCount = (item.retryCount || 0) + 1;

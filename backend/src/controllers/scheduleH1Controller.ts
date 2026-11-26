@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { ScheduleH1Service } from '../services/scheduleH1Service';
+import { SCHEDULE_H1_DRUGS_REGEX, ScheduleH1Service } from '../services/scheduleH1Service';
 import pool from '../config/database';
 
 export class ScheduleH1Controller {
@@ -53,17 +53,24 @@ export class ScheduleH1Controller {
   static async addManualEntry(req: AuthenticatedRequest, res: Response) {
     try {
       const pharmacyId = req.user!.pharmacyId;
-      const {
-        patientName, patientPhone, patientAddress,
-        doctorName, doctorRegNo, doctorAddress,
-        medicineName, genericName, batchNumber,
-        quantity, unit, supplyDate
-      } = req.body;
+      const body = req.body || {};
+      const patientName = (body.patientName ?? body.patient_name ?? '').toString().trim();
+      const patientPhone = (body.patientPhone ?? body.patient_phone ?? '').toString().trim() || null;
+      const patientAddress = (body.patientAddress ?? body.patient_address ?? '').toString().trim() || null;
+      const doctorName = (body.doctorName ?? body.doctor_name ?? '').toString().trim();
+      const doctorRegNo = (body.doctorRegNo ?? body.doctor_reg_no ?? '').toString().trim() || null;
+      const doctorAddress = (body.doctorAddress ?? body.doctor_address ?? '').toString().trim() || null;
+      const medicineName = (body.medicineName ?? body.medicine_name ?? '').toString().trim();
+      const genericName = (body.genericName ?? body.generic_name ?? '').toString().trim() || null;
+      const batchNumber = (body.batchNumber ?? body.batch_number ?? '').toString().trim();
+      const parsedQty = parseInt(String(body.quantity ?? '0'), 10);
+      const unit = (body.unit ?? 'Strip').toString().trim() || 'Strip';
+      const supplyDate = (body.supplyDate ?? body.supply_date ?? '').toString().trim() || new Date().toISOString().split('T')[0];
 
-      if (!patientName || !doctorName || !medicineName || !batchNumber || !quantity) {
+      if (!patientName || !doctorName || !medicineName || !batchNumber || !Number.isFinite(parsedQty) || parsedQty <= 0) {
         return res.status(400).json({
           success: false,
-          message: 'Patient Name, Doctor Name, Medicine Name, Batch Number, and Quantity are mandatory for Schedule H1 compliance'
+          message: 'Patient Name, Doctor Name, Medicine Name, Batch Number, and valid Quantity (> 0) are mandatory for Schedule H1 compliance'
         });
       }
 
@@ -78,9 +85,9 @@ export class ScheduleH1Controller {
         medicineName,
         genericName,
         batchNumber,
-        quantity: parseInt(String(quantity), 10),
-        unit: unit || 'Strip',
-        supplyDate: supplyDate || new Date().toISOString().split('T')[0]
+        quantity: parsedQty,
+        unit,
+        supplyDate
       });
 
       res.status(201).json({
@@ -116,13 +123,13 @@ export class ScheduleH1Controller {
         LEFT JOIN medicine_batches b ON m.id = b.medicine_id AND b.available_quantity > 0
         WHERE m.pharmacy_id = $1 AND (
           m.is_schedule_h1 = true OR
-          m.name ~* '\\b(alprazolam|tramadol|cefixime|cefpodoxime|ceftriaxone|meropenem|faropenem|colistin|levofloxacin|moxifloxacin|clonazepam|lorazepam|diazepam|zolpidem|chlordiazepoxide|clobazam|nitrazepam|linezolid|rifampicin|isoniazid|pyrazinamide|ethambutol)\\b' OR
-          COALESCE(m.generic_name, '') ~* '\\b(alprazolam|tramadol|cefixime|cefpodoxime|ceftriaxone|meropenem|faropenem|colistin|levofloxacin|moxifloxacin|clonazepam|lorazepam|diazepam|zolpidem|chlordiazepoxide|clobazam|nitrazepam|linezolid|rifampicin|isoniazid|pyrazinamide|ethambutol)\\b'
+          m.name ~* $2 OR
+          COALESCE(m.generic_name, '') ~* $2
         )
         GROUP BY m.id
         ORDER BY m.name ASC
       `;
-      const result = await pool.query(query, [pharmacyId]);
+      const result = await pool.query(query, [pharmacyId, SCHEDULE_H1_DRUGS_REGEX.source]);
       res.json({ success: true, data: result.rows });
     } catch (error: any) {
       console.error('Error fetching Schedule H1 medicines:', error);

@@ -264,12 +264,13 @@ export class BatchController {
       let createdCount = 0;
 
       for (const med of medsWithoutBatches.rows) {
+        const qty = Math.max(Number(med.current_stock) || 0, 0);
+        if (qty <= 0) continue; // Do not fabricate phantom stock for out-of-stock medicines
         const batchNumber = `B25-${String(med.id).padStart(4, '0')}`;
-        const qty = Math.max(Number(med.current_stock) || 0, 50);
         const expDate = med.expiry_date || new Date(Date.now() + 540 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const sellPrice = Number(med.selling_price) || 100;
-        const mrp = Number(med.mrp) || Math.round(sellPrice * 1.15);
-        const purchasePrice = Math.round(sellPrice * 0.75);
+        const sellPrice = Number(med.selling_price) || 0;
+        const mrp = Number(med.mrp) || sellPrice;
+        const purchasePrice = Math.round(sellPrice * 0.75 * 100) / 100;
         const barcode = med.barcode || `890${String(pharmacyId).padStart(3, '0').slice(-3)}${String(med.id).padStart(5, '0').slice(-5)}0`;
 
         await client.query(
@@ -280,10 +281,6 @@ export class BatchController {
           ON CONFLICT (medicine_id, pharmacy_id, batch_number) DO NOTHING`,
           [pharmacyId, med.id, batchNumber, expDate, qty, purchasePrice, mrp, sellPrice, barcode]
         );
-
-        if (!med.current_stock || Number(med.current_stock) === 0) {
-          await client.query('UPDATE medicines SET current_stock = $1 WHERE id = $2', [qty, med.id]);
-        }
         createdCount++;
       }
 

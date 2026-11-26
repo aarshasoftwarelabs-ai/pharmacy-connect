@@ -41,12 +41,34 @@ export function parseExpiryDate(dateStr: any): string {
   return `${future.getFullYear()}-12-31`;
 }
 
+function isPrivateOrDisallowedHost(hostname: string): boolean {
+  const host = hostname.trim().toLowerCase();
+  if (!host) return true;
+  if (host === 'localhost' || host === '::1' || host.endsWith('.local') || host.endsWith('.internal')) {
+    return true;
+  }
+  const parts = host.split('.').map(Number);
+  if (parts.length === 4 && parts.every(n => Number.isInteger(n) && n >= 0 && n <= 255)) {
+    const [a, b] = parts;
+    if (a === 10 || a === 127 || a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+  }
+  return false;
+}
+
 async function resolveUrlMedicineName(urlStr: string): Promise<string | null> {
   try {
+    const parsed = new URL(urlStr);
+    if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || isPrivateOrDisallowedHost(parsed.hostname)) {
+      return null;
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 2500);
-    const res = await fetch(urlStr, {
+    const res = await fetch(parsed.toString(), {
       signal: controller.signal,
+      redirect: 'manual',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
@@ -105,6 +127,7 @@ export class MedicineService {
              m.minimum_stock as "minimumStock", m.selling_price as "sellingPrice",
              COALESCE(m.mrp, m.selling_price) as "mrp",
              m.image_url as "imageUrl", m.hsn_code as "hsnCode", m.gst_rate as "gstRate",
+             m.pack_size as "packSize", m.mfg_date as "mfgDate",
              m.manufacturer, m.expiry_date as "expiryDate", m.created_at as "createdAt", m.updated_at as "updatedAt",
              (
                SELECT COALESCE(json_agg(
@@ -227,38 +250,7 @@ export class MedicineService {
       };
     }
 
-    // 2. Check in all medicines across database
-    const anyRes = await pool.query(
-      `SELECT m.*, COALESCE(m.mrp, m.selling_price) as mrp
-       FROM medicines m 
-       WHERE (m.barcode = $1 OR m.sku = $1)
-       ORDER BY m.id DESC LIMIT 1`,
-      [clean]
-    );
-    if (anyRes.rows.length > 0) {
-      const row = anyRes.rows[0];
-      return {
-        found: true,
-        isExistingInPharmacy: false,
-        medicine: {
-          name: row.name,
-          genericName: row.generic_name,
-          category: row.category || 'General',
-          strength: row.strength || '',
-          mrp: Number(row.mrp) || Number(row.selling_price),
-          sellingPrice: Number(row.selling_price),
-          purchasePrice: Math.round(Number(row.selling_price) * 0.75 * 100) / 100,
-          currentStock: 20,
-          barcode: clean,
-          manufacturer: row.manufacturer || '',
-          hsnCode: row.hsn_code || '30049099',
-          gstRate: row.gst_rate || 12,
-          expiryDate: row.expiry_date ? String(row.expiry_date).split('T')[0] : '2028-12-31'
-        }
-      };
-    }
-
-    // 3. Check in MASTER_MEDICINES
+    // 2. Check in MASTER_MEDICINES (shared public reference catalog; do NOT leak other pharmacies' DB records)
     const master = lookupMasterMedicineByBarcode(clean);
     if (master) {
       return {
@@ -341,10 +333,12 @@ export class MedicineService {
         : `890${String(targetPharmacyId).padStart(3, '0').slice(-3)}${String(Math.floor(Math.random() * 900000) + 100000)}`;
 
       const sellingPrice = Number(data.sellingPrice) || 0;
-      const mrp = Number(data.mrp) || (sellingPrice > 0 ? Math.round(sellingPrice * 1.15) : 50);
-      const currentStock = Number(data.currentStock) || 0;
-      const minimumStock = Number(data.minimumStock) || 10;
-      const gstRate = Number(data.gstRate) || 12;
+      const mrp = Number(data.mrp) || (sellingPrice > 0 ? Math.round(sellingPrice * 1.15) : 0);
+      const currentStock = Math.max(0, Number(data.currentStock) || 0);
+      const minimumStock = data.minimumStock !== undefined && data.minimumStock !== null ? Number(data.minimumStock) : 10;
+      const gstRate = data.gstRate !== undefined && data.gstRate !== null && !isNaN(Number(data.gstRate))
+        ? Number(data.gstRate)
+        : 12;
       const parsedExpiry = parseExpiryDate(data.expiryDate);
 
       // Safe unique SKU so constraint never fails
@@ -401,8 +395,12 @@ export class MedicineService {
               await client.query(
                 `UPDATE medicine_batches 
                  SET stock = stock + $1, available_quantity = available_quantity + $1, quantity = quantity + $1, updated_at = CURRENT_TIMESTAMP 
-                 WHERE medicine_id = $2`,
-                [currentStock, exMed.id]
+                 WHERE id = (
+                   SELECT id FROM medicine_batches
+                   WHERE medicine_id = $2 AND pharmacy_id = $3
+                   ORDER BY expiry_date ASC, id ASC LIMIT 1
+                 )`,
+                [currentStock, exMed.id, targetPharmacyId]
               );
             }
           } catch (bErr) {
@@ -559,7 +557,7 @@ export class MedicineService {
     const query = `
       UPDATE medicines
       SET ${fields.join(', ')}
-      WHERE id = $${queryIndex++} AND (pharmacy_id = $${queryIndex++} OR $${queryIndex - 1} = 0 OR $${queryIndex - 1} IS NULL)
+      WHERE id = $${queryIndex++} AND pharmacy_id = $${queryIndex++}
       RETURNING id, pharmacy_id as "pharmacyId", name, generic_name as "genericName", 
                 category, strength, sku, barcode, current_stock as "currentStock", 
                 minimum_stock as "minimumStock", COALESCE(mrp, selling_price) as "mrp", selling_price as "sellingPrice",
@@ -574,7 +572,7 @@ export class MedicineService {
       try {
         const batchNum = data.batchNumber ? String(data.batchNumber).trim() : null;
         if (batchNum) {
-          const parsedExp = data.expiryDate ? parseExpiryDate(data.expiryDate) : null;
+          const parsedExp = parseExpiryDate(data.expiryDate ?? updated.expiryDate);
           const mrp = Number(updated.mrp) || 0;
           const sp = Number(updated.sellingPrice) || 0;
           const purchasePrice = Number(data.purchasePrice) || Math.round(mrp * 0.75 * 100) / 100;
@@ -587,6 +585,7 @@ export class MedicineService {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT (medicine_id, pharmacy_id, batch_number) DO UPDATE
             SET stock = EXCLUDED.stock,
+                quantity = EXCLUDED.quantity,
                 available_quantity = EXCLUDED.available_quantity,
                 expiry_date = COALESCE(EXCLUDED.expiry_date, medicine_batches.expiry_date),
                 updated_at = CURRENT_TIMESTAMP`,
@@ -599,8 +598,12 @@ export class MedicineService {
           await pool.query(
             `UPDATE medicine_batches 
              SET stock = $1, available_quantity = $1, quantity = $1, updated_at = CURRENT_TIMESTAMP 
-             WHERE medicine_id = $2`,
-            [data.currentStock, id]
+             WHERE id = (
+               SELECT id FROM medicine_batches
+               WHERE medicine_id = $2 AND pharmacy_id = $3
+               ORDER BY expiry_date ASC, id ASC LIMIT 1
+             )`,
+            [data.currentStock, id, pharmacyId]
           );
         }
       } catch (bErr) {
@@ -646,11 +649,14 @@ export class MedicineService {
         if (!item.name || !item.name.trim()) continue;
 
         const medName = item.name.trim();
-        const qty = Number(item.quantity) || 0;
-        const purchasePrice = Number(item.purchasePrice) || 0;
+        const qty = Math.max(0, Number(item.quantity) || 0);
+        const purchasePrice = Math.max(0, Number(item.purchasePrice) || 0);
         const mrp = Number(item.mrp) || Number(item.sellingPrice) || purchasePrice * 1.25;
         const sellingPrice = Number(item.sellingPrice) || mrp;
-        const gstRate = Number(item.gstRate) || 12;
+        const gstRate = item.gstRate !== undefined && item.gstRate !== null && !isNaN(Number(item.gstRate))
+          ? Number(item.gstRate)
+          : 12;
+        const parsedExpDate = item.expiryDate ? parseExpiryDate(item.expiryDate) : parseExpiryDate(null);
         const barcode = item.barcode ? item.barcode.trim() : null;
         const sku = item.sku ? item.sku.trim() : `SKU-${Date.now().toString().slice(-4)}-${Math.floor(Math.random() * 900 + 100)}`;
 
@@ -668,19 +674,20 @@ export class MedicineService {
           await client.query(
             `UPDATE medicines 
              SET current_stock = current_stock + $1,
-                 selling_price = COALESCE($2, selling_price),
-                 barcode = COALESCE(barcode, $3),
+                 selling_price = COALESCE(NULLIF($2, 0), selling_price),
+                 mrp = COALESCE(NULLIF($3, 0), mrp),
+                 barcode = COALESCE(barcode, $4),
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $4`,
-            [qty, sellingPrice, barcode, medicineId]
+             WHERE id = $5 AND pharmacy_id = $6`,
+            [qty, sellingPrice, mrp, barcode, medicineId, pharmacyId]
           );
         } else {
           // Insert new medicine
           const insertMedRes = await client.query(
             `INSERT INTO medicines (
               pharmacy_id, name, generic_name, category, strength, sku, barcode,
-              current_stock, minimum_stock, selling_price, hsn_code, gst_rate, manufacturer, expiry_date
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 10, $9, $10, $11, $12, $13)
+              current_stock, minimum_stock, mrp, selling_price, hsn_code, gst_rate, manufacturer, expiry_date
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 10, $9, $10, $11, $12, $13, $14)
             RETURNING id`,
             [
               pharmacyId,
@@ -691,31 +698,37 @@ export class MedicineService {
               sku,
               barcode,
               qty,
+              mrp,
               sellingPrice,
               item.hsnCode || '3004',
               gstRate,
               item.manufacturer || null,
-              item.expiryDate || null
+              parsedExpDate
             ]
           );
           medicineId = insertMedRes.rows[0].id;
         }
 
-        // Insert Batch if batchNumber provided
+        // Insert or merge Batch if batchNumber provided
         if (item.batchNumber && item.batchNumber.trim() && qty > 0) {
           const batchNo = item.batchNumber.trim();
-          const expDate = item.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
           await client.query(
             `INSERT INTO medicine_batches (
               pharmacy_id, medicine_id, batch_number, expiry_date,
-              quantity, available_quantity, purchase_price, mrp, selling_price, barcode
-            ) VALUES ($1, $2, $3, $4, $5, $5, $6, $7, $8, $9)`,
+              quantity, available_quantity, stock, purchase_price, mrp, selling_price, barcode
+            ) VALUES ($1, $2, $3, $4, $5, $5, $5, $6, $7, $8, $9)
+            ON CONFLICT (medicine_id, pharmacy_id, batch_number) DO UPDATE
+            SET quantity = medicine_batches.quantity + EXCLUDED.quantity,
+                available_quantity = medicine_batches.available_quantity + EXCLUDED.available_quantity,
+                stock = COALESCE(medicine_batches.stock, 0) + EXCLUDED.stock,
+                expiry_date = COALESCE(EXCLUDED.expiry_date, medicine_batches.expiry_date),
+                updated_at = CURRENT_TIMESTAMP`,
             [
               pharmacyId,
               medicineId,
               batchNo,
-              expDate,
+              parsedExpDate,
               qty,
               purchasePrice,
               mrp,
@@ -942,7 +955,7 @@ Return ONLY valid JSON without markdown wrapping.`;
       try {
         const itemToPush = {
           pharmacyId,
-          medicineName: matchedMedicine ? matchedMedicine.name : (medicineName || (batchNumber ? 'Batch $batchNumber' : 'Scanned Medicine')),
+          medicineName: matchedMedicine ? matchedMedicine.name : (medicineName || (batchNumber ? `Batch ${batchNumber}` : 'Scanned Medicine')),
           quantity: 1,
           unitPrice: mrp > 0 ? mrp : (matchedMedicine?.sellingPrice || 0),
           mrp: mrp > 0 ? mrp : (matchedMedicine?.mrp || 0),
@@ -961,8 +974,6 @@ Return ONLY valid JSON without markdown wrapping.`;
         if (io) {
           io.to(`pharmacy_${pharmacyId}`).emit('mobile_item_scanned', syncedItem);
           io.to(`pharmacy_${pharmacyId}`).emit('mobile_box_ocr_scanned', syncedItem);
-          io.emit('mobile_item_scanned', syncedItem);
-          io.emit('mobile_box_ocr_scanned', syncedItem);
         }
       } catch (syncErr) {
         console.warn('Live sync error:', syncErr);
@@ -982,7 +993,7 @@ Return ONLY valid JSON without markdown wrapping.`;
       pack_size: packSize,
       mfg_lic_no: mfgLicNo,
       manufacturer: manufacturer,
-      confidence: Number(extracted.confidence) || 0.95,
+      confidence: extracted.confidence !== undefined && extracted.confidence !== null ? Number(extracted.confidence) : 0,
       matched_medicine: matchedMedicine,
       synced_item: syncedItem
     };

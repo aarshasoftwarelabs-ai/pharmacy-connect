@@ -17,24 +17,27 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 // CORS Configuration
-const allowedOrigins = env.CORS_ORIGINS === '*' ? '*' : (env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',') : '*');
+const allowedOrigins = env.CORS_ORIGINS === '*' ? '*' : (env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean) : '*');
 
 app.use(cors({
   origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Rate Limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per `window`
+  max: 1000, // Generous ceiling for active POS terminals (with separate strictAuthLimiter on auth routes)
   message: { success: false, message: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-app.use('/api', apiLimiter);
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health') return next();
+  return apiLimiter(req, res, next);
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -64,7 +67,7 @@ app.get('/health', async (_req: Request, res: Response) => {
       service: 'pharmacyconnect-api',
       status: 'degraded',
       database: 'disconnected',
-      error: dbStatus.error
+      ...(env.NODE_ENV === 'development' ? { error: dbStatus.error } : {}),
     });
   }
 });

@@ -124,7 +124,7 @@ const HelpSupport = () => {
                 <FileText className="w-5 h-5 mr-3 shrink-0" />
                 <div>
                   <span className="font-semibold block text-sm">Version Info</span>
-                  <span className="text-xs text-slate-500">DavaSetu POS v3.0</span>
+                  <span className="text-xs text-slate-500">DavaSetu POS v1.0.0</span>
                 </div>
               </div>
             </div>

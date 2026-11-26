@@ -108,10 +108,27 @@ export default function Purchases() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  // Derive pharmacy state for Intrastate vs Interstate (IGST) calculation
+  const pharmacyState = useMemo(() => {
+    try {
+      const stored = localStorage.getItem('pharmacy_profile_data');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.state) return String(parsed.state).trim().toLowerCase();
+      }
+    } catch (_) {}
+    return '';
+  }, []);
+
   // Selected supplier details
   const selectedSupplierObj = useMemo(() => {
     return suppliers.find(s => s.id?.toString() === supplierId);
   }, [suppliers, supplierId]);
+
+  const isInterstate = useMemo(() => {
+    const supState = selectedSupplierObj?.state ? String(selectedSupplierObj.state).trim().toLowerCase() : '';
+    return Boolean(pharmacyState && supState && pharmacyState !== supState);
+  }, [pharmacyState, selectedSupplierObj]);
 
   // Auto-calculate Due Date when Supplier or Invoice Date changes
   useEffect(() => {
@@ -147,8 +164,9 @@ export default function Purchases() {
     const rawGrandTotal = taxableAmount + totalTax;
     const roundedGrandTotal = Math.round(rawGrandTotal);
     const roundOff = +(roundedGrandTotal - rawGrandTotal).toFixed(2);
-    const cgstAmount = +(totalTax / 2).toFixed(2);
-    const sgstAmount = +(totalTax / 2).toFixed(2);
+    const cgstAmount = isInterstate ? 0 : +(totalTax / 2).toFixed(2);
+    const sgstAmount = isInterstate ? 0 : +(totalTax / 2).toFixed(2);
+    const igstAmount = isInterstate ? +totalTax.toFixed(2) : 0;
     const balance = Math.max(0, +(roundedGrandTotal - (paidAmount || 0)).toFixed(2));
     const status = balance <= 0 ? 'PAID' : ((paidAmount || 0) > 0 ? 'PARTIAL' : 'PENDING');
 
@@ -158,6 +176,7 @@ export default function Purchases() {
       taxableAmount: +taxableAmount.toFixed(2),
       cgstAmount,
       sgstAmount,
+      igstAmount,
       totalTax: +totalTax.toFixed(2),
       roundOff,
       grandTotal: roundedGrandTotal,
@@ -165,7 +184,7 @@ export default function Purchases() {
       status,
       totalQtyCount
     };
-  }, [items, paidAmount]);
+  }, [items, paidAmount, isInterstate]);
 
   // Summary Metrics for top cards
   const stats = useMemo(() => {
@@ -325,7 +344,7 @@ export default function Purchases() {
         taxable_amount: invoiceFinancials.taxableAmount,
         cgst_amount: invoiceFinancials.cgstAmount,
         sgst_amount: invoiceFinancials.sgstAmount,
-        igst_amount: 0,
+        igst_amount: invoiceFinancials.igstAmount,
         total_tax: invoiceFinancials.totalTax,
         round_off: invoiceFinancials.roundOff,
         grand_total: invoiceFinancials.grandTotal,
@@ -366,7 +385,8 @@ export default function Purchases() {
 
       if (data.items && data.items.length > 0) {
         const newItems: PurchaseItem[] = data.items.map((item: any) => {
-          const matchedMed = medicines.find(m => m.name.toLowerCase().includes(item.medicine_name?.toLowerCase()));
+          const qName = (item.medicine_name || '').trim().toLowerCase();
+          const matchedMed = qName ? medicines.find(m => m.name.toLowerCase().includes(qName)) : undefined;
           const p = Number(item.purchase_price) || 0;
           const q = Number(item.quantity) || 1;
           const f = Number(item.free_quantity) || 0;
@@ -1493,7 +1513,7 @@ export default function Purchases() {
                   <p className="font-bold text-slate-900 text-sm">{viewInvoice.supplier_name}</p>
                   {viewInvoice.supplier_address && <p className="text-slate-600">{viewInvoice.supplier_address}</p>}
                   <p className="text-slate-600">
-                    {viewInvoice.supplier_city ? `${viewInvoice.supplier_city}, ` : ''}Gujarat
+                    {[viewInvoice.supplier_city, viewInvoice.supplier_state].filter(Boolean).join(', ')}
                   </p>
                   {viewInvoice.supplier_gstin && (
                     <p className="font-mono text-slate-700">

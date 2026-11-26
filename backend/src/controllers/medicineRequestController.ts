@@ -205,6 +205,22 @@ export class MedicineRequestController {
     }
   }
 
+  private static assertCustomerOwner(req: AuthenticatedRequest, record: { user_id?: number }): void {
+    const user = req.user;
+    if (!user) {
+      const error = new Error('Authentication required') as ApiError;
+      error.statusCode = 401;
+      throw error;
+    }
+    const role = (user.role || '').toUpperCase();
+    if (role === 'ADMIN') return;
+    if (role === 'USER' && Number(record.user_id) === Number(user.userId)) return;
+
+    const error = new Error('Forbidden: Only the requesting customer can confirm or cancel this request') as ApiError;
+    error.statusCode = 403;
+    throw error;
+  }
+
   static async confirmRequest(req: Request, res: Response, next: NextFunction) {
     try {
       const requestId = Number(req.params.requestId);
@@ -215,7 +231,7 @@ export class MedicineRequestController {
       }
 
       const existing = await MedicineRequestService.getRequestById(requestId);
-      MedicineRequestController.assertRequestAccess(req as AuthenticatedRequest, existing);
+      MedicineRequestController.assertCustomerOwner(req as AuthenticatedRequest, existing);
 
       const result = await MedicineRequestService.confirmRequest(requestId);
 
@@ -251,7 +267,7 @@ export class MedicineRequestController {
       }
 
       const existing = await MedicineRequestService.getRequestById(requestId);
-      MedicineRequestController.assertRequestAccess(req as AuthenticatedRequest, existing);
+      MedicineRequestController.assertCustomerOwner(req as AuthenticatedRequest, existing);
 
       const result = await MedicineRequestService.cancelRequest(requestId);
 

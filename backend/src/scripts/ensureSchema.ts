@@ -14,6 +14,7 @@ export const ensureSchema = async () => {
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS manufacturer VARCHAR(255);
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS expiry_date DATE;
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS image_url TEXT;
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS mfg_date DATE;
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS dosage_form VARCHAR(100);
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS pack_size VARCHAR(100);
       ALTER TABLE medicines ADD COLUMN IF NOT EXISTS unit VARCHAR(100) DEFAULT 'Strip';
@@ -153,6 +154,8 @@ export const ensureSchema = async () => {
 
     // 4. Delivery assignment columns on bills
     await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+      ALTER TABLE bills ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(30) DEFAULT 'CASH';
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS delivery_staff_id INTEGER REFERENCES staff_members(id) ON DELETE SET NULL;
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS delivery_status VARCHAR(50) DEFAULT 'DIRECT_PICKUP';
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS cash_collection_status VARCHAR(50) DEFAULT 'PAID';
@@ -162,6 +165,27 @@ export const ensureSchema = async () => {
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE;
       ALTER TABLE bills ADD COLUMN IF NOT EXISTS doctor_name VARCHAR(150);
       CREATE INDEX IF NOT EXISTS idx_bills_delivery_staff ON bills(delivery_staff_id);
+
+      -- Ensure bills.payment_status & bills.bill_type constraints allow CANCELLED / PARTIAL / RETAIL
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bills_payment_status_check') THEN
+          ALTER TABLE bills DROP CONSTRAINT bills_payment_status_check;
+        END IF;
+        ALTER TABLE bills ADD CONSTRAINT bills_payment_status_check
+          CHECK (payment_status IN ('UNPAID', 'PAID', 'PARTIAL', 'CANCELLED'));
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END $$;
+
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bills_bill_type_check') THEN
+          ALTER TABLE bills DROP CONSTRAINT bills_bill_type_check;
+        END IF;
+        ALTER TABLE bills ADD CONSTRAINT bills_bill_type_check
+          CHECK (bill_type IN ('ONLINE', 'OFFLINE', 'RETAIL'));
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END $$;
 
       -- Upgrade bills_user_id_fkey to ON DELETE SET NULL and ON UPDATE CASCADE
       -- so updating or deleting users in Supabase Table Editor or via API never fails with 23503 foreign key violation
@@ -241,57 +265,13 @@ export const ensureSchema = async () => {
       );
     `);
 
-    // Ensure at least one default staff exists for existing pharmacies
-    const existingPharms = await pool.query(`SELECT id, name, phone FROM pharmacies ORDER BY id ASC`);
-    for (const p of existingPharms.rows) {
-      const staffCheck = await pool.query(`SELECT id FROM staff_members WHERE pharmacy_id = $1 LIMIT 1`, [p.id]);
-      if (staffCheck.rows.length === 0) {
-        await pool.query(`
-          INSERT INTO staff_members (pharmacy_id, name, first_name, last_name, phone, role, pin, is_active)
-          VALUES ($1, 'Counter Staff', 'Counter', 'Staff', COALESCE($2, '9876543210'), 'BILLER', '1234', true)
-        `, [p.id, p.phone]);
-        console.log(`👤 Auto-created default staff (PIN: 1234) for pharmacy ${p.name} (ID: ${p.id})`);
-      }
-    }
-
-    // Ensure default owner linkage without forcing a hardcoded password overwrite
-    try {
-      const existingDeep = await pool.query(`
-        SELECT id FROM users 
-        WHERE LOWER(TRIM(COALESCE(email, ''))) = 'deeplodaliya007@gmail.com' 
-           OR id = 9 
-        ORDER BY id ASC LIMIT 1
-      `);
-      if (existingDeep.rows.length > 0) {
-        const ownerUserId = existingDeep.rows[0].id;
-        await pool.query(
-          `UPDATE pharmacies SET owner_id = COALESCE(owner_id, $1) WHERE id = 8`,
-          [ownerUserId]
-        );
-      }
-    } catch (userErr) {
-      console.warn('⚠️ User/Staff provision note:', userErr);
-    }
-
-    // 5. Wholesale & B2B Data Cleanup (Purge wholesale tables and set all pharmacies to Retail)
+    // Ensure business_type defaults cleanly to RETAIL without destructive purges
     try {
       await pool.query(`
-        -- Delete any test wholesale bills
-        DELETE FROM bills WHERE bill_type = 'WHOLESALE';
-        UPDATE bills SET bill_type = 'RETAIL' WHERE bill_type IS NULL;
-
-        -- Drop Wholesale specific tables if they exist
-        DROP TABLE IF EXISTS b2b_ledgers CASCADE;
-        DROP TABLE IF EXISTS b2b_clients CASCADE;
-        DROP TABLE IF EXISTS delivery_stops CASCADE;
-        DROP TABLE IF EXISTS delivery_routes CASCADE;
-        DROP TABLE IF EXISTS trade_schemes CASCADE;
-
-        -- Normalize all pharmacies to RETAIL safely without schema errors
         DO $$ 
         BEGIN
           IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pharmacies' AND column_name = 'business_type') THEN
-            UPDATE pharmacies SET business_type = 'RETAIL' WHERE business_type = 'WHOLESALE';
+            UPDATE pharmacies SET business_type = 'RETAIL' WHERE business_type IS NULL;
           END IF;
           IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pharmacies' AND column_name = 'is_wholesale_enabled') THEN
             UPDATE pharmacies SET is_wholesale_enabled = false WHERE is_wholesale_enabled = true;
@@ -406,7 +386,7 @@ export const ensureSchema = async () => {
             payment_status VARCHAR(50) NOT NULL DEFAULT 'SUCCESS',
             transaction_id VARCHAR(100),
             receipt_number VARCHAR(100),
-            upi_id VARCHAR(100) DEFAULT 'lodaliya@ptyes',
+            upi_id VARCHAR(100),
             agent_note TEXT,
             plan_type VARCHAR(50) NOT NULL DEFAULT 'MOBILE_YEARLY',
             duration_months INTEGER NOT NULL DEFAULT 12,
@@ -487,291 +467,9 @@ export const ensureSchema = async () => {
         ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS deals_in_brands TEXT;
         CREATE UNIQUE INDEX IF NOT EXISTS unq_supplier_name_pharmacy ON suppliers(pharmacy_id, supplier_name);
       `);
-
-      // Seed real, authentic DavaSetu pharma distributor records for pharmacies
-      const pharmRes = await pool.query('SELECT id FROM pharmacies ORDER BY id ASC');
-      for (const row of pharmRes.rows) {
-        const pId = row.id;
-        const countRes = await pool.query('SELECT COUNT(*) FROM suppliers WHERE pharmacy_id = $1', [pId]);
-        if (parseInt(countRes.rows[0].count) <= 1) {
-          await pool.query(`
-            INSERT INTO suppliers (
-              pharmacy_id, supplier_name, contact_person, mobile, alternate_phone, email,
-              address, city, state, pincode, gstin, drug_license_number, fssai_number, pan_number,
-              credit_period_days, opening_balance, current_balance, bank_name, account_number,
-              ifsc_code, branch_name, upi_id, deals_in_brands, notes, status
-            ) VALUES 
-            (
-              $1,
-              'Shree Ganesh Medicine Distributors',
-              'Hasmukhbhai Shah (Distributor Partner)',
-              '9825123456',
-              '0261-2451234',
-              'orders@shreeganeshpharma.in',
-              'Shop No. 12-14, 1st Floor, Medicine Market, Ring Road',
-              'Surat',
-              'Gujarat',
-              '395002',
-              '24AAGCS1234F1Z8',
-              '20B-GJ-SUR-142512, 21B-GJ-SUR-142513',
-              '10721031000145',
-              'AAGCS1234F',
-              21,
-              45200.00,
-              45200.00,
-              'HDFC Bank',
-              '50200012345678',
-              'HDFC0000084',
-              'Ring Road Branch, Surat',
-              'shreeganesh@hdfcbank',
-              'Sun Pharma, Cipla, Torrent Pharma, Mankind, Zydus',
-              'Primary stockist for cardiac, diabetic & antibiotic ranges. Orders dispatched within 4 hours.',
-              'ACTIVE'
-            ),
-            (
-              $1,
-              'Aarav Healthcare & Surgical Agencies',
-              'Pratik V. Mehta (Sales Executive)',
-              '9879944556',
-              '079-26581122',
-              'supply@aaravhealth.com',
-              'Plot No. 45, GIDC Industrial Estate, Naroda',
-              'Ahmedabad',
-              'Gujarat',
-              '382330',
-              '24AAFFA5678M1ZK',
-              '20B-GJ-AHM-218901, 21B-GJ-AHM-218902',
-              '10719022000891',
-              'AAFFA5678M',
-              30,
-              18750.00,
-              18750.00,
-              'ICICI Bank',
-              '004705001234',
-              'ICIC0000047',
-              'Naroda GIDC Branch',
-              'aaravhealth@icici',
-              'Abbott, Dr. Reddy''s, Glenmark, Alkem, Intas',
-              'Authorized stockist for pediatrics, nutraceuticals and cold chain products.',
-              'ACTIVE'
-            ),
-            (
-              $1,
-              'Navkar Pharma Wholesale Depot',
-              'Ramesh Jain (Accounts Head)',
-              '9426811223',
-              '0265-2334455',
-              'navkarpharma.brd@gmail.com',
-              '102, Royal Pharma Complex, Dandia Bazar',
-              'Vadodara',
-              'Gujarat',
-              '390001',
-              '24AACFN9012P1ZN',
-              '20B-GJ-BAR-349811, 21B-GJ-BAR-349812',
-              '10720015000412',
-              'AACFN9012P',
-              15,
-              0.00,
-              0.00,
-              'State Bank of India',
-              '38920112456',
-              'SBIN0001234',
-              'Dandia Bazar Main Branch',
-              'navkarpharma@sbi',
-              'Lupin, Cadila, Aristo, FDC, Macleods',
-              'Net payment distributor. Flat 2% early cash settlement scheme offered.',
-              'ACTIVE'
-            ),
-            (
-              $1,
-              'Apex Lifesciences & Vaccines Depot',
-              'Chetan Dave (Cold-Chain Specialist)',
-              '9898233445',
-              '0281-2244112',
-              'apex.vaccines@gmail.com',
-              'Survey No. 18, Opp. Civil Hospital, Jamnagar Road',
-              'Rajkot',
-              'Gujarat',
-              '360001',
-              '24AAZFA3344R1ZU',
-              '20B-GJ-RJK-551201, 21B-GJ-RJK-551202',
-              '10722019000332',
-              'AAZFA3344R',
-              7,
-              12400.00,
-              12400.00,
-              'Kotak Mahindra Bank',
-              '7711223344',
-              'KKBK0000812',
-              'Jamnagar Road Branch',
-              'apexlifesciences@kotak',
-              'Serum Institute, Bharat Biotech, Sanofi, GSK',
-              'Specialized in cold-chain logistics: insulins, vaccines, and biologics.',
-              'ACTIVE'
-            )
-            ON CONFLICT (pharmacy_id, supplier_name) DO UPDATE SET
-              contact_person = EXCLUDED.contact_person,
-              mobile = EXCLUDED.mobile,
-              alternate_phone = EXCLUDED.alternate_phone,
-              email = EXCLUDED.email,
-              address = EXCLUDED.address,
-              city = EXCLUDED.city,
-              state = EXCLUDED.state,
-              pincode = EXCLUDED.pincode,
-              gstin = EXCLUDED.gstin,
-              drug_license_number = EXCLUDED.drug_license_number,
-              fssai_number = EXCLUDED.fssai_number,
-              pan_number = EXCLUDED.pan_number,
-              credit_period_days = EXCLUDED.credit_period_days,
-              bank_name = EXCLUDED.bank_name,
-              account_number = EXCLUDED.account_number,
-              ifsc_code = EXCLUDED.ifsc_code,
-              branch_name = EXCLUDED.branch_name,
-              upi_id = EXCLUDED.upi_id,
-              deals_in_brands = EXCLUDED.deals_in_brands,
-              notes = EXCLUDED.notes;
-          `, [pId]);
-        }
-      }
-      console.log('📦 Verified DavaSetu Supplier & Distributor Master Schema & Seeded genuine stockists.');
+      console.log('📦 Verified DavaSetu Supplier & Distributor Master Schema.');
     } catch (suppErr) {
       console.warn('⚠️ Supplier schema note:', suppErr);
-    }
-
-    // 10. Seed Authentic Live Pharmaceutical Purchase Invoices
-    try {
-      const pharmRes = await pool.query('SELECT id FROM pharmacies ORDER BY id ASC');
-      for (const row of pharmRes.rows) {
-        const pId = row.id;
-        const pCountRes = await pool.query('SELECT COUNT(*) FROM purchase_invoices WHERE pharmacy_id = $1', [pId]);
-        if (parseInt(pCountRes.rows[0].count) === 0) {
-          // Find stockist 1: Shree Ganesh Medicine Distributors
-          const sgRes = await pool.query("SELECT id FROM suppliers WHERE pharmacy_id = $1 AND supplier_name LIKE '%Shree Ganesh%' LIMIT 1", [pId]);
-          // Find stockist 2: Aarav Healthcare
-          const ahRes = await pool.query("SELECT id FROM suppliers WHERE pharmacy_id = $1 AND supplier_name LIKE '%Aarav Healthcare%' LIMIT 1", [pId]);
-
-          if (sgRes.rows.length > 0) {
-            const sgId = sgRes.rows[0].id;
-            // Ensure medicines exist
-            const doloRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Dolo 650mg Tablets', 'Micro Labs Ltd', '30049099', 'Strip (15 Tab)', 55, 34.00, 34.00) ON CONFLICT DO NOTHING RETURNING id",
-              [pId]
-            );
-            const augRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Augmentin 625 Duo Tablet', 'GlaxoSmithKline (GSK)', '30042000', 'Strip (10 Tab)', 22, 205.00, 205.00) ON CONFLICT DO NOTHING RETURNING id",
-              [pId]
-            );
-            const panRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Pan 40 Gastro-Resistant Tablet', 'Alkem Laboratories Ltd', '30049099', 'Strip (15 Tab)', 33, 155.00, 155.00) ON CONFLICT DO NOTHING RETURNING id",
-              [pId]
-            );
-
-            const doloId = (doloRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Dolo 650%' LIMIT 1", [pId])).rows[0]?.id;
-            const augId = (augRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Augmentin 625%' LIMIT 1", [pId])).rows[0]?.id;
-            const panId = (panRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Pan 40%' LIMIT 1", [pId])).rows[0]?.id;
-
-            if (doloId && augId && panId) {
-              // Create Purchase Invoice 1 (SG-2026-8812)
-              const inv1 = await pool.query(`
-                INSERT INTO purchase_invoices (
-                  pharmacy_id, supplier_id, invoice_number, invoice_date, due_date,
-                  subtotal, discount, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_tax,
-                  round_off, grand_total, paid_amount, balance_amount, payment_status, notes
-                ) VALUES (
-                  $1, $2, 'SG-2026-8812', CURRENT_DATE - INTERVAL '5 days', CURRENT_DATE + INTERVAL '16 days',
-                  6285.00, 125.70, 6159.30, 369.56, 369.56, 0.00, 739.12,
-                  -0.42, 6898.00, 2000.00, 4898.00, 'PARTIAL', 'Primary monthly antibiotics, antipyretics & gastro range stockist delivery.'
-                ) RETURNING id
-              `, [pId, sgId]);
-
-              const inv1Id = inv1.rows[0].id;
-
-              // Insert items & batches
-              // Item 1: Dolo 650
-              const b1 = await pool.query(`
-                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
-                VALUES ($1, $2, 'DL650B24', CURRENT_DATE + INTERVAL '18 months', 24.50, 34.00, 34.00, 55, 55) RETURNING id
-              `, [doloId, pId]);
-              await pool.query(`
-                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
-                VALUES ($1, $2, $3, 'DL650B24', CURRENT_DATE + INTERVAL '18 months', 50, 5, 24.50, 34.00, 34.00, 24.50, 1200.50, 12, 72.03, 72.03, 0, 1344.56)
-              `, [inv1Id, doloId, b1.rows[0].id]);
-
-              // Item 2: Augmentin 625 Duo
-              const b2 = await pool.query(`
-                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
-                VALUES ($1, $2, 'AUG2409', CURRENT_DATE + INTERVAL '14 months', 142.00, 205.00, 205.00, 22, 22) RETURNING id
-              `, [augId, pId]);
-              await pool.query(`
-                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
-                VALUES ($1, $2, $3, 'AUG2409', CURRENT_DATE + INTERVAL '14 months', 20, 2, 142.00, 205.00, 205.00, 56.80, 2783.20, 12, 166.99, 166.99, 0, 3117.18)
-              `, [inv1Id, augId, b2.rows[0].id]);
-
-              // Item 3: Pan 40
-              const b3 = await pool.query(`
-                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
-                VALUES ($1, $2, 'PAN2411', CURRENT_DATE + INTERVAL '20 months', 72.50, 155.00, 155.00, 33, 33) RETURNING id
-              `, [panId, pId]);
-              await pool.query(`
-                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
-                VALUES ($1, $2, $3, 'PAN2411', CURRENT_DATE + INTERVAL '20 months', 30, 3, 72.50, 155.00, 155.00, 43.50, 2131.50, 12, 127.89, 127.89, 0, 2387.28)
-              `, [inv1Id, panId, b3.rows[0].id]);
-            }
-          }
-
-          if (ahRes.rows.length > 0) {
-            const ahId = ahRes.rows[0].id;
-            const azRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Azithral 500mg Tablet', 'Alembic Pharmaceuticals', '30042000', 'Strip (5 Tab)', 27, 132.00, 132.00) ON CONFLICT DO NOTHING RETURNING id",
-              [pId]
-            );
-            const telRes = await pool.query(
-              "INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock, selling_price, mrp) VALUES ($1, 'Telma 40mg Tablet', 'Glenmark Pharmaceuticals', '30049099', 'Strip (15 Tab)', 44, 245.00, 245.00) ON CONFLICT DO NOTHING RETURNING id",
-              [pId]
-            );
-
-            const azId = (azRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Azithral 500%' LIMIT 1", [pId])).rows[0]?.id;
-            const telId = (telRes.rows[0]?.id) || (await pool.query("SELECT id FROM medicines WHERE pharmacy_id = $1 AND name LIKE '%Telma 40%' LIMIT 1", [pId])).rows[0]?.id;
-
-            if (azId && telId) {
-              const inv2 = await pool.query(`
-                INSERT INTO purchase_invoices (
-                  pharmacy_id, supplier_id, invoice_number, invoice_date, due_date,
-                  subtotal, discount, taxable_amount, cgst_amount, sgst_amount, igst_amount, total_tax,
-                  round_off, grand_total, paid_amount, balance_amount, payment_status, notes
-                ) VALUES (
-                  $1, $2, 'AH-2026-4401', CURRENT_DATE - INTERVAL '14 days', CURRENT_DATE + INTERVAL '16 days',
-                  8525.00, 170.50, 8354.50, 501.27, 501.27, 0.00, 1002.54,
-                  0.96, 9358.00, 9358.00, 0.00, 'PAID', 'Full payment cleared via ICICI NEFT on delivery.'
-                ) RETURNING id
-              `, [pId, ahId]);
-
-              const inv2Id = inv2.rows[0].id;
-
-              const b4 = await pool.query(`
-                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
-                VALUES ($1, $2, 'AZ500A1', CURRENT_DATE + INTERVAL '16 months', 85.00, 132.00, 132.00, 27, 27) RETURNING id
-              `, [azId, pId]);
-              await pool.query(`
-                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
-                VALUES ($1, $2, $3, 'AZ500A1', CURRENT_DATE + INTERVAL '16 months', 25, 2, 85.00, 132.00, 132.00, 42.50, 2082.50, 12, 124.95, 124.95, 0, 2332.40)
-              `, [inv2Id, azId, b4.rows[0].id]);
-
-              const b5 = await pool.query(`
-                INSERT INTO medicine_batches (medicine_id, pharmacy_id, batch_number, expiry_date, purchase_price, mrp, selling_price, quantity, available_quantity)
-                VALUES ($1, $2, 'TEL40C2', CURRENT_DATE + INTERVAL '22 months', 160.00, 245.00, 245.00, 44, 44) RETURNING id
-              `, [telId, pId]);
-              await pool.query(`
-                INSERT INTO purchase_items (purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date, quantity, free_quantity, purchase_price, mrp, selling_price, discount, taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, total_amount)
-                VALUES ($1, $2, $3, 'TEL40C2', CURRENT_DATE + INTERVAL '22 months', 40, 4, 160.00, 245.00, 245.00, 128.00, 6272.00, 12, 376.32, 376.32, 0, 7024.64)
-              `, [inv2Id, telId, b5.rows[0].id]);
-            }
-          }
-        }
-      }
-      console.log('📦 Verified DavaSetu Purchase Invoices & Live Pharmaceutical Stock Batches.');
-    } catch (purchErr) {
-      console.warn('⚠️ Purchase seed note:', purchErr);
     }
 
     // 8. Schedule H1 & Narcotic Digital Register (FDCA Inspection Ready)
@@ -810,8 +508,8 @@ export const ensureSchema = async () => {
         UPDATE medicines
         SET is_schedule_h1 = true, schedule_type = 'SCHEDULE_H1'
         WHERE is_schedule_h1 = false AND (
-          LOWER(name) ~* '(alprazolam|tramadol|cefixime|cefpodoxime|ceftriaxone|meropenem|faropenem|colistin|levofloxacin|moxifloxacin|clonazepam|lorazepam|diazepam|zolpidem|chlordiazepoxide|clobazam|nitrazepam|linezolid|rifampicin|isoniazid|pyrazinamide|ethambutol)'
-          OR LOWER(COALESCE(generic_name, '')) ~* '(alprazolam|tramadol|cefixime|cefpodoxime|ceftriaxone|meropenem|faropenem|colistin|levofloxacin|moxifloxacin|clonazepam|lorazepam|diazepam|zolpidem|chlordiazepoxide|clobazam|nitrazepam|linezolid|rifampicin|isoniazid|pyrazinamide|ethambutol)'
+          LOWER(name) ~* '(alprazolam|balofloxacin|bedaquiline|buprenorphine|capreomycin|cefdinir|cefditoren|cefepime|cefixime|cefotaxime|cefpodoxime|ceftazidime|ceftriaxone|chlordiazepoxide|clofazimine|clobazam|clonazepam|clorazepate|colistin|cycloserine|delamanid|diazepam|diphenoxylate|doripenem|ertapenem|ethambutol|ethionamide|faropenem|flurazepam|gemifloxacin|imipenem|isoniazid|ketamine|levofloxacin|linezolid|lorazepam|meropenem|midazolam|moxifloxacin|nitrazepam|oxazepam|pentazocine|pyrazinamide|rifabutin|rifampicin|rifapentine|sparfloxacin|streptomycin|tigecycline|tramadol|zolpidem)'
+          OR LOWER(COALESCE(generic_name, '')) ~* '(alprazolam|balofloxacin|bedaquiline|buprenorphine|capreomycin|cefdinir|cefditoren|cefepime|cefixime|cefotaxime|cefpodoxime|ceftazidime|ceftriaxone|chlordiazepoxide|clofazimine|clobazam|clonazepam|clorazepate|colistin|cycloserine|delamanid|diazepam|diphenoxylate|doripenem|ertapenem|ethambutol|ethionamide|faropenem|flurazepam|gemifloxacin|imipenem|isoniazid|ketamine|levofloxacin|linezolid|lorazepam|meropenem|midazolam|moxifloxacin|nitrazepam|oxazepam|pentazocine|pyrazinamide|rifabutin|rifampicin|rifapentine|sparfloxacin|streptomycin|tigecycline|tramadol|zolpidem)'
         );
       `);
       console.log('✅ Schedule H1 & Narcotic Digital Register schema verified.');

@@ -59,6 +59,9 @@ android {
                 // Play Store uploads require android/key.properties with a release upload keystore.
                 signingConfigs.getByName("debug")
             }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

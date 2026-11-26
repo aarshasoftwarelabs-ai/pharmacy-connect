@@ -10,6 +10,7 @@ const OTP_TTL_SECONDS = 300; // 5 minutes validity in PostgreSQL
 const MAX_OTP_ATTEMPTS = 5;
 
 const otpFallbackStore: Record<string, { otp: string; expiresAt: number; attempts: number }> = {};
+const verifiedSignupStore: Record<string, number> = {};
 let otpTableEnsured = false;
 
 function normalizePhone10(raw: string): string {
@@ -66,10 +67,56 @@ async function saveOtpRecord(phone: string, email: string, otp: string): Promise
 
 async function clearOtpRecord(phone: string): Promise<void> {
   delete otpFallbackStore[phone];
+  delete verifiedSignupStore[phone];
   try {
     await ensureOtpTable();
     await pool.query('DELETE FROM auth_otps WHERE phone = $1', [phone]);
   } catch (_) {}
+}
+
+async function markSignupPhoneVerified(phone: string, email: string): Promise<void> {
+  const ttlSeconds = 1800; // 30 minutes to complete registration form
+  verifiedSignupStore[phone] = Date.now() + ttlSeconds * 1000;
+  delete otpFallbackStore[phone];
+  try {
+    await ensureOtpTable();
+    await pool.query(
+      `INSERT INTO auth_otps (phone, email, otp_code, attempts, expires_at, created_at)
+       VALUES ($1, $2, '__VERIFIED__', 0, NOW() + ($3 || ' seconds')::interval, CURRENT_TIMESTAMP)
+       ON CONFLICT (phone) DO UPDATE
+       SET email = COALESCE(NULLIF(EXCLUDED.email, ''), auth_otps.email),
+           otp_code = '__VERIFIED__',
+           attempts = 0,
+           expires_at = EXCLUDED.expires_at,
+           created_at = CURRENT_TIMESTAMP`,
+      [phone, email || null, String(ttlSeconds)]
+    );
+  } catch (err) {
+    console.warn('[Auth] DB verified signup mark note:', err);
+  }
+}
+
+async function consumeVerifiedSignupPhone(phone: string): Promise<boolean> {
+  if (verifiedSignupStore[phone] && verifiedSignupStore[phone] > Date.now()) {
+    await clearOtpRecord(phone);
+    return true;
+  }
+  try {
+    await ensureOtpTable();
+    const res = await pool.query(
+      `SELECT phone FROM auth_otps
+       WHERE phone = $1 AND otp_code = '__VERIFIED__' AND expires_at > NOW()
+       LIMIT 1`,
+      [phone]
+    );
+    if (res.rows.length > 0) {
+      await clearOtpRecord(phone);
+      return true;
+    }
+  } catch (err) {
+    console.warn('[Auth] DB consume verified signup note:', err);
+  }
+  return false;
 }
 
 function isDemoBypassAllowed(phone10: string, otp: string): boolean {
@@ -416,7 +463,10 @@ export class AuthController {
         // Check if user already exists with an active pharmacy (exact or last-10 digits)
         const userQuery = `
           SELECT u.id, u.name, u.phone, u.email,
-                 p.id as pharmacy_id, p.name as pharmacy_name, p.address as pharmacy_address
+                 p.id as pharmacy_id, p.name as pharmacy_name, p.address as pharmacy_address,
+                 p.phone as pharmacy_phone, p.email as pharmacy_email,
+                 p.gstin as pharmacy_gstin, p.reg_no as pharmacy_reg_no,
+                 p.gst_registered as pharmacy_gst_registered, p.state as pharmacy_state
           FROM users u
           LEFT JOIN pharmacies p ON p.owner_id = u.id
           WHERE u.phone = $1 OR (LENGTH($2) >= 10 AND u.phone LIKE '%' || $2)
@@ -449,11 +499,19 @@ export class AuthController {
             pharmacy: {
               id: u.pharmacy_id,
               name: u.pharmacy_name,
-              address: u.pharmacy_address
+              address: u.pharmacy_address,
+              phone: u.pharmacy_phone,
+              email: u.pharmacy_email,
+              gstin: u.pharmacy_gstin,
+              regNo: u.pharmacy_reg_no,
+              reg_no: u.pharmacy_reg_no,
+              gstRegistered: u.pharmacy_gst_registered,
+              state: u.pharmacy_state,
             }
           });
         }
 
+        await markSignupPhoneVerified(phone, String(req.body.email || '').trim());
         return res.json({ success: true, exists: false, message: 'OTP verified successfully' });
       }
 
@@ -577,10 +635,19 @@ export class AuthController {
         return res.status(400).json({ success: false, message: 'Phone, owner name, pharmacy name, and address are required' });
       }
 
+      const phone10 = normalizePhone10(String(phone));
+      const otpVerified = await consumeVerifiedSignupPhone(phone10);
+      if (!otpVerified) {
+        return res.status(403).json({ success: false, message: 'Please verify your mobile number via OTP before registering your pharmacy.' });
+      }
+
       const cleanEmail = email && String(email).trim().length > 0 ? String(email).trim() : null;
 
-      // Check if user already exists
-      const checkUser = await pool.query(`SELECT id, name, phone, email FROM users WHERE phone = $1 OR (email IS NOT NULL AND LOWER(TRIM(email)) = LOWER($2))`, [phone, cleanEmail || '']);
+      // Check if user already exists (by phone or email)
+      const checkUser = await pool.query(
+        `SELECT id, name, phone, email FROM users WHERE phone = $1 OR (LENGTH($2) >= 10 AND phone LIKE '%' || $2) OR ($3::text IS NOT NULL AND LOWER(TRIM(email)) = LOWER($3))`,
+        [phone, phone10, cleanEmail]
+      );
       let user;
 
       // Start transaction
@@ -594,6 +661,11 @@ export class AuthController {
           if (checkPharm.rows.length > 0) {
               await client.query('ROLLBACK');
               return res.status(400).json({ success: false, message: 'An account already exists for this mobile number or email. Please login.' });
+          }
+          // Reject hijacking another existing account's email
+          if (user.email && cleanEmail && user.email.trim().toLowerCase() !== cleanEmail.toLowerCase()) {
+              await client.query('ROLLBACK');
+              return res.status(400).json({ success: false, message: 'This mobile number is already registered with another email. Please login.' });
           }
           if (cleanEmail && !user.email) {
             await client.query(`UPDATE users SET email = $1 WHERE id = $2`, [cleanEmail, user.id]);
@@ -891,6 +963,43 @@ export class AuthController {
     } catch (error) {
       console.error('lookupCounterUser error:', error);
       res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  }
+
+  // 6. Self-Service Account & Store Deletion (Google Play Store compliance)
+  static async deleteAccount(req: Request, res: Response) {
+    try {
+      const authUser = (req as any).user;
+      if (!authUser || !authUser.userId) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+      }
+      if (authUser.isStaff) {
+        return res.status(403).json({ success: false, message: 'Only account owners can permanently delete an account.' });
+      }
+
+      const userId = Number(authUser.userId);
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        // Delete stores owned solely by this user (cascades dependent inventory/billing/staff data)
+        await client.query('DELETE FROM pharmacies WHERE owner_id = $1', [userId]);
+        await client.query('DELETE FROM users WHERE id = $1', [userId]);
+        await client.query('COMMIT');
+        return res.json({ success: true, message: 'Account and associated store data deleted permanently.' });
+      } catch (err) {
+        await client.query('ROLLBACK');
+        // Fallback PII scrub if legacy foreign keys prevent hard deletion
+        await pool.query(
+          `UPDATE users SET name = 'Deleted User', phone = $2, email = NULL, password_hash = NULL WHERE id = $1`,
+          [userId, `deleted_${userId}_${Date.now()}`]
+        );
+        return res.json({ success: true, message: 'Account deactivated and personal data removed.' });
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('Delete account error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to delete account' });
     }
   }
 }

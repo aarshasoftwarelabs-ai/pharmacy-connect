@@ -263,6 +263,9 @@ export default function CaTaxFilingTab({ dateRange }: CaTaxFilingTabProps) {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const yyyy = String(now.getFullYear());
     const fp = `${mm}${yyyy}`;
+    const posCode = (report.pharmacy.gstin && report.pharmacy.gstin.length >= 2)
+      ? report.pharmacy.gstin.slice(0, 2)
+      : '24';
 
     const gstPortalJson = {
       gstin: report.pharmacy.gstin,
@@ -276,7 +279,7 @@ export default function CaTaxFilingTab({ dateRange }: CaTaxFilingTabProps) {
             inum: item.invoiceNumber,
             idt: item.invoiceDate,
             val: item.invoiceValue,
-            pos: "24",
+            pos: posCode,
             rchrg: "N",
             inv_typ: "R",
             itms: [{
@@ -296,7 +299,7 @@ export default function CaTaxFilingTab({ dateRange }: CaTaxFilingTabProps) {
           sply_ty: "INTRA",
           rt: item.rate,
           typ: "OE",
-          pos: "24",
+          pos: posCode,
           txval: item.taxableValue,
           camt: item.cgst,
           samt: item.sgst,
@@ -340,7 +343,7 @@ export default function CaTaxFilingTab({ dateRange }: CaTaxFilingTabProps) {
           inum: item.invoiceNumber,
           idt: item.invoiceDate,
           val: item.invoiceValue,
-          pos: "24",
+          pos: posCode,
           rchrg: item.reverseCharge,
           inv_typ: "R",
           itms: [{
@@ -746,7 +749,9 @@ export default function CaTaxFilingTab({ dateRange }: CaTaxFilingTabProps) {
                 <span className="text-xs font-black text-slate-700 uppercase tracking-wider">
                   B2C Small Supplies (Retail Customers Grouped by Tax Slab)
                 </span>
-                <span className="text-xs text-slate-500 font-semibold">Place of Supply: 24-Gujarat</span>
+                <span className="text-xs text-slate-500 font-semibold">
+                  Place of Supply: {report.pharmacy.gstin?.slice(0, 2) || 'State'}-{report.pharmacy.state || 'India'}
+                </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200">

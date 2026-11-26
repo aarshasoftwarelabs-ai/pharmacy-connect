@@ -457,8 +457,8 @@ export const generateB2BPrintHTML = (
           <h3 style="margin: 0 0 5px 0; font-size: 12px; color: #64748b; text-transform: uppercase;">Billed To (Buyer)</h3>
           <p style="margin: 2px 0; font-size: 16px;" class="font-bold">${bill.customerName}</p>
           <p style="margin: 2px 0; font-size: 11px;">Phone: ${bill.customerPhone || 'N/A'}</p>
-          <p style="margin: 2px 0; font-size: 11px;">GSTIN: <strong>Provided by Client</strong></p>
-          <p style="margin: 2px 0; font-size: 11px;">DL No: <strong>Provided by Client</strong></p>
+          ${(bill as any).customerGstin ? `<p style="margin: 2px 0; font-size: 11px;">GSTIN: <strong>${(bill as any).customerGstin}</strong></p>` : ''}
+          ${(bill as any).customerDlNo ? `<p style="margin: 2px 0; font-size: 11px;">DL No: <strong>${(bill as any).customerDlNo}</strong></p>` : ''}
         </div>
 
         <table>

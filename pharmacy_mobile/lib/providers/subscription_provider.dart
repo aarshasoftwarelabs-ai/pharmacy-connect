@@ -17,6 +17,13 @@ class SubscriptionProvider extends ChangeNotifier {
   bool get canBill => _subscription?.canBill ?? true;
   int get daysRemaining => _subscription?.daysRemaining ?? 14;
 
+  void clearSessionData() {
+    _subscription = null;
+    _errorMessage = null;
+    _isLoading = false;
+    notifyListeners();
+  }
+
   Future<void> fetchSubscription(int pharmacyId) async {
     _isLoading = true;
     _errorMessage = null;

@@ -12,10 +12,14 @@ export const errorHandler = (
   _next: NextFunction
 ) => {
   const statusCode = err.statusCode || 500;
-  
+  const safeMessage =
+    statusCode >= 500 && env.NODE_ENV !== 'development'
+      ? 'Internal server error'
+      : err.message || 'Something went wrong';
+
   const response: any = {
     success: false,
-    message: err.message || 'Something went wrong',
+    message: safeMessage,
   };
 
   // Include stack trace only in development

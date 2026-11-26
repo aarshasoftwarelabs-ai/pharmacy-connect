@@ -3,6 +3,7 @@ import { LogIn, ArrowRight, Shield, CheckCircle, TrendingUp, Activity, HeartPuls
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import OtpVerificationAnimation from '../components/auth/OtpVerificationAnimation';
 import { useAuth } from '../components/auth/AuthContext';
+import { clearAuthStorage } from '../config/api';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://pharmacy-backend-e210.onrender.com/api';
 
@@ -81,6 +82,7 @@ export default function Login() {
   };
 
   const completeAuthAndGoDashboard = async (data: any) => {
+    clearAuthStorage();
     if (data.token) {
       localStorage.setItem('token', data.token);
     }

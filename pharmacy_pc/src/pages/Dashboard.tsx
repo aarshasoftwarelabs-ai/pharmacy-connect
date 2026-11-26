@@ -17,6 +17,7 @@ import { getPharmacyId } from '../config/development';
 import { Medicine } from '../types/medicine';
 import { Bill } from '../types/billing';
 import SalesOverviewChart from '../components/dashboard/SalesOverviewChart';
+import { useAuth } from '../components/auth/AuthContext';
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -33,6 +34,7 @@ const AnimatedNumber = ({ value, prefix = "", suffix = "" }: { value: number, pr
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -65,16 +67,29 @@ export default function Dashboard() {
       else setRefreshing(true);
 
       const pharmacyId = getPharmacyId();
-      const [medsData, billsData, custData] = await Promise.all([
-        fetchMedicines().catch(() => []),
-        BillingService.getPharmacyBills(pharmacyId).catch(() => []),
-        CustomerService.getCustomers().catch(() => [])
+      const [medsRes, billsRes, custRes] = await Promise.allSettled([
+        fetchMedicines(),
+        BillingService.getPharmacyBills(pharmacyId),
+        CustomerService.getCustomers()
       ]);
-      
+
+      const medsData = medsRes.status === 'fulfilled' ? medsRes.value : [];
+      const billsData = billsRes.status === 'fulfilled' ? billsRes.value : [];
+      const custData = custRes.status === 'fulfilled' ? custRes.value : [];
+
       setMedicines(medsData);
       setBills(billsData);
       setCustomers(custData);
-      if (!isBackgroundRefresh) setError(null);
+
+      const allFailed = medsRes.status === 'rejected' && billsRes.status === 'rejected' && custRes.status === 'rejected';
+      if (!isBackgroundRefresh) {
+        if (allFailed) {
+          const reason: any = medsRes.reason;
+          setError(reason?.message || 'Unable to connect to the backend server.');
+        } else {
+          setError(null);
+        }
+      }
     } catch (err: any) {
       if (!isBackgroundRefresh) {
         if (err.message === 'Failed to fetch' || err.message === 'Load failed') {
@@ -92,8 +107,9 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboardData();
     const intervalId = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       fetchDashboardData(true);
-    }, 6000);
+    }, 20000);
 
     const handleFocus = () => fetchDashboardData(true);
     window.addEventListener('focus', handleFocus);
@@ -165,7 +181,12 @@ export default function Dashboard() {
     .filter(b => b.paymentMode === 'UPI' || b.paymentMode === 'ONLINE' || b.paymentMode === 'CARD')
     .reduce((sum, b) => sum + Number(b.total), 0);
 
-  const todaysEstProfit = Math.round(todaysSalesValue * 0.18);
+  const todaysEstProfit = Math.round(
+    todaysBills.reduce((sum, b) => {
+      const p = Number((b as any).totalProfit);
+      return sum + (Number.isFinite(p) && p !== 0 ? p : Number(b.total) * 0.18);
+    }, 0)
+  );
 
   if (loading) {
     return (
@@ -860,7 +881,7 @@ export default function Dashboard() {
               <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Logged In Role</span>
-                  <span className="text-xs font-bold text-slate-800">Pharmacy Administrator</span>
+                  <span className="text-xs font-bold text-slate-800">{authUser?.role || 'OWNER'}</span>
                 </div>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
                   Primary POS

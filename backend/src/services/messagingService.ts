@@ -185,9 +185,9 @@ export class MessagingService {
       pharmacyId,
       resolvedAutoSend,
       resolvedGateway,
-      data.whatsappPhoneNumberId || '',
-      data.whatsappAccessToken || '',
-      data.whatsappTemplateName || 'bill_invoice',
+      data.whatsappPhoneNumberId && data.whatsappPhoneNumberId.trim() !== '' ? data.whatsappPhoneNumberId.trim() : null,
+      data.whatsappAccessToken && data.whatsappAccessToken.trim() !== '' ? data.whatsappAccessToken.trim() : null,
+      data.whatsappTemplateName && data.whatsappTemplateName.trim() !== '' ? data.whatsappTemplateName.trim() : null,
       data.customWhatsappTemplate || null,
       resolvedIsActive
     ];

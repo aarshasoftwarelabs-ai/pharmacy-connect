@@ -21,7 +21,9 @@ export const PrescriptionService = {
     if (status && status !== 'All') params.append('status', status);
     
     const response = await apiFetch(`${API_BASE_URL}/prescriptions?${params.toString()}`);
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || data?.error || 'Failed to load prescriptions');
+    return data;
   },
 
   updatePrescriptionStatus: async (id: number, status: string): Promise<Prescription> => {
@@ -29,6 +31,8 @@ export const PrescriptionService = {
       method: 'PUT',
       body: JSON.stringify({ status })
     });
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || data?.error || 'Failed to update prescription status');
+    return data;
   }
 };

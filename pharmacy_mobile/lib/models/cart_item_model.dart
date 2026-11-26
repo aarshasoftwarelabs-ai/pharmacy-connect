@@ -13,13 +13,24 @@ class CartItemModel {
     this.isLooseTablet = false,
   });
 
-  /// Extracts pack unit count from packSize (e.g. "10 tablets" -> 10, "15 caps" -> 15), default 10
+  /// Extracts pack unit count from packSize (handles "1 x 10 Tablets", "10 tablets", "15 caps"), default 10
   int get packCount {
     if (medicine.packSize != null && medicine.packSize!.isNotEmpty) {
-      final match = RegExp(r'\b(\d+)\b').firstMatch(medicine.packSize!);
-      if (match != null) {
-        final parsed = int.tryParse(match.group(1)!);
+      final raw = medicine.packSize!;
+      final multMatch = RegExp(r'(?:x|\*)\s*(\d+)', caseSensitive: false).firstMatch(raw);
+      if (multMatch != null) {
+        final parsed = int.tryParse(multMatch.group(1)!);
         if (parsed != null && parsed > 0) return parsed;
+      }
+      final unitMatch = RegExp(r'(\d+)\s*(?:tab|cap|unit|pcs|pc)', caseSensitive: false).firstMatch(raw);
+      if (unitMatch != null) {
+        final parsed = int.tryParse(unitMatch.group(1)!);
+        if (parsed != null && parsed > 1) return parsed;
+      }
+      final matches = RegExp(r'\b(\d+)\b').allMatches(raw).toList();
+      if (matches.isNotEmpty) {
+        final parsed = int.tryParse(matches.last.group(1)!);
+        if (parsed != null && parsed > 1) return parsed;
       }
     }
     return 10; // Standard Indian tablet strip packaging default

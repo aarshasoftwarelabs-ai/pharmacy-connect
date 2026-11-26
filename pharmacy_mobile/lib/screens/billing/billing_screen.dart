@@ -647,10 +647,15 @@ class _BillingScreenState extends State<BillingScreen> {
                         Navigator.pop(ctx);
                       }
                       if (mounted) {
+                        final pharmacy = StorageService.getPharmacy();
                         BluetoothPrinterModal.show(
                           context,
                           autoPrintBill: bill,
                           storeName: pharmacyName,
+                          gstin: pharmacy?['gstin']?.toString(),
+                          dlNo: pharmacy?['dl_number']?.toString() ?? pharmacy?['dlNo']?.toString(),
+                          phone: pharmacy?['phone']?.toString(),
+                          address: pharmacy?['address']?.toString(),
                         );
                       }
                     },

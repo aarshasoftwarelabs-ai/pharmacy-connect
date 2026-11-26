@@ -6,10 +6,12 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || CLOUD_API_URL;
 export function clearAuthStorage(): void {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  localStorage.removeItem('business_type');
   localStorage.removeItem('pharmacy_profile_data');
   localStorage.removeItem('pharmacy_messaging_settings');
   localStorage.removeItem('pharmacy_app_settings');
   localStorage.removeItem('davasetu_distributors_cache');
+  localStorage.removeItem('frozen_reorder_medicine_ids');
   // Purge legacy un-scoped offline keys so cached store data can never leak across accounts
   localStorage.removeItem('offline_bills_queue');
   localStorage.removeItem('offline_medicines_catalog');
@@ -64,6 +66,7 @@ const api = {
   get: async (endpoint: string) => {
     const res = await apiFetch(`${API_BASE_URL}${endpoint}`);
     const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
     return { data, status: res.status };
   },
   post: async (endpoint: string, body: any) => {
@@ -72,6 +75,7 @@ const api = {
       body: JSON.stringify(body),
     });
     const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
     return { data, status: res.status };
   },
   put: async (endpoint: string, body: any) => {
@@ -80,6 +84,7 @@ const api = {
       body: JSON.stringify(body),
     });
     const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
     return { data, status: res.status };
   },
   delete: async (endpoint: string) => {
@@ -87,6 +92,7 @@ const api = {
       method: 'DELETE',
     });
     const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
     return { data, status: res.status };
   }
 };

@@ -93,7 +93,8 @@ export class MedicineController {
   static async getDeadStock(req: Request, res: Response, next: NextFunction) {
     try {
       const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest);
-      const minDays = req.query.minDays ? parseInt(req.query.minDays as string, 10) : 30;
+      const parsedMinDays = req.query.minDays ? parseInt(req.query.minDays as string, 10) : 30;
+      const minDays = Number.isFinite(parsedMinDays) && parsedMinDays >= 0 ? parsedMinDays : 30;
       const result = await ReportService.getDeadStockReport(pharmacyId, minDays);
       res.status(200).json({ success: true, data: result });
     } catch (error) {

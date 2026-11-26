@@ -537,11 +537,14 @@ export class ReportService {
       totalInvoices: parseInt(purchaseRes.rows[0]?.totalInvoices || 0, 10),
     };
 
+    const netCgst = Math.max(0, Number((outward.cgst - itc.cgst).toFixed(2)));
+    const netSgst = Math.max(0, Number((outward.sgst - itc.sgst).toFixed(2)));
+    const netIgst = Math.max(0, Number((outward.igst - itc.igst).toFixed(2)));
     const netTaxPayable = {
-      cgst: Math.max(0, outward.cgst - itc.cgst),
-      sgst: Math.max(0, outward.sgst - itc.sgst),
-      igst: Math.max(0, outward.igst - itc.igst),
-      totalTax: Math.max(0, outward.totalTax - itc.totalTax),
+      cgst: netCgst,
+      sgst: netSgst,
+      igst: netIgst,
+      totalTax: Number((netCgst + netSgst + netIgst).toFixed(2)),
     };
 
     return {
@@ -691,13 +694,15 @@ export class ReportService {
           SELECT MAX(b.created_at) 
           FROM bill_items bi 
           JOIN bills b ON bi.bill_id = b.id 
-          WHERE bi.medicine_name ILIKE m.name AND b.pharmacy_id = m.pharmacy_id AND b.payment_status != 'CANCELLED'
+          WHERE LOWER(TRIM(SPLIT_PART(bi.medicine_name, ' (Loose', 1))) = LOWER(TRIM(m.name))
+            AND b.pharmacy_id = m.pharmacy_id AND b.payment_status != 'CANCELLED'
         ) as "lastSoldAt",
         (
           SELECT COALESCE(SUM(bi.quantity), 0)
           FROM bill_items bi 
           JOIN bills b ON bi.bill_id = b.id 
-          WHERE bi.medicine_name ILIKE m.name AND b.pharmacy_id = m.pharmacy_id 
+          WHERE LOWER(TRIM(SPLIT_PART(bi.medicine_name, ' (Loose', 1))) = LOWER(TRIM(m.name))
+            AND b.pharmacy_id = m.pharmacy_id 
             AND b.created_at >= CURRENT_DATE - INTERVAL '90 days'
             AND b.payment_status != 'CANCELLED'
         ) as "soldLast90Days"
@@ -765,7 +770,7 @@ export class ReportService {
         isExpired,
         severity
       };
-    }).filter(item => item.daysInactive >= minDays || item.isNearExpiry || item.neverSold);
+    }).filter(item => item.daysInactive >= minDays || item.isNearExpiry || item.isExpired);
 
     const totalBlockedCapital = items.reduce((sum, it) => sum + it.blockedCapital, 0);
     const totalRetailValue = items.reduce((sum, it) => sum + it.retailValue, 0);

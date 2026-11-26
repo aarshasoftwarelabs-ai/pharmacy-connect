@@ -192,9 +192,10 @@ export default function PharmacyProfile() {
         
         setProfile(mergedProfile);
 
+        const activeBills = billsData.filter((b: any) => b.paymentStatus !== 'CANCELLED');
         setTotalRequests(reqData.length);
-        setTotalBills(billsData.length);
-        setTotalRevenue(billsData.reduce((sum, b) => sum + Number(b.total), 0));
+        setTotalBills(activeBills.length);
+        setTotalRevenue(activeBills.reduce((sum: number, b: any) => sum + Number(b.total || 0), 0));
         
         setError(null);
       } catch (err: any) {

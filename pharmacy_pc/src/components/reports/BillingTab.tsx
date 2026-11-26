@@ -135,7 +135,7 @@ export default function BillingTab({ dateRange }: { dateRange: ReportDateRange }
                     <td className="px-4 py-3 text-sm font-bold text-emerald-600 text-right">₹{item.totalProfit?.toFixed(2) || '0.00'}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        item.paymentStatus === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
+                        (item.paymentStatus === 'PAID' || item.paymentStatus === 'COMPLETED') ? 'bg-emerald-100 text-emerald-800' :
                         item.paymentStatus === 'CANCELLED' ? 'bg-red-100 text-red-800' :
                         'bg-orange-100 text-orange-800'
                       }`}>

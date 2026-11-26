@@ -23,7 +23,7 @@ router.get('/near-expiry', authenticate, DistributorController.getExpiringMedici
 router.get('/shortage', authenticate, MedicineController.getShortageMedicines);
 router.get('/dead-stock', authenticate, requirePermission('MEDICINES_VIEW'), MedicineController.getDeadStock);
 router.post('/', authenticate, requirePermission('MEDICINES_CREATE'), MedicineController.createMedicine);
-router.post('/bulk-import', authenticate, MedicineController.bulkImport);
+router.post('/bulk-import', authenticate, requirePermission('MEDICINES_CREATE'), MedicineController.bulkImport);
 router.post('/generate-barcodes', authenticate, requirePermission('MEDICINES_EDIT'), MedicineController.generateBarcodes);
 router.put('/:id', authenticate, requirePermission('MEDICINES_EDIT'), MedicineController.updateMedicine);
 router.delete('/:id', authenticate, requirePermission('MEDICINES_DELETE'), MedicineController.deleteMedicine);

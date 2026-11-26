@@ -74,10 +74,11 @@ export default function Billing() {
 
     fetchBillingData();
 
-    // Live 3.5s auto-refresh so mobile bills show up one by one in real-time
+    // Background refresh every 15s (only while tab is active) to stay well within API rate limits
     const intervalId = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       fetchBillingData(true);
-    }, 3500);
+    }, 15000);
 
     const handleFocus = () => fetchBillingData(true);
     window.addEventListener('focus', handleFocus);

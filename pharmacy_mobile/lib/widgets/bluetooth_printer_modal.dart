@@ -6,17 +6,29 @@ import '../core/services/thermal_printer_service.dart';
 class BluetoothPrinterModal extends StatefulWidget {
   final Map<String, dynamic>? autoPrintBill;
   final String storeName;
+  final String? gstin;
+  final String? dlNo;
+  final String? phone;
+  final String? address;
 
   const BluetoothPrinterModal({
     super.key,
     this.autoPrintBill,
     this.storeName = 'DavaSetu Medicals',
+    this.gstin,
+    this.dlNo,
+    this.phone,
+    this.address,
   });
 
   static Future<void> show(
     BuildContext context, {
     Map<String, dynamic>? autoPrintBill,
     String storeName = 'DavaSetu Medicals',
+    String? gstin,
+    String? dlNo,
+    String? phone,
+    String? address,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -25,6 +37,10 @@ class BluetoothPrinterModal extends StatefulWidget {
       builder: (ctx) => BluetoothPrinterModal(
         autoPrintBill: autoPrintBill,
         storeName: storeName,
+        gstin: gstin,
+        dlNo: dlNo,
+        phone: phone,
+        address: address,
       ),
     );
   }
@@ -57,10 +73,16 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
       _statusMessage = null;
     });
 
+    final hasPerm = await _service.checkPermissions();
     final savedMac = await _service.getSavedPrinterMac();
     final savedName = await _service.getSavedPrinterName();
     final paperSize = await _service.getPaperSize();
-    final list = await _service.getPairedPrinters();
+    final list = hasPerm ? await _service.getPairedPrinters() : <BluetoothInfo>[];
+
+    if (!hasPerm && mounted) {
+      _statusMessage = 'Bluetooth permission required. Please enable Bluetooth access in Settings.';
+      _statusIsError = true;
+    }
 
     if (mounted) {
       setState(() {
@@ -116,6 +138,10 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
     final ok = await _service.printViaBluetooth(
       billData: bill,
       storeName: widget.storeName,
+      gstin: widget.gstin,
+      dlNo: widget.dlNo,
+      phone: widget.phone,
+      address: widget.address,
     );
 
     if (mounted) {
@@ -488,15 +514,21 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      if (widget.autoPrintBill != null) {
-                        _service.printViaPdf(
+                    onPressed: () async {
+                      final bill = widget.autoPrintBill;
+                      final navigator = Navigator.of(context);
+                      if (bill != null) {
+                        await _service.printViaPdf(
                           context,
-                          billData: widget.autoPrintBill!,
+                          billData: bill,
                           storeName: widget.storeName,
+                          gstin: widget.gstin,
+                          dlNo: widget.dlNo,
+                          phone: widget.phone,
+                          address: widget.address,
                         );
                       }
+                      if (mounted) navigator.pop();
                     },
                     icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
                     label: const Text('System Print / PDF'),

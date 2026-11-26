@@ -1,15 +1,18 @@
 import { Router } from 'express';
 import { DistributorController } from '../controllers/distributorController';
 import { authenticate } from '../middleware/auth';
+import { requirePermission } from '../middleware/requirePermission';
 
 const router = Router();
 
-router.get('/', authenticate, DistributorController.getDistributors);
-router.post('/', authenticate, DistributorController.createDistributor);
-router.get('/expiring-medicines', authenticate, DistributorController.getExpiringMedicines);
-router.get('/returns', authenticate, DistributorController.getReturnChallans);
-router.post('/returns', authenticate, DistributorController.createReturnChallan);
-router.put('/:id', authenticate, DistributorController.updateDistributor);
-router.delete('/:id', authenticate, DistributorController.deleteDistributor);
+router.use(authenticate);
+
+router.get('/', requirePermission('SUPPLIERS_VIEW'), DistributorController.getDistributors);
+router.post('/', requirePermission('SUPPLIERS_CREATE'), DistributorController.createDistributor);
+router.get('/expiring-medicines', requirePermission('INVENTORY_VIEW'), DistributorController.getExpiringMedicines);
+router.get('/returns', requirePermission('SUPPLIERS_VIEW'), DistributorController.getReturnChallans);
+router.post('/returns', requirePermission('INVENTORY_ADJUST'), DistributorController.createReturnChallan);
+router.put('/:id', requirePermission('SUPPLIERS_EDIT'), DistributorController.updateDistributor);
+router.delete('/:id', requirePermission('SUPPLIERS_DEACTIVATE'), DistributorController.deleteDistributor);
 
 export default router;

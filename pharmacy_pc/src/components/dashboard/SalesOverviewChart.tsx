@@ -20,7 +20,9 @@ export default function SalesOverviewChart({ bills, className = '' }: SalesOverv
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
       const dayStr = d.toDateString();
-      const dayBills = bills.filter(b => new Date(b.createdAt).toDateString() === dayStr);
+      const dayBills = bills.filter(
+        b => new Date(b.createdAt).toDateString() === dayStr && b.paymentStatus !== 'CANCELLED'
+      );
       const daySales = dayBills.reduce((s, b) => s + Number(b.total || 0), 0);
       return {
         day: d.toLocaleDateString('en-US', { weekday: 'short' }),

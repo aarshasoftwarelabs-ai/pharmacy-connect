@@ -58,17 +58,8 @@ export default function StaffManagement() {
       }
       setIsModalOpen(false);
       fetchStaff();
-    } catch (error) {
-      alert('Failed to save staff member. Note: Make sure backend supports this endpoint.');
-      
-      // Fallback local simulation for seamless demo
-      const newStaff = { ...formData, id: Date.now(), is_active: true, created_at: new Date().toISOString() } as StaffMember;
-      if (editingId) {
-        setStaff(staff.map(s => s.id === editingId ? { ...s, ...formData } : s));
-      } else {
-        setStaff([...staff, newStaff]);
-      }
-      setIsModalOpen(false);
+    } catch (error: any) {
+      alert(error?.message || 'Failed to save staff member. Please check server connection and permissions.');
     }
   };
 
@@ -77,8 +68,8 @@ export default function StaffManagement() {
     try {
       await StaffService.deleteStaff(id);
       fetchStaff();
-    } catch (error) {
-      setStaff(staff.filter(s => s.id !== id)); // local fallback
+    } catch (error: any) {
+      alert(error?.message || 'Failed to remove staff member.');
     }
   };
 

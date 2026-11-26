@@ -1,24 +1,33 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database';
 import { env } from '../config/env';
 
 const JWT_SECRET = env.JWT_SECRET as string;
 const BREVO_API_KEY = env.BREVO_API_KEY || '';
+const MAX_OTP_ATTEMPTS = 5;
 
-// In-memory store for OTPs (identifier -> otp)
-// Identifier can be email or phone
-const userOtpStore: Record<string, string> = {};
+interface UserOtpEntry {
+  otp: string;
+  targetEmail: string;
+  phone?: string;
+  attempts: number;
+  expiresAt: number;
+}
+
+// In-memory store for OTPs (identifier -> metadata)
+const userOtpStore: Record<string, UserOtpEntry> = {};
 
 export class UserAuthController {
   
   // 1. Send OTP (For both Signup and Login)
   static async sendOtp(req: Request, res: Response) {
     try {
-      let { email, phone } = req.body;
-      
-      if (email) email = email.trim().toLowerCase();
-      if (phone) phone = phone.trim();
+      const rawEmail = req.body?.email;
+      const rawPhone = req.body?.phone;
+      const email = typeof rawEmail === 'string' && rawEmail.trim() ? rawEmail.trim().toLowerCase() : '';
+      const phone = typeof rawPhone === 'string' && rawPhone.trim() ? rawPhone.trim() : '';
       
       if (!email && !phone) {
         return res.status(400).json({ success: false, message: 'Please provide Email or Phone number' });
@@ -26,39 +35,48 @@ export class UserAuthController {
 
       let targetEmail = email;
 
-      // If only phone is provided (Login flow without email), find the user's email
-      if (!email && phone) {
-        const userQuery = `SELECT email FROM users WHERE phone = $1`;
-        const userResult = await pool.query(userQuery, [phone]);
-        
-        if (userResult.rows.length === 0) {
-           return res.status(404).json({ success: false, message: 'User not found. Please create an account.' });
+      if (phone) {
+        const userResult = await pool.query(`SELECT email FROM users WHERE phone = $1 LIMIT 1`, [phone]);
+        if (userResult.rows.length > 0) {
+          const registeredEmail = typeof userResult.rows[0].email === 'string'
+            ? userResult.rows[0].email.trim().toLowerCase()
+            : '';
+          if (email && registeredEmail && registeredEmail !== email) {
+            return res.status(400).json({
+              success: false,
+              message: 'Entered email does not match registered account email.'
+            });
+          }
+          if (!targetEmail) {
+            targetEmail = registeredEmail;
+          }
+        } else if (!email) {
+          return res.status(404).json({ success: false, message: 'User not found. Please create an account.' });
         }
-        
-        targetEmail = userResult.rows[0].email;
         if (!targetEmail) {
-           return res.status(400).json({ success: false, message: 'No email associated with this phone number.' });
+          return res.status(400).json({ success: false, message: 'No email associated with this phone number.' });
         }
-      }
-
-      // If only email is provided (Login flow without phone), check if user exists
-      if (email && !phone) {
-        const userQuery = `SELECT id FROM users WHERE email = $1`;
-        const userResult = await pool.query(userQuery, [email]);
-        
+      } else if (email) {
+        const userResult = await pool.query(`SELECT id FROM users WHERE LOWER(TRIM(email)) = $1 LIMIT 1`, [email]);
         if (userResult.rows.length === 0) {
-           return res.status(404).json({ success: false, message: 'User not found. Please create an account.' });
+          return res.status(404).json({ success: false, message: 'User not found. Please create an account.' });
         }
       }
 
-      const identifier = email || phone;
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const identifier = phone || email;
+      const generatedOtp = String(crypto.randomInt(100000, 1000000));
       
-      userOtpStore[identifier] = generatedOtp;
+      userOtpStore[identifier] = {
+        otp: generatedOtp,
+        targetEmail,
+        phone: phone || undefined,
+        attempts: 0,
+        expiresAt: Date.now() + 5 * 60000,
+      };
 
       // Auto-expire OTP after 5 minutes
       setTimeout(() => {
-        if (userOtpStore[identifier] === generatedOtp) {
+        if (userOtpStore[identifier]?.otp === generatedOtp) {
           delete userOtpStore[identifier];
         }
       }, 5 * 60000);
@@ -136,61 +154,77 @@ export class UserAuthController {
   // 2. Verify OTP & Login/Signup
   static async verifyOtp(req: Request, res: Response) {
     try {
-      // name is provided during signup
-      let { email, phone, otp, name } = req.body;
-      
-      if (email) email = email.trim().toLowerCase();
-      if (phone) phone = phone.trim();
+      const rawEmail = req.body?.email;
+      const rawPhone = req.body?.phone;
+      const rawOtp = req.body?.otp;
+      const rawName = req.body?.name;
+
+      const email = typeof rawEmail === 'string' && rawEmail.trim() ? rawEmail.trim().toLowerCase() : '';
+      const phone = typeof rawPhone === 'string' && rawPhone.trim() ? rawPhone.trim() : '';
+      const otp = typeof rawOtp === 'string' ? rawOtp.trim() : String(rawOtp || '').trim();
+      const name = typeof rawName === 'string' ? rawName.trim() : '';
       
       if ((!email && !phone) || !otp) {
         return res.status(400).json({ success: false, message: 'Identifier (Email/Phone) and OTP are required' });
       }
 
-      const identifier = email || phone;
+      const identifier = (phone && userOtpStore[phone]) ? phone : email;
+      const record = userOtpStore[identifier];
 
-      if (!userOtpStore[identifier]) {
+      if (!record || Date.now() > record.expiresAt) {
+        delete userOtpStore[identifier];
         return res.status(400).json({ success: false, message: 'OTP Expired. Please resend.' });
       }
 
-      if (userOtpStore[identifier] !== otp) {
+      if (record.attempts >= MAX_OTP_ATTEMPTS) {
+        delete userOtpStore[identifier];
+        return res.status(429).json({ success: false, message: 'Too many invalid attempts. Please request a new OTP.' });
+      }
+
+      if (record.otp !== otp) {
+        record.attempts += 1;
         return res.status(400).json({ success: false, message: 'Invalid OTP' });
       }
 
-      // OTP is valid!
+      // OTP is valid! Use the verified identity stored when the OTP was issued
       delete userOtpStore[identifier];
+      const verifiedPhone = record.phone || phone;
+      const verifiedEmail = record.targetEmail || email;
 
-      // Check if user exists
       let userQuery = `SELECT id, name, phone, email FROM users WHERE phone = $1`;
-      let userParams = [phone];
+      let userParams = [verifiedPhone];
       
-      // If logging in via email, search by email
-      if (email && !phone) {
-         userQuery = `SELECT id, name, phone, email FROM users WHERE email = $1`;
-         userParams = [email];
+      if (!verifiedPhone && verifiedEmail) {
+         userQuery = `SELECT id, name, phone, email FROM users WHERE LOWER(TRIM(email)) = $1`;
+         userParams = [verifiedEmail];
       }
 
       const userResult = await pool.query(userQuery, userParams);
       let user;
 
       if (userResult.rows.length > 0) {
-        // User exists -> Login
         user = userResult.rows[0];
+
+        // If user already has a different email, reject mismatched email updates
+        if (user.email && verifiedEmail && user.email.trim().toLowerCase() !== verifiedEmail) {
+          return res.status(403).json({ success: false, message: 'Verified email does not match registered account.' });
+        }
         
         let shouldUpdate = false;
-        let updateFields = [];
-        let updateValues = [];
+        const updateFields: string[] = [];
+        const updateValues: any[] = [];
         let paramIndex = 1;
 
-        if (name && name.trim() !== '' && user.name !== name) {
+        if (name && user.name !== name) {
            updateFields.push(`name = $${paramIndex}`);
            updateValues.push(name);
            paramIndex++;
            shouldUpdate = true;
         }
 
-        if (email && email.trim() !== '' && user.email !== email) {
+        if (!user.email && verifiedEmail) {
            updateFields.push(`email = $${paramIndex}`);
-           updateValues.push(email);
+           updateValues.push(verifiedEmail);
            paramIndex++;
            shouldUpdate = true;
         }
@@ -203,7 +237,7 @@ export class UserAuthController {
         }
       } else {
         // User does not exist -> Signup
-        if (!name || !phone || !email) {
+        if (!name || !verifiedPhone || !verifiedEmail) {
             return res.status(400).json({ success: false, message: 'Full Name, Phone and Email are required for registration.' });
         }
         
@@ -212,7 +246,7 @@ export class UserAuthController {
           INSERT INTO users (name, phone, email) 
           VALUES ($1, $2, $3) RETURNING id, name, phone, email
         `;
-        const newUserResult = await pool.query(insertUserQuery, [name, phone, email]);
+        const newUserResult = await pool.query(insertUserQuery, [name, verifiedPhone, verifiedEmail]);
         user = newUserResult.rows[0];
       }
 

@@ -5,6 +5,15 @@ import { requirePermission } from '../middleware/requirePermission';
 
 const router = express.Router();
 
+const ALLOWED_STAFF_ROLES = new Set([
+  'BILLER',
+  'PHARMACIST',
+  'MANAGER',
+  'CASHIER',
+  'DELIVERY_STAFF',
+  'STAFF',
+]);
+
 router.use(authenticate);
 
 // Get all staff for a pharmacy
@@ -26,6 +35,10 @@ router.get('/pharmacy/:pharmacyId', requirePermission('STAFF_VIEW'), async (req:
 router.post('/pharmacy/:pharmacyId', requirePermission('STAFF_CREATE'), async (req: AuthenticatedRequest, res) => {
   const pharmacyId = req.user!.pharmacyId; // Use JWT pharmacyId
   const { name, phone, email, role, pin } = req.body;
+  const normalizedRole = String(role || 'BILLER').trim().toUpperCase();
+  if (!ALLOWED_STAFF_ROLES.has(normalizedRole)) {
+    return res.status(400).json({ error: 'Invalid staff role. Admin or Owner roles cannot be assigned here.' });
+  }
   try {
     const cleanName = (name || '').trim();
     const firstName = cleanName.split(' ')[0] || 'Staff';
@@ -33,7 +46,7 @@ router.post('/pharmacy/:pharmacyId', requirePermission('STAFF_CREATE'), async (r
 
     const result = await pool.query(
       'INSERT INTO staff_members (pharmacy_id, name, first_name, last_name, phone, email, role, pin) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, phone, email, role, pin, is_active, created_at',
-      [pharmacyId, cleanName, firstName, lastName, phone, email, role, pin]
+      [pharmacyId, cleanName, firstName, lastName, phone, email, normalizedRole, pin]
     );
     
     // Add default permissions for new staff
@@ -64,17 +77,24 @@ router.post('/pharmacy/:pharmacyId', requirePermission('STAFF_CREATE'), async (r
 
 // Update staff
 router.put('/:id', requirePermission('STAFF_EDIT'), async (req: AuthenticatedRequest, res) => {
-  const { id } = req.params;
+  const staffId = Number(req.params.id);
+  if (!Number.isInteger(staffId) || staffId <= 0) {
+    return res.status(400).json({ error: 'Invalid staff ID' });
+  }
   const pharmacyId = req.user!.pharmacyId;
   const { name, phone, email, role, pin, is_active } = req.body;
+  const normalizedRole = role ? String(role).trim().toUpperCase() : undefined;
+  if (normalizedRole && !ALLOWED_STAFF_ROLES.has(normalizedRole)) {
+    return res.status(400).json({ error: 'Invalid staff role. Admin or Owner roles cannot be assigned here.' });
+  }
   try {
     const cleanName = (name || '').trim();
     const firstName = cleanName.split(' ')[0] || 'Staff';
     const lastName = cleanName.split(' ').slice(1).join(' ') || 'Member';
     // Only update if it belongs to the same pharmacy
     const result = await pool.query(
-      'UPDATE staff_members SET name = $1, first_name = $2, last_name = $3, phone = $4, email = $5, role = $6, pin = $7, is_active = $8, updated_at = CURRENT_TIMESTAMP WHERE id = $9 AND pharmacy_id = $10 RETURNING id, name, phone, email, role, pin, is_active, created_at',
-      [cleanName || name, firstName, lastName, phone, email, role, pin, is_active, id, pharmacyId]
+      'UPDATE staff_members SET name = $1, first_name = $2, last_name = $3, phone = $4, email = $5, role = COALESCE($6, role), pin = $7, is_active = $8, updated_at = CURRENT_TIMESTAMP WHERE id = $9 AND pharmacy_id = $10 RETURNING id, name, phone, email, role, pin, is_active, created_at',
+      [cleanName || name, firstName, lastName, phone, email, normalizedRole ?? null, pin, is_active, staffId, pharmacyId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Staff member not found or unauthorized' });
@@ -88,21 +108,26 @@ router.put('/:id', requirePermission('STAFF_EDIT'), async (req: AuthenticatedReq
 
 // Delete staff
 router.delete('/:id', requirePermission('STAFF_DEACTIVATE'), async (req: AuthenticatedRequest, res) => {
-  const { id } = req.params;
+  const staffId = Number(req.params.id);
+  if (!Number.isInteger(staffId) || staffId <= 0) {
+    return res.status(400).json({ error: 'Invalid staff ID' });
+  }
   const pharmacyId = req.user!.pharmacyId;
   try {
-    // Only delete if it belongs to the same pharmacy
-    const result = await pool.query('DELETE FROM staff_members WHERE id = $1 AND pharmacy_id = $2 RETURNING id', [id, pharmacyId]);
-    if (result.rows.length === 0) {
+    const check = await pool.query('SELECT id FROM staff_members WHERE id = $1 AND pharmacy_id = $2', [staffId, pharmacyId]);
+    if (check.rows.length === 0) {
       return res.status(404).json({ error: 'Staff member not found or unauthorized' });
     }
-    // Notify Staff Member before deleting (wait, they might not be able to login, but notification stays in DB)
+
+    // Notify staff member BEFORE deleting row so the staff_members join succeeds
     const { NotificationService, NotificationType } = require('../services/notificationService');
-    await NotificationService.notifyStaffMember(Number(id), pharmacyId, {
+    await NotificationService.notifyStaffMember(staffId, pharmacyId, {
       type: NotificationType.STAFF_ACCOUNT_DEACTIVATED,
       title: 'Account Deactivated',
       message: 'Your staff account has been deactivated.',
     });
+
+    await pool.query('DELETE FROM staff_members WHERE id = $1 AND pharmacy_id = $2', [staffId, pharmacyId]);
 
     res.json({ message: 'Staff member deleted successfully' });
   } catch (error) {
@@ -111,20 +136,29 @@ router.delete('/:id', requirePermission('STAFF_DEACTIVATE'), async (req: Authent
   }
 });
 
-// Get staff permissions
-router.get('/:id/permissions', requirePermission('STAFF_VIEW'), async (req: AuthenticatedRequest, res) => {
-  const { id } = req.params;
+// Get staff permissions (staff may read their own permissions; otherwise require STAFF_VIEW)
+router.get('/:id/permissions', async (req: AuthenticatedRequest, res, next) => {
+  const targetStaffId = Number(req.params.id);
+  if (!Number.isInteger(targetStaffId) || targetStaffId <= 0) {
+    return res.status(400).json({ error: 'Invalid staff ID' });
+  }
+  if (req.user?.isStaff && Number(req.user.userId) === targetStaffId) {
+    return next();
+  }
+  return requirePermission('STAFF_VIEW')(req, res, next);
+}, async (req: AuthenticatedRequest, res) => {
+  const staffId = Number(req.params.id);
   const pharmacyId = req.user!.pharmacyId;
   try {
     // Verify staff belongs to this pharmacy
-    const staffCheck = await pool.query('SELECT id FROM staff_members WHERE id = $1 AND pharmacy_id = $2', [id, pharmacyId]);
+    const staffCheck = await pool.query('SELECT id FROM staff_members WHERE id = $1 AND pharmacy_id = $2', [staffId, pharmacyId]);
     if (staffCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Staff member not found or unauthorized' });
     }
     
     const result = await pool.query(
       'SELECT permission_key, granted FROM staff_permissions WHERE staff_id = $1 AND pharmacy_id = $2',
-      [id, pharmacyId]
+      [staffId, pharmacyId]
     );
     res.json(result.rows);
   } catch (error) {
@@ -135,18 +169,24 @@ router.get('/:id/permissions', requirePermission('STAFF_VIEW'), async (req: Auth
 
 // Update staff permissions
 router.put('/:id/permissions', requirePermission('STAFF_PERMISSIONS'), async (req: AuthenticatedRequest, res) => {
-  const { id } = req.params; // Staff ID
+  const staffId = Number(req.params.id);
+  if (!Number.isInteger(staffId) || staffId <= 0) {
+    return res.status(400).json({ error: 'Invalid staff ID' });
+  }
   const pharmacyId = req.user!.pharmacyId;
   const { permissions } = req.body; // Array of { permission_key, granted }
+  if (!Array.isArray(permissions)) {
+    return res.status(400).json({ error: 'Permissions must be an array' });
+  }
   
   // Self-Permission Protection: Staff cannot modify their own permissions
-  if (req.user!.isStaff && req.user!.userId === parseInt(id)) {
+  if (req.user!.isStaff && Number(req.user!.userId) === staffId) {
     return res.status(403).json({ error: 'Forbidden: Cannot modify your own permissions' });
   }
   
   try {
     // Verify staff belongs to this pharmacy
-    const staffCheck = await pool.query('SELECT id FROM staff_members WHERE id = $1 AND pharmacy_id = $2', [id, pharmacyId]);
+    const staffCheck = await pool.query('SELECT id FROM staff_members WHERE id = $1 AND pharmacy_id = $2', [staffId, pharmacyId]);
     if (staffCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Staff member not found or unauthorized' });
     }
@@ -162,14 +202,14 @@ router.put('/:id/permissions', requirePermission('STAFF_PERMISSIONS'), async (re
           VALUES ($1, $2, $3, $4)
           ON CONFLICT (staff_id, pharmacy_id, permission_key) 
           DO UPDATE SET granted = EXCLUDED.granted, updated_at = CURRENT_TIMESTAMP
-        `, [id, pharmacyId, perm.permission_key, perm.granted]);
+        `, [staffId, pharmacyId, perm.permission_key, Boolean(perm.granted)]);
       }
       
       await client.query('COMMIT');
 
       // Notify Staff Member
       const { NotificationService, NotificationType } = require('../services/notificationService');
-      await NotificationService.notifyStaffMember(Number(id), pharmacyId, {
+      await NotificationService.notifyStaffMember(staffId, pharmacyId, {
         type: NotificationType.STAFF_PERMISSION_CHANGED,
         title: 'Permissions Updated',
         message: 'Your staff permissions have been updated by the owner.',

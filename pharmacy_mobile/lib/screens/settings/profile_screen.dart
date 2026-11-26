@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../core/api/api_endpoints.dart';
+import '../../core/api/api_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/storage_service.dart';
 import '../../providers/auth_provider.dart';
@@ -25,9 +27,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = context.read<AuthProvider>();
-      context.read<SubscriptionProvider>().fetchSubscription(auth.pharmacyId);
+      final subProvider = context.read<SubscriptionProvider>();
+      subProvider.fetchSubscription(auth.pharmacyId);
+      if (auth.pharmacyId > 0) {
+        final res = await ApiService.get(ApiEndpoints.pharmacyDetails(auth.pharmacyId));
+        if (res.success && res.data is Map) {
+          await StorageService.setPharmacy(Map<String, dynamic>.from(res.data as Map));
+          if (mounted) setState(() {});
+        }
+      }
     });
   }
 
@@ -502,7 +512,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Text('DavaSetu Mobile POS Engine', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         SizedBox(height: 2),
-                        Text('v1.4.0 • Enterprise Edition • Local & Cloud Sync', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        Text('v1.0.0 • Enterprise Edition • Local & Cloud Sync', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                       ],
                     ),
                   ),
@@ -747,8 +757,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Navigator.pop(ctx);
                           final billing = context.read<BillingProvider>();
                           final inventory = context.read<InventoryProvider>();
+                          final subscription = context.read<SubscriptionProvider>();
                           billing.clearSessionData();
                           inventory.clearSessionData();
+                          subscription.clearSessionData();
                           await auth.logout();
                           if (context.mounted) {
                             Navigator.pushAndRemoveUntil(
@@ -774,6 +786,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Sign Out of Terminal', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
+
+            const SizedBox(height: 20),
+
+            // 6. Delete Account (Play Store Compliance)
+            if (!auth.isStaff)
+              OutlinedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Delete Account'),
+                      content: const Text(
+                        'This will permanently delete your pharmacy account, all bills, inventory, and customer data. This action cannot be undone.',
+                      ),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            final ok = await auth.deleteAccount();
+                            if (context.mounted) {
+                              if (ok) {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                  (route) => false,
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(auth.errorMessage ?? 'Account deletion failed'),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Delete Permanently', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                  backgroundColor: const Color(0xFFFEF2F2),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(Icons.delete_forever_rounded),
+                label: const Text('Delete My Account', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
 
             const SizedBox(height: 20),
           ],

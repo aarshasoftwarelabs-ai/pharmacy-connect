@@ -37,9 +37,12 @@ export default function ScheduleH1Register() {
   const [newMedicine, setNewMedicine] = useState('');
   const [newGeneric, setNewGeneric] = useState('');
   const [newBatch, setNewBatch] = useState('');
+const toIstYmd = (d: Date = new Date()) =>
+  new Date(d.getTime() + 5.5 * 3600000).toISOString().split('T')[0];
+
   const [newQty, setNewQty] = useState<number>(10);
   const newUnit = 'Strip';
-  const [newSupplyDate, setNewSupplyDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newSupplyDate, setNewSupplyDate] = useState(() => toIstYmd());
   const [savingManual, setSavingManual] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successToast, setSuccessToast] = useState('');
@@ -48,19 +51,19 @@ export default function ScheduleH1Register() {
   useEffect(() => {
     const today = new Date();
     if (dateFilter === 'TODAY') {
-      const d = today.toISOString().split('T')[0];
+      const d = toIstYmd(today);
       setStartDate(d);
       setEndDate(d);
     } else if (dateFilter === '7D') {
       const past = new Date();
       past.setDate(today.getDate() - 7);
-      setStartDate(past.toISOString().split('T')[0]);
-      setEndDate(today.toISOString().split('T')[0]);
+      setStartDate(toIstYmd(past));
+      setEndDate(toIstYmd(today));
     } else if (dateFilter === '30D') {
       const past = new Date();
       past.setDate(today.getDate() - 30);
-      setStartDate(past.toISOString().split('T')[0]);
-      setEndDate(today.toISOString().split('T')[0]);
+      setStartDate(toIstYmd(past));
+      setEndDate(toIstYmd(today));
     } else {
       setStartDate('');
       setEndDate('');
@@ -319,9 +322,11 @@ export default function ScheduleH1Register() {
         
         {/* Printable Header - Visible during Print */}
         <div className="hidden print:block p-6 border-b border-slate-300 text-center space-y-1">
-          <h1 className="text-xl font-black uppercase tracking-wider">{pharmacy?.name || 'PHARMACY CONNECT'}</h1>
-          <p className="text-xs">{pharmacy?.address || 'Gujarat, India'} | GSTIN: {pharmacy?.gstin || 'N/A'}</p>
-          <p className="text-xs font-bold">Drug License No: {pharmacy?.regNo || (pharmacy as any)?.drug_license_number || '20B/21B-XXXX'}</p>
+          <h1 className="text-xl font-black uppercase tracking-wider">{pharmacy?.name || 'DavaSetu Pharmacy'}</h1>
+          <p className="text-xs">{pharmacy?.address || ''}{pharmacy?.gstin ? ` | GSTIN: ${pharmacy.gstin}` : ''}</p>
+          {pharmacy?.regNo || (pharmacy as any)?.drug_license_number ? (
+            <p className="text-xs font-bold">Drug License No: {pharmacy?.regNo || (pharmacy as any)?.drug_license_number}</p>
+          ) : null}
           <div className="pt-2">
             <h2 className="text-sm font-extrabold uppercase bg-slate-100 py-1 border border-slate-300">
               SCHEDULE H1 STATUTORY REGISTER (UNDER RULE 65 & 97, DRUGS AND COSMETICS RULES, 1945)
@@ -427,7 +432,7 @@ export default function ScheduleH1Register() {
           <div className="text-center">
             <div className="w-48 border-b border-slate-400 mb-1"></div>
             <p className="font-bold">Registered Pharmacist Signature</p>
-            <p className="text-[10px] text-slate-500">Reg. No: GSPC-XXXXX</p>
+            <p className="text-[10px] text-slate-500">Reg. No: {pharmacy?.regNo || '____________________'}</p>
           </div>
           <div className="text-center">
             <div className="w-48 border-b border-slate-400 mb-1"></div>

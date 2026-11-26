@@ -157,6 +157,7 @@ export class BillingController {
       const result = await BillingService.createBill({
         medicineRequestId: medicineRequestId ? Number(medicineRequestId) : undefined,
         userId: userId ? Number(userId) : undefined,
+        operatorUserId: (req as AuthenticatedRequest).user?.isStaff ? undefined : (req as AuthenticatedRequest).user?.userId,
         pharmacyId: Number(pharmacyId),
         customerName: resolvedCustomerName,
         customerPhone: resolvedCustomerPhone,
@@ -164,6 +165,7 @@ export class BillingController {
         doctorName: resolvedDoctorName,
         doctorRegNo: resolvedDoctorRegNo,
         billType: resolvedBillType,
+        paymentMode: resolvedPaymentMode,
         paymentStatus: resolvedPaymentStatus,
         subtotal: resolvedSubtotal,
         discount: resolvedDiscount,

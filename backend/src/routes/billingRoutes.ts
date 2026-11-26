@@ -34,7 +34,7 @@ router.post('/', requirePermission('BILLING_CREATE'), BillingController.createBi
 router.post('/scan-prescription', requirePermission('BILLING_CREATE'), upload.single('prescriptionImage'), BillingController.scanPrescription);
 
 // Update delivery assignment & cash collection
-router.patch('/:billId/delivery', BillingController.updateDelivery);
+router.patch('/:billId/delivery', requirePermission('BILLING_CREATE'), BillingController.updateDelivery);
 
 // Cancel/return bill and restore inventory stock
 router.post('/:billId/cancel', requirePermission('BILLING_CREATE'), BillingController.cancelBill);
@@ -43,6 +43,6 @@ router.post('/:billId/cancel', requirePermission('BILLING_CREATE'), BillingContr
 router.patch('/:billId/mark-paid', requirePermission('BILLING_CREATE'), BillingController.markBillPaid);
 
 // Resend automated bill invoice via WhatsApp/SMS gateway
-router.post('/:billId/send-message', BillingController.resendBillMessage);
+router.post('/:billId/send-message', requirePermission('BILLING_CREATE'), BillingController.resendBillMessage);
 
 export default router;

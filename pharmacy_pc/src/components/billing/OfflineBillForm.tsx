@@ -41,6 +41,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const [paymentMode, setPaymentMode] = useState('CASH');
   const [catalogue, setCatalogue] = useState<Medicine[]>([]);
   const [scanStep, setScanStep] = useState(0); // 0: upload, 1: scanning, 2: success
+  const [extractedCount, setExtractedCount] = useState(0);
+  const [orderNote, setOrderNote] = useState('');
   const [showAiModal, setShowAiModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,7 +82,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
     const effectivePrice = Number(scanItem.unitPrice) > 0 
       ? Number(scanItem.unitPrice) 
-      : (catMatch?.sellingPrice || catMatch?.mrp || 50);
+      : (catMatch?.sellingPrice || catMatch?.mrp || 0);
     const effectiveHsn = scanItem.hsnCode || catMatch?.hsnCode || '30049099';
     const effectiveGst = scanItem.gstRate !== undefined ? Number(scanItem.gstRate) : (catMatch?.gstRate ?? 5);
 
@@ -97,7 +99,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       // Check if this item already exists in the cart
       const existingIdx = prevItems.findIndex(it => {
         const itemLower = it.medicineName.trim().toLowerCase();
-        return itemLower === formattedName.toLowerCase() || itemLower === scannedName.toLowerCase() || (scannedBarcode && it.hsnCode === scannedBarcode);
+        return itemLower === formattedName.toLowerCase() || itemLower === scannedName.toLowerCase() || (scannedBarcode && it.barcode === scannedBarcode);
       });
 
       if (existingIdx !== -1) {
@@ -167,8 +169,9 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       }
     });
 
-    // Secondary resilient polling fallback: checks pending mobile scans every 1.5 seconds
+    // Secondary resilient polling fallback every 6s when tab is visible (Socket.io handles instant live scans)
     const pollPendingScans = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const allPending = await BillingService.getPendingLiveScans(pharmacyId);
 
@@ -186,7 +189,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       }
     };
 
-    const intervalId = setInterval(pollPendingScans, 1500);
+    const intervalId = setInterval(pollPendingScans, 6000);
     pollPendingScans();
 
     return () => {
@@ -258,31 +261,38 @@ export default function OfflineBillForm({ onSuccess }: Props) {
 
       lookupMedicineByBarcode(code).then(res => {
         const auto = res?.medicine;
-        const name = auto?.name || `Medicine (${code})`;
-        const price = Number(auto?.sellingPrice || auto?.mrp || 50);
-        const hsn = auto?.hsnCode || '30049099';
-        const gst = Number(auto?.gstRate || 5);
+        if (!auto?.name) {
+          setBarcodeStatus({
+            type: 'error',
+            message: `Barcode "${code}" not found in catalogue — enter medicine & price manually.`
+          });
+          setTimeout(() => setBarcodeStatus(null), 4000);
+          return;
+        }
+        const name = auto.name;
+        const price = Number(auto.sellingPrice || auto.mrp || 0);
+        const hsn = auto.hsnCode || '30049099';
+        const gst = auto.gstRate !== undefined ? Number(auto.gstRate) : 5;
 
         setBarcodeStatus({ 
           type: 'success', 
-          message: `✓ Auto-added: ${name} (₹${price})` 
+          message: `✓ Auto-added: ${name}${price > 0 ? ` (₹${price})` : ''}` 
         });
         setTimeout(() => setBarcodeStatus(null), 3000);
 
         setItems(prev => {
+          const nextItem = { medicineId: auto.id, barcode: auto.barcode || code, medicineName: name, quantity: 1, unitPrice: price, hsnCode: hsn, gstRate: gst };
           if (prev.length === 1 && !prev[0].medicineName.trim()) {
-            return [{ medicineName: name, quantity: 1, unitPrice: price, hsnCode: hsn, gstRate: gst }];
+            return [nextItem];
           }
-          return [...prev, { medicineName: name, quantity: 1, unitPrice: price, hsnCode: hsn, gstRate: gst }];
+          return [...prev, nextItem];
         });
       }).catch(() => {
-        const fallbackName = `Medicine (${code})`;
-        setItems(prev => {
-          if (prev.length === 1 && !prev[0].medicineName.trim()) {
-            return [{ medicineName: fallbackName, quantity: 1, unitPrice: 50, hsnCode: '30049099', gstRate: 5 }];
-          }
-          return [...prev, { medicineName: fallbackName, quantity: 1, unitPrice: 50, hsnCode: '30049099', gstRate: 5 }];
+        setBarcodeStatus({
+          type: 'error',
+          message: `Could not look up barcode "${code}" — please add item manually.`
         });
+        setTimeout(() => setBarcodeStatus(null), 4000);
       });
     }
 
@@ -475,8 +485,11 @@ export default function OfflineBillForm({ onSuccess }: Props) {
         
         if (data.items && data.items.length > 0) {
           const newItems = data.items.map((item: any) => {
-            const match = catalogue.find(m => m.name.toLowerCase().includes(item.medicineName?.toLowerCase() || ''));
+            const rawName = (item.medicineName || '').trim().toLowerCase();
+            const match = rawName ? catalogue.find(m => m.name.toLowerCase().includes(rawName)) : undefined;
             return {
+              medicineId: match?.id,
+              barcode: match?.barcode,
               medicineName: match ? match.name : (item.medicineName || ''),
               quantity: item.quantity || 1,
               unitPrice: match?.sellingPrice || 0,
@@ -484,7 +497,10 @@ export default function OfflineBillForm({ onSuccess }: Props) {
               gstRate: match?.gstRate || 0
             };
           });
+          setExtractedCount(newItems.length);
           setItems(newItems);
+        } else {
+          setExtractedCount(0);
         }
         
         setShowAiModal(false);
@@ -964,7 +980,9 @@ export default function OfflineBillForm({ onSuccess }: Props) {
               <div className="bg-white p-4 rounded-lg border border-slate-200">
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Add Order Note (Optional)</label>
                 <textarea 
-                  rows={2} 
+                  rows={2}
+                  value={orderNote}
+                  onChange={(e) => setOrderNote(e.target.value)}
                   className="w-full text-sm border-none focus:ring-0 p-0 resize-none text-slate-700" 
                   placeholder="Any special instructions..."
                 ></textarea>
@@ -1096,7 +1114,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                     <ScanLine className="w-10 h-10" />
                   </div>
                   <h4 className="font-bold text-emerald-600 text-xl mb-1">Extraction Complete!</h4>
-                  <p className="text-sm text-slate-500 text-center">Found 2 medicines.<br/>Adding to billing cart...</p>
+                  <p className="text-sm text-slate-500 text-center">Found {extractedCount} medicine{extractedCount === 1 ? '' : 's'}.<br/>Adding to billing cart...</p>
                 </div>
               )}
             </div>

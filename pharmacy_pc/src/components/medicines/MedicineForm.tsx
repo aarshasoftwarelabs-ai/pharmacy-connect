@@ -298,7 +298,7 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
         dosageForm: 'Tablet',
         gstRate: 12
       };
-      };
+    }
     }
 
     if (smartData) {

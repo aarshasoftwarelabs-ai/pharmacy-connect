@@ -70,13 +70,9 @@ class InventoryProvider extends ChangeNotifier {
       }
     }
 
-    // 5. Exact ID match (or if code ends with padded ID)
+    // 5. Exact ID match
     for (final med in _medicines) {
       if (med.id.toLowerCase() == cleanCode) {
-        return med;
-      }
-      final paddedId = med.id.padLeft(5, '0');
-      if (cleanCode.contains(paddedId)) {
         return med;
       }
     }
@@ -95,12 +91,12 @@ class InventoryProvider extends ChangeNotifier {
       }
     }
 
-    // 8. Partial barcode or name substring
-    for (final med in _medicines) {
-      if ((med.barcode != null && med.barcode!.toLowerCase().contains(cleanCode)) ||
-          med.name.toLowerCase().contains(cleanCode) ||
-          (med.genericName?.toLowerCase().contains(cleanCode) ?? false)) {
-        return med;
+    // 8. Suffix/partial barcode match (only for barcode strings >= 6 chars; avoid unsafe name substring guesses)
+    if (cleanCode.length >= 6) {
+      for (final med in _medicines) {
+        if (med.barcode != null && med.barcode!.toLowerCase().contains(cleanCode)) {
+          return med;
+        }
       }
     }
     return null;
@@ -136,9 +132,9 @@ class InventoryProvider extends ChangeNotifier {
         if (parts.length == 2) {
           final m = int.tryParse(parts[0]);
           final y = int.tryParse(parts[1]);
-          if (m != null && y != null) {
+          if (m != null && y != null && m >= 1 && m <= 12) {
             final fullY = y < 100 ? 2000 + y : y;
-            parsed = DateTime(fullY, m, 1);
+            parsed = DateTime(fullY, m + 1, 0);
           }
         } else if (parts.length == 3) {
           final d = int.tryParse(parts[0]);
@@ -276,6 +272,7 @@ class InventoryProvider extends ChangeNotifier {
     double gstRate = 5.0,
     String? hsnCode,
   }) async {
+    final localId = 'med_${DateTime.now().millisecondsSinceEpoch}';
     try {
       final cleanExpiry = normalizeDateToIso(expiryDate);
       final cleanMfg = normalizeDateToIso(mfgDate);
@@ -284,7 +281,7 @@ class InventoryProvider extends ChangeNotifier {
 
       // 1. Optimistic instant local update so it shows immediately in Inventory UI
       final localMed = MedicineModel(
-        id: 'med_${DateTime.now().millisecondsSinceEpoch}',
+        id: localId,
         name: name.trim(),
         genericName: genericName?.trim(),
         category: category?.trim() ?? 'Tablets',
@@ -328,10 +325,16 @@ class InventoryProvider extends ChangeNotifier {
         await fetchMedicines();
         return true;
       } else {
-        return true; // Still keep in local inventory
+        _medicines.removeWhere((m) => m.id == localId);
+        _errorMessage = response.message ?? 'Failed to add medicine';
+        notifyListeners();
+        return false;
       }
     } catch (e) {
-      return true; // Still keep in local inventory
+      _medicines.removeWhere((m) => m.id == localId);
+      _errorMessage = 'Failed to save medicine: $e';
+      notifyListeners();
+      return false;
     }
   }
 
@@ -359,8 +362,11 @@ class InventoryProvider extends ChangeNotifier {
       genericName: old.genericName,
       manufacturer: old.manufacturer,
       category: old.category,
+      strength: old.strength,
+      packSize: old.packSize,
       sku: old.sku,
       batchNumber: cleanBatch ?? old.batchNumber,
+      mfgDate: old.mfgDate,
       expiryDate: cleanExp ?? old.expiryDate,
       mrp: old.mrp,
       sellingPrice: sp,
@@ -368,6 +374,8 @@ class InventoryProvider extends ChangeNotifier {
       minStockAlert: old.minStockAlert,
       barcode: old.barcode,
       storeBarcode: old.storeBarcode,
+      gstRate: old.gstRate,
+      hsnCode: old.hsnCode,
       batches: old.batches,
     );
     notifyListeners();
@@ -406,8 +414,11 @@ class InventoryProvider extends ChangeNotifier {
         genericName: old.genericName,
         manufacturer: old.manufacturer,
         category: old.category,
+        strength: old.strength,
+        packSize: old.packSize,
         sku: old.sku,
         batchNumber: old.batchNumber,
+        mfgDate: old.mfgDate,
         expiryDate: old.expiryDate,
         mrp: old.mrp,
         sellingPrice: old.sellingPrice,
@@ -415,6 +426,8 @@ class InventoryProvider extends ChangeNotifier {
         minStockAlert: old.minStockAlert,
         barcode: old.barcode,
         storeBarcode: old.storeBarcode,
+        gstRate: old.gstRate,
+        hsnCode: old.hsnCode,
         batches: old.batches,
       );
       notifyListeners();

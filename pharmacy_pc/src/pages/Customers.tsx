@@ -257,7 +257,20 @@ export default function Customers() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button className="text-slate-400 hover:text-pharmacy-600 transition-colors p-1.5 rounded-full hover:bg-slate-100">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const nextActive = !customer.is_active;
+                            try {
+                              await CustomerService.updateCustomer(customer.id, { is_active: nextActive });
+                              await fetchData();
+                            } catch (err: any) {
+                              setError(err?.message || 'Failed to update customer status');
+                            }
+                          }}
+                          title={customer.is_active ? 'Mark customer inactive' : 'Mark customer active'}
+                          className="text-slate-400 hover:text-pharmacy-600 transition-colors p-1.5 rounded-full hover:bg-slate-100"
+                        >
                           <MoreVertical className="h-5 w-5" />
                         </button>
                       </td>

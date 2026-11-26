@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PharmacyController } from '../controllers/pharmacyController';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireAdmin } from '../middleware/auth';
 import { requirePermission } from '../middleware/requirePermission';
 
 const router = Router();
@@ -16,8 +16,8 @@ router.use(authenticate);
 
 // Get subscription status & validity
 router.get('/:id/subscription-status', PharmacyController.getSubscriptionStatus);
-// Get subscription stats
-router.get('/stats/subscription', requirePermission('SETTINGS_VIEW'), PharmacyController.getSubscriptionStats);
+// Get subscription stats (Platform Admin only)
+router.get('/stats/subscription', requireAdmin, PharmacyController.getSubscriptionStats);
 // Update pharmacy profile by ID
 router.put('/:id', requirePermission('PHARMACY_PROFILE_EDIT'), PharmacyController.updatePharmacyProfile);
 // Update pharmacy subscription (allow store owner/staff of this pharmacy or admin)

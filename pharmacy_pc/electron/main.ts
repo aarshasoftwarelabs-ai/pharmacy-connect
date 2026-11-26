@@ -144,29 +144,42 @@ function createWindow() {
       win.setIcon(appIcon);
     }
 
-    // Automatically grant media permissions (webcam) for barcode scanner in Electron
+    // Grant only camera/microphone ('media') permissions automatically for barcode scanning
     win.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
-      if (permission === 'media') {
-        callback(true);
-        return;
-      }
-      callback(true);
+      callback(permission === 'media');
     });
 
     win.webContents.session.setPermissionCheckHandler((_webContents, permission) => {
-      if (permission === 'media') {
-        return true;
-      }
-      return true;
+      return permission === 'media';
     });
 
-    // Handle external links (e.g. WhatsApp, external docs) in the system default browser
+    const openExternalIfSupported = (targetUrl: string) => {
+      if (
+        targetUrl.startsWith('https:') ||
+        targetUrl.startsWith('http:') ||
+        targetUrl.startsWith('whatsapp:') ||
+        targetUrl.startsWith('mailto:') ||
+        targetUrl.startsWith('tel:')
+      ) {
+        shell.openExternal(targetUrl);
+        return true;
+      }
+      return false;
+    };
+
+    // Handle external links (WhatsApp, mailto, tel, external docs) in OS default app
     win.webContents.setWindowOpenHandler(({ url }) => {
-      if (url.startsWith('https:') || url.startsWith('http:') || url.startsWith('whatsapp:')) {
-        shell.openExternal(url);
+      if (openExternalIfSupported(url)) {
         return { action: 'deny' };
       }
       return { action: 'allow' };
+    });
+
+    win.webContents.on('will-navigate', (event, url) => {
+      if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('whatsapp:')) {
+        event.preventDefault();
+        shell.openExternal(url);
+      }
     });
 
     if (VITE_DEV_SERVER_URL) {

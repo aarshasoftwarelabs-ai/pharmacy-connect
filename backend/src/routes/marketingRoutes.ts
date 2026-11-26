@@ -21,8 +21,8 @@ const requireStoreContext = (req: AuthenticatedRequest, res: Response, next: Nex
 router.use(authenticate, requireStoreContext);
 
 // GET all offers
-router.get('/offers/:pharmacyId', async (req, res) => {
-  const { pharmacyId } = req.params;
+router.get('/offers/:pharmacyId', async (req: AuthenticatedRequest, res) => {
+  const pharmacyId = resolveScopedPharmacyId(req, req.params.pharmacyId);
   try {
     const result = await pool.query(
       'SELECT * FROM offers WHERE pharmacy_id = $1 ORDER BY created_at DESC',
@@ -36,8 +36,8 @@ router.get('/offers/:pharmacyId', async (req, res) => {
 });
 
 // CREATE offer
-router.post('/offers/:pharmacyId', async (req, res) => {
-  const { pharmacyId } = req.params;
+router.post('/offers/:pharmacyId', async (req: AuthenticatedRequest, res) => {
+  const pharmacyId = resolveScopedPharmacyId(req, req.params.pharmacyId);
   const { title, description, coupon_code, discount_percentage, max_discount_amount, min_order_value, valid_from, valid_until, is_active } = req.body;
   
   try {
@@ -91,8 +91,8 @@ router.delete('/offers/:id', async (req: AuthenticatedRequest, res) => {
 // --- CAMPAIGNS ---
 
 // GET campaigns
-router.get('/campaigns/:pharmacyId', async (req, res) => {
-  const { pharmacyId } = req.params;
+router.get('/campaigns/:pharmacyId', async (req: AuthenticatedRequest, res) => {
+  const pharmacyId = resolveScopedPharmacyId(req, req.params.pharmacyId);
   try {
     const result = await pool.query(
       'SELECT * FROM promotional_campaigns WHERE pharmacy_id = $1 ORDER BY created_at DESC',
@@ -106,8 +106,8 @@ router.get('/campaigns/:pharmacyId', async (req, res) => {
 });
 
 // SEND/CREATE campaign
-router.post('/campaigns/:pharmacyId', async (req, res) => {
-  const { pharmacyId } = req.params;
+router.post('/campaigns/:pharmacyId', async (req: AuthenticatedRequest, res) => {
+  const pharmacyId = resolveScopedPharmacyId(req, req.params.pharmacyId);
   const { title, message, target_audience } = req.body;
   
   try {

@@ -90,16 +90,20 @@ class BillingProvider extends ChangeNotifier {
   }
 
   void addToCart(MedicineModel medicine, {int quantity = 1}) {
-    final index = _cartItems.indexWhere((item) => 
-      item.medicine.id == medicine.id || 
-      (medicine.barcode != null && medicine.barcode!.isNotEmpty && item.medicine.barcode == medicine.barcode) ||
-      item.medicine.name.trim().toLowerCase() == medicine.name.trim().toLowerCase()
+    final index = _cartItems.indexWhere((item) =>
+      item.medicine.id == medicine.id ||
+      (medicine.barcode != null && medicine.barcode!.isNotEmpty && item.medicine.barcode == medicine.barcode)
     );
     if (index >= 0) {
-      _cartItems[index].quantity += quantity;
+      final avail = _cartItems[index].medicine.stock;
+      final desired = _cartItems[index].quantity + quantity;
+      _cartItems[index].quantity = (avail > 0 && desired > avail) ? avail : desired;
     } else {
-      _cartItems.add(CartItemModel(medicine: medicine, quantity: quantity));
+      final avail = medicine.stock;
+      final qty = (avail > 0 && quantity > avail) ? avail : quantity;
+      _cartItems.add(CartItemModel(medicine: medicine, quantity: qty));
     }
+    _errorMessage = null;
     notifyListeners();
 
     // Auto-sync item to PC POS Counter in real-time
@@ -141,8 +145,16 @@ class BillingProvider extends ChangeNotifier {
     if (index >= 0) {
       if (newQuantity <= 0) {
         _cartItems.removeAt(index);
+        _errorMessage = null;
       } else {
-        _cartItems[index].quantity = newQuantity;
+        final avail = _cartItems[index].medicine.stock;
+        if (avail > 0 && newQuantity > avail) {
+          _cartItems[index].quantity = avail;
+          _errorMessage = 'Only $avail units available in stock';
+        } else {
+          _cartItems[index].quantity = newQuantity;
+          _errorMessage = null;
+        }
       }
       notifyListeners();
     }
@@ -253,7 +265,7 @@ class BillingProvider extends ChangeNotifier {
           'payment_mode': _paymentMode,
           'payment_status': resolvedPaymentStatus,
           'items': _cartItems.map((e) => e.toJson(_generalDiscountPercent, _isMrpInclusive)).toList(),
-          'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
+          'items_summary': _cartItems.map((e) => '- ${e.medicine.name} x${e.quantity} = Rs. ${e.netTotal.toStringAsFixed(2)}').join('\n'),
         };
         _lastBill = billRecord;
         _recentBills.insert(0, billRecord);
@@ -281,7 +293,7 @@ class BillingProvider extends ChangeNotifier {
           'payment_mode': _paymentMode,
           'payment_status': resolvedPaymentStatus,
           'items': _cartItems.map((e) => e.toJson(_generalDiscountPercent, _isMrpInclusive)).toList(),
-          'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
+          'items_summary': _cartItems.map((e) => '- ${e.medicine.name} x${e.quantity} = Rs. ${e.netTotal.toStringAsFixed(2)}').join('\n'),
           'is_offline': true,
         };
         _lastBill = billRecord;
@@ -319,7 +331,7 @@ class BillingProvider extends ChangeNotifier {
         'payment_mode': _paymentMode,
         'payment_status': resolvedPaymentStatus,
         'items': _cartItems.map((e) => e.toJson(_generalDiscountPercent, _isMrpInclusive)).toList(),
-        'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
+        'items_summary': _cartItems.map((e) => '- ${e.medicine.name} x${e.quantity} = Rs. ${e.netTotal.toStringAsFixed(2)}').join('\n'),
         'is_offline': true,
       };
       _lastBill = billRecord;
@@ -430,9 +442,9 @@ class BillingProvider extends ChangeNotifier {
             final itemsList = billMap['items'] is List ? (billMap['items'] as List) : [];
             final itemsSummary = itemsList.map((e) {
               if (e is Map) {
-                return '• ${e['medicineName'] ?? e['medicine_name'] ?? 'Medicine'} x${e['quantity'] ?? 1}';
+                return '- ${e['medicineName'] ?? e['medicine_name'] ?? 'Medicine'} x${e['quantity'] ?? 1}';
               }
-              return '• Item';
+              return '- Item';
             }).join('\n');
 
             parsedBills.add({
@@ -448,7 +460,11 @@ class BillingProvider extends ChangeNotifier {
               'total': total,
               'date': _formatBillDate(rawDate),
               'raw_date': rawDate,
-              'payment_mode': billMap['billType']?.toString() ?? 'POS',
+              'payment_mode': billMap['paymentMode']?.toString() ??
+                  billMap['payment_mode']?.toString() ??
+                  billMap['paymentMethod']?.toString() ??
+                  billMap['billType']?.toString() ??
+                  'POS',
               'payment_status': billMap['paymentStatus']?.toString() ?? 'PAID',
               'items': itemsList,
               'items_summary': itemsSummary,

@@ -465,38 +465,39 @@ class BarcodeMedicineService {
     ),
   };
 
-  /// Auto-derives the active pharmaceutical ingredient (generic salt) from brand name
+  /// Auto-derives the active pharmaceutical ingredient (generic salt) safely from brand name
   static String? deriveGenericSalt(String name) {
     final upper = name.toUpperCase().trim();
+    if (upper.isEmpty) return null;
+    if (upper.contains('PARACETAMOL') || upper.contains('ACETAMINOPHEN') || upper.contains('DOLO') || upper.contains('CALPOL') || upper.contains('CROCIN') || upper.contains('PACIMOL') || upper.contains('PANADOL')) {
+      return 'Paracetamol';
+    }
     if (upper.contains('FLUOK') || upper.contains('FLUNIL') || upper.contains('PROZAC')) {
       return 'Fluoxetine HCl (Dispersible)';
     }
-    if (upper.contains('DOLO') || upper.contains('CALPOL') || upper.contains('CROCIN') || upper.contains('PACIMOL')) {
-      return 'Paracetamol';
-    }
-    if (upper.contains('PAN') || upper.contains('PANTOCID') || upper.contains('PANTO')) {
+    if (upper.contains('PANTOCID') || upper.contains('PANTOP') || RegExp(r'\bPAN(?:\b|\s|-|\d)').hasMatch(upper)) {
       return 'Pantoprazole Gastro-Resistant';
     }
     if (upper.contains('AUGMENTIN') || upper.contains('CLAVAM') || upper.contains('MOXIKIND')) {
       return 'Amoxicillin & Potassium Clavulanate';
     }
-    if (upper.contains('AZITHRAL') || upper.contains('AZI') || upper.contains('ZITHRO')) {
+    if (upper.contains('AZITHRAL') || upper.contains('AZITHRO') || upper.contains('ZITHRO') || RegExp(r'\bAZI(?:\b|\d|-)').hasMatch(upper)) {
       return 'Azithromycin';
     }
     if (upper.contains('TELMA') || upper.contains('TELMI') || upper.contains('TELPRES')) {
       return 'Telmisartan';
     }
-    if (upper.contains('GLUCO') || upper.contains('GLYCOMET') || upper.contains('MET')) {
+    if (upper.contains('GLUCO') || upper.contains('GLYCOMET') || upper.contains('METFORM') || RegExp(r'\bMET(?:\b|\d|-)').hasMatch(upper)) {
       return 'Metformin Hydrochloride';
     }
     if (upper.contains('ATORVA') || upper.contains('ATORLIP') || upper.contains('STORVAS')) {
       return 'Atorvastatin Calcium';
     }
-    if (upper.contains('CET') || upper.contains('ALERID') || upper.contains('OKACET')) {
-      return 'Cetirizine Hydrochloride';
-    }
     if (upper.contains('MONT') || upper.contains('MONTEK') || upper.contains('MONTICOPE')) {
       return 'Montelukast & Levocetirizine';
+    }
+    if (upper.contains('CETIRIZ') || upper.contains('CETRIZ') || upper.contains('ALERID') || upper.contains('OKACET') || RegExp(r'\bCET(?:\b|\d|-)').hasMatch(upper)) {
+      return 'Cetirizine Hydrochloride';
     }
     if (upper.contains('SHELCAL') || upper.contains('CALCIUM')) {
       return 'Calcium & Vitamin D3';
@@ -638,9 +639,9 @@ class BarcodeMedicineService {
       return m;
     }
 
-    // 3. Partial or URL key match (e.g. YiRiOz1r or fluok)
+    // 3. Exact URL-slug key match only (never partial numeric substring collision)
     for (final entry in _offlineMaster.entries) {
-      if (code.contains(entry.key) || entry.key.contains(code)) {
+      if (!RegExp(r'^\d+$').hasMatch(entry.key) && code.toLowerCase().contains(entry.key.toLowerCase())) {
         final m = entry.value;
         final matched = ScannedMedicineData(
           barcode: code,
@@ -663,7 +664,7 @@ class BarcodeMedicineService {
   }
 
   /// Instant synchronous data provider (guarantees 0ms UI bottom sheet opening):
-  /// Returns either an exact offline match or an intelligently derived template.
+  /// Returns either an exact offline match or an empty-price editable template.
   static ScannedMedicineData getInstantOrTemplate(
     String rawBarcode, {
     String? prefilledBatch,
@@ -693,9 +694,9 @@ class BarcodeMedicineService {
       genericName: derivedGen,
       category: derivedCat,
       manufacturer: null,
-      mrp: 48.0,
-      sellingPrice: 42.0,
-      stock: 10,
+      mrp: 0.0,
+      sellingPrice: 0.0,
+      stock: 0,
       barcode: code,
       expiryDate: expDefault,
       isKnown: guessedName.isNotEmpty,
@@ -703,10 +704,10 @@ class BarcodeMedicineService {
   }
 
   /// Lookup medicine details by scanned barcode:
-  /// 1. Tries instant cache/offline master dictionary (0ms)
-  /// 2. Tries live cloud server API `/medicines/lookup-barcode/:barcode`
+  /// 1. Tries live cloud server API `/medicines/lookup-barcode/:barcode` first so store DB prices win
+  /// 2. Falls back to offline master reference catalog
   /// 3. If barcode is an HTTP/HTTPS URL, resolves medicine title directly via web metadata
-  /// 4. Auto-derives generic salt, category, and realistic defaults so the user has zero empty fields
+  /// 4. Returns an empty-price editable template without fake hardcoded prices
   static Future<ScannedMedicineData> lookup(String rawBarcode) async {
     final code = rawBarcode.trim();
     final now = DateTime.now();
@@ -716,22 +717,16 @@ class BarcodeMedicineService {
       return ScannedMedicineData(
         name: '',
         category: 'Tablets',
-        mrp: 45.0,
-        sellingPrice: 40.0,
-        stock: 10,
+        mrp: 0.0,
+        sellingPrice: 0.0,
+        stock: 0,
         barcode: '',
         expiryDate: expDefault,
         isKnown: false,
       );
     }
 
-    // 1. Check instant cache & offline master first (0ms)
-    final instant = getInstantMatch(code);
-    if (instant != null) {
-      return instant;
-    }
-
-    // 2. Try Live Cloud API
+    // 1. Try Live Cloud API first so store's actual prices/catalog take priority
     try {
       final url = '${ApiEndpoints.medicines}/lookup-barcode/${Uri.encodeComponent(code)}';
       final res = await ApiService.get(url);
@@ -749,9 +744,9 @@ class BarcodeMedicineService {
               genericName: derivedGen,
               category: derivedCat,
               manufacturer: result.manufacturer,
-              mrp: result.mrp > 0 ? result.mrp : 48.0,
-              sellingPrice: result.sellingPrice > 0 ? result.sellingPrice : 42.0,
-              stock: result.stock > 0 ? result.stock : 10,
+              mrp: result.mrp,
+              sellingPrice: result.sellingPrice,
+              stock: result.stock,
               expiryDate: result.expiryDate.isNotEmpty ? result.expiryDate : expDefault,
               isKnown: true,
             );
@@ -761,7 +756,13 @@ class BarcodeMedicineService {
         }
       }
     } catch (_) {
-      // Network failure, continue to direct resolvers
+      // Network failure, continue to offline/URL resolvers
+    }
+
+    // 2. Check offline master reference dictionary
+    final instant = getInstantMatch(code);
+    if (instant != null) {
+      return instant;
     }
 
     // 3. If barcode is an HTTP/HTTPS URL (like ME-QR links), resolve title directly
@@ -775,9 +776,9 @@ class BarcodeMedicineService {
           name: resolvedName,
           genericName: derivedGen,
           category: derivedCat,
-          mrp: 48.00,
-          sellingPrice: 42.00,
-          stock: 10,
+          mrp: 0.0,
+          sellingPrice: 0.0,
+          stock: 0,
           expiryDate: expDefault,
           isKnown: true,
         );
@@ -786,20 +787,19 @@ class BarcodeMedicineService {
       }
     }
 
-    // 4. Unregistered barcode: return clean editable template with intelligent defaults
+    // 4. Unregistered barcode: return clean editable template with 0.0 (no fake price)
     final fallback = ScannedMedicineData(
       name: '',
       genericName: null,
       category: 'Tablets',
       manufacturer: null,
-      mrp: 48.0,
-      sellingPrice: 42.0,
-      stock: 10,
+      mrp: 0.0,
+      sellingPrice: 0.0,
+      stock: 0,
       barcode: code,
       expiryDate: expDefault,
       isKnown: false,
     );
-    _runtimeCache[code] = fallback;
     return fallback;
   }
 }

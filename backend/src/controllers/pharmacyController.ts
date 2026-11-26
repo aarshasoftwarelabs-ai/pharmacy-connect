@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import pool from '../config/database';
 import { env } from '../config/env';
 import { AuthUser } from '../middleware/auth';
 import { PharmacyService } from '../services/pharmacyService';
-import { verifyRazorpaySignature } from './paymentController';
+import { verifyRazorpayOrderPayment } from './paymentController';
 
 export class PharmacyController {
   private static isAuthorizedForPharmacy(req: Request, pharmacyId: number): boolean {
@@ -196,26 +197,6 @@ export class PharmacyController {
         return res.status(403).json({ success: false, message: 'Forbidden: Store access denied' });
       }
 
-      const role = ((req as any).user?.role || '').toUpperCase();
-      if (role !== 'ADMIN') {
-        const isPaidValid = verifyRazorpaySignature(
-          String(razorpayOrderId || ''),
-          String(razorpayPaymentId || transactionId || ''),
-          String(razorpaySignature || '')
-        );
-        if (!isPaidValid) {
-          return res.status(402).json({
-            success: false,
-            message: 'Verified Razorpay payment signature is required to activate or upgrade subscription'
-          });
-        }
-      }
-
-      const current = await PharmacyService.getPharmacyById(pharmacyId);
-      if (!current) {
-        return res.status(404).json({ success: false, message: 'Pharmacy not found' });
-      }
-
       const defaultDurations: Record<string, number> = {
         MONTHLY: 1,
         HALF_YEARLY: 6,
@@ -230,8 +211,57 @@ export class PharmacyController {
         LIFETIME: 24999.00,
       };
 
+      if (!(planType in defaultAmounts)) {
+        return res.status(400).json({ success: false, message: 'Unsupported subscription plan type' });
+      }
+
+      const role = ((req as any).user?.role || '').toUpperCase();
+      const canonicalAmount = defaultAmounts[planType];
+      const paymentRef = String(razorpayPaymentId || transactionId || '').trim();
+      let verifiedAmount = canonicalAmount;
+
+      if (role !== 'ADMIN') {
+        if (paymentRef) {
+          const replayCheck = await pool.query(
+            `SELECT id FROM subscription_payments WHERE transaction_id = $1 LIMIT 1`,
+            [paymentRef]
+          );
+          if (replayCheck.rows.length > 0) {
+            return res.status(409).json({
+              success: false,
+              message: 'This payment transaction has already been applied to a subscription'
+            });
+          }
+        }
+
+        const verification = await verifyRazorpayOrderPayment(
+          String(razorpayOrderId || ''),
+          paymentRef,
+          String(razorpaySignature || ''),
+          canonicalAmount
+        );
+        if (!verification.valid) {
+          return res.status(402).json({
+            success: false,
+            message: verification.reason || 'Verified Razorpay payment signature is required to activate or upgrade subscription'
+          });
+        }
+        if (verification.paidAmountInr) {
+          verifiedAmount = verification.paidAmountInr;
+        }
+      } else if (typeof amount === 'number' || !isNaN(parseFloat(amount))) {
+        verifiedAmount = parseFloat(amount) || canonicalAmount;
+      }
+
+      const current = await PharmacyService.getPharmacyById(pharmacyId);
+      if (!current) {
+        return res.status(404).json({ success: false, message: 'Pharmacy not found' });
+      }
+
       let endDate: string | null = null;
-      const monthsToAdd = durationMonths ? parseInt(durationMonths, 10) : (defaultDurations[planType] ?? 1);
+      const monthsToAdd = role === 'ADMIN' && durationMonths
+        ? parseInt(durationMonths, 10)
+        : (defaultDurations[planType] ?? 1);
 
       if (planType !== 'LIFETIME') {
         let baseDate = new Date();
@@ -253,9 +283,9 @@ export class PharmacyController {
         planType,
         endDate,
         {
-          amount: typeof amount === 'number' ? amount : parseFloat(amount) || (defaultAmounts[planType] ?? 5999.00),
-          paymentMethod: paymentMethod || 'UPI',
-          transactionId,
+          amount: verifiedAmount,
+          paymentMethod: paymentMethod || 'RAZORPAY',
+          transactionId: paymentRef || undefined,
           upiId: upiId || undefined,
           agentNote: agentNote || (planType === 'MOBILE_YEARLY' ? 'Mobile-Only 1-Year Pass (No PC/Laptop)' : undefined),
           durationMonths: monthsToAdd,

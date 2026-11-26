@@ -74,7 +74,7 @@ export default function Inventory() {
       AudioAlert.playBarcodeBeep();
       setBarcodeStatus({ 
         type: 'success', 
-        message: `âœ“ Scanned: ${match.name} (Stock: ${match.currentStock || 0} Units)` 
+        message: `✓ Scanned: ${match.name} (Stock: ${match.currentStock || 0} Units)` 
       });
       setSearchTerm(match.name);
       setTimeout(() => {
@@ -101,7 +101,7 @@ export default function Inventory() {
 
       setBarcodeStatus({ 
         type: 'success', 
-        message: autoFill?.name ? `âœ“ Auto-filled "${autoFill.name}" from Barcode!` : `New Barcode "${code}"! Opening Add Medicine...` 
+        message: autoFill?.name ? `✓ Auto-filled "${autoFill.name}" from Barcode!` : `New Barcode "${code}"! Opening Add Medicine...` 
       });
 
       setTimeout(() => {
@@ -113,16 +113,16 @@ export default function Inventory() {
           strength: autoFill?.strength || '',
           dosageForm: autoFill?.dosageForm || 'Tablet',
           packSize: autoFill?.packSize || '',
-          mrp: autoFill?.mrp || 50,
-          sellingPrice: autoFill?.sellingPrice || 45,
-          purchasePrice: autoFill?.purchasePrice || 35,
-          currentStock: autoFill?.currentStock || 10,
+          mrp: autoFill?.mrp || 0,
+          sellingPrice: autoFill?.sellingPrice || 0,
+          purchasePrice: autoFill?.purchasePrice || 0,
+          currentStock: autoFill?.currentStock || 0,
           minimumStock: 10,
           barcode: code,
           manufacturer: autoFill?.manufacturer || '',
           hsnCode: autoFill?.hsnCode || '30049099',
-          gstRate: autoFill?.gstRate || 12,
-          expiryDate: autoFill?.expiryDate || '2028-12-31'
+          gstRate: autoFill?.gstRate ?? 5,
+          expiryDate: autoFill?.expiryDate || ''
         } as any);
         setIsAddModalOpen(true);
       }, 700);
@@ -299,6 +299,13 @@ export default function Inventory() {
   thirtyDaysFromNow.setDate(today.getDate() + 30);
   
   const expiringSoonCount = medicines.filter(m => {
+    const batchDates = (m.batches || [])
+      .filter((b: any) => (b.availableQuantity ?? b.quantity ?? 0) > 0 && b.expiryDate)
+      .map((b: any) => new Date(b.expiryDate).getTime())
+      .filter((t: number) => !isNaN(t));
+    if (batchDates.length > 0) {
+      return Math.min(...batchDates) <= thirtyDaysFromNow.getTime();
+    }
     if (!m.expiryDate) return false;
     const expDate = new Date(m.expiryDate);
     return expDate <= thirtyDaysFromNow;

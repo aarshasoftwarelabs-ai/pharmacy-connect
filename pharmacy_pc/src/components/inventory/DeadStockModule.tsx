@@ -23,6 +23,15 @@ import {
 import { fetchDeadStock, DeadStockItem, DeadStockResponse } from '../../services/medicineService';
 import { PharmacyProfile } from '../../services/pharmacyService';
 
+function readStoredPharmacyId(): number {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? Number(JSON.parse(raw).pharmacyId || 0) : 0;
+  } catch {
+    return 0;
+  }
+}
+
 interface DeadStockModuleProps {
   pharmacy?: PharmacyProfile | null;
   onOpenReturnModule?: () => void;
@@ -43,10 +52,12 @@ export default function DeadStockModule({ pharmacy, onOpenReturnModule }: DeadSt
   const [discountPercent, setDiscountPercent] = useState<number>(20);
   const [copiedText, setCopiedText] = useState(false);
 
-  // Frozen Reorder State (Local Set of frozen IDs)
+  const getFrozenKey = () => `frozen_reorder_medicine_ids_${pharmacy?.id || readStoredPharmacyId()}`;
+
+  // Frozen Reorder State (Local Set of frozen IDs, isolated per store)
   const [frozenIds, setFrozenIds] = useState<Set<number>>(() => {
     try {
-      const saved = localStorage.getItem('frozen_reorder_medicine_ids');
+      const saved = localStorage.getItem(getFrozenKey());
       return saved ? new Set(JSON.parse(saved)) : new Set();
     } catch {
       return new Set();
@@ -77,7 +88,7 @@ export default function DeadStockModule({ pharmacy, onOpenReturnModule }: DeadSt
       if (next.has(id)) next.delete(id);
       else next.add(id);
       try {
-        localStorage.setItem('frozen_reorder_medicine_ids', JSON.stringify(Array.from(next)));
+        localStorage.setItem(getFrozenKey(), JSON.stringify(Array.from(next)));
       } catch (e) {
         console.error(e);
       }

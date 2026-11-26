@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/auth_provider.dart';
@@ -25,7 +26,11 @@ class StaffScannerScreen extends StatefulWidget {
 class _StaffScannerScreenState extends State<StaffScannerScreen>
     with SingleTickerProviderStateMixin {
   late final MobileScannerController _scannerController;
-  final _currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+  final _currency = NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  );
 
   late final AnimationController _laserAnimCtrl;
   late final Animation<double> _laserAnimation;
@@ -62,9 +67,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       duration: const Duration(milliseconds: 1600),
     )..repeat(reverse: true);
 
-    _laserAnimation = Tween<double>(begin: 0.08, end: 0.92).animate(
-      CurvedAnimation(parent: _laserAnimCtrl, curve: Curves.easeInOut),
-    );
+    _laserAnimation = Tween<double>(
+      begin: 0.08,
+      end: 0.92,
+    ).animate(CurvedAnimation(parent: _laserAnimCtrl, curve: Curves.easeInOut));
 
     // Refresh inventory in background on launch
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -126,7 +132,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
     // 1. Universal Barcode & QR Code Decoder (GS1 DataMatrix, URL QR, Multiline QR, JSON, EAN-13)
     final parsed = MedicineBoxOcrService.parseUniversalBarcodeOrQr(code);
-    final effectiveBarcode = (parsed.gtin != null && parsed.gtin!.isNotEmpty) ? parsed.gtin! : code;
+    final effectiveBarcode = (parsed.gtin != null && parsed.gtin!.isNotEmpty)
+        ? parsed.gtin!
+        : code;
     final scannedBatch = parsed.batchNumber;
     final scannedExp = parsed.expiryDate;
     final scannedMfg = parsed.mfgDate;
@@ -135,7 +143,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     final scannedMfgCompany = parsed.manufacturer;
 
     MedicineModel? medicine = inventory.findByBarcode(effectiveBarcode);
-    if (medicine == null && effectiveBarcode.length == 14 && effectiveBarcode.startsWith('0')) {
+    if (medicine == null &&
+        effectiveBarcode.length == 14 &&
+        effectiveBarcode.startsWith('0')) {
       medicine = inventory.findByBarcode(effectiveBarcode.substring(1));
     }
     if (medicine == null && code != effectiveBarcode) {
@@ -144,8 +154,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
     // Fast path 1: Check instant offline dictionary (0ms)
     var instantData = BarcodeMedicineService.getInstantMatch(effectiveBarcode);
-    if (instantData == null && effectiveBarcode.length == 14 && effectiveBarcode.startsWith('0')) {
-      instantData = BarcodeMedicineService.getInstantMatch(effectiveBarcode.substring(1));
+    if (instantData == null &&
+        effectiveBarcode.length == 14 &&
+        effectiveBarcode.startsWith('0')) {
+      instantData = BarcodeMedicineService.getInstantMatch(
+        effectiveBarcode.substring(1),
+      );
     }
     if (instantData == null && code != effectiveBarcode) {
       instantData = BarcodeMedicineService.getInstantMatch(code);
@@ -153,7 +167,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
     if (_currentMode == StaffScannerMode.billing) {
       if (medicine == null) {
-        if (instantData != null && instantData.isKnown && instantData.name.isNotEmpty && instantData.mrp > 0) {
+        if (instantData != null &&
+            instantData.isKnown &&
+            instantData.name.isNotEmpty &&
+            instantData.mrp > 0) {
           try {
             await inventory.addMedicine(
               name: instantData.name,
@@ -166,7 +183,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
               barcode: effectiveBarcode,
               batchNumber: scannedBatch,
               mfgDate: scannedMfg,
-              expiryDate: scannedExp ?? (instantData.expiryDate.isNotEmpty ? instantData.expiryDate : null),
+              expiryDate:
+                  scannedExp ??
+                  (instantData.expiryDate.isNotEmpty
+                      ? instantData.expiryDate
+                      : null),
             );
             medicine = inventory.findByBarcode(effectiveBarcode);
           } catch (_) {}
@@ -219,15 +240,24 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
             backgroundColor: const Color(0xFF16A34A),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(milliseconds: 1400),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '✓ ${medicine.name} (₹${medicine.sellingPrice.toStringAsFixed(2)})${scannedBatch != null ? ' [B: $scannedBatch]' : ''} ➔ Added & Synced to PC 💻',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -261,8 +291,6 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     }
   }
 
-
-
   // -------------------------------------------------------------
   // 2. STOCK INWARD MODE: Update Existing Stock Sheet
   // -------------------------------------------------------------
@@ -274,7 +302,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
   }) {
     _isBottomSheetOpen = true;
     final addQtyCtrl = TextEditingController(text: '10');
-    final priceCtrl = TextEditingController(text: medicine.sellingPrice.toStringAsFixed(2));
+    final priceCtrl = TextEditingController(
+      text: medicine.sellingPrice.toStringAsFixed(2),
+    );
 
     showModalBottomSheet(
       context: context,
@@ -304,16 +334,30 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.orange.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.inventory_2_rounded, size: 14, color: Colors.deepOrange),
+                            Icon(
+                              Icons.inventory_2_rounded,
+                              size: 14,
+                              color: Colors.deepOrange,
+                            ),
                             SizedBox(width: 4),
-                            Text('Stock Inward (માલ ઉમેરો)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                            Text(
+                              'Stock Inward (માલ ઉમેરો)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.deepOrange,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -326,26 +370,41 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                   const SizedBox(height: 10),
                   Text(
                     medicine.name,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Text(
                         'Current Stock: ${medicine.stock} units',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Text(
                         '➔ New Total: $expectedTotal',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.deepOrange),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepOrange,
+                        ),
                       ),
                     ],
                   ),
                   if (scannedBatch != null || scannedExp != null) ...[
                     const SizedBox(height: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(10),
@@ -353,12 +412,20 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.qr_code_2_rounded, size: 16, color: Colors.green),
+                          const Icon(
+                            Icons.qr_code_2_rounded,
+                            size: 16,
+                            color: Colors.green,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               'કોડમાંથી મેળવેલ: બેચ: ${scannedBatch ?? "-"} | Expiry: ${scannedExp ?? "-"}',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade900),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade900,
+                              ),
                             ),
                           ),
                         ],
@@ -366,17 +433,28 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     ),
                   ],
                   const SizedBox(height: 16),
-                  const Text('Quick Add Units (જથ્થો પસંદ કરો):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                  const Text(
+                    'Quick Add Units (જથ્થો પસંદ કરો):',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children: [5, 10, 20, 50, 100].map((units) {
                       return ActionChip(
                         label: Text('+$units'),
-                        backgroundColor: addQtyCtrl.text == units.toString() ? Colors.deepOrange.withValues(alpha: 0.2) : AppColors.background,
+                        backgroundColor: addQtyCtrl.text == units.toString()
+                            ? Colors.deepOrange.withValues(alpha: 0.2)
+                            : AppColors.background,
                         labelStyle: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: addQtyCtrl.text == units.toString() ? Colors.deepOrange : AppColors.textPrimary,
+                          color: addQtyCtrl.text == units.toString()
+                              ? Colors.deepOrange
+                              : AppColors.textPrimary,
                         ),
                         onPressed: () {
                           setSheetState(() {
@@ -397,7 +475,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           decoration: const InputDecoration(
                             labelText: 'Add Quantity *',
                             hintText: 'e.g. 10',
-                            prefixIcon: Icon(Icons.add_box_rounded, color: Colors.deepOrange),
+                            prefixIcon: Icon(
+                              Icons.add_box_rounded,
+                              color: Colors.deepOrange,
+                            ),
                           ),
                         ),
                       ),
@@ -405,7 +486,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       Expanded(
                         child: TextField(
                           controller: priceCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           decoration: const InputDecoration(
                             labelText: 'Selling Price (₹)',
                             hintText: '45.00',
@@ -425,28 +508,35 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               final sp = double.tryParse(priceCtrl.text);
                               Navigator.pop(ctx);
                               final inv = context.read<InventoryProvider>();
-                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              final scaffoldMessenger = ScaffoldMessenger.of(
+                                context,
+                              );
                               final ok = await inv.updateMedicineStock(
-                                    medicineId: medicine.id,
-                                    addedUnits: addCount,
-                                    newSellingPrice: sp,
-                                    batchNumber: scannedBatch,
-                                    expiryDate: scannedExp,
-                                  );
+                                medicineId: medicine.id,
+                                addedUnits: addCount,
+                                newSellingPrice: sp,
+                                batchNumber: scannedBatch,
+                                expiryDate: scannedExp,
+                              );
                               if (mounted) {
                                 if (ok) {
                                   HapticFeedback.mediumImpact();
                                   scaffoldMessenger.showSnackBar(
                                     SnackBar(
                                       backgroundColor: AppColors.success,
-                                      content: Text('✓ Updated Stock: Added $addCount units to ${medicine.name} (Total: $expectedTotal)'),
+                                      content: Text(
+                                        '✓ Updated Stock: Added $addCount units to ${medicine.name} (Total: $expectedTotal)',
+                                      ),
                                     ),
                                   );
                                 } else {
                                   scaffoldMessenger.showSnackBar(
                                     SnackBar(
                                       backgroundColor: AppColors.error,
-                                      content: Text(inv.errorMessage ?? 'Failed to update stock'),
+                                      content: Text(
+                                        inv.errorMessage ??
+                                            'Failed to update stock',
+                                      ),
                                     ),
                                   );
                                 }
@@ -454,12 +544,21 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.deepOrange,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
-                      icon: const Icon(Icons.check_rounded, color: Colors.white),
+                      icon: const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                      ),
                       label: Text(
                         'Save Stock (+ $addCount units)',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -488,7 +587,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     ScannedMedicineData? initialData,
   }) {
     _isBottomSheetOpen = true;
-    final auto = initialData ??
+    final auto =
+        initialData ??
         BarcodeMedicineService.getInstantOrTemplate(
           scannedBarcode,
           prefilledBatch: prefilledBatch,
@@ -497,7 +597,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
         );
 
     // 1. Resolve medicine name (check prefilledName, QR barcode and offline masters)
-    String initialName = (prefilledName != null && prefilledName.trim().isNotEmpty)
+    String initialName =
+        (prefilledName != null && prefilledName.trim().isNotEmpty)
         ? prefilledName.trim()
         : auto.name.trim();
 
@@ -507,47 +608,60 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
         initialName.startsWith('https://')) {
       initialName = '';
     }
-    if (initialName.isEmpty && (scannedBarcode.contains('YiRiOz1r') || scannedBarcode.toLowerCase().contains('fluok'))) {
+    if (initialName.isEmpty &&
+        (scannedBarcode.contains('YiRiOz1r') ||
+            scannedBarcode.toLowerCase().contains('fluok'))) {
       initialName = 'FLUOK FT';
     }
 
     // 2. Resolve generic salt
-    String initialGeneric = (auto.genericName != null &&
+    String initialGeneric =
+        (auto.genericName != null &&
             auto.genericName!.isNotEmpty &&
             auto.genericName != 'Standard Pharmaceutical Formulation')
         ? auto.genericName!
-        : (BarcodeMedicineService.deriveGenericSalt(initialName) ?? (initialName.isNotEmpty ? '$initialName Formulation' : ''));
+        : (BarcodeMedicineService.deriveGenericSalt(initialName) ??
+              (initialName.isNotEmpty ? '$initialName Formulation' : ''));
 
     // 3. Resolve category
-    String initialCategory = (auto.category.isNotEmpty && auto.category != 'General')
+    String initialCategory =
+        (auto.category.isNotEmpty && auto.category != 'General')
         ? auto.category
-        : (initialName.isNotEmpty ? BarcodeMedicineService.deriveCategory(initialName) : 'Tablets');
+        : (initialName.isNotEmpty
+              ? BarcodeMedicineService.deriveCategory(initialName)
+              : 'Tablets');
 
     // 3.5 Resolve Manufacturer / Company Name
-    String initialManufacturer = (prefilledCompany != null && prefilledCompany.trim().isNotEmpty)
+    String initialManufacturer =
+        (prefilledCompany != null && prefilledCompany.trim().isNotEmpty)
         ? prefilledCompany.trim()
         : ((auto.manufacturer != null && auto.manufacturer!.isNotEmpty)
-            ? auto.manufacturer!
-            : (initialName.isNotEmpty ? (BarcodeMedicineService.deriveManufacturer(initialName) ?? '') : ''));
+              ? auto.manufacturer!
+              : (initialName.isNotEmpty
+                    ? (BarcodeMedicineService.deriveManufacturer(initialName) ??
+                          '')
+                    : ''));
 
     // 4. Resolve Batch Number (prioritize true scanned batch from Barcode/QR/OCR)
     String initialBatch = (prefilledBatch != null && prefilledBatch.isNotEmpty)
         ? prefilledBatch
         : (auto.batchNumber != null && auto.batchNumber!.isNotEmpty
-            ? auto.batchNumber!
-            : '');
+              ? auto.batchNumber!
+              : '');
 
     // 5. Resolve MFG Date
     String initialMfg = (prefilledMfg != null && prefilledMfg.isNotEmpty)
         ? prefilledMfg
-        : (auto.mfgDate != null && auto.mfgDate!.isNotEmpty ? auto.mfgDate! : '');
+        : (auto.mfgDate != null && auto.mfgDate!.isNotEmpty
+              ? auto.mfgDate!
+              : '');
 
     // 6. Resolve Expiry Date
     String initialExp = (prefilledExp != null && prefilledExp.isNotEmpty)
         ? prefilledExp
         : (auto.expiryDate.isNotEmpty && auto.expiryDate != '2028-12-31'
-            ? auto.expiryDate
-            : '');
+              ? auto.expiryDate
+              : '');
 
     // 7. Resolve MRP and Selling Price
     double effectiveMrp = (prefilledMrp != null && prefilledMrp > 0)
@@ -565,21 +679,29 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
     final batchCtrl = TextEditingController(text: initialBatch);
     final mfgCtrl = TextEditingController(text: initialMfg);
     final expiryCtrl = TextEditingController(text: initialExp);
-    final mrpCtrl = TextEditingController(text: effectiveMrp.toStringAsFixed(2));
+    final mrpCtrl = TextEditingController(
+      text: effectiveMrp.toStringAsFixed(2),
+    );
     final spCtrl = TextEditingController(text: effectiveSp.toStringAsFixed(2));
-    final stockCtrl = TextEditingController(text: auto.stock > 0 ? auto.stock.toString() : '10');
+    final stockCtrl = TextEditingController(
+      text: auto.stock > 0 ? auto.stock.toString() : '',
+    );
 
     if (!mounted) return;
 
     // Asynchronous background metadata lookup without delaying sheet opening (0ms UI latency)
     if (initialName.isEmpty) {
-      if (scannedBarcode.startsWith('http://') || scannedBarcode.startsWith('https://')) {
-        BarcodeMedicineService.resolveUrlMedicineName(scannedBarcode).then((urlName) {
+      if (scannedBarcode.startsWith('http://') ||
+          scannedBarcode.startsWith('https://')) {
+        BarcodeMedicineService.resolveUrlMedicineName(scannedBarcode).then((
+          urlName,
+        ) {
           if (!mounted || !_isBottomSheetOpen) return;
           if (urlName != null && urlName.isNotEmpty && nameCtrl.text.isEmpty) {
             nameCtrl.text = urlName;
             if (mfgCompanyCtrl.text.isEmpty) {
-              mfgCompanyCtrl.text = BarcodeMedicineService.deriveManufacturer(urlName) ?? '';
+              mfgCompanyCtrl.text =
+                  BarcodeMedicineService.deriveManufacturer(urlName) ?? '';
             }
           }
         });
@@ -589,12 +711,15 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
         if (fresh.name.isNotEmpty && nameCtrl.text.isEmpty) {
           nameCtrl.text = fresh.name;
           if (mfgCompanyCtrl.text.isEmpty) {
-            mfgCompanyCtrl.text = fresh.manufacturer ?? (BarcodeMedicineService.deriveManufacturer(fresh.name) ?? '');
+            mfgCompanyCtrl.text =
+                fresh.manufacturer ??
+                (BarcodeMedicineService.deriveManufacturer(fresh.name) ?? '');
           }
           if (genericCtrl.text.isEmpty && fresh.genericName != null) {
             genericCtrl.text = fresh.genericName!;
           }
-          if (fresh.mrp > 0 && (mrpCtrl.text.isEmpty || mrpCtrl.text == '48.00')) {
+          if (fresh.mrp > 0 &&
+              (mrpCtrl.text.isEmpty || mrpCtrl.text == '48.00')) {
             mrpCtrl.text = fresh.mrp.toStringAsFixed(2);
             spCtrl.text = fresh.sellingPrice.toStringAsFixed(2);
           }
@@ -628,20 +753,32 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                            color: const Color(0xFF0284C7)
+                                .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.qr_code_scanner_rounded, size: 14, color: Color(0xFF0284C7)),
+                              const Icon(
+                                Icons.qr_code_scanner_rounded,
+                                size: 14,
+                                color: Color(0xFF0284C7),
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 _currentMode == StaffScannerMode.billing
                                     ? 'Add New Medicine to Bill (નવી દવા)'
                                     : 'New Medicine Stock (નવી દવા સ્ટોક)',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0284C7),
+                                ),
                               ),
                             ],
                           ),
@@ -657,7 +794,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       'Barcode / QR: $scannedBarcode',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 12),
 
@@ -665,11 +806,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     TextField(
                       controller: nameCtrl,
                       autofocus: initialName.isEmpty,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Medicine Name * (દવાનું નામ)',
                         hintText: 'e.g. FLUOK FT / Dolo 650',
-                        prefixIcon: Icon(Icons.medication_rounded, color: AppColors.primary),
+                        prefixIcon: Icon(
+                          Icons.medication_rounded,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -680,7 +827,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       decoration: const InputDecoration(
                         labelText: 'Company / Manufacturer (ઉત્પાદક કંપની)',
                         hintText: 'e.g. Micro Labs Ltd / Sun Pharma',
-                        prefixIcon: Icon(Icons.business_rounded, color: Colors.blueGrey),
+                        prefixIcon: Icon(
+                          Icons.business_rounded,
+                          color: Colors.blueGrey,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -717,7 +867,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       decoration: const InputDecoration(
                         labelText: 'Strength / Power (દવાનો પાવર)',
                         hintText: 'e.g. 500 mg, 650 mg, 40 mg, 100 ml',
-                        prefixIcon: Icon(Icons.bolt_rounded, color: Colors.amber),
+                        prefixIcon: Icon(
+                          Icons.bolt_rounded,
+                          color: Colors.amber,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -753,7 +906,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           child: TextField(
                             controller: expiryCtrl,
                             keyboardType: TextInputType.datetime,
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF15803D),
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Exp Date * (એક્સપાયરી)',
                               hintText: 'MM/YY (05/27)',
@@ -770,10 +926,14 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         Expanded(
                           child: TextField(
                             controller: mrpCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             onChanged: (val) {
                               final p = double.tryParse(val);
-                              if (p != null && (spCtrl.text.isEmpty || spCtrl.text == '0.00')) {
+                              if (p != null &&
+                                  (spCtrl.text.isEmpty ||
+                                      spCtrl.text == '0.00')) {
                                 spCtrl.text = (p * 0.9).toStringAsFixed(2);
                               }
                             },
@@ -787,7 +947,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         Expanded(
                           child: TextField(
                             controller: spCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Selling Price (₹) *',
                               hintText: '0.00',
@@ -818,19 +980,31 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           final medName = nameCtrl.text.trim();
                           if (medName.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('કૃપા કરીને દવાનું નામ દાખલ કરો (Please enter medicine name)')),
+                              const SnackBar(
+                                content: Text(
+                                  'કૃપા કરીને દવાનું નામ દાખલ કરો (Please enter medicine name)',
+                                ),
+                              ),
                             );
                             return;
                           }
-                          final mrp = double.tryParse(mrpCtrl.text.trim()) ?? 0.0;
+                          final mrp =
+                              double.tryParse(mrpCtrl.text.trim()) ?? 0.0;
                           if (mrp <= 0) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('કૃપા કરીને સાચો MRP દાખલ કરો (Please enter valid MRP)')),
+                              const SnackBar(
+                                content: Text(
+                                  'કૃપા કરીને સાચો MRP દાખલ કરો (Please enter valid MRP)',
+                                ),
+                              ),
                             );
                             return;
                           }
-                          final sp = double.tryParse(spCtrl.text.trim()) ?? (mrp > 0 ? mrp : 50.0);
-                          final stock = int.tryParse(stockCtrl.text.trim()) ?? 10;
+                          final sp =
+                              double.tryParse(spCtrl.text.trim()) ??
+                              (mrp > 0 ? mrp : 0.0);
+                          final stock =
+                              int.tryParse(stockCtrl.text.trim()) ?? 1;
                           final bNo = batchCtrl.text.trim();
                           final mfgVal = mfgCtrl.text.trim();
                           final expVal = expiryCtrl.text.trim();
@@ -840,13 +1014,23 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           final inv = context.read<InventoryProvider>();
                           final billing = context.read<BillingProvider>();
                           final auth = context.read<AuthProvider>();
-                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+                          final scaffoldMessenger = ScaffoldMessenger.of(
+                            context,
+                          );
                           final ok = await inv.addMedicine(
                             name: medName,
-                            genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
-                            category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'Tablets',
-                            strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
-                            manufacturer: compVal.isNotEmpty ? compVal : auto.manufacturer,
+                            genericName: genericCtrl.text.trim().isNotEmpty
+                                ? genericCtrl.text.trim()
+                                : null,
+                            category: categoryCtrl.text.trim().isNotEmpty
+                                ? categoryCtrl.text.trim()
+                                : 'Tablets',
+                            strength: strengthCtrl.text.trim().isNotEmpty
+                                ? strengthCtrl.text.trim()
+                                : null,
+                            manufacturer: compVal.isNotEmpty
+                                ? compVal
+                                : auto.manufacturer,
                             mrp: mrp,
                             sellingPrice: sp,
                             stock: stock,
@@ -863,21 +1047,38 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
                               // If currently in Billing Mode: immediately add to active bill and sync to PC!
                               if (_currentMode == StaffScannerMode.billing) {
-                                final createdMed = inv.findByBarcode(scannedBarcode) ?? MedicineModel(
-                                  id: 'med_${DateTime.now().millisecondsSinceEpoch}',
-                                  name: medName,
-                                  genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
-                                  category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'Tablets',
-                                  strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
-                                  manufacturer: compVal.isNotEmpty ? compVal : auto.manufacturer,
-                                  mrp: mrp,
-                                  sellingPrice: sp,
-                                  stock: stock,
-                                  barcode: scannedBarcode,
-                                  batchNumber: bNo.isNotEmpty ? bNo : null,
-                                  mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
-                                  expiryDate: expVal.isNotEmpty ? expVal : null,
-                                );
+                                final createdMed =
+                                    inv.findByBarcode(scannedBarcode) ??
+                                    MedicineModel(
+                                      id: 'med_${DateTime.now().millisecondsSinceEpoch}',
+                                      name: medName,
+                                      genericName:
+                                          genericCtrl.text.trim().isNotEmpty
+                                          ? genericCtrl.text.trim()
+                                          : null,
+                                      category:
+                                          categoryCtrl.text.trim().isNotEmpty
+                                          ? categoryCtrl.text.trim()
+                                          : 'Tablets',
+                                      strength:
+                                          strengthCtrl.text.trim().isNotEmpty
+                                          ? strengthCtrl.text.trim()
+                                          : null,
+                                      manufacturer: compVal.isNotEmpty
+                                          ? compVal
+                                          : auto.manufacturer,
+                                      mrp: mrp,
+                                      sellingPrice: sp,
+                                      stock: stock,
+                                      barcode: scannedBarcode,
+                                      batchNumber: bNo.isNotEmpty ? bNo : null,
+                                      mfgDate: mfgVal.isNotEmpty
+                                          ? mfgVal
+                                          : null,
+                                      expiryDate: expVal.isNotEmpty
+                                          ? expVal
+                                          : null,
+                                    );
                                 billing.addToCart(createdMed, quantity: 1);
 
                                 MedicineBoxOcrService.syncBoxItemToPc(
@@ -889,20 +1090,27 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                   mrp: mrp,
                                   unitPrice: sp,
                                   quantity: 1,
-                                  genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
+                                  genericName:
+                                      genericCtrl.text.trim().isNotEmpty
+                                      ? genericCtrl.text.trim()
+                                      : null,
                                 );
 
                                 scaffoldMessenger.showSnackBar(
                                   SnackBar(
                                     backgroundColor: const Color(0xFF16A34A),
-                                    content: Text('✓ $medName (₹$sp) નોંધાઈ ગઈ અને બિલમાં ઉમેરાઈ ગઈ! 💻'),
+                                    content: Text(
+                                      '✓ $medName (₹$sp) નોંધાઈ ગઈ અને બિલમાં ઉમેરાઈ ગઈ! 💻',
+                                    ),
                                   ),
                                 );
                               } else {
                                 scaffoldMessenger.showSnackBar(
                                   SnackBar(
                                     backgroundColor: AppColors.success,
-                                    content: Text('✓ Successfully registered $medName & saved to Inventory!'),
+                                    content: Text(
+                                      '✓ Successfully registered $medName & saved to Inventory!',
+                                    ),
                                   ),
                                 );
                               }
@@ -910,17 +1118,23 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               scaffoldMessenger.showSnackBar(
                                 SnackBar(
                                   backgroundColor: AppColors.error,
-                                  content: Text(inv.errorMessage ?? 'Failed to register medicine'),
+                                  content: Text(
+                                    inv.errorMessage ??
+                                        'Failed to register medicine',
+                                  ),
                                 ),
                               );
                             }
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _currentMode == StaffScannerMode.billing
+                          backgroundColor:
+                              _currentMode == StaffScannerMode.billing
                               ? const Color(0xFF16A34A)
                               : AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                         icon: Icon(
                           _currentMode == StaffScannerMode.billing
@@ -932,7 +1146,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           _currentMode == StaffScannerMode.billing
                               ? '✓ Save & Add to Bill Immediately (બિલમાં ઉમેરો)'
                               : '✓ Register Medicine & Save Stock',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -983,14 +1201,20 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       children: [
                         Text(
                           'Current Bill (${billing.itemCount} Items)',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         TextButton(
                           onPressed: () {
                             billing.clearCart();
                             Navigator.pop(ctx);
                           },
-                          child: const Text('Clear All', style: TextStyle(color: AppColors.error)),
+                          child: const Text(
+                            'Clear All',
+                            style: TextStyle(color: AppColors.error),
+                          ),
                         ),
                       ],
                     ),
@@ -999,7 +1223,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       const Center(
                         child: Padding(
                           padding: EdgeInsets.all(24.0),
-                          child: Text('No items in bill yet. Scan a medicine barcode!'),
+                          child: Text(
+                            'No items in bill yet. Scan a medicine barcode!',
+                          ),
                         ),
                       ),
                     ] else ...[
@@ -1012,22 +1238,54 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           final item = billing.cartItems[index];
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: Text(item.medicine.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                            subtitle: Text('${_currency.format(item.unitPrice)} each'),
+                            title: Text(
+                              item.medicine.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${_currency.format(item.unitPrice)} each',
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.remove_circle_outline, size: 20),
-                                  onPressed: () => billing.updateQuantity(item.medicine.id, item.quantity - 1),
+                                  icon: const Icon(
+                                    Icons.remove_circle_outline,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => billing.updateQuantity(
+                                    item.medicine.id,
+                                    item.quantity - 1,
+                                  ),
                                 ),
-                                Text('${item.quantity}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                Text(
+                                  '${item.quantity}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
                                 IconButton(
-                                  icon: const Icon(Icons.add_circle_outline, size: 20),
-                                  onPressed: () => billing.updateQuantity(item.medicine.id, item.quantity + 1),
+                                  icon: const Icon(
+                                    Icons.add_circle_outline,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => billing.updateQuantity(
+                                    item.medicine.id,
+                                    item.quantity + 1,
+                                  ),
                                 ),
                                 const SizedBox(width: 6),
-                                Text(_currency.format(item.netTotal), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
+                                Text(
+                                  _currency.format(item.netTotal),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -1039,7 +1297,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           Expanded(
                             child: TextField(
                               controller: customerCtrl,
-                              decoration: const InputDecoration(labelText: 'Customer Name (Optional)', hintText: 'Walk-in'),
+                              decoration: const InputDecoration(
+                                labelText: 'Customer Name (Optional)',
+                                hintText: 'Walk-in',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -1047,7 +1308,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             child: TextField(
                               controller: phoneCtrl,
                               keyboardType: TextInputType.phone,
-                              decoration: const InputDecoration(labelText: 'Customer Phone', hintText: 'Optional'),
+                              decoration: const InputDecoration(
+                                labelText: 'Customer Phone',
+                                hintText: 'Optional',
+                              ),
                             ),
                           ),
                         ],
@@ -1062,8 +1326,21 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Grand Total:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            Text(_currency.format(billing.grandTotal), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
+                            const Text(
+                              'Grand Total:',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              _currency.format(billing.grandTotal),
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1075,45 +1352,77 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           onPressed: billing.isProcessing
                               ? null
                               : () async {
-                                  billing.setCustomerInfo(name: customerCtrl.text, phone: phoneCtrl.text);
+                                  billing.setCustomerInfo(
+                                    name: customerCtrl.text,
+                                    phone: phoneCtrl.text,
+                                  );
                                   final itemsToDeduct = billing.cartItems
-                                      .map((item) => MapEntry(
-                                            item.medicine.id,
-                                            item.isLooseTablet
-                                                ? (item.quantity / item.packCount).ceil().clamp(1, item.quantity)
-                                                : item.quantity,
-                                          ))
+                                      .map(
+                                        (item) => MapEntry(
+                                          item.medicine.id,
+                                          item.isLooseTablet
+                                              ? (item.quantity / item.packCount)
+                                                    .ceil()
+                                                    .clamp(1, item.quantity)
+                                              : item.quantity,
+                                        ),
+                                      )
                                       .toList();
                                   final ok = await billing.processCheckout();
                                   if (context.mounted) {
                                     if (ok) {
                                       // Deduct stock in real-time
                                       for (final entry in itemsToDeduct) {
-                                        inventory.updateStockLocal(entry.key, entry.value);
+                                        inventory.updateStockLocal(
+                                          entry.key,
+                                          entry.value,
+                                        );
                                       }
                                       Navigator.pop(ctx);
                                       HapticFeedback.mediumImpact();
                                       _showBillSuccessDialog(billing.lastBill);
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          backgroundColor: AppColors.error,
-                                          content: Text(billing.errorMessage ?? 'Checkout failed'),
-                                        ),
-                                      );
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                            SnackBar(
+                                              backgroundColor: AppColors.error,
+                                              content: Text(
+                                                billing.errorMessage ??
+                                                    'Checkout failed',
+                                              ),
+                                            ),
+                                          );
                                     }
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
                           icon: billing.isProcessing
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Icon(Icons.print_rounded, color: Colors.white),
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.print_rounded,
+                                  color: Colors.white,
+                                ),
                           label: Text(
-                            billing.isProcessing ? 'Processing Bill...' : 'Complete & Generate Bill (${_currency.format(billing.grandTotal)})',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            billing.isProcessing
+                                ? 'Processing Bill...'
+                                : 'Complete & Generate Bill (${_currency.format(billing.grandTotal)})',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -1137,7 +1446,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.check_circle_rounded, color: AppColors.success, size: 28),
+            Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.success,
+              size: 28,
+            ),
             SizedBox(width: 8),
             Text('Bill Generated!'),
           ],
@@ -1146,18 +1459,34 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Invoice #: ${bill?['bill_number'] ?? 'PC-2026-001'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              'Invoice #: ${bill?['bill_number'] ?? 'PC-2026-001'}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 6),
-            Text('Total Amount: ${_currency.format(bill?['total'] ?? 0.0)}', style: const TextStyle(fontSize: 16, color: AppColors.primary, fontWeight: FontWeight.w800)),
+            Text(
+              'Total Amount: ${_currency.format(bill?['total'] ?? 0.0)}',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 6),
-            const Text('Stock has been deducted from store inventory in real-time.', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            const Text(
+              'Stock has been deducted from store inventory in real-time.',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
           ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Next Scan (બીજું સ્કેન કરો)', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Next Scan (બીજું સ્કેન કરો)',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -1182,7 +1511,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () {
               final query = searchCtrl.text.trim();
@@ -1203,9 +1535,14 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Logout Staff Account?'),
-        content: const Text('Are you sure you want to log out from this device?'),
+        content: const Text(
+          'Are you sure you want to log out from this device?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
@@ -1283,10 +1620,15 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                            color: const Color(0xFF0D9488)
+                                .withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.document_scanner_rounded, color: Color(0xFF0D9488), size: 24),
+                          child: const Icon(
+                            Icons.document_scanner_rounded,
+                            color: Color(0xFF0D9488),
+                            size: 24,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
@@ -1295,17 +1637,28 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             children: [
                               Text(
                                 '૨-સ્ટેપ પત્તું / બોક્સ સ્કેનર',
-                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.black87),
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                               Text(
                                 'નામ, કંપની, બેચ, MFG, Expiry અને MRP ઓટો-ફિલ કરો',
-                                style: TextStyle(fontSize: 11, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 20, color: Colors.grey),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 20,
+                            color: Colors.grey,
+                          ),
                           onPressed: () => Navigator.pop(ctx, false),
                         ),
                       ],
@@ -1316,10 +1669,14 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: isFrontDone ? Colors.green.shade50 : const Color(0xFFF0FDFA),
+                        color: isFrontDone
+                            ? Colors.green.shade50
+                            : const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isFrontDone ? Colors.green.shade400 : const Color(0xFF0D9488).withValues(alpha: 0.4),
+                          color: isFrontDone
+                              ? Colors.green.shade400
+                              : const Color(0xFF0D9488).withValues(alpha: 0.4),
                           width: 1.5,
                         ),
                       ),
@@ -1328,11 +1685,15 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: isFrontDone ? Colors.green.shade600 : const Color(0xFF0D9488),
+                              color: isFrontDone
+                                  ? Colors.green.shade600
+                                  : const Color(0xFF0D9488),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              isFrontDone ? Icons.check_rounded : Icons.looks_one_rounded,
+                              isFrontDone
+                                  ? Icons.check_rounded
+                                  : Icons.looks_one_rounded,
                               color: Colors.white,
                               size: 20,
                             ),
@@ -1343,11 +1704,15 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  isFrontDone ? 'સ્ટેપ ૧ પૂર્ણ (આગળની બાજુ)' : 'સ્ટેપ ૧: આગળની બાજુ (Front Side)',
+                                  isFrontDone
+                                      ? 'સ્ટેપ ૧ પૂર્ણ (આગળની બાજુ)'
+                                      : 'સ્ટેપ ૧: આગળની બાજુ (Front Side)',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: isFrontDone ? Colors.green.shade900 : Colors.black87,
+                                    color: isFrontDone
+                                        ? Colors.green.shade900
+                                        : Colors.black87,
                                   ),
                                 ),
                                 const SizedBox(height: 3),
@@ -1355,31 +1720,55 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                   isFrontDone
                                       ? '✅ આગળનો ફોટો સેવ થયો (નામ + કંપની)'
                                       : 'દવાનું નામ, કંપની અને સોલ્ટ શોધવા આગળનો ફોટો લો',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade700,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isFrontDone ? Colors.green.shade700 : const Color(0xFF0D9488),
+                              backgroundColor: isFrontDone
+                                  ? Colors.green.shade700
+                                  : const Color(0xFF0D9488),
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                            icon: Icon(isFrontDone ? Icons.replay_rounded : Icons.camera_alt_rounded, size: 15),
+                            icon: Icon(
+                              isFrontDone
+                                  ? Icons.replay_rounded
+                                  : Icons.camera_alt_rounded,
+                              size: 15,
+                            ),
                             label: Text(
                               isFrontDone ? 'બદલો' : 'ફોટો લો',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
                             ),
                             onPressed: () async {
-                              final photo = await picker.pickImage(
-                                source: ImageSource.camera,
-                                preferredCameraDevice: CameraDevice.rear,
-                                imageQuality: 90,
-                                maxWidth: 1600,
-                              );
+                              await _scannerController.stop();
+                              XFile? photo;
+                              try {
+                                photo = await picker.pickImage(
+                                  source: ImageSource.camera,
+                                  preferredCameraDevice: CameraDevice.rear,
+                                  imageQuality: 90,
+                                  maxWidth: 1600,
+                                );
+                              } finally {
+                                if (mounted) await _scannerController.start();
+                              }
                               if (photo != null) {
                                 setSheetState(() => frontPhoto = photo);
                               }
@@ -1396,12 +1785,16 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       decoration: BoxDecoration(
                         color: !isFrontDone
                             ? Colors.grey.shade100
-                            : (isBackDone ? Colors.green.shade50 : const Color(0xFFFFF7ED)),
+                            : (isBackDone
+                                  ? Colors.green.shade50
+                                  : const Color(0xFFFFF7ED)),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: !isFrontDone
                               ? Colors.grey.shade300
-                              : (isBackDone ? Colors.green.shade400 : Colors.orange.shade400),
+                              : (isBackDone
+                                    ? Colors.green.shade400
+                                    : Colors.orange.shade400),
                           width: 1.5,
                         ),
                       ),
@@ -1412,11 +1805,15 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             decoration: BoxDecoration(
                               color: !isFrontDone
                                   ? Colors.grey.shade400
-                                  : (isBackDone ? Colors.green.shade600 : Colors.deepOrange),
+                                  : (isBackDone
+                                        ? Colors.green.shade600
+                                        : Colors.deepOrange),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              isBackDone ? Icons.check_rounded : Icons.looks_two_rounded,
+                              isBackDone
+                                  ? Icons.check_rounded
+                                  : Icons.looks_two_rounded,
                               color: Colors.white,
                               size: 20,
                             ),
@@ -1435,7 +1832,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                     fontSize: 14,
                                     color: !isFrontDone
                                         ? Colors.grey.shade500
-                                        : (isBackDone ? Colors.green.shade900 : Colors.black87),
+                                        : (isBackDone
+                                              ? Colors.green.shade900
+                                              : Colors.black87),
                                   ),
                                 ),
                                 const SizedBox(height: 3),
@@ -1445,7 +1844,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                       : 'બેચ નંબર, MFG, Expiry અને MRP માટે પાછળનો ફોટો લો',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: !isFrontDone ? Colors.grey.shade500 : Colors.grey.shade700,
+                                    color: !isFrontDone
+                                        ? Colors.grey.shade500
+                                        : Colors.grey.shade700,
                                   ),
                                 ),
                               ],
@@ -1454,24 +1855,45 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           if (isFrontDone)
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isBackDone ? Colors.green.shade700 : Colors.deepOrange,
+                                backgroundColor: isBackDone
+                                    ? Colors.green.shade700
+                                    : Colors.deepOrange,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
-                              icon: Icon(isBackDone ? Icons.replay_rounded : Icons.camera_alt_rounded, size: 15),
+                              icon: Icon(
+                                isBackDone
+                                    ? Icons.replay_rounded
+                                    : Icons.camera_alt_rounded,
+                                size: 15,
+                              ),
                               label: Text(
                                 isBackDone ? 'બદલો' : 'ફોટો લો',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
                               ),
                               onPressed: () async {
-                                final photo = await picker.pickImage(
-                                  source: ImageSource.camera,
-                                  preferredCameraDevice: CameraDevice.rear,
-                                  imageQuality: 90,
-                                  maxWidth: 1600,
-                                );
+                                await _scannerController.stop();
+                                XFile? photo;
+                                try {
+                                  photo = await picker.pickImage(
+                                    source: ImageSource.camera,
+                                    preferredCameraDevice: CameraDevice.rear,
+                                    imageQuality: 90,
+                                    maxWidth: 1600,
+                                  );
+                                } finally {
+                                  if (mounted) await _scannerController.start();
+                                }
                                 if (photo != null) {
                                   setSheetState(() => backPhoto = photo);
                                   // Auto-proceed to merge when both photos are ready
@@ -1494,14 +1916,19 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           elevation: 2,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                         icon: const Icon(Icons.auto_awesome_rounded),
                         label: Text(
                           isBackDone
                               ? 'ડેટા મર્જ કરો (Merge & Auto-Fill)'
                               : 'વિગતો સ્કેન કરો (માત્ર આગળનો ડેટા)',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                         onPressed: () {
                           Navigator.pop(ctx, true);
@@ -1512,7 +1939,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
                     // Gallery fallback
                     TextButton.icon(
-                      style: TextButton.styleFrom(foregroundColor: Colors.grey.shade700),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey.shade700,
+                      ),
                       icon: const Icon(Icons.photo_library_outlined, size: 18),
                       label: const Text('ગેલેરીમાંથી ફોટો પસંદ કરો (Gallery)'),
                       onPressed: () async {
@@ -1553,18 +1982,27 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       builder: (ctx) => PopScope(
         canPop: false,
         child: Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           backgroundColor: Colors.white,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(strokeWidth: 3.5, color: Color(0xFF0D9488)),
+                const CircularProgressIndicator(
+                  strokeWidth: 3.5,
+                  color: Color(0xFF0D9488),
+                ),
                 const SizedBox(height: 18),
                 const Text(
                   'દવાની વિગતો મર્જ થઈ રહી છે...',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F766E),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -1572,7 +2010,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       ? 'આગળ અને પાછળ બંને બાજુથી દવાનું નામ, કંપની, બેચ, તારીખો અને MRP વાંચી રહ્યા છીએ...'
                       : 'દવાનું નામ, ઉત્પાદક કંપની અને સોલ્ટ વાંચી રહ્યા છીએ...',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.3),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    height: 1.3,
+                  ),
                 ),
               ],
             ),
@@ -1607,12 +2049,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // Dismiss loading HUD if open
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).pop(); // Dismiss loading HUD if open
         _isBottomSheetOpen = false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.red.shade700,
-            content: Text('સ્કેન કરવામાં ભૂલ આવી: ${e.toString().replaceAll('Exception:', '').trim()}'),
+            content: Text(
+              'સ્કેન કરવામાં ભૂલ આવી: ${e.toString().replaceAll('Exception:', '').trim()}',
+            ),
           ),
         );
       }
@@ -1624,15 +2071,24 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
     final nameCtrl = TextEditingController(text: res.medicineName ?? '');
     final mfgCompanyCtrl = TextEditingController(
-      text: res.manufacturer ?? (res.medicineName != null ? (BarcodeMedicineService.deriveManufacturer(res.medicineName!) ?? '') : ''),
+      text:
+          res.manufacturer ??
+          (res.medicineName != null
+              ? (BarcodeMedicineService.deriveManufacturer(res.medicineName!) ??
+                    '')
+              : ''),
     );
     final genericCtrl = TextEditingController(text: res.genericName ?? '');
     final strengthCtrl = TextEditingController(text: res.strength ?? '');
     final packCtrl = TextEditingController(text: res.packSize ?? '');
     final batchCtrl = TextEditingController(text: res.batchNumber ?? '');
     final mfgCtrl = TextEditingController(text: res.mfgDate ?? '');
-    final expCtrl = TextEditingController(text: res.expiryDate ?? res.rawExpiry ?? '');
-    final mrpCtrl = TextEditingController(text: res.mrp > 0 ? res.mrp.toStringAsFixed(2) : '');
+    final expCtrl = TextEditingController(
+      text: res.expiryDate ?? res.rawExpiry ?? '',
+    );
+    final mrpCtrl = TextEditingController(
+      text: res.mrp > 0 ? res.mrp.toStringAsFixed(2) : '',
+    );
     final qtyCtrl = TextEditingController(text: '1');
 
     showModalBottomSheet(
@@ -1662,19 +2118,31 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                            color: const Color(0xFF0D9488)
+                                .withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.auto_awesome_rounded, size: 15, color: Color(0xFF0D9488)),
+                              Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 15,
+                                color: Color(0xFF0D9488),
+                              ),
                               SizedBox(width: 5),
                               Text(
                                 '૧૦૦% On-Device Smart Scan',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0D9488)),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0D9488),
+                                ),
                               ),
                             ],
                           ),
@@ -1683,7 +2151,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0D9488), size: 22),
+                              icon: const Icon(
+                                Icons.refresh_rounded,
+                                color: Color(0xFF0D9488),
+                                size: 22,
+                              ),
                               tooltip: 'ફરી સ્કેન કરો',
                               onPressed: () {
                                 Navigator.pop(ctx);
@@ -1701,14 +2173,21 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     const SizedBox(height: 6),
                     const Text(
                       'દવાના બોક્સ પરની વિગતો',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       res.hasRealData
                           ? 'બોક્સ પરથી વાંચેલી સાચી વિગતો ઓટો-ફિલ થઈ ગઈ છે'
                           : 'બોક્સ પરથી લખાણ સ્પષ્ટ ન મળ્યું હોય તો વિગતો જાતે ચકાસી લો',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 12),
 
@@ -1725,19 +2204,38 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.medication_rounded, size: 18, color: Color(0xFF0D9488)),
+                              const Icon(
+                                Icons.medication_rounded,
+                                size: 18,
+                                color: Color(0xFF0D9488),
+                              ),
                               const SizedBox(width: 6),
-                              const Text('દવાનું નામ (Medicine Name):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                              const Text(
+                                'દવાનું નામ (Medicine Name):',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
                           TextField(
                             controller: nameCtrl,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                             decoration: InputDecoration(
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                               filled: true,
                               fillColor: Colors.white,
                               hintText: 'e.g. Paracetamol 650mg',
@@ -1747,9 +2245,20 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
 
                           Row(
                             children: [
-                              const Icon(Icons.business_rounded, size: 16, color: Color(0xFF0D9488)),
+                              const Icon(
+                                Icons.business_rounded,
+                                size: 16,
+                                color: Color(0xFF0D9488),
+                              ),
                               const SizedBox(width: 6),
-                              const Text('કંપની / Manufacturer:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
+                              const Text(
+                                'કંપની / Manufacturer:',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -1758,8 +2267,13 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             style: const TextStyle(fontSize: 13),
                             decoration: InputDecoration(
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                               filled: true,
                               fillColor: Colors.white,
                               hintText: 'e.g. Micro Labs Ltd / Sun Pharma',
@@ -1774,15 +2288,30 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Generic Salt / Composition:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
+                                    const Text(
+                                      'Generic Salt / Composition:',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     TextField(
                                       controller: genericCtrl,
                                       style: const TextStyle(fontSize: 12),
                                       decoration: InputDecoration(
                                         isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
                                         filled: true,
                                         fillColor: Colors.white,
                                         hintText: 'Composition',
@@ -1797,15 +2326,34 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Strength (પાવર):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                                    const Text(
+                                      'Strength (પાવર):',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blueAccent,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     TextField(
                                       controller: strengthCtrl,
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blueAccent,
+                                      ),
                                       decoration: InputDecoration(
                                         isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
                                         filled: true,
                                         fillColor: Colors.white,
                                         hintText: 'e.g. 650 mg',
@@ -1820,15 +2368,30 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Pack Size:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
+                                    const Text(
+                                      'Pack Size:',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     TextField(
                                       controller: packCtrl,
                                       style: const TextStyle(fontSize: 12),
                                       decoration: InputDecoration(
                                         isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
                                         filled: true,
                                         fillColor: Colors.white,
                                         hintText: '10 Tablets',
@@ -1848,15 +2411,34 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Batch No (બેચ):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F766E))),
+                                    const Text(
+                                      'Batch No (બેચ):',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0F766E),
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     TextField(
                                       controller: batchCtrl,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0F766E),
+                                      ),
                                       decoration: InputDecoration(
                                         isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
                                         filled: true,
                                         fillColor: Colors.white,
                                         hintText: 'ખાલી (નથી)',
@@ -1870,16 +2452,38 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('MRP (₹):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4338CA))),
+                                    const Text(
+                                      'MRP (₹):',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF4338CA),
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     TextField(
                                       controller: mrpCtrl,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF4338CA)),
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF4338CA),
+                                      ),
                                       decoration: InputDecoration(
                                         isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
                                         filled: true,
                                         fillColor: Colors.white,
                                         hintText: '₹ MRP',
@@ -1899,15 +2503,34 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('MFG Date (ઉત્પાદન):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                                    const Text(
+                                      'MFG Date (ઉત્પાદન):',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0284C7),
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     TextField(
                                       controller: mfgCtrl,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0284C7),
+                                      ),
                                       decoration: InputDecoration(
                                         isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
                                         filled: true,
                                         fillColor: Colors.white,
                                         hintText: 'MM/YYYY',
@@ -1921,15 +2544,34 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Exp Date (એક્સપાયરી):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D))),
+                                    const Text(
+                                      'Exp Date (એક્સપાયરી):',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF15803D),
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     TextField(
                                       controller: expCtrl,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF15803D),
+                                      ),
                                       decoration: InputDecoration(
                                         isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
                                         filled: true,
                                         fillColor: Colors.white,
                                         hintText: 'MM/YYYY',
@@ -1946,39 +2588,80 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('જથ્થો / Units:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                              const Text(
+                                'જથ્થો / Units:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
                               Row(
                                 children: [
                                   IconButton.filledTonal(
-                                    icon: const Icon(Icons.remove_rounded, size: 16),
+                                    icon: const Icon(
+                                      Icons.remove_rounded,
+                                      size: 16,
+                                    ),
                                     onPressed: () {
-                                      final cur = int.tryParse(qtyCtrl.text.trim()) ?? 1;
+                                      final cur =
+                                          int.tryParse(qtyCtrl.text.trim()) ??
+                                          1;
                                       if (cur > 1) {
-                                        setSheetState(() => qtyCtrl.text = (cur - 1).toString());
+                                        setSheetState(
+                                          () => qtyCtrl.text = (cur - 1)
+                                              .toString(),
+                                        );
                                       }
                                     },
-                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 32,
+                                      minHeight: 32,
+                                    ),
                                     padding: EdgeInsets.zero,
                                   ),
                                   Container(
                                     width: 44,
-                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
                                     child: TextField(
                                       controller: qtyCtrl,
                                       textAlign: TextAlign.center,
                                       keyboardType: TextInputType.number,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                      decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 4)),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          vertical: 4,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   IconButton.filled(
-                                    icon: const Icon(Icons.add_rounded, size: 16),
-                                    style: IconButton.styleFrom(backgroundColor: const Color(0xFF0D9488)),
+                                    icon: const Icon(
+                                      Icons.add_rounded,
+                                      size: 16,
+                                    ),
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0D9488),
+                                    ),
                                     onPressed: () {
-                                      final cur = int.tryParse(qtyCtrl.text.trim()) ?? 1;
-                                      setSheetState(() => qtyCtrl.text = (cur + 1).toString());
+                                      final cur =
+                                          int.tryParse(qtyCtrl.text.trim()) ??
+                                          1;
+                                      setSheetState(
+                                        () =>
+                                            qtyCtrl.text = (cur + 1).toString(),
+                                      );
                                     },
-                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 32,
+                                      minHeight: 32,
+                                    ),
                                     padding: EdgeInsets.zero,
                                   ),
                                 ],
@@ -1996,24 +2679,43 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () async {
-                              final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                              final medName = nameCtrl.text.trim().isNotEmpty
+                                  ? nameCtrl.text.trim()
+                                  : 'Scanned Medicine';
                               final compVal = mfgCompanyCtrl.text.trim();
                               final bNo = batchCtrl.text.trim();
                               final mfgVal = mfgCtrl.text.trim();
                               final expVal = expCtrl.text.trim();
-                              final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
+                              final mrpVal =
+                                  double.tryParse(mrpCtrl.text.trim()) ?? 0.0;
                               final genSalt = genericCtrl.text.trim();
-                              final addStock = int.tryParse(qtyCtrl.text.trim()) ?? 10;
+                              final addStock =
+                                  int.tryParse(qtyCtrl.text.trim()) ?? 1;
 
                               final inv = context.read<InventoryProvider>();
-                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              final scaffoldMessenger = ScaffoldMessenger.of(
+                                context,
+                              );
+
+                              if (mrpVal <= 0) {
+                                scaffoldMessenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please enter valid MRP'),
+                                  ),
+                                );
+                                return;
+                              }
                               await inv.addMedicine(
                                 name: medName,
-                                genericName: genSalt.isNotEmpty ? genSalt : null,
+                                genericName: genSalt.isNotEmpty
+                                    ? genSalt
+                                    : null,
                                 category: 'Tablets',
-                                manufacturer: compVal.isNotEmpty ? compVal : res.manufacturer,
+                                manufacturer: compVal.isNotEmpty
+                                    ? compVal
+                                    : res.manufacturer,
                                 mrp: mrpVal,
-                                sellingPrice: mrpVal * 0.9,
+                                sellingPrice: mrpVal,
                                 stock: addStock,
                                 barcode: bNo.isNotEmpty ? bNo : null,
                                 batchNumber: bNo.isNotEmpty ? bNo : null,
@@ -2032,15 +2734,24 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                   backgroundColor: const Color(0xFFEA580C),
                                   behavior: SnackBarBehavior.floating,
                                   duration: const Duration(milliseconds: 2200),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   content: Row(
                                     children: [
-                                      const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 20),
+                                      const Icon(
+                                        Icons.inventory_2_rounded,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           '✓ $medName ના $addStock યુનિટ્સ [B: $bNo] સ્ટોકમાં જમા થયા! 📦',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -2054,13 +2765,18 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               backgroundColor: const Color(0xFFEA580C),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                               elevation: 2,
                             ),
                             icon: const Icon(Icons.add_box_rounded, size: 18),
                             label: const Text(
                               '📦 Add to Stock',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ),
@@ -2068,21 +2784,36 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () async {
-                              final medName = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Scanned Medicine';
+                              final medName = nameCtrl.text.trim().isNotEmpty
+                                  ? nameCtrl.text.trim()
+                                  : 'Scanned Medicine';
                               final compVal = mfgCompanyCtrl.text.trim();
                               final bNo = batchCtrl.text.trim();
                               final mfgVal = mfgCtrl.text.trim();
                               final expVal = expCtrl.text.trim();
-                              final mrpVal = double.tryParse(mrpCtrl.text.trim()) ?? 50.0;
+                              final mrpVal =
+                                  double.tryParse(mrpCtrl.text.trim()) ?? 0.0;
                               final genSalt = genericCtrl.text.trim();
                               final packVal = packCtrl.text.trim();
-                              final count = int.tryParse(qtyCtrl.text.trim()) ?? 1;
+                              final count =
+                                  int.tryParse(qtyCtrl.text.trim()) ?? 1;
 
                               // 1. Capture providers and sync to PC Billing instantly
                               final auth = context.read<AuthProvider>();
                               final inv = context.read<InventoryProvider>();
                               final billing = context.read<BillingProvider>();
-                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              final scaffoldMessenger = ScaffoldMessenger.of(
+                                context,
+                              );
+
+                              if (mrpVal <= 0) {
+                                scaffoldMessenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please enter valid MRP'),
+                                  ),
+                                );
+                                return;
+                              }
 
                               await MedicineBoxOcrService.syncBoxItemToPc(
                                 pharmacyId: auth.pharmacyId,
@@ -2093,21 +2824,31 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                 mrp: mrpVal,
                                 unitPrice: mrpVal,
                                 quantity: count,
-                                genericName: genSalt.isNotEmpty ? genSalt : null,
-                                strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
+                                genericName: genSalt.isNotEmpty
+                                    ? genSalt
+                                    : null,
+                                strength: strengthCtrl.text.trim().isNotEmpty
+                                    ? strengthCtrl.text.trim()
+                                    : null,
                                 packSize: packVal.isNotEmpty ? packVal : null,
                               );
 
                               // 2. Also register into Supabase inventory
                               await inv.addMedicine(
                                 name: medName,
-                                genericName: genSalt.isNotEmpty ? genSalt : null,
+                                genericName: genSalt.isNotEmpty
+                                    ? genSalt
+                                    : null,
                                 category: 'Tablets',
-                                strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
-                                manufacturer: compVal.isNotEmpty ? compVal : res.manufacturer,
+                                strength: strengthCtrl.text.trim().isNotEmpty
+                                    ? strengthCtrl.text.trim()
+                                    : null,
+                                manufacturer: compVal.isNotEmpty
+                                    ? compVal
+                                    : res.manufacturer,
                                 mrp: mrpVal,
-                                sellingPrice: mrpVal * 0.9,
-                                stock: 10,
+                                sellingPrice: mrpVal,
+                                stock: count,
                                 barcode: bNo.isNotEmpty ? bNo : null,
                                 batchNumber: bNo.isNotEmpty ? bNo : null,
                                 mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
@@ -2115,20 +2856,31 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               );
 
                               // 3. Add to mobile billing cart
-                              final med = inv.findByBarcode(bNo) ?? MedicineModel(
-                                id: 'box_${DateTime.now().millisecondsSinceEpoch}',
-                                name: medName,
-                                genericName: genSalt.isNotEmpty ? genSalt : null,
-                                manufacturer: compVal.isNotEmpty ? compVal : res.manufacturer,
-                                category: 'Tablets',
-                                strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
-                                mrp: mrpVal,
-                                sellingPrice: mrpVal * 0.9,
-                                stock: 10,
-                                batchNumber: bNo.isNotEmpty ? bNo : null,
-                                mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
-                                expiryDate: expVal.isNotEmpty ? expVal : null,
-                              );
+                              final med =
+                                  inv.findByBarcode(bNo) ??
+                                  MedicineModel(
+                                    id: 'box_${DateTime.now().millisecondsSinceEpoch}',
+                                    name: medName,
+                                    genericName: genSalt.isNotEmpty
+                                        ? genSalt
+                                        : null,
+                                    manufacturer: compVal.isNotEmpty
+                                        ? compVal
+                                        : res.manufacturer,
+                                    category: 'Tablets',
+                                    strength:
+                                        strengthCtrl.text.trim().isNotEmpty
+                                        ? strengthCtrl.text.trim()
+                                        : null,
+                                    mrp: mrpVal,
+                                    sellingPrice: mrpVal,
+                                    stock: count,
+                                    batchNumber: bNo.isNotEmpty ? bNo : null,
+                                    mfgDate: mfgVal.isNotEmpty ? mfgVal : null,
+                                    expiryDate: expVal.isNotEmpty
+                                        ? expVal
+                                        : null,
+                                  );
                               billing.addToCart(med, quantity: count);
 
                               if (ctx.mounted) {
@@ -2142,15 +2894,24 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                   backgroundColor: const Color(0xFF16A34A),
                                   behavior: SnackBarBehavior.floating,
                                   duration: const Duration(milliseconds: 2200),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   content: Row(
                                     children: [
-                                      const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                      const Icon(
+                                        Icons.check_circle_rounded,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           '✓ $medName (₹$mrpVal) [B: $bNo] ➔ Live બિલમાં એડ થઈ ગયું! 💻',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -2164,13 +2925,21 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               backgroundColor: const Color(0xFF16A34A),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                               elevation: 2,
                             ),
-                            icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
+                            icon: const Icon(
+                              Icons.shopping_cart_checkout_rounded,
+                              size: 18,
+                            ),
                             label: const Text(
                               '🛒 Add to Bill (Live)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ),
@@ -2231,12 +3000,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: _currentMode == StaffScannerMode.billing 
-                        ? AppColors.primary 
+                    backgroundColor: _currentMode == StaffScannerMode.billing
+                        ? AppColors.primary
                         : Colors.deepOrange,
                     child: Icon(
-                      _currentMode == StaffScannerMode.billing 
-                          ? Icons.point_of_sale_rounded 
+                      _currentMode == StaffScannerMode.billing
+                          ? Icons.point_of_sale_rounded
                           : Icons.inventory_2_rounded,
                       color: Colors.white,
                       size: 20,
@@ -2252,11 +3021,19 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           auth.pharmacyName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                         Text(
                           '${auth.userName} • ${auth.role}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -2264,7 +3041,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                   // Torch button
                   IconButton(
                     icon: Icon(
-                      _isTorchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                      _isTorchOn
+                          ? Icons.flash_on_rounded
+                          : Icons.flash_off_rounded,
                       color: _isTorchOn ? Colors.amber : Colors.white,
                     ),
                     onPressed: () {
@@ -2274,7 +3053,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                   ),
                   // Camera OCR scan for text-only strips/boxes without barcode
                   IconButton(
-                    icon: const Icon(Icons.camera_alt_rounded, color: Colors.white),
+                    icon: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                    ),
                     tooltip: '૨-સ્ટેપ પત્તું સ્કેનર (Front & Back Strip)',
                     onPressed: _startDirectBoxScan,
                   ),
@@ -2286,7 +3068,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                   ),
                   // Logout
                   IconButton(
-                    icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 20),
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
                     onPressed: _showLogoutConfirmDialog,
                   ),
                 ],
@@ -2304,24 +3090,29 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: Colors.white24,
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.white24, width: 1),
               ),
               child: Text(
                 _currentMode == StaffScannerMode.billing
                     ? '🎯 દવાના બારકોડ, QR અથવા બોક્સ સ્કેન કરો (POS બિલિંગ)'
                     : '📦 બારકોડ સ્કેન કરો અથવા ઉપર 📸 દબાવી આગળ-પાછળ ૨ ફોટા પાડો',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
 
           // 5. Mode Switcher (Billing vs Stock Inward)
           Positioned(
-            bottom: billing.itemCount > 0 && _currentMode == StaffScannerMode.billing ? 96 : 28,
+            bottom:
+                billing.itemCount > 0 &&
+                    _currentMode == StaffScannerMode.billing
+                ? 96
+                : 28,
             left: 20,
             right: 20,
             child: Container(
@@ -2343,7 +3134,9 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: _currentMode == StaffScannerMode.billing ? AppColors.primary : Colors.transparent,
+                          color: _currentMode == StaffScannerMode.billing
+                              ? AppColors.primary
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: Row(
@@ -2352,13 +3145,17 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             Icon(
                               Icons.shopping_cart_checkout_rounded,
                               size: 18,
-                              color: _currentMode == StaffScannerMode.billing ? Colors.white : Colors.white70,
+                              color: _currentMode == StaffScannerMode.billing
+                                  ? Colors.white
+                                  : Colors.white70,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Billing (બિલિંગ)',
                               style: TextStyle(
-                                color: _currentMode == StaffScannerMode.billing ? Colors.white : Colors.white70,
+                                color: _currentMode == StaffScannerMode.billing
+                                    ? Colors.white
+                                    : Colors.white70,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
@@ -2373,12 +3170,16 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     child: GestureDetector(
                       onTap: () {
                         HapticFeedback.selectionClick();
-                        setState(() => _currentMode = StaffScannerMode.stockInward);
+                        setState(
+                          () => _currentMode = StaffScannerMode.stockInward,
+                        );
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: _currentMode == StaffScannerMode.stockInward ? Colors.deepOrange : Colors.transparent,
+                          color: _currentMode == StaffScannerMode.stockInward
+                              ? Colors.deepOrange
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: Row(
@@ -2387,13 +3188,19 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             Icon(
                               Icons.inventory_2_rounded,
                               size: 18,
-                              color: _currentMode == StaffScannerMode.stockInward ? Colors.white : Colors.white70,
+                              color:
+                                  _currentMode == StaffScannerMode.stockInward
+                                  ? Colors.white
+                                  : Colors.white70,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Stock (ઇન્વેન્ટરી)',
                               style: TextStyle(
-                                color: _currentMode == StaffScannerMode.stockInward ? Colors.white : Colors.white70,
+                                color:
+                                    _currentMode == StaffScannerMode.stockInward
+                                    ? Colors.white
+                                    : Colors.white70,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
@@ -2417,7 +3224,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
               child: GestureDetector(
                 onTap: _showCartSheet,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(20),
@@ -2437,7 +3247,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.shopping_bag_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -2446,20 +3260,38 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         children: [
                           Text(
                             '${billing.itemCount} Items in Bill',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                           ),
                           Text(
                             'Total: ${_currency.format(billing.grandTotal)}',
-                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
                       const Spacer(),
                       const Row(
                         children: [
-                          Text('Checkout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                          Text(
+                            'Checkout',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                           SizedBox(width: 4),
-                          Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
                         ],
                       ),
                     ],
@@ -2504,7 +3336,10 @@ class _ScannerHolePainter extends CustomPainter {
     if (isFlashActive) {
       final flashFillPaint = Paint()
         ..color = const Color(0xFF22C55E).withValues(alpha: 0.20);
-      canvas.drawRRect(RRect.fromRectAndRadius(scanRect, const Radius.circular(24)), flashFillPaint);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(scanRect, const Radius.circular(24)),
+        flashFillPaint,
+      );
     }
 
     // Outer Target Rounded Rect
@@ -2514,7 +3349,10 @@ class _ScannerHolePainter extends CustomPainter {
           : Colors.white.withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = isFlashActive ? 3.0 : 2.0;
-    canvas.drawRRect(RRect.fromRectAndRadius(scanRect, const Radius.circular(24)), borderPaint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(scanRect, const Radius.circular(24)),
+      borderPaint,
+    );
 
     // 4 Corner Highlights
     final cornerPaint = Paint()
@@ -2526,20 +3364,52 @@ class _ScannerHolePainter extends CustomPainter {
     const cornerLen = 28.0;
 
     // Top-Left
-    canvas.drawLine(Offset(left, top + cornerLen), Offset(left, top + 14), cornerPaint);
-    canvas.drawLine(Offset(left + 14, top), Offset(left + cornerLen, top), cornerPaint);
+    canvas.drawLine(
+      Offset(left, top + cornerLen),
+      Offset(left, top + 14),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      Offset(left + 14, top),
+      Offset(left + cornerLen, top),
+      cornerPaint,
+    );
 
     // Top-Right
-    canvas.drawLine(Offset(left + scanSize - cornerLen, top), Offset(left + scanSize - 14, top), cornerPaint);
-    canvas.drawLine(Offset(left + scanSize, top + 14), Offset(left + scanSize, top + cornerLen), cornerPaint);
+    canvas.drawLine(
+      Offset(left + scanSize - cornerLen, top),
+      Offset(left + scanSize - 14, top),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      Offset(left + scanSize, top + 14),
+      Offset(left + scanSize, top + cornerLen),
+      cornerPaint,
+    );
 
     // Bottom-Left
-    canvas.drawLine(Offset(left, top + scanSize - cornerLen), Offset(left, top + scanSize - 14), cornerPaint);
-    canvas.drawLine(Offset(left + 14, top + scanSize), Offset(left + cornerLen, top + scanSize), cornerPaint);
+    canvas.drawLine(
+      Offset(left, top + scanSize - cornerLen),
+      Offset(left, top + scanSize - 14),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      Offset(left + 14, top + scanSize),
+      Offset(left + cornerLen, top + scanSize),
+      cornerPaint,
+    );
 
     // Bottom-Right
-    canvas.drawLine(Offset(left + scanSize - cornerLen, top + scanSize), Offset(left + scanSize - 14, top + scanSize), cornerPaint);
-    canvas.drawLine(Offset(left + scanSize, top + scanSize - cornerLen), Offset(left + scanSize, top + scanSize - 14), cornerPaint);
+    canvas.drawLine(
+      Offset(left + scanSize - cornerLen, top + scanSize),
+      Offset(left + scanSize - 14, top + scanSize),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      Offset(left + scanSize, top + scanSize - cornerLen),
+      Offset(left + scanSize, top + scanSize - 14),
+      cornerPaint,
+    );
 
     // Laser Line with glowing gradient
     final laserY = top + (scanSize * laserProgress);
@@ -2548,20 +3418,36 @@ class _ScannerHolePainter extends CustomPainter {
       ..strokeWidth = 2.5
       ..shader = themeGradient(isFlashActive, left, laserY, scanSize);
 
-    canvas.drawLine(Offset(left + 10, laserY), Offset(left + scanSize - 10, laserY), laserPaint);
+    canvas.drawLine(
+      Offset(left + 10, laserY),
+      Offset(left + scanSize - 10, laserY),
+      laserPaint,
+    );
   }
 
   Shader themeGradient(bool flash, double left, double y, double width) {
     return LinearGradient(
       colors: flash
-          ? [Colors.transparent, const Color(0xFF22C55E), Colors.green, const Color(0xFF22C55E), Colors.transparent]
-          : [Colors.transparent, Colors.redAccent, Colors.red, Colors.redAccent, Colors.transparent],
+          ? [
+              Colors.transparent,
+              const Color(0xFF22C55E),
+              Colors.green,
+              const Color(0xFF22C55E),
+              Colors.transparent,
+            ]
+          : [
+              Colors.transparent,
+              Colors.redAccent,
+              Colors.red,
+              Colors.redAccent,
+              Colors.transparent,
+            ],
     ).createShader(Rect.fromLTWH(left, y, width, 3));
   }
 
   @override
   bool shouldRepaint(covariant _ScannerHolePainter oldDelegate) {
-    return oldDelegate.laserProgress != laserProgress || oldDelegate.isFlashActive != isFlashActive;
+    return oldDelegate.laserProgress != laserProgress ||
+        oldDelegate.isFlashActive != isFlashActive;
   }
 }
-

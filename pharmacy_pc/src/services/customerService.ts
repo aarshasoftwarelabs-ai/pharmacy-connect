@@ -34,24 +34,32 @@ export const CustomerService = {
 
   getCustomerById: async (id: number): Promise<CustomerProfile> => {
     const response = await apiFetch(`${API_BASE_URL}/customers/${id}`);
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || data?.error || 'Failed to fetch customer');
+    return data;
   },
 
   getCustomerBills: async (id: number): Promise<any[]> => {
     const response = await apiFetch(`${API_BASE_URL}/customers/${id}/bills`);
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || data?.error || 'Failed to fetch customer bills');
+    return data;
   },
 
   getCustomerRequests: async (id: number): Promise<any[]> => {
     const response = await apiFetch(`${API_BASE_URL}/customers/${id}/requests`);
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || data?.error || 'Failed to fetch customer requests');
+    return data;
   },
 
-  updateCustomer: async (id: number, data: Partial<CustomerProfile>): Promise<CustomerProfile> => {
+  updateCustomer: async (id: number, payload: Partial<CustomerProfile>): Promise<CustomerProfile> => {
     const response = await apiFetch(`${API_BASE_URL}/customers/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || data?.error || 'Failed to update customer');
+    return data;
   }
 };

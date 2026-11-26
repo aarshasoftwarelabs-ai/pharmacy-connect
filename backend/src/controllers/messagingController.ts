@@ -12,10 +12,12 @@ export class MessagingController {
       const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.query.pharmacyId);
       const settings = await MessagingService.getSettings(pharmacyId);
       
-      // Mask sensitive secret keys if returning to client
+      // Mask sensitive secret keys before returning to client
+      const { whatsappAccessToken, ...rest } = settings;
       const safeSettings = {
-        ...settings,
-        whatsappAccessTokenMasked: settings.whatsappAccessToken ? `${settings.whatsappAccessToken.slice(0, 6)}••••` : ''
+        ...rest,
+        hasWhatsappAccessToken: Boolean(whatsappAccessToken),
+        whatsappAccessTokenMasked: whatsappAccessToken ? `${whatsappAccessToken.slice(0, 6)}••••` : ''
       };
 
       res.status(200).json({
@@ -34,10 +36,15 @@ export class MessagingController {
     try {
       const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.body.pharmacyId);
       const updated = await MessagingService.updateSettings(pharmacyId, req.body);
-      
+      const { whatsappAccessToken, ...rest } = updated;
+
       res.status(200).json({
         success: true,
-        data: updated,
+        data: {
+          ...rest,
+          hasWhatsappAccessToken: Boolean(whatsappAccessToken),
+          whatsappAccessTokenMasked: whatsappAccessToken ? `${whatsappAccessToken.slice(0, 6)}••••` : ''
+        },
         message: 'WhatsApp messaging settings saved successfully'
       });
     } catch (error) {

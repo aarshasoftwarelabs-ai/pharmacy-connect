@@ -190,10 +190,14 @@ export default function DashboardLayout() {
 
   return (
     <div className="h-screen h-[100dvh] bg-slate-50 flex overflow-hidden relative">
-      <Sidebar />
+      <div className="print:hidden flex">
+        <Sidebar />
+      </div>
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <Header pageTitle={title} subtitle={subtitle} />
-        <main className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-5 lg:px-6 pb-24 md:pb-6 relative">
+        <div className="print:hidden">
+          <Header pageTitle={title} subtitle={subtitle} />
+        </div>
+        <main className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-5 lg:px-6 pb-24 md:pb-6 relative print:overflow-visible print:p-0">
           <div className="w-full transition-all duration-300">
             {loading ? (
                <div className="flex justify-center items-center h-64">
@@ -265,7 +269,9 @@ export default function DashboardLayout() {
       </div>
 
       {/* Mobile Bottom Navigation Bar (Phones & Tablets < 768px) */}
-      <MobileBottomNav />
+      <div className="print:hidden">
+        <MobileBottomNav />
+      </div>
 
       {/* Global Notification Toast */}
       {notification && (

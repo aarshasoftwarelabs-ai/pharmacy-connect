@@ -9,7 +9,14 @@ export const PrescriptionController = {
   async upload(req: AuthenticatedRequest, res: Response) {
     const userId = req.user!.userId;
     const role = (req.user!.role || '').toUpperCase();
-    const { customerId, pharmacyId, fileUrl, fileName, mimeType, notes } = req.body;
+    const { customerId, fileUrl, fileName, mimeType, notes } = req.body;
+    const pharmacyId = role === 'USER' || role === 'ADMIN'
+      ? Number(req.body.pharmacyId)
+      : Number(req.user!.pharmacyId);
+
+    if (!Number.isInteger(pharmacyId) || pharmacyId <= 0) {
+      return res.status(400).json({ error: 'Valid pharmacyId is required' });
+    }
     
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
     if (!allowedMimeTypes.includes(mimeType)) {
@@ -17,13 +24,19 @@ export const PrescriptionController = {
     }
 
     try {
-      if (customerId && role === 'USER') {
+      if (customerId) {
         const custCheck = await pool.query(
-          'SELECT user_id FROM customer_profiles WHERE id = $1',
+          'SELECT user_id, pharmacy_id FROM customer_profiles WHERE id = $1',
           [Number(customerId)]
         );
-        if (custCheck.rows.length > 0 && Number(custCheck.rows[0].user_id) !== Number(userId)) {
-          return res.status(403).json({ error: 'Forbidden: Customer profile mismatch' });
+        if (custCheck.rows.length > 0) {
+          const row = custCheck.rows[0];
+          if (role === 'USER' && Number(row.user_id) !== Number(userId)) {
+            return res.status(403).json({ error: 'Forbidden: Customer profile mismatch' });
+          }
+          if (role !== 'USER' && role !== 'ADMIN' && Number(row.pharmacy_id) !== pharmacyId) {
+            return res.status(403).json({ error: 'Forbidden: Customer belongs to another pharmacy' });
+          }
         }
       }
       const result = await PrescriptionService.uploadPrescription(

@@ -81,7 +81,8 @@ export class PurchaseController {
     
     try {
       const pharmacyId = req.user!.pharmacyId;
-      const userId = req.user!.userId;
+      // stock_movements.created_by / purchase_invoices.created_by references users(id); null for staff logins
+      const createdByUserId = req.user!.isStaff ? null : (req.user!.userId ?? null);
       const {
         supplier_id, invoice_number, invoice_date, due_date,
         subtotal, discount, taxable_amount,
@@ -111,10 +112,14 @@ export class PurchaseController {
 
       await client.query('BEGIN');
 
-      const invSubtotal = parseFloat(subtotal) || 0;
-      const invGrandTotal = parseFloat(grand_total) || invSubtotal;
-      const invPaid = parseFloat(paid_amount) || 0;
-      const invBalance = balance_amount !== undefined ? parseFloat(balance_amount) : (invGrandTotal - invPaid);
+      const invSubtotal = Number.isFinite(parseFloat(subtotal)) ? parseFloat(subtotal) : 0;
+      const invGrandTotal = grand_total !== undefined && grand_total !== null && !isNaN(parseFloat(grand_total))
+        ? parseFloat(grand_total)
+        : invSubtotal;
+      const invPaid = Number.isFinite(parseFloat(paid_amount)) ? parseFloat(paid_amount) : 0;
+      const invBalance = balance_amount !== undefined && balance_amount !== null && !isNaN(parseFloat(balance_amount))
+        ? parseFloat(balance_amount)
+        : (invGrandTotal - invPaid);
       const invStatus = payment_status || (invBalance <= 0 ? 'PAID' : (invPaid > 0 ? 'PARTIAL' : 'PENDING'));
 
       // Create purchase invoice
@@ -128,8 +133,8 @@ export class PurchaseController {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
         [
           pharmacyId, supplier_id, invoice_number, invoice_date || new Date().toISOString().split('T')[0], finalDueDate,
-          invSubtotal, discount || 0, taxable_amount || invSubtotal, cgst_amount || 0, sgst_amount || 0, igst_amount || 0, total_tax || 0,
-          round_off || 0, invGrandTotal, invPaid, invBalance, invStatus, notes || null, userId
+          invSubtotal, discount ?? 0, taxable_amount ?? invSubtotal, cgst_amount ?? 0, sgst_amount ?? 0, igst_amount ?? 0, total_tax ?? 0,
+          round_off ?? 0, invGrandTotal, invPaid, invBalance, invStatus, notes || null, createdByUserId
         ]
       );
       
@@ -158,10 +163,16 @@ export class PurchaseController {
           if (medFind.rows.length > 0) {
             medicineId = medFind.rows[0].id;
           } else {
+            const autoPPrice = parseFloat(item.purchase_price) || 0;
+            const autoMrp = parseFloat(item.mrp) || autoPPrice;
+            const autoSelling = parseFloat(item.selling_price) || autoMrp;
+            const autoGst = item.gst_rate !== undefined && item.gst_rate !== null && !isNaN(Number(item.gst_rate))
+              ? Number(item.gst_rate)
+              : 12;
             const medInsert = await client.query(
-              `INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, current_stock)
-               VALUES ($1, $2, $3, $4, $5, 0) RETURNING id`,
-              [pharmacyId, item.medicine_name.trim(), item.manufacturer || 'Pharma Co.', item.hsn_code || '30049099', item.unit || 'Strip']
+              `INSERT INTO medicines (pharmacy_id, name, manufacturer, hsn_code, unit, mrp, selling_price, gst_rate, current_stock)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0) RETURNING id`,
+              [pharmacyId, item.medicine_name.trim(), item.manufacturer || 'Pharma Co.', item.hsn_code || '30049099', item.unit || 'Strip', autoMrp, autoSelling, autoGst]
             );
             medicineId = medInsert.rows[0].id;
           }
@@ -243,12 +254,16 @@ export class PurchaseController {
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             pharmacyId, medicineId, batchId, 'PURCHASE', 'PURCHASE_INVOICE',
-            invoiceId, totalQty, previousQuantity, previousQuantity + totalQty, userId
+            invoiceId, totalQty, previousQuantity, previousQuantity + totalQty, createdByUserId
           ]
         );
 
         // Insert purchase item
-        const itemTotal = parseFloat(item.total_amount) || (pPrice * itemQty);
+        const parsedItemTotal = parseFloat(item.total_amount);
+        const itemTotal = Number.isFinite(parsedItemTotal) ? parsedItemTotal : (pPrice * itemQty);
+        const itemGst = item.gst_rate !== undefined && item.gst_rate !== null && !isNaN(Number(item.gst_rate))
+          ? Number(item.gst_rate)
+          : 12;
         await client.query(
           `INSERT INTO purchase_items (
             purchase_invoice_id, medicine_id, batch_id, batch_number, expiry_date,
@@ -258,8 +273,8 @@ export class PurchaseController {
           [
             invoiceId, medicineId, batchId, batchNum, expDate,
             itemQty, freeQty, pPrice, pMrp, pSelling,
-            item.discount || 0, item.taxable_amount || itemTotal, item.gst_rate || 12,
-            item.cgst_amount || 0, item.sgst_amount || 0, item.igst_amount || 0, itemTotal
+            item.discount ?? 0, item.taxable_amount ?? itemTotal, itemGst,
+            item.cgst_amount ?? 0, item.sgst_amount ?? 0, item.igst_amount ?? 0, itemTotal
           ]
         );
       }

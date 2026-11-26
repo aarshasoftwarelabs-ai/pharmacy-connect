@@ -16,7 +16,9 @@ export interface RefillReminder {
 export const RefillService = {
   calculateRefills: async (): Promise<{ success: boolean, count: number }> => {
     const response = await apiFetch(`${API_BASE_URL}/refills/calculate`, { method: 'POST' });
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || data?.error || 'Failed to calculate refills');
+    return data;
   },
 
   getPharmacyReminders: async (status?: string): Promise<RefillReminder[]> => {
@@ -24,7 +26,9 @@ export const RefillService = {
     if (status && status !== 'All') params.append('status', status);
     
     const response = await apiFetch(`${API_BASE_URL}/refills?${params.toString()}`);
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || data?.error || 'Failed to load refill reminders');
+    return data;
   },
 
   updateReminderStatus: async (id: number, status: string): Promise<RefillReminder> => {
@@ -32,6 +36,8 @@ export const RefillService = {
       method: 'PUT',
       body: JSON.stringify({ status })
     });
-    return await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || data?.error || 'Failed to update reminder');
+    return data;
   }
 };

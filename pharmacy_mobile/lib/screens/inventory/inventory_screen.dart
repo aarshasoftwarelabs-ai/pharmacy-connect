@@ -9,6 +9,7 @@ import '../../core/api/api_service.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/billing_provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../core/services/barcode_medicine_service.dart';
 import '../billing/camera_barcode_scanner_screen.dart';
 
@@ -2278,7 +2279,7 @@ class InventoryScreen extends StatelessWidget {
                         final buffer = StringBuffer();
                         buffer.writeln('📦 *PURCHASE ORDER (કમી-બુક / SHORTAGE)*');
                         buffer.writeln('📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}');
-                        buffer.writeln('🏪 Store: PharmacyConnect');
+                        buffer.writeln('🏪 Store: ${context.read<AuthProvider>().pharmacyName}');
                         buffer.writeln('------------------------------------');
                         for (int i = 0; i < selectedItems.length; i++) {
                           final m = selectedItems[i];

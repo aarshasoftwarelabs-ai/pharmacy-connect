@@ -33,6 +33,14 @@ class DavaSetuApp extends StatelessWidget {
       ],
       child: Consumer<AuthProvider>(
         builder: (context, auth, _) {
+          // Wire session-cleared callback to clear sibling providers
+          auth.onSessionCleared ??= () {
+            try {
+              context.read<BillingProvider>().clearSessionData();
+              context.read<InventoryProvider>().clearSessionData();
+              context.read<SubscriptionProvider>().clearSessionData();
+            } catch (_) {}
+          };
           return MaterialApp(
             title: 'DavaSetu Pharmacy',
             debugShowCheckedModeBanner: false,

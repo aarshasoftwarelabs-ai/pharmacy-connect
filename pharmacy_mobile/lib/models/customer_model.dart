@@ -23,20 +23,27 @@ class CustomerModel {
     this.isRefillDue = false,
   });
 
+  static int _parseInt(dynamic val) {
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    return int.tryParse(val?.toString() ?? '') ?? 0;
+  }
+
+  static double _parseDouble(dynamic val) {
+    if (val is num) return val.toDouble();
+    return double.tryParse(val?.toString() ?? '') ?? 0.0;
+  }
+
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
     return CustomerModel(
-      id: json['id'] is int ? json['id'] : int.tryParse('${json['id']}') ?? 0,
-      displayName: json['display_name'] ?? json['name'] ?? 'Customer',
+      id: _parseInt(json['id']),
+      displayName: json['display_name']?.toString() ?? json['name']?.toString() ?? 'Customer',
       phone: json['phone']?.toString(),
       email: json['email']?.toString(),
       address: json['address']?.toString(),
       notes: json['notes']?.toString(),
-      totalBills: json['total_bills'] is int
-          ? json['total_bills']
-          : int.tryParse('${json['total_bills']}') ?? 0,
-      totalSpend: json['total_spend'] != null
-          ? (json['total_spend'] as num).toDouble()
-          : 0.0,
+      totalBills: _parseInt(json['total_bills']),
+      totalSpend: _parseDouble(json['total_spend']),
       lastPurchaseDate: json['last_purchase_date']?.toString(),
       isRefillDue: json['refill_due'] == true || json['is_refill_due'] == true,
     );
