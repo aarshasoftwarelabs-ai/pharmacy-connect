@@ -171,6 +171,15 @@ class ThermalPrinterService {
     final dateStr = billData['date'] ?? DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now());
     final customerName = billData['customer_name'] ?? billData['customerName'] ?? 'Walk-in Customer';
     final customerPhone = billData['customer_phone'] ?? billData['customerPhone'] ?? '';
+    final paymentStatus = (billData['payment_status'] ?? billData['paymentStatus'] ?? 'PAID').toString().toUpperCase();
+
+    if (paymentStatus == 'CANCELLED') {
+      bytes += generator.text(
+        '*** CANCELLED / RETURNED ***',
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      );
+      bytes += generator.hr(ch: '-');
+    }
 
     bytes += generator.row([
       PosColumn(text: 'Bill: $billNo', width: 6, styles: const PosStyles(bold: true)),
@@ -241,17 +250,29 @@ class ThermalPrinterService {
     // Totals
     final discount = double.tryParse((billData['discount'] ?? 0).toString()) ?? 0.0;
     final total = double.tryParse((billData['total'] ?? billData['total_amount'] ?? subtotal).toString()) ?? subtotal;
+    final effectiveSubtotal = subtotal > 0
+        ? subtotal
+        : (double.tryParse((billData['subtotal'] ?? total).toString()) ?? total);
+    final totalGst = double.tryParse((billData['total_gst'] ?? billData['totalGst'] ?? billData['tax'] ?? 0).toString()) ?? 0.0;
     final paymentMode = billData['payment_mode'] ?? billData['paymentMode'] ?? 'CASH';
+    final paymentStatusLabel = (billData['payment_status'] ?? billData['paymentStatus'] ?? 'PAID').toString().toUpperCase();
 
     bytes += generator.row([
       PosColumn(text: 'Subtotal:', width: 7),
-      PosColumn(text: 'Rs.${subtotal.toStringAsFixed(2)}', width: 5, styles: const PosStyles(align: PosAlign.right)),
+      PosColumn(text: 'Rs.${effectiveSubtotal.toStringAsFixed(2)}', width: 5, styles: const PosStyles(align: PosAlign.right)),
     ]);
 
     if (discount > 0) {
       bytes += generator.row([
         PosColumn(text: 'Discount:', width: 7),
         PosColumn(text: '-Rs.${discount.toStringAsFixed(2)}', width: 5, styles: const PosStyles(align: PosAlign.right)),
+      ]);
+    }
+
+    if (totalGst > 0) {
+      bytes += generator.row([
+        PosColumn(text: 'GST Included:', width: 7),
+        PosColumn(text: 'Rs.${totalGst.toStringAsFixed(2)}', width: 5, styles: const PosStyles(align: PosAlign.right)),
       ]);
     }
 
@@ -272,7 +293,7 @@ class ThermalPrinterService {
     ]);
 
     bytes += generator.hr(ch: '-');
-    bytes += generator.text('Payment: $paymentMode', styles: const PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.text('Payment: $paymentMode ($paymentStatusLabel)', styles: const PosStyles(align: PosAlign.center, bold: true));
     bytes += generator.feed(1);
 
     // Footer
@@ -378,9 +399,12 @@ class ThermalPrinterService {
     final customerName = billData['customer_name'] ?? billData['customerName'] ?? 'Walk-in Customer';
     final customerPhone = billData['customer_phone'] ?? billData['customerPhone'] ?? '';
     final List items = (billData['items'] as List?) ?? [];
+    final itemsSummary = billData['items_summary']?.toString() ?? '';
     final discount = double.tryParse((billData['discount'] ?? 0).toString()) ?? 0.0;
+    final totalGst = double.tryParse((billData['total_gst'] ?? billData['totalGst'] ?? billData['tax'] ?? 0).toString()) ?? 0.0;
     final total = double.tryParse((billData['total'] ?? billData['total_amount'] ?? 0).toString()) ?? 0.0;
     final paymentMode = billData['payment_mode'] ?? billData['paymentMode'] ?? 'CASH';
+    final paymentStatus = (billData['payment_status'] ?? billData['paymentStatus'] ?? 'PAID').toString().toUpperCase();
 
     doc.addPage(
       pw.Page(
@@ -404,7 +428,9 @@ class ThermalPrinterService {
                 pw.Text('D.L. No: $dlNo', style: const pw.TextStyle(fontSize: 8)),
               pw.Divider(thickness: 1, height: 8),
               pw.Text(
-                is58 ? 'RETAIL PHARMACY SLIP' : 'RETAIL TAX INVOICE',
+                paymentStatus == 'CANCELLED'
+                    ? 'CANCELLED / RETURNED SLIP'
+                    : (is58 ? 'RETAIL PHARMACY SLIP' : 'RETAIL TAX INVOICE'),
                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
               ),
               pw.Divider(thickness: 0.5, height: 6),
@@ -437,7 +463,7 @@ class ThermalPrinterService {
               ...items.map((it) {
                 final name = (it['medicine_name'] ?? it['medicineName'] ?? it['name'] ?? 'Item').toString();
                 final qty = (it['quantity'] ?? it['qty'] ?? 1).toString();
-                final amt = double.tryParse((it['total'] ?? it['line_total'] ?? 0).toString()) ?? 0.0;
+                final amt = double.tryParse((it['total'] ?? it['line_total'] ?? it['lineTotal'] ?? 0).toString()) ?? 0.0;
                 return pw.Padding(
                   padding: const pw.EdgeInsets.symmetric(vertical: 1),
                   child: pw.Row(
@@ -450,6 +476,11 @@ class ThermalPrinterService {
                   ),
                 );
               }),
+              if (items.isEmpty && itemsSummary.isNotEmpty)
+                pw.Align(
+                  alignment: pw.Alignment.centerLeft,
+                  child: pw.Text(itemsSummary, style: const pw.TextStyle(fontSize: 7.5)),
+                ),
               pw.Divider(thickness: 0.5, height: 6),
               if (discount > 0)
                 pw.Row(
@@ -457,6 +488,14 @@ class ThermalPrinterService {
                   children: [
                     pw.Text('Discount:', style: const pw.TextStyle(fontSize: 8)),
                     pw.Text('-Rs.${discount.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 8)),
+                  ],
+                ),
+              if (totalGst > 0)
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('GST Included:', style: const pw.TextStyle(fontSize: 8)),
+                    pw.Text('Rs.${totalGst.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 8)),
                   ],
                 ),
               pw.Row(
@@ -467,7 +506,7 @@ class ThermalPrinterService {
                 ],
               ),
               pw.Divider(thickness: 1, height: 8),
-              pw.Text('Payment: $paymentMode', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8)),
+              pw.Text('Payment: $paymentMode ($paymentStatus)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8)),
               pw.SizedBox(height: 4),
               pw.Text('Wish you a speedy recovery!', style: const pw.TextStyle(fontSize: 7.5)),
               pw.Text('Powered by DavaSetu', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 7.5)),

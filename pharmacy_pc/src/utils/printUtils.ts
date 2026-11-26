@@ -174,10 +174,11 @@ export const generateA4PrintHTML = (
         <div class="header-section">
           ${brandHeader}
           <div class="invoice-details">
-            <h2>INVOICE</h2>
+            <h2>${bill.paymentStatus === 'CANCELLED' ? 'CANCELLED BILL' : 'INVOICE'}</h2>
             <p><strong>Bill No:</strong> ${bill.billNumber}</p>
             <p><strong>Date:</strong> ${new Date(bill.createdAt).toLocaleDateString()}</p>
             <p><strong>Type:</strong> ${isOnline ? 'App Order (Online)' : 'Direct Sale (POS)'}</p>
+            <p><strong>Status:</strong> ${bill.paymentStatus === 'CANCELLED' ? 'CANCELLED / RETURNED' : (bill.paymentStatus === 'UNPAID' ? 'UNPAID (UDHAR)' : 'PAID')}</p>
           </div>
         </div>
 
@@ -314,9 +315,10 @@ export const generateThermalPrintHTML = (
     <body>
       <div class="center">
         <h2 style="margin: 0; font-size: ${titleSize}; text-transform: uppercase;">${displayName}</h2>
-        <p style="margin: 1px 0; font-size: 9px;">${is58mm ? 'RETAIL PHARMACY SLIP' : 'RETAIL PHARMACY TAX INVOICE'}</p>
+        <p style="margin: 1px 0; font-size: 9px;">${bill.paymentStatus === 'CANCELLED' ? '*** CANCELLED / RETURNED ***' : (is58mm ? 'RETAIL PHARMACY SLIP' : 'RETAIL PHARMACY TAX INVOICE')}</p>
         <p style="margin: 2px 0;">Bill No: <strong>${bill.billNumber}</strong></p>
         <p style="margin: 1px 0;">Date: ${new Date(bill.createdAt).toLocaleDateString()} ${new Date(bill.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+        <p style="margin: 1px 0; font-size: 9px;">Status: <strong>${bill.paymentStatus === 'CANCELLED' ? 'CANCELLED' : (bill.paymentStatus === 'UNPAID' ? 'UNPAID (UDHAR)' : 'PAID')}</strong></p>
       </div>
 
       <div class="divider"></div>
@@ -396,7 +398,9 @@ export const generateB2BPrintHTML = (
   bill: Bill, 
   pharmacyName: string = 'PharmacyConnect', 
   ownerName: string = 'Owner',
-  autoPrint: boolean = true
+  autoPrint: boolean = true,
+  gstin: string = '',
+  dlNo: string = ''
 ) => {
   return `
     <!DOCTYPE html>
@@ -427,7 +431,7 @@ export const generateB2BPrintHTML = (
     </head>
     <body>
       <div class="a4-container">
-        <h1 class="invoice-title">Tax Invoice</h1>
+        <h1 class="invoice-title">${bill.paymentStatus === 'CANCELLED' ? 'Cancelled / Returned Tax Invoice' : 'Tax Invoice'}</h1>
         
         <div class="flex" style="margin-bottom: 10px;">
           <div style="width: 50%;">
@@ -435,8 +439,8 @@ export const generateB2BPrintHTML = (
               <h3 style="margin: 0 0 5px 0; font-size: 14px;">Seller / Pharmacy</h3>
               <p style="margin: 2px 0; font-size: 16px;" class="font-bold">${pharmacyName}</p>
               <p style="margin: 2px 0; font-size: 11px;">Proprietor: ${ownerName}</p>
-              <p style="margin: 2px 0; font-size: 11px;">GSTIN: <strong>24XXXXX0000X1Z5</strong></p>
-              <p style="margin: 2px 0; font-size: 11px;">DL No: <strong>GJ-AHD-XXXXX</strong></p>
+              ${gstin ? `<p style="margin: 2px 0; font-size: 11px;">GSTIN: <strong>${gstin}</strong></p>` : ''}
+              ${dlNo ? `<p style="margin: 2px 0; font-size: 11px;">DL No: <strong>${dlNo}</strong></p>` : ''}
             </div>
           </div>
           <div style="width: 48%;">
@@ -444,7 +448,7 @@ export const generateB2BPrintHTML = (
               <h3 style="margin: 0 0 5px 0; font-size: 14px;">Invoice Details</h3>
               <p style="margin: 2px 0; font-size: 12px;">Invoice No: <strong>${bill.billNumber}</strong></p>
               <p style="margin: 2px 0; font-size: 12px;">Date: <strong>${new Date(bill.createdAt).toLocaleDateString()}</strong></p>
-              <p style="margin: 2px 0; font-size: 12px;">Type: <strong>Credit Sale</strong></p>
+              <p style="margin: 2px 0; font-size: 12px;">Status: <strong>${bill.paymentStatus === 'CANCELLED' ? 'CANCELLED / RETURNED' : (bill.paymentStatus === 'UNPAID' ? 'UNPAID (UDHAR)' : 'PAID')}</strong></p>
             </div>
           </div>
         </div>
@@ -546,6 +550,8 @@ export const printBill = async (
 ): Promise<{ success: boolean; silent?: boolean; error?: string }> => {
   let pharmacyName = defaultPharmacyName;
   let ownerName = defaultOwnerName;
+  let pharmacyGstin = '';
+  let pharmacyDlNo = '';
   
   try {
     const localData = localStorage.getItem('pharmacy_profile_data');
@@ -553,6 +559,8 @@ export const printBill = async (
       const profile = JSON.parse(localData);
       if (profile.name) pharmacyName = profile.name;
       if (profile.ownerName) ownerName = profile.ownerName;
+      if (profile.gstin) pharmacyGstin = String(profile.gstin);
+      if (profile.regNo) pharmacyDlNo = String(profile.regNo);
     }
   } catch (e) {}
 
@@ -577,7 +585,7 @@ export const printBill = async (
     let widthType: '58MM' | '80MM' | 'A4' = '80MM';
 
     if (chosenFormat === 'B2B_A4') {
-      silentHtml = generateB2BPrintHTML(bill, pharmacyName, ownerName, false);
+      silentHtml = generateB2BPrintHTML(bill, pharmacyName, ownerName, false, pharmacyGstin, pharmacyDlNo);
       widthType = 'A4';
     } else if (chosenFormat === 'A4') {
       silentHtml = generateA4PrintHTML(bill, pharmacyName, ownerName, false);
@@ -616,7 +624,7 @@ export const printBill = async (
   
   let html = '';
   if (chosenFormat === 'B2B_A4') {
-    html = generateB2BPrintHTML(bill, pharmacyName, ownerName, true);
+    html = generateB2BPrintHTML(bill, pharmacyName, ownerName, true, pharmacyGstin, pharmacyDlNo);
   } else if (chosenFormat === 'A4') {
     html = generateA4PrintHTML(bill, pharmacyName, ownerName, true);
   } else if (chosenFormat === 'THERMAL_58MM') {

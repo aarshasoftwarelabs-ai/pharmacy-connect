@@ -252,6 +252,7 @@ class BillingProvider extends ChangeNotifier {
           'date': 'Today, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
           'payment_mode': _paymentMode,
           'payment_status': resolvedPaymentStatus,
+          'items': _cartItems.map((e) => e.toJson(_generalDiscountPercent, _isMrpInclusive)).toList(),
           'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
         };
         _lastBill = billRecord;
@@ -279,6 +280,7 @@ class BillingProvider extends ChangeNotifier {
           'date': 'Today, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
           'payment_mode': _paymentMode,
           'payment_status': resolvedPaymentStatus,
+          'items': _cartItems.map((e) => e.toJson(_generalDiscountPercent, _isMrpInclusive)).toList(),
           'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
           'is_offline': true,
         };
@@ -316,6 +318,7 @@ class BillingProvider extends ChangeNotifier {
         'date': 'Today, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
         'payment_mode': _paymentMode,
         'payment_status': resolvedPaymentStatus,
+        'items': _cartItems.map((e) => e.toJson(_generalDiscountPercent, _isMrpInclusive)).toList(),
         'items_summary': _cartItems.map((e) => '• ${e.medicine.name} x${e.quantity} = ₹${e.netTotal.toStringAsFixed(2)}').join('\n'),
         'is_offline': true,
       };
@@ -447,6 +450,7 @@ class BillingProvider extends ChangeNotifier {
               'raw_date': rawDate,
               'payment_mode': billMap['billType']?.toString() ?? 'POS',
               'payment_status': billMap['paymentStatus']?.toString() ?? 'PAID',
+              'items': itemsList,
               'items_summary': itemsSummary,
             });
           }

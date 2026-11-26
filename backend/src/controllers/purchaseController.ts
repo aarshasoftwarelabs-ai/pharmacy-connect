@@ -139,6 +139,16 @@ export class PurchaseController {
       for (const item of items) {
         let medicineId = item.medicine_id ? parseInt(item.medicine_id) : null;
 
+        if (medicineId) {
+          const ownMedCheck = await client.query(
+            'SELECT id FROM medicines WHERE id = $1 AND pharmacy_id = $2',
+            [medicineId, pharmacyId]
+          );
+          if (ownMedCheck.rows.length === 0) {
+            throw new Error(`Medicine ID ${medicineId} not found in this pharmacy store`);
+          }
+        }
+
         // Auto find or create medicine if needed
         if (!medicineId && item.medicine_name) {
           const medFind = await client.query(
@@ -198,8 +208,8 @@ export class PurchaseController {
                  mrp = $3,
                  selling_price = $4,
                  expiry_date = $5
-             WHERE id = $6`,
-            [totalQty, effectivePrice, pMrp, pSelling, expDate, batchId]
+             WHERE id = $6 AND pharmacy_id = $7`,
+            [totalQty, effectivePrice, pMrp, pSelling, expDate, batchId, pharmacyId]
           );
         } else {
           const newBatch = await client.query(
@@ -221,8 +231,8 @@ export class PurchaseController {
            SET current_stock = COALESCE(current_stock, 0) + $1,
                purchase_price = $2,
                updated_at = NOW()
-           WHERE id = $3`,
-          [totalQty, effectivePrice, medicineId]
+           WHERE id = $3 AND pharmacy_id = $4`,
+          [totalQty, effectivePrice, medicineId, pharmacyId]
         );
 
         // Record stock movement
