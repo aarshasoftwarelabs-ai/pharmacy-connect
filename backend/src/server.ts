@@ -3,25 +3,31 @@ import { env } from './config/env';
 import pool, { checkDatabaseHealth } from './config/database';
 import { ensureSchema } from './scripts/ensureSchema';
 
-const startServer = async () => {
+const startServer = () => {
   try {
-    // Optional: Check database connection before fully starting up
-    const isDbConnected = await checkDatabaseHealth();
-    if (isDbConnected) {
-      console.log('✅ Successfully connected to the database.');
-      await ensureSchema();
-    } else {
-      console.warn('⚠️ WARNING: Database connection failed during startup.');
-    }
-
-    // Start listening on all network interfaces
+    // Bind HTTP port immediately so cloud platforms (Render) detect the open port in <1s
     const server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log(`🚀 Server is running on http://0.0.0.0:${env.PORT} in ${env.NODE_ENV} mode.`);
     });
 
-    // Initialize Socket.io
+    // Initialize Socket.io on the bound HTTP server
     const { initializeSocket } = require('./socket');
     initializeSocket(server);
+
+    // Run database health & idempotent schema verification in the background without blocking startup
+    void (async () => {
+      try {
+        const dbHealth = await checkDatabaseHealth();
+        if (dbHealth.healthy) {
+          console.log('✅ Successfully connected to the database.');
+          await ensureSchema();
+        } else {
+          console.warn('⚠️ WARNING: Database connection check failed during startup:', dbHealth.error);
+        }
+      } catch (dbErr) {
+        console.error('⚠️ Startup schema check error:', dbErr);
+      }
+    })();
 
     // Handle graceful shutdown
     const shutdown = async () => {
