@@ -11,6 +11,7 @@ import '../../widgets/bluetooth_printer_modal.dart';
 import '../../widgets/messaging_gateway_modal.dart';
 import '../../core/services/thermal_printer_service.dart';
 import '../auth/login_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -653,6 +654,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               const SizedBox(height: 3),
                               const Text(
                                 'Auto-sends digital receipts to customer WhatsApp',
+                                style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 22),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 4.7 Privacy Policy & Compliance
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.cardBorder),
+                boxShadow: AppColors.softShadow,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDFA),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFF99F6E4)),
+                          ),
+                          child: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Privacy Policy & App Rules',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                              ),
+                              SizedBox(height: 3),
+                              Text(
+                                'Permissions, data safety & pharmacy compliance',
                                 style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
                               ),
                             ],

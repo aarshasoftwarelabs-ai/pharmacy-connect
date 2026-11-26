@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../staff/staff_scanner_screen.dart';
+import '../settings/privacy_policy_screen.dart';
 import 'otp_verification_screen.dart';
 import 'signup_screen.dart';
 
@@ -701,7 +702,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.privacy_tip_outlined, size: 15, color: AppColors.textMuted),
+                    label: const Text(
+                      'Privacy Policy & App Permissions',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        decoration: TextDecoration.underline,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
