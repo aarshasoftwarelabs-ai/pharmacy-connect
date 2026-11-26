@@ -96,10 +96,7 @@ export default function Sidebar() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('pharmacy_profile_data');
-    window.dispatchEvent(new Event('auth_updated'));
+    import('../../config/api').then(({ clearAuthStorage }) => clearAuthStorage());
     setShowLogoutModal(false);
     navigate('/login');
   };

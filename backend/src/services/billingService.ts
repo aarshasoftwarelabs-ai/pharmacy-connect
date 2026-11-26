@@ -61,9 +61,16 @@ export class BillingService {
   }
 
   /**
-   * Get a single bill by ID
+   * Get a single bill by ID (scoped to pharmacyId when provided)
    */
-  static async getBillById(billId: number) {
+  static async getBillById(billId: number, pharmacyId?: number) {
+    const params: any[] = [billId];
+    let pharmacyFilter = '';
+    if (pharmacyId !== undefined && Number.isInteger(pharmacyId) && pharmacyId > 0) {
+      params.push(pharmacyId);
+      pharmacyFilter = ' AND b.pharmacy_id = $2';
+    }
+
     const billQuery = `
       SELECT b.id, b.bill_number AS "billNumber", b.medicine_request_id AS "medicineRequestId",
              b.user_id AS "userId", b.pharmacy_id AS "pharmacyId", b.customer_name AS "customerName",
@@ -77,9 +84,9 @@ export class BillingService {
       LEFT JOIN users u ON b.user_id = u.id
       LEFT JOIN medicine_requests mr ON b.medicine_request_id = mr.id
       LEFT JOIN users mr_u ON mr.user_id = mr_u.id
-      WHERE b.id = $1
+      WHERE b.id = $1${pharmacyFilter}
     `;
-    const billResult = await pool.query(billQuery, [billId]);
+    const billResult = await pool.query(billQuery, params);
     
     if (billResult.rows.length === 0) {
       const error = new Error('Bill not found') as ApiError;
@@ -493,7 +500,7 @@ export class BillingService {
 
       await client.query('COMMIT');
       
-      return this.getBillById(newBillId);
+      return this.getBillById(newBillId, data.pharmacyId);
     } catch (error: any) {
       await client.query('ROLLBACK');
       const apiError = new Error(error.message || 'Failed to create bill') as ApiError;
@@ -513,8 +520,14 @@ export class BillingService {
     cashCollectionStatus?: string;
     cashCollectedAmount?: number;
     deliveryNotes?: string;
-  }) {
-    const billCheck = await pool.query('SELECT id, total, payment_status FROM bills WHERE id = $1', [billId]);
+  }, pharmacyId?: number) {
+    const checkParams: any[] = [billId];
+    let checkScope = '';
+    if (pharmacyId !== undefined && Number.isInteger(pharmacyId) && pharmacyId > 0) {
+      checkParams.push(pharmacyId);
+      checkScope = ' AND pharmacy_id = $2';
+    }
+    const billCheck = await pool.query(`SELECT id, total, payment_status FROM bills WHERE id = $1${checkScope}`, checkParams);
     if (billCheck.rows.length === 0) {
       const error = new Error('Bill not found') as ApiError;
       error.statusCode = 404;
@@ -543,6 +556,20 @@ export class BillingService {
       paymentStatusClause = ", payment_status = 'PAID'";
     }
 
+    const updateParams: any[] = [
+      data.deliveryStaffId !== undefined ? data.deliveryStaffId : null,
+      deliveryStatus,
+      cashCollectionStatus,
+      cashCollectedAmount,
+      data.deliveryNotes || null,
+      billId
+    ];
+    let updateScope = '';
+    if (pharmacyId !== undefined && Number.isInteger(pharmacyId) && pharmacyId > 0) {
+      updateParams.push(pharmacyId);
+      updateScope = ' AND pharmacy_id = $7';
+    }
+
     const query = `
       UPDATE bills
       SET delivery_staff_id = $1,
@@ -553,18 +580,11 @@ export class BillingService {
           ${assignedAtClause}
           ${deliveredAtClause}
           ${paymentStatusClause}
-      WHERE id = $6
+      WHERE id = $6${updateScope}
     `;
 
-    await pool.query(query, [
-      data.deliveryStaffId !== undefined ? data.deliveryStaffId : null,
-      deliveryStatus,
-      cashCollectionStatus,
-      cashCollectedAmount,
-      data.deliveryNotes || null,
-      billId
-    ]);
+    await pool.query(query, updateParams);
 
-    return this.getBillById(billId);
+    return this.getBillById(billId, pharmacyId);
   }
 }

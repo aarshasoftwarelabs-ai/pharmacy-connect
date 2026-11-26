@@ -81,6 +81,20 @@ class StorageService {
     await _prefs?.remove(_tokenKey);
     await _prefs?.remove(_userKey);
     await _prefs?.remove(_pharmacyKey);
+    // Remove legacy un-scoped offline keys so cached data never crosses stores
+    await _prefs?.remove('offline_bills_queue');
+    await _prefs?.remove('offline_cached_medicines');
     await _prefs?.reload();
+  }
+
+  /// Strictly resolves the authenticated pharmacy ID from active storage (returns 0 if unauthenticated).
+  static int getCurrentPharmacyId() {
+    final pharmacyData = getPharmacy();
+    final userData = getUser();
+    final id = int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
+        int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
+        int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
+        0;
+    return id > 0 ? id : 0;
   }
 }

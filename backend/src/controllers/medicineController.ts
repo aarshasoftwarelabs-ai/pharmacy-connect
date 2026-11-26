@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { MedicineService } from '../services/medicineService';
 import { ReportService } from '../services/reportService';
+import { AuthenticatedRequest, resolveScopedPharmacyId } from '../middleware/auth';
 
 export class MedicineController {
   static async getMedicines(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest);
       const medicines = await MedicineService.getMedicines(pharmacyId);
       res.json(medicines);
     } catch (error) {
@@ -15,7 +16,7 @@ export class MedicineController {
 
   static async lookupBarcode(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest);
       const barcode = req.params.barcode;
       const result = await MedicineService.lookupBarcode(pharmacyId, barcode);
       res.json(result);
@@ -26,7 +27,7 @@ export class MedicineController {
 
   static async createMedicine(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || req.body?.pharmacyId || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.body?.pharmacyId);
       const medicine = await MedicineService.createMedicine(pharmacyId, req.body);
       res.status(201).json({ success: true, ...medicine });
     } catch (error) {
@@ -36,7 +37,7 @@ export class MedicineController {
 
   static async updateMedicine(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || req.body?.pharmacyId || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.body?.pharmacyId);
       const medicineId = parseInt(req.params.id);
       const medicine = await MedicineService.updateMedicine(medicineId, pharmacyId, req.body);
       if (!medicine) {
@@ -51,7 +52,7 @@ export class MedicineController {
 
   static async deleteMedicine(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest);
       const medicineId = parseInt(req.params.id);
       const success = await MedicineService.deleteMedicine(medicineId, pharmacyId);
       if (!success) {
@@ -66,7 +67,7 @@ export class MedicineController {
 
   static async bulkImport(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest);
       const { items } = req.body;
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: 'Items array is required for bulk import' });
@@ -81,7 +82,7 @@ export class MedicineController {
 
   static async generateBarcodes(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest);
       const result = await MedicineService.generateMissingBarcodes(pharmacyId);
       res.status(200).json(result);
     } catch (error) {
@@ -91,7 +92,7 @@ export class MedicineController {
 
   static async getDeadStock(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest);
       const minDays = req.query.minDays ? parseInt(req.query.minDays as string, 10) : 30;
       const result = await ReportService.getDeadStockReport(pharmacyId, minDays);
       res.status(200).json({ success: true, data: result });
@@ -102,7 +103,7 @@ export class MedicineController {
 
   static async getSubstitutes(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number((req as any).user?.pharmacyId || req.query.pharmacyId || 1);
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.query.pharmacyId);
       const genericName = req.query.genericName as string;
       const excludeId = req.query.excludeId as string;
       const strength = req.query.strength as string;
@@ -125,7 +126,7 @@ export class MedicineController {
 
   static async getShortageMedicines(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number((req as any).user?.pharmacyId || req.query.pharmacyId || 1);
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.query.pharmacyId);
       const shortage = await MedicineService.getShortageMedicines(pharmacyId);
       res.json(shortage);
     } catch (error) {
@@ -135,7 +136,10 @@ export class MedicineController {
 
   static async scanBox(req: any, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number(req.body.pharmacyId || req.body.pharmacy_id || req.user?.pharmacyId || 1);
+      const pharmacyId = resolveScopedPharmacyId(
+        req as AuthenticatedRequest,
+        req.body.pharmacyId || req.body.pharmacy_id
+      );
       const syncToPc = req.body.syncToPc === true || req.body.syncToPc === 'true';
 
       let buffer: Buffer | null = null;

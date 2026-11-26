@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { MessagingService } from '../services/messagingService';
 import { BillingService } from '../services/billingService';
+import { resolveScopedPharmacyId, AuthenticatedRequest } from '../middleware/auth';
 
 export class MessagingController {
   /**
@@ -8,8 +9,8 @@ export class MessagingController {
    */
   static async getSettings(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || Number(req.query.pharmacyId) || 1;
-      const settings = await MessagingService.getSettings(Number(pharmacyId));
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.query.pharmacyId);
+      const settings = await MessagingService.getSettings(pharmacyId);
       
       // Mask sensitive secret keys if returning to client
       const safeSettings = {
@@ -31,8 +32,8 @@ export class MessagingController {
    */
   static async updateSettings(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || Number(req.body.pharmacyId) || 1;
-      const updated = await MessagingService.updateSettings(Number(pharmacyId), req.body);
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.body.pharmacyId);
+      const updated = await MessagingService.updateSettings(pharmacyId, req.body);
       
       res.status(200).json({
         success: true,
@@ -49,7 +50,7 @@ export class MessagingController {
    */
   static async sendTestMessage(req: Request, res: Response, _next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || Number(req.body.pharmacyId) || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.body.pharmacyId);
       const { phone } = req.body;
 
       if (!phone) {
@@ -57,7 +58,7 @@ export class MessagingController {
       }
 
       const result = await MessagingService.sendTestMessage(
-        Number(pharmacyId),
+        pharmacyId,
         String(phone)
       );
 
@@ -67,7 +68,7 @@ export class MessagingController {
         message: result.message
       });
     } catch (error: any) {
-      res.status(400).json({
+      res.status(error.statusCode || 400).json({
         success: false,
         message: error.message || 'Failed to send WhatsApp test message'
       });
@@ -79,9 +80,9 @@ export class MessagingController {
    */
   static async getLogs(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || Number(req.query.pharmacyId) || 1;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.query.pharmacyId);
       const limit = Number(req.query.limit) || 50;
-      const logs = await MessagingService.getLogs(Number(pharmacyId), limit);
+      const logs = await MessagingService.getLogs(pharmacyId, limit);
 
       res.status(200).json({
         success: true,
@@ -98,8 +99,12 @@ export class MessagingController {
   static async resendBill(req: Request, res: Response, next: NextFunction) {
     try {
       const billId = Number(req.params.billId);
+      const authReq = req as AuthenticatedRequest;
+      const scopedPharmacyId = (authReq.user?.role || '').toUpperCase() === 'ADMIN'
+        ? undefined
+        : resolveScopedPharmacyId(authReq);
       const customPhone = req.body.phone;
-      const bill = await BillingService.getBillById(billId);
+      const bill = await BillingService.getBillById(billId, scopedPharmacyId);
 
       if (!bill) {
         return res.status(404).json({ success: false, message: 'Bill not found' });

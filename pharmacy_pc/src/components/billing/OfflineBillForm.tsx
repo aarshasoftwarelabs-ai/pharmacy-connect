@@ -141,10 +141,16 @@ export default function OfflineBillForm({ onSuccess }: Props) {
       }
     });
 
-    // Setup live socket connection to listen for mobile scans
+    // Setup live socket connection to listen for mobile scans (authenticated & store-isolated)
     const pharmacyId = getPharmacyId();
+    const token = localStorage.getItem('token');
+    if (!pharmacyId || !token) return;
+
     const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://pharmacy-backend-e210.onrender.com';
-    const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
+    const socket = io(socketUrl, {
+      auth: { token },
+      transports: ['websocket', 'polling']
+    });
 
     socket.on('connect', () => {
       socket.emit('join_pharmacy', String(pharmacyId));

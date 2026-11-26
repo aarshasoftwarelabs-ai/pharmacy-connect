@@ -171,7 +171,7 @@ export const scanMedicineBox = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         image: input,
-        pharmacyId: pharmacyId || 1,
+        ...(pharmacyId ? { pharmacyId } : {}),
         syncToPc: syncToPc ?? false,
       }),
     });

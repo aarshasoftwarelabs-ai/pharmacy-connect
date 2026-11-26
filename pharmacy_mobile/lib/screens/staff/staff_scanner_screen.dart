@@ -1210,8 +1210,12 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               final auth = context.read<AuthProvider>();
+              final billing = context.read<BillingProvider>();
+              final inventory = context.read<InventoryProvider>();
               final nav = Navigator.of(context);
               Navigator.pop(ctx);
+              billing.clearSessionData();
+              inventory.clearSessionData();
               await auth.logout();
               if (mounted) {
                 nav.pushAndRemoveUntil(

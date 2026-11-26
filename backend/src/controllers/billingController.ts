@@ -3,12 +3,13 @@ import { BillingService } from '../services/billingService';
 import { ApiError } from '../middleware/errorHandler';
 import { liveScanService } from '../services/liveScanService';
 import { getIo } from '../socket';
+import { AuthenticatedRequest, resolveScopedPharmacyId } from '../middleware/auth';
 
 export class BillingController {
   
   static async getBillingQueue(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user!.pharmacyId;
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.params.pharmacyId);
 
       const result = await BillingService.getBillingQueue(pharmacyId);
       
@@ -30,7 +31,12 @@ export class BillingController {
         throw error;
       }
 
-      const result = await BillingService.getBillById(billId);
+      const authReq = req as AuthenticatedRequest;
+      const scopedPharmacyId = (authReq.user?.role || '').toUpperCase() === 'ADMIN'
+        ? undefined
+        : resolveScopedPharmacyId(authReq);
+
+      const result = await BillingService.getBillById(billId, scopedPharmacyId);
 
       res.json({
         success: true,
@@ -43,7 +49,10 @@ export class BillingController {
 
   static async getPharmacyBills(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number(req.params.pharmacyId) || (req as any).user?.pharmacyId || Number(req.query.pharmacyId) || 1;
+      const pharmacyId = resolveScopedPharmacyId(
+        req as AuthenticatedRequest,
+        req.params.pharmacyId || req.query.pharmacyId
+      );
 
       const result = await BillingService.getPharmacyBills(pharmacyId);
       
@@ -58,7 +67,10 @@ export class BillingController {
 
   static async createBill(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = (req as any).user?.pharmacyId || Number(req.body.pharmacyId) || Number(req.body.pharmacy_id) || 1;
+      const pharmacyId = resolveScopedPharmacyId(
+        req as AuthenticatedRequest,
+        req.body.pharmacyId || req.body.pharmacy_id
+      );
       const { 
         medicineRequestId, 
         userId, 
@@ -182,8 +194,12 @@ export class BillingController {
   static async resendBillMessage(req: Request, res: Response, next: NextFunction) {
     try {
       const billId = Number(req.params.billId);
+      const authReq = req as AuthenticatedRequest;
+      const scopedPharmacyId = (authReq.user?.role || '').toUpperCase() === 'ADMIN'
+        ? undefined
+        : resolveScopedPharmacyId(authReq);
       const customPhone = req.body.phone;
-      const bill = await BillingService.getBillById(billId);
+      const bill = await BillingService.getBillById(billId, scopedPharmacyId);
 
       if (!bill) {
         return res.status(404).json({ success: false, message: 'Bill not found' });
@@ -297,6 +313,11 @@ If any field cannot be found, use null or 0.`;
         throw error;
       }
 
+      const authReq = req as AuthenticatedRequest;
+      const scopedPharmacyId = (authReq.user?.role || '').toUpperCase() === 'ADMIN'
+        ? undefined
+        : resolveScopedPharmacyId(authReq);
+
       const {
         deliveryStaffId,
         deliveryStatus,
@@ -311,7 +332,7 @@ If any field cannot be found, use null or 0.`;
         cashCollectionStatus,
         cashCollectedAmount: cashCollectedAmount !== undefined ? Number(cashCollectedAmount) : undefined,
         deliveryNotes
-      });
+      }, scopedPharmacyId);
 
       res.json({
         success: true,
@@ -328,7 +349,10 @@ If any field cannot be found, use null or 0.`;
   // ---------------------------------------------------------------------------
   static async pushLiveScan(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number(req.body.pharmacyId || req.body.pharmacy_id || (req as any).user?.pharmacyId || 1);
+      const pharmacyId = resolveScopedPharmacyId(
+        req as AuthenticatedRequest,
+        req.body.pharmacyId || req.body.pharmacy_id
+      );
       const { 
         medicineName, quantity, unitPrice, barcode, hsnCode, gstRate, mrp, scannedBy,
         batchNumber, expiryDate, mfgDate, packSize, mfgLicNo, isOcrScan
@@ -378,7 +402,10 @@ If any field cannot be found, use null or 0.`;
 
   static async getPendingScans(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number(req.params.pharmacyId || req.query.pharmacyId || (req as any).user?.pharmacyId || 1);
+      const pharmacyId = resolveScopedPharmacyId(
+        req as AuthenticatedRequest,
+        req.params.pharmacyId || req.query.pharmacyId
+      );
       const since = req.query.since ? Number(req.query.since) : undefined;
       const scans = liveScanService.getPendingScans(pharmacyId, since);
       res.json({
@@ -392,7 +419,10 @@ If any field cannot be found, use null or 0.`;
 
   static async acknowledgeScan(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number(req.params.pharmacyId);
+      const pharmacyId = resolveScopedPharmacyId(
+        req as AuthenticatedRequest,
+        req.params.pharmacyId
+      );
       const scanId = req.params.scanId;
       liveScanService.acknowledgeScan(pharmacyId, scanId);
       res.json({ success: true });
@@ -403,7 +433,10 @@ If any field cannot be found, use null or 0.`;
 
   static async clearPendingScans(req: Request, res: Response, next: NextFunction) {
     try {
-      const pharmacyId = Number(req.params.pharmacyId);
+      const pharmacyId = resolveScopedPharmacyId(
+        req as AuthenticatedRequest,
+        req.params.pharmacyId
+      );
       liveScanService.clearPharmacyCart(pharmacyId);
       res.json({ success: true });
     } catch (error) {

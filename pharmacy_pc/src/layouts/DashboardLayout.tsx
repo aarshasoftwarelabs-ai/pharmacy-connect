@@ -50,9 +50,16 @@ export default function DashboardLayout() {
   };
 
   useEffect(() => {
+    const pharmId = getActualPharmacyId();
+    const token = localStorage.getItem('token');
+    if (!pharmId || !token) {
+      setLoading(false);
+      return;
+    }
+
     const fetchProfile = async () => {
       try {
-        const data = await PharmacyService.getPharmacyProfile(getActualPharmacyId());
+        const data = await PharmacyService.getPharmacyProfile(pharmId);
         setProfile(data);
       } catch (error) {
         console.error('Failed to fetch pharmacy profile', error);
@@ -62,11 +69,13 @@ export default function DashboardLayout() {
     };
     fetchProfile();
 
-    // Global Socket for Notifications
+    // Global Socket for Notifications (authenticated + store-isolated)
     const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://pharmacy-backend-e210.onrender.com';
-    const socket = io(socketUrl);
+    const socket = io(socketUrl, {
+      auth: { token }
+    });
     socket.on('connect', () => {
-      socket.emit('join_pharmacy', getActualPharmacyId().toString());
+      socket.emit('join_pharmacy', pharmId.toString());
     });
 
     const triggerRingAlert = (data: { title: string; message: string; type: 'REQUEST' | 'PRESCRIPTION' | 'ORDER'; customerName?: string; medicineName?: string; id?: any }) => {

@@ -2,6 +2,13 @@ import { Request, Response } from 'express';
 import { PharmacyService } from '../services/pharmacyService';
 
 export class PharmacyController {
+  private static isAuthorizedForPharmacy(req: Request, pharmacyId: number): boolean {
+    const user = (req as any).user;
+    if (!user) return false;
+    const role = (user.role || '').toUpperCase();
+    return role === 'ADMIN' || Number(user.pharmacyId) === pharmacyId;
+  }
+
   static async getPharmacyProfile(req: Request, res: Response) {
     try {
       const pharmacyId = parseInt(req.params.id, 10);
@@ -61,6 +68,9 @@ export class PharmacyController {
       const pharmacyId = parseInt(req.params.id, 10);
       if (isNaN(pharmacyId)) {
         return res.status(400).json({ success: false, message: 'Invalid pharmacy ID' });
+      }
+      if (!PharmacyController.isAuthorizedForPharmacy(req, pharmacyId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Store access denied' });
       }
 
       const pharmacy = await PharmacyService.getPharmacyById(pharmacyId);
@@ -223,6 +233,9 @@ export class PharmacyController {
       const pharmacyId = parseInt(req.params.id, 10);
       if (isNaN(pharmacyId)) {
         return res.status(400).json({ success: false, message: 'Invalid pharmacy ID' });
+      }
+      if (!PharmacyController.isAuthorizedForPharmacy(req, pharmacyId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Store access denied' });
       }
       const payments = await PharmacyService.getSubscriptionPayments(pharmacyId);
       res.status(200).json({ success: true, data: payments });

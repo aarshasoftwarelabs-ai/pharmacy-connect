@@ -787,31 +787,32 @@ export class AuthController {
         console.warn('Flexible pharmacy query warning:', err);
       }
 
-      // Fallback: pick the primary active pharmacy on this store server
+      // 1b. If phone wasn't owner/store phone, check registered active staff phone
       if (!pharmacy) {
         try {
-          const fallbackResult = await pool.query(`
-            SELECT id, name, owner_id, phone, business_type 
-            FROM pharmacies 
-            ORDER BY id ASC 
+          const staffPharmResult = await pool.query(`
+            SELECT p.id, p.name, p.owner_id, p.phone, p.business_type
+            FROM staff_members sm
+            JOIN pharmacies p ON sm.pharmacy_id = p.id
+            WHERE sm.is_active = true
+              AND (sm.phone = $1 OR (LENGTH($2) >= 10 AND sm.phone LIKE '%' || $2))
+            ORDER BY sm.id ASC
             LIMIT 1
-          `);
-          if (fallbackResult.rows.length > 0) {
-            pharmacy = fallbackResult.rows[0];
+          `, [rawPhone, last10 || rawPhone]);
+
+          if (staffPharmResult.rows.length > 0) {
+            pharmacy = staffPharmResult.rows[0];
           }
         } catch (err) {
-          console.warn('Fallback pharmacy query error:', err);
+          console.warn('Staff phone pharmacy lookup warning:', err);
         }
       }
 
       if (!pharmacy) {
-        // If really no pharmacy row in DB, create one on the fly
-        pharmacy = {
-          id: 1,
-          name: 'DavaSetu Pharmacy',
-          phone: rawPhone,
-          business_type: targetType
-        };
+        return res.status(404).json({
+          success: false,
+          message: 'No registered pharmacy store found for this mobile number'
+        });
       }
 
       // 2. Find or resolve staff member

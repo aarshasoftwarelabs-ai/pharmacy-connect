@@ -5,6 +5,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:http/http.dart' as http;
 import '../api/api_endpoints.dart';
 import 'barcode_medicine_service.dart';
+import 'storage_service.dart';
 
 class BoxOcrResult {
   final String? gtin;
@@ -397,9 +398,17 @@ class MedicineBoxOcrService {
     String scannedBy = 'Mobile Staff/Owner',
   }) async {
     try {
+      final token = StorageService.getToken();
+      if (token == null || token.isEmpty || pharmacyId <= 0) {
+        return false;
+      }
+
       final response = await http.post(
         Uri.parse(ApiEndpoints.liveScanItem),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({
           'pharmacyId': pharmacyId,
           'medicineName': medicineName,

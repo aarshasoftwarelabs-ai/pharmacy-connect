@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/api/api_endpoints.dart';
 import '../core/api/api_service.dart';
 import '../core/services/offline_sync_service.dart';
+import '../core/services/storage_service.dart';
 import '../models/medicine_model.dart';
 
 class InventoryProvider extends ChangeNotifier {
@@ -12,7 +13,18 @@ class InventoryProvider extends ChangeNotifier {
   String _selectedCategory = 'All';
 
   InventoryProvider() {
-    fetchMedicines();
+    if (StorageService.getToken() != null && StorageService.getCurrentPharmacyId() > 0) {
+      fetchMedicines();
+    }
+  }
+
+  void clearSessionData() {
+    _medicines = [];
+    _isLoading = false;
+    _errorMessage = null;
+    _searchQuery = '';
+    _selectedCategory = 'All';
+    notifyListeners();
   }
 
   List<MedicineModel> get allMedicines => _medicines;
@@ -175,6 +187,11 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   Future<void> fetchMedicines() async {
+    if (StorageService.getToken() == null || StorageService.getCurrentPharmacyId() <= 0) {
+      clearSessionData();
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();

@@ -3,29 +3,42 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_endpoints.dart';
 import '../api/api_service.dart';
+import 'storage_service.dart';
 import '../../models/medicine_model.dart';
 
 class OfflineSyncService {
   OfflineSyncService._();
   static final OfflineSyncService instance = OfflineSyncService._();
 
-  static const String _keyQueue = 'offline_bills_queue';
-  static const String _keyCachedMedicines = 'offline_cached_medicines';
+  static const String _keyQueuePrefix = 'offline_bills_queue';
+  static const String _keyCachedMedicinesPrefix = 'offline_cached_medicines';
 
   final ValueNotifier<int> pendingCountNotifier = ValueNotifier<int>(0);
   bool _isSyncing = false;
 
+  String? _scopedKey(String prefix) {
+    final pharmacyId = StorageService.getCurrentPharmacyId();
+    if (pharmacyId <= 0) return null;
+    return '${prefix}_$pharmacyId';
+  }
+
   Future<void> init() async {
+    await refreshForCurrentStore();
+  }
+
+  Future<void> refreshForCurrentStore() async {
     final count = await getPendingCount();
     pendingCountNotifier.value = count;
   }
 
-  // --- Catalog Caching ---
+  // --- Catalog Caching (Strictly isolated per store) ---
   Future<void> cacheMedicines(List<MedicineModel> medicines) async {
     try {
+      final key = _scopedKey(_keyCachedMedicinesPrefix);
+      if (key == null) return;
       final prefs = await SharedPreferences.getInstance();
       final list = medicines.map((m) => m.toJson()).toList();
-      await prefs.setString(_keyCachedMedicines, jsonEncode(list));
+      await prefs.setString(key, jsonEncode(list));
     } catch (e) {
       debugPrint('[OfflineSyncService] Error caching medicines: $e');
     }
@@ -33,8 +46,10 @@ class OfflineSyncService {
 
   Future<List<MedicineModel>> getCachedMedicines() async {
     try {
+      final key = _scopedKey(_keyCachedMedicinesPrefix);
+      if (key == null) return [];
       final prefs = await SharedPreferences.getInstance();
-      final data = prefs.getString(_keyCachedMedicines);
+      final data = prefs.getString(key);
       if (data == null) return [];
       final List list = jsonDecode(data) as List;
       return list.map((json) => MedicineModel.fromJson(json as Map<String, dynamic>)).toList();
@@ -44,11 +59,13 @@ class OfflineSyncService {
     }
   }
 
-  // --- Offline Bill Queue ---
+  // --- Offline Bill Queue (Strictly isolated per store) ---
   Future<List<Map<String, dynamic>>> getQueuedBills() async {
     try {
+      final key = _scopedKey(_keyQueuePrefix);
+      if (key == null) return [];
       final prefs = await SharedPreferences.getInstance();
-      final data = prefs.getString(_keyQueue);
+      final data = prefs.getString(key);
       if (data == null) return [];
       final List list = jsonDecode(data) as List;
       return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
@@ -64,6 +81,11 @@ class OfflineSyncService {
   }
 
   Future<Map<String, dynamic>> queueBill(Map<String, dynamic> billPayload) async {
+    final key = _scopedKey(_keyQueuePrefix);
+    if (key == null) {
+      throw StateError('Authenticated pharmacy store context required to queue offline bill');
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final queue = await getQueuedBills();
 
@@ -77,7 +99,7 @@ class OfflineSyncService {
     };
 
     queue.add(queuedRecord);
-    await prefs.setString(_keyQueue, jsonEncode(queue));
+    await prefs.setString(key, jsonEncode(queue));
     pendingCountNotifier.value = queue.length;
 
     return queuedRecord;
@@ -86,6 +108,8 @@ class OfflineSyncService {
   // --- Auto-Sync Engine ---
   Future<int> syncQueue() async {
     if (_isSyncing) return 0;
+    final key = _scopedKey(_keyQueuePrefix);
+    if (key == null) return 0;
     _isSyncing = true;
 
     try {
@@ -118,7 +142,7 @@ class OfflineSyncService {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyQueue, jsonEncode(remainingQueue));
+      await prefs.setString(key, jsonEncode(remainingQueue));
       pendingCountNotifier.value = remainingQueue.length;
 
       return syncedCount;

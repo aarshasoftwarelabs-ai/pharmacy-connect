@@ -1,4 +1,5 @@
 import { API_BASE_URL, apiFetch } from '../config/api';
+import { getPharmacyId } from '../config/development';
 import { Bill } from '../types/billing';
 
 export interface QueuedBill {
@@ -13,13 +14,19 @@ type SyncListener = (queuedCount: number, isOnline: boolean) => void;
 
 class OfflineSyncService {
   private static instance: OfflineSyncService;
-  private queueKey = 'offline_bills_queue';
-  private catalogKey = 'offline_medicines_catalog';
+  private readonly queueKeyPrefix = 'offline_bills_queue';
+  private readonly catalogKeyPrefix = 'offline_medicines_catalog';
   private listeners: Set<SyncListener> = new Set();
   private isSyncing = false;
 
   private constructor() {
     this.initListeners();
+  }
+
+  private getScopedKey(prefix: string): string | null {
+    const pharmacyId = getPharmacyId();
+    if (!pharmacyId || pharmacyId <= 0) return null;
+    return `${prefix}_${pharmacyId}`;
   }
 
   public static getInstance(): OfflineSyncService {
@@ -38,6 +45,10 @@ class OfflineSyncService {
     });
 
     window.addEventListener('offline', () => {
+      this.notifyListeners();
+    });
+
+    window.addEventListener('auth_updated', () => {
       this.notifyListeners();
     });
 
@@ -65,11 +76,12 @@ class OfflineSyncService {
     this.listeners.forEach(fn => fn(count, online));
   }
 
-  // --- Catalog Cache ---
+  // --- Catalog Cache (Strictly scoped per pharmacyId) ---
   public cacheCatalog(medicines: any[]) {
     try {
-      if (!Array.isArray(medicines) || medicines.length === 0) return;
-      localStorage.setItem(this.catalogKey, JSON.stringify(medicines));
+      const catalogKey = this.getScopedKey(this.catalogKeyPrefix);
+      if (!catalogKey || !Array.isArray(medicines) || medicines.length === 0) return;
+      localStorage.setItem(catalogKey, JSON.stringify(medicines));
     } catch (e) {
       console.warn('Failed to cache medicine catalog for offline use:', e);
     }
@@ -77,17 +89,21 @@ class OfflineSyncService {
 
   public getCachedCatalog(): any[] {
     try {
-      const data = localStorage.getItem(this.catalogKey);
+      const catalogKey = this.getScopedKey(this.catalogKeyPrefix);
+      if (!catalogKey) return [];
+      const data = localStorage.getItem(catalogKey);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
     }
   }
 
-  // --- Queue Management ---
+  // --- Queue Management (Strictly scoped per pharmacyId) ---
   public getQueue(): QueuedBill[] {
     try {
-      const data = localStorage.getItem(this.queueKey);
+      const queueKey = this.getScopedKey(this.queueKeyPrefix);
+      if (!queueKey) return [];
+      const data = localStorage.getItem(queueKey);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
@@ -99,6 +115,11 @@ class OfflineSyncService {
   }
 
   public queueBill(billData: any): Bill {
+    const queueKey = this.getScopedKey(this.queueKeyPrefix);
+    if (!queueKey) {
+      throw new Error('Authenticated pharmacy session required to queue offline bill');
+    }
+
     const localId = 'OFFLINE-' + Date.now().toString().slice(-6);
     const queuedItem: QueuedBill = {
       localId,
@@ -110,7 +131,7 @@ class OfflineSyncService {
     const currentQueue = this.getQueue();
     currentQueue.push(queuedItem);
     try {
-      localStorage.setItem(this.queueKey, JSON.stringify(currentQueue));
+      localStorage.setItem(queueKey, JSON.stringify(currentQueue));
     } catch (e) {
       console.error('LocalStorage error while queuing offline bill:', e);
     }
@@ -156,7 +177,8 @@ class OfflineSyncService {
 
   // --- Auto-Sync Engine ---
   public async syncQueue(): Promise<{ synced: number; remaining: number }> {
-    if (this.isSyncing) return { synced: 0, remaining: this.getPendingCount() };
+    const queueKey = this.getScopedKey(this.queueKeyPrefix);
+    if (!queueKey || this.isSyncing) return { synced: 0, remaining: this.getPendingCount() };
     if (!navigator.onLine) return { synced: 0, remaining: this.getPendingCount() };
 
     const queue = this.getQueue();
@@ -188,7 +210,7 @@ class OfflineSyncService {
     }
 
     try {
-      localStorage.setItem(this.queueKey, JSON.stringify(remainingQueue));
+      localStorage.setItem(queueKey, JSON.stringify(remainingQueue));
     } catch {}
 
     this.isSyncing = false;

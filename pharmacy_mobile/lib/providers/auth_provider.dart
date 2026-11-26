@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/api/api_endpoints.dart';
 import '../core/api/api_service.dart';
+import '../core/services/offline_sync_service.dart';
 import '../core/services/storage_service.dart';
 import '../models/user_model.dart';
 
@@ -18,7 +19,7 @@ class AuthProvider extends ChangeNotifier {
   String get userName => _user?.name ?? 'Pharmacist';
   String get role => _user?.role ?? 'Pharmacist';
   bool get isStaff => _user?.isStaff ?? false;
-  int get pharmacyId => int.tryParse(_user?.pharmacyId ?? '1') ?? 1;
+  int get pharmacyId => int.tryParse(_user?.pharmacyId ?? '0') ?? 0;
 
   AuthProvider() {
     _loadSavedUser();
@@ -97,6 +98,7 @@ class AuthProvider extends ChangeNotifier {
           _user = UserModel.fromJson(userMap);
           await StorageService.setUser(_user!.toJson());
         }
+        await OfflineSyncService.instance.refreshForCurrentStore();
 
         notifyListeners();
         return true;
@@ -163,6 +165,7 @@ class AuthProvider extends ChangeNotifier {
         }
         _user = UserModel.fromJson(userMap);
         await StorageService.setUser(_user!.toJson());
+        await OfflineSyncService.instance.refreshForCurrentStore();
 
         notifyListeners();
         return true;
@@ -214,6 +217,7 @@ class AuthProvider extends ChangeNotifier {
         userMap['isStaff'] = true;
         _user = UserModel.fromJson(userMap);
         await StorageService.setUser(_user!.toJson());
+        await OfflineSyncService.instance.refreshForCurrentStore();
 
         notifyListeners();
         return true;
@@ -253,6 +257,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _user = null;
     await StorageService.clearAll();
+    await OfflineSyncService.instance.refreshForCurrentStore();
     notifyListeners();
   }
 }

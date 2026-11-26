@@ -158,7 +158,9 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                       onPressed: () async {
                         Navigator.pop(ctx);
                         final billing = context.read<BillingProvider>();
-                        billing.clearCart();
+                        final inventory = context.read<InventoryProvider>();
+                        billing.clearSessionData();
+                        inventory.clearSessionData();
                         await context.read<AuthProvider>().logout();
                         if (context.mounted) {
                           Navigator.pushAndRemoveUntil(

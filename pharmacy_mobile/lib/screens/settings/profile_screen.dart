@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/storage_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
+import '../../providers/inventory_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/subscription_renewal_modal.dart';
 import '../../widgets/bluetooth_printer_modal.dart';
@@ -742,7 +743,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: () async {
                           Navigator.pop(ctx);
                           final billing = context.read<BillingProvider>();
-                          billing.clearCart();
+                          final inventory = context.read<InventoryProvider>();
+                          billing.clearSessionData();
+                          inventory.clearSessionData();
                           await auth.logout();
                           if (context.mounted) {
                             Navigator.pushAndRemoveUntil(

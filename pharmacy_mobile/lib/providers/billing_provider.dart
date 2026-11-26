@@ -92,13 +92,10 @@ class BillingProvider extends ChangeNotifier {
 
   Future<void> syncScannedItemToPc(MedicineModel medicine, {int quantity = 1}) async {
     try {
-      final pharmacyData = StorageService.getPharmacy();
-      final userData = StorageService.getUser();
-      final int effectivePharmacyId = int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
-          int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
-          int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
-          8;
+      final int effectivePharmacyId = StorageService.getCurrentPharmacyId();
+      if (effectivePharmacyId <= 0) return;
 
+      final userData = StorageService.getUser();
       final String rawName = userData?['name']?.toString() ?? 'Counter Staff';
       final String rawRole = userData?['role']?.toString() ?? 'STAFF';
       final String scannedBy = '$rawName ($rawRole)';
@@ -159,6 +156,16 @@ class BillingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSessionData() {
+    clearCart();
+    _recentBills.clear();
+    _todaySales = 0.0;
+    _todayBillsCount = 0;
+    _yesterdaySales = 0.0;
+    _lastBill = null;
+    notifyListeners();
+  }
+
   Future<bool> processCheckout() async {
     if (_cartItems.isEmpty) {
       _errorMessage = 'Cart is empty';
@@ -166,16 +173,16 @@ class BillingProvider extends ChangeNotifier {
       return false;
     }
 
+    final int effectivePharmacyId = StorageService.getCurrentPharmacyId();
+    if (effectivePharmacyId <= 0) {
+      _errorMessage = 'Authenticated pharmacy store context required';
+      notifyListeners();
+      return false;
+    }
+
     _isProcessing = true;
     _errorMessage = null;
     notifyListeners();
-
-    final pharmacyData = StorageService.getPharmacy();
-    final userData = StorageService.getUser();
-    final int effectivePharmacyId = int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
-        int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
-        int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
-        8;
 
     final billPayload = {
       'pharmacy_id': effectivePharmacyId,
@@ -299,18 +306,21 @@ class BillingProvider extends ChangeNotifier {
   }
 
   Future<void> fetchBills([int? pharmacyId]) async {
+    final int effectivePharmacyId = pharmacyId ?? StorageService.getCurrentPharmacyId();
+    if (effectivePharmacyId <= 0) {
+      _recentBills.clear();
+      _todaySales = 0.0;
+      _todayBillsCount = 0;
+      _yesterdaySales = 0.0;
+      _isLoadingBills = false;
+      notifyListeners();
+      return;
+    }
+
     _isLoadingBills = true;
     notifyListeners();
 
     try {
-      final pharmacyData = StorageService.getPharmacy();
-      final userData = StorageService.getUser();
-      final int effectivePharmacyId = pharmacyId ??
-          int.tryParse(pharmacyData?['id']?.toString() ?? '') ??
-          int.tryParse(userData?['pharmacyId']?.toString() ?? '') ??
-          int.tryParse(userData?['pharmacy_id']?.toString() ?? '') ??
-          8;
-
       final response = await ApiService.get(ApiEndpoints.pharmacyBills(effectivePharmacyId));
       if (response.success && response.data != null) {
         final List list = response.data is List ? response.data as List : [];

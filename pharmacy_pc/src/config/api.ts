@@ -3,6 +3,16 @@
 export const CLOUD_API_URL = 'https://pharmacy-backend-e210.onrender.com/api';
 export const API_BASE_URL = import.meta.env.VITE_API_URL || CLOUD_API_URL;
 
+export function clearAuthStorage(): void {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('pharmacy_profile_data');
+  // Purge legacy un-scoped offline keys so cached store data can never leak across accounts
+  localStorage.removeItem('offline_bills_queue');
+  localStorage.removeItem('offline_medicines_catalog');
+  window.dispatchEvent(new Event('auth_updated'));
+}
+
 export const apiFetch = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('token');
   const headers = new Headers(options.headers || {});
@@ -34,10 +44,7 @@ export const apiFetch = async (url: string, options: RequestInit = {}) => {
 
   if (response.status === 401) {
     // Clear invalid auth state and redirect to login (HashRouter compatible)
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('pharmacy_profile_data');
-    window.dispatchEvent(new Event('auth_updated'));
+    clearAuthStorage();
     if (!window.location.hash.includes('#/login')) {
       window.location.hash = '#/login';
     }

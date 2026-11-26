@@ -52,4 +52,36 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
   }
 };
 
+/**
+ * Strictly resolve the authenticated user's pharmacyId so no endpoint falls back
+ * to store ID 1/8 or honours a spoofed pharmacyId from a different store.
+ */
+export function resolveScopedPharmacyId(
+  req: AuthenticatedRequest,
+  adminOverrideInput?: unknown
+): number {
+  const user = req.user;
+  if (!user) {
+    const err = new Error('Authentication required') as any;
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const role = (user.role || '').toUpperCase();
+  if (role === 'ADMIN' && adminOverrideInput !== undefined && adminOverrideInput !== null && adminOverrideInput !== '') {
+    const candidate = Number(adminOverrideInput);
+    if (Number.isInteger(candidate) && candidate > 0) {
+      return candidate;
+    }
+  }
+
+  const pharmacyId = Number(user.pharmacyId);
+  if (!Number.isInteger(pharmacyId) || pharmacyId <= 0) {
+    const err = new Error('Authenticated pharmacy store context is required') as any;
+    err.statusCode = 401;
+    throw err;
+  }
+  return pharmacyId;
+}
+
 

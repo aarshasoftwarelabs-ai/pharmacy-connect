@@ -326,19 +326,14 @@ export class MedicineService {
     try {
       await client.query('BEGIN');
 
-      // 1. Resolve valid pharmacyId: ensure targetPharmacyId exists in pharmacies table
-      let targetPharmacyId = Number(pharmacyId) || 1;
+      // 1. Resolve valid pharmacyId: strictly require an existing authenticated store ID
+      const targetPharmacyId = Number(pharmacyId);
+      if (!Number.isInteger(targetPharmacyId) || targetPharmacyId <= 0) {
+        throw new Error('Authenticated pharmacy store context is required');
+      }
       const pharmCheck = await client.query(`SELECT id FROM pharmacies WHERE id = $1`, [targetPharmacyId]);
       if (pharmCheck.rows.length === 0) {
-        const anyPharm = await client.query(`SELECT id FROM pharmacies ORDER BY id ASC LIMIT 1`);
-        if (anyPharm.rows.length > 0) {
-          targetPharmacyId = anyPharm.rows[0].id;
-        } else {
-          const newPharm = await client.query(
-            `INSERT INTO pharmacies (name, address, phone, business_type) VALUES ('Main Pharmacy', 'Store Address', '9876543210', 'RETAIL') RETURNING id`
-          );
-          targetPharmacyId = newPharm.rows[0].id;
-        }
+        throw new Error('Registered pharmacy store not found');
       }
 
       const cleanBarcode = data.barcode && String(data.barcode).trim() !== '' 

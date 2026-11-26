@@ -15,5 +15,5 @@ export function getPharmacyId(): number {
     }
   } catch (e) {}
   
-  return 8; // Default to active store (K.Y Pharmacy, ID 8)
+  return 0; // Require authenticated store session; never fall back to a shared store ID
 }

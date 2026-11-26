@@ -30,9 +30,13 @@ export default function Header({ pageTitle, subtitle }: HeaderProps) {
         const userStr = localStorage.getItem('user');
         if (userStr) {
           const u = JSON.parse(userStr);
-          if (u.email) setUserEmail(u.email);
-          if (u.name) setUserName(u.name);
-          if (u.pharmacyName) setPharmacyName(u.pharmacyName);
+          setUserEmail(u.email || '');
+          setUserName(u.name || '');
+          setPharmacyName(u.pharmacyName || 'My Pharmacy');
+        } else {
+          setUserEmail('');
+          setUserName('');
+          setPharmacyName('My Pharmacy');
         }
         const localData = localStorage.getItem('pharmacy_profile_data');
         if (localData) {
