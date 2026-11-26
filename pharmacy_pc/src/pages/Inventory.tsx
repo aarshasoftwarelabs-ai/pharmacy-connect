@@ -869,7 +869,7 @@ export default function Inventory() {
       {viewBatchesMed && (
         <MedicineBatchesModal
           medicine={viewBatchesMed}
-          pharmacyName={pharmacy?.name || 'K.Y Pharmacy'}
+          pharmacyName={pharmacy?.name || 'DavaSetu Pharmacy'}
           isOpen={!!viewBatchesMed}
           onClose={() => setViewBatchesMed(null)}
           onUpdate={loadInitialData}

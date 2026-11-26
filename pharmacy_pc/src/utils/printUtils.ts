@@ -660,7 +660,7 @@ export const testPrintThermalReceipt = async (
     billNumber: 'INV-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000),
     billType: 'RETAIL',
     customerName: 'Walk-in Patient',
-    customerPhone: contactPhone || '9876543210',
+    customerPhone: contactPhone || '',
     items: [
       {
         medicineId: 'dolo650',

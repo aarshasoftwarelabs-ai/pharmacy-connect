@@ -489,40 +489,13 @@ export class AuthController {
            OR u.phone = $1 
            OR p.phone = $1
            OR (LENGTH($2) >= 10 AND (u.phone LIKE '%' || $2 OR p.phone LIKE '%' || $2))
-        ORDER BY (p.id = 8) DESC, (u.id = 9) DESC, u.id ASC
+        ORDER BY p.id ASC NULLS LAST, u.id ASC
         LIMIT 1
       `;
-      let userResult = await pool.query(userQuery, [cleanId, last10 || cleanId]);
-
-      const isMasterAdmin = cleanId.toLowerCase() === 'admin@davasetu.com';
-      const isMasterOwner = cleanId.toLowerCase().includes('deeplodaliya') || cleanId.toLowerCase().includes('lodaliya');
-
-      // Fallback search for primary store owner (User 9 / Pharmacy 8)
-      if (userResult.rows.length === 0 && (isMasterAdmin || isMasterOwner)) {
-        userResult = await pool.query(`
-          SELECT u.id, u.name, u.phone, COALESCE(u.email, 'deeplodaliya007@gmail.com') as email, u.password_hash,
-                 p.id as pharmacy_id, p.name as pharmacy_name
-          FROM users u
-          LEFT JOIN pharmacies p ON p.owner_id = u.id
-          WHERE u.id = 9 
-             OR LOWER(TRIM(COALESCE(u.email, ''))) = 'deeplodaliya007@gmail.com'
-             OR p.id = 8
-          ORDER BY (p.id = 8) DESC, (u.id = 9) DESC, u.id ASC
-          LIMIT 1
-        `);
-      }
+      const userResult = await pool.query(userQuery, [cleanId, last10 || cleanId]);
 
       if (userResult.rows.length > 0) {
         const user = userResult.rows[0];
-
-        // Is this the store owner or master admin?
-        const isOwnerOrMaster = 
-          isMasterAdmin || 
-          isMasterOwner || 
-          user.id === 9 || 
-          (user.email && user.email.toLowerCase().includes('deeplodaliya')) ||
-          cleanId.toLowerCase().includes('deeplodaliya');
-
         let isMatch = false;
 
         if (user.password_hash) {
@@ -541,31 +514,28 @@ export class AuthController {
         // Get their specific dedicated pharmacy (isolated per user)
         const pharmacyQuery = `
           SELECT * FROM pharmacies 
-          WHERE owner_id = $1 OR (id = 8 AND $1 = 9)
-          ORDER BY (id = 8) DESC, id DESC 
+          WHERE owner_id = $1
+          ORDER BY id ASC 
           LIMIT 1
         `;
         let pharmacyResult = await pool.query(pharmacyQuery, [user.id]);
         
-        // If this user has no pharmacy yet, link Pharmacy 8 if user 9 or create a fresh pharmacy
+        // If this user has no pharmacy yet, create a fresh isolated pharmacy for them
         if (pharmacyResult.rows.length === 0) {
-          if (user.id === 9 || isOwnerOrMaster) {
-            await pool.query('UPDATE pharmacies SET owner_id = $1, email = $2 WHERE id = 8', [user.id, 'deeplodaliya007@gmail.com']);
-            pharmacyResult = await pool.query('SELECT * FROM pharmacies WHERE id = 8');
-          } else {
-            pharmacyResult = await pool.query(
-              `INSERT INTO pharmacies (owner_id, name, address, phone, business_type) 
-               VALUES ($1, $2, 'Store Address', $3, 'RETAIL') RETURNING *`,
-              [user.id, `${user.name || 'My'}'s Pharmacy`, user.phone || '']
-            );
-          }
+          pharmacyResult = await pool.query(
+            `INSERT INTO pharmacies (owner_id, name, address, phone, business_type) 
+             VALUES ($1, $2, 'Store Address', $3, 'RETAIL') RETURNING *`,
+            [user.id, `${user.name || 'My'}'s Pharmacy`, user.phone || '']
+          );
         }
         
         const pharmacy = pharmacyResult.rows[0];
-        const effectiveEmail = user.email || (cleanId.includes('@') ? cleanId : 'deeplodaliya007@gmail.com');
+        const effectiveEmail = user.email || (cleanId.includes('@') ? cleanId : null);
         if (pharmacy) {
-          pharmacy.ownerName = user.name || 'Deep Lodaliya';
-          pharmacy.ownerEmail = effectiveEmail;
+          pharmacy.ownerName = user.name || 'Pharmacy Owner';
+          if (effectiveEmail) {
+            pharmacy.ownerEmail = effectiveEmail;
+          }
         }
 
         // Create Token
@@ -580,7 +550,7 @@ export class AuthController {
           token,
           user: {
             id: user.id,
-            name: user.name || 'Deep Lodaliya',
+            name: user.name || 'Pharmacy Owner',
             phone: user.phone,
             email: effectiveEmail,
             pharmacyId: pharmacy?.id,
@@ -779,26 +749,13 @@ export class AuthController {
         return res.status(403).json({ success: false, message: 'Account is inactive. Please contact the owner.' });
       }
 
-      // Ensure staff has basic fields
-      let ownerInfo: any = null;
-      try {
-        if (pharmacy?.owner_id) {
-          const ownerQuery = await pool.query(
-            `SELECT u.id, u.name, u.phone FROM users u WHERE u.id = $1 AND (u.phone = $2 OR (LENGTH($3) >= 10 AND u.phone LIKE '%' || $3)) LIMIT 1`,
-            [pharmacy.owner_id, rawPhone, last10 || rawPhone]
-          );
-          if (ownerQuery.rows.length > 0) {
-            ownerInfo = ownerQuery.rows[0];
-          }
-        }
-      } catch (e) {}
-
+      // Always issue a strictly scoped staff token for staff PIN login (never elevate to OWNER via phone match)
       const staffMember = {
-        id: ownerInfo ? ownerInfo.id : (staff?.id || 1),
-        name: ownerInfo ? ownerInfo.name : (staff?.name || 'Counter Staff'),
-        phone: ownerInfo ? ownerInfo.phone : (staff?.phone || rawPhone),
-        role: ownerInfo ? 'OWNER' : (staff?.role || 'BILLER'),
-        isStaff: !ownerInfo
+        id: staff.id,
+        name: staff.name || 'Counter Staff',
+        phone: staff.phone || rawPhone,
+        role: staff.role || 'BILLER',
+        isStaff: true
       };
 
       // Create Token

@@ -29,7 +29,7 @@ interface MedicineBatchesModalProps {
 
 export default function MedicineBatchesModal({
   medicine,
-  pharmacyName = 'K.Y Pharmacy',
+  pharmacyName = 'DavaSetu Pharmacy',
   isOpen,
   onClose,
   onUpdate

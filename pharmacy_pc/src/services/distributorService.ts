@@ -1,4 +1,5 @@
 import { API_BASE_URL, apiFetch } from '../config/api';
+import { getPharmacyId } from '../config/development';
 
 export interface Distributor {
   id: number;
@@ -10,11 +11,16 @@ export interface Distributor {
   updatedAt?: string;
 }
 
-const CACHE_KEY = 'davasetu_distributors_cache';
+const getCacheKey = (): string | null => {
+  const pharmacyId = getPharmacyId();
+  return pharmacyId > 0 ? `davasetu_distributors_cache_${pharmacyId}` : null;
+};
 
 const getLocalDistributors = (): Distributor[] => {
   try {
-    const cached = localStorage.getItem(CACHE_KEY);
+    const key = getCacheKey();
+    if (!key) return [];
+    const cached = localStorage.getItem(key);
     return cached ? JSON.parse(cached) : [];
   } catch {
     return [];
@@ -23,7 +29,9 @@ const getLocalDistributors = (): Distributor[] => {
 
 const setLocalDistributors = (data: Distributor[]) => {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+    const key = getCacheKey();
+    if (!key) return;
+    localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
     console.error('Failed to save distributors to local storage', e);
   }

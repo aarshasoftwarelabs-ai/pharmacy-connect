@@ -7,6 +7,9 @@ export function clearAuthStorage(): void {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   localStorage.removeItem('pharmacy_profile_data');
+  localStorage.removeItem('pharmacy_messaging_settings');
+  localStorage.removeItem('pharmacy_app_settings');
+  localStorage.removeItem('davasetu_distributors_cache');
   // Purge legacy un-scoped offline keys so cached store data can never leak across accounts
   localStorage.removeItem('offline_bills_queue');
   localStorage.removeItem('offline_medicines_catalog');

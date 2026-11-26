@@ -40,7 +40,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final pharmacy = StorageService.getPharmacy();
     final pharmacyName = pharmacy?['name']?.toString() ?? 'DavaSetu Medicals';
     final gstin = pharmacy?['gstin']?.toString();
-    final dlNo = pharmacy?['dl_number']?.toString() ?? pharmacy?['dlNo']?.toString();
+    final dlNo = pharmacy?['regNo']?.toString() ??
+        pharmacy?['reg_no']?.toString() ??
+        pharmacy?['dl_number']?.toString() ??
+        pharmacy?['dlNo']?.toString();
     final phone = pharmacy?['phone']?.toString();
     final address = pharmacy?['address']?.toString();
     final defaultMac = await ThermalPrinterService.instance.getSavedPrinterMac();

@@ -52,7 +52,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final phoneStr = auth.user?.phone?.isNotEmpty == true ? auth.user!.phone! : (pharmacy?['phone']?.toString() ?? 'Not provided');
     final emailStr = auth.user?.email.isNotEmpty == true ? auth.user!.email : (pharmacy?['email']?.toString() ?? 'Not provided');
     final gstStr = pharmacy?['gstin']?.toString() ?? 'Not registered';
-    final dlStr = pharmacy?['drug_license_number']?.toString() ?? pharmacy?['reg_no']?.toString() ?? 'Not provided';
+    final dlStr = pharmacy?['regNo']?.toString() ??
+        pharmacy?['reg_no']?.toString() ??
+        pharmacy?['drug_license_number']?.toString() ??
+        'Not provided';
 
     return Scaffold(
       backgroundColor: AppColors.background,

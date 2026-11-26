@@ -254,9 +254,15 @@ export default function Settings() {
   const [showLogsModal, setShowLogsModal] = useState<boolean>(false);
   const [isLoadingLogs, setIsLoadingLogs] = useState<boolean>(false);
 
+  const getMessagingCacheKey = () => {
+    const pid = getPharmacyId();
+    return pid > 0 ? `pharmacy_messaging_settings_${pid}` : null;
+  };
+
   const fetchMessagingSettings = async () => {
-    // Initial populate from localStorage for instant display
-    const cached = localStorage.getItem('pharmacy_messaging_settings');
+    const cacheKey = getMessagingCacheKey();
+    // Initial populate from store-scoped localStorage for instant display
+    const cached = cacheKey ? localStorage.getItem(cacheKey) : null;
     if (cached) {
       try {
         setMsgSettings(JSON.parse(cached));
@@ -267,7 +273,9 @@ export default function Settings() {
       const data = await MessagingService.getSettings();
       if (data) {
         setMsgSettings(data);
-        localStorage.setItem('pharmacy_messaging_settings', JSON.stringify(data));
+        if (cacheKey) {
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+        }
       }
     } catch (err) {
       console.warn('Could not fetch remote messaging settings, using local cache:', err);
@@ -295,7 +303,10 @@ export default function Settings() {
       gatewayProvider: msgSettings?.gatewayProvider || 'SIMULATED'
     };
     setMsgSettings(updated);
-    localStorage.setItem('pharmacy_messaging_settings', JSON.stringify(updated));
+    const cacheKey = getMessagingCacheKey();
+    if (cacheKey) {
+      localStorage.setItem(cacheKey, JSON.stringify(updated));
+    }
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
 
@@ -451,8 +462,8 @@ export default function Settings() {
         },
         prefill: {
           name: profile?.ownerName || profile?.name || 'Pharmacy Owner',
-          email: profile?.email || 'owner@davasetu.com',
-          contact: profile?.phone || '9999999999'
+          email: profile?.email || '',
+          contact: profile?.phone || ''
         },
         theme: {
           color: '#0284c7' // pharmacy-600 color approx

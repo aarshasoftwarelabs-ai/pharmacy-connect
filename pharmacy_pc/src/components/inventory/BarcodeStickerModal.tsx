@@ -22,7 +22,7 @@ interface BarcodeStickerModalProps {
 export default function BarcodeStickerModal({
   medicine,
   pharmacyId,
-  pharmacyName = 'K.Y Pharmacy',
+  pharmacyName = 'DavaSetu Pharmacy',
   isOpen,
   onClose
 }: BarcodeStickerModalProps) {

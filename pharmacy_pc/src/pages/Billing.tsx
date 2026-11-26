@@ -29,7 +29,7 @@ export default function Billing() {
   const [error, setError] = useState<string | null>(null);
   const [newBillAlert, setNewBillAlert] = useState<string | null>(null);
 
-  const [pharmacyName, setPharmacyName] = useState('K.Y Pharmacy');
+  const [pharmacyName, setPharmacyName] = useState('DavaSetu Pharmacy');
   const [whatsAppModalBill, setWhatsAppModalBill] = useState<Bill | null>(null);
   const [manualPhone, setManualPhone] = useState('');
   const previousBillIdsRef = useRef<Set<string | number>>(new Set());

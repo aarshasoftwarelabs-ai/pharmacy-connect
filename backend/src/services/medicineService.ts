@@ -788,7 +788,7 @@ export class MedicineService {
     pharmacyId: number,
     syncToPc: boolean = false
   ) {
-    const apiKey = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42SW1UTUMtakNSS2w0a2l5Tmp3V0NWQkR2cDJ0djdYTVBoYzh1VUVfeURjYUE=', 'base64').toString('ascii');
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error('Gemini API key is not configured on server.');
     }

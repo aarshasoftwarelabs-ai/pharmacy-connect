@@ -121,7 +121,7 @@ router.post('/campaigns/:pharmacyId', async (req, res) => {
     let recipientCount = 0;
     try {
       const countRes = await pool.query(
-        `SELECT COUNT(*) FROM customers WHERE pharmacy_id = $1 AND is_active = true`,
+        `SELECT COUNT(*) FROM customer_profiles WHERE pharmacy_id = $1 AND is_active = true`,
         [pharmacyId]
       );
       recipientCount = parseInt(countRes.rows[0]?.count || '0', 10);

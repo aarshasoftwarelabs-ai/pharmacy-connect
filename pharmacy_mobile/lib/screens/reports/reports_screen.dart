@@ -71,6 +71,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final now = DateTime.now();
 
     final filtered = bills.where((b) {
+      final status = (b['payment_status'] ?? b['paymentStatus'] ?? '').toString().toUpperCase();
+      if (status == 'CANCELLED') return false;
       final dateStr = b['created_at'] ?? b['date'];
       if (dateStr == null) return true;
       final dt = DateTime.tryParse(dateStr.toString());

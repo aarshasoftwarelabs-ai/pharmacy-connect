@@ -26,7 +26,7 @@ export class RefillService {
                 SUM(bi.quantity) as total_quantity
             FROM bills b
             JOIN bill_items bi ON b.id = bi.bill_id
-            WHERE b.pharmacy_id = $1 AND b.customer_profile_id IS NOT NULL
+            WHERE b.pharmacy_id = $1 AND b.customer_profile_id IS NOT NULL AND b.payment_status != 'CANCELLED'
             GROUP BY b.customer_profile_id, bi.medicine_name
             HAVING COUNT(b.id) > 1
         ),

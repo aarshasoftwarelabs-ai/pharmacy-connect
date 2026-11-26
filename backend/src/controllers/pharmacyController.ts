@@ -38,7 +38,7 @@ export class PharmacyController {
       const pharmacy = isStoreAuthorized
         ? await PharmacyService.getPharmacyById(pharmacyId)
         : await PharmacyService.getPublicPharmacyById(pharmacyId);
-      
+
       if (!pharmacy) {
         return res.status(404).json({ error: 'Pharmacy not found' });
       }
@@ -102,7 +102,7 @@ export class PharmacyController {
       const planType = pharmacy.planType || 'FREE_TRIAL';
       const now = new Date();
       let endDate = pharmacy.subscriptionEndDate ? new Date(pharmacy.subscriptionEndDate) : null;
-      
+
       // If trial without end date, default to 14 days from trial start or now
       if (!endDate && planType === 'FREE_TRIAL') {
         const start = pharmacy.trialStartDate ? new Date(pharmacy.trialStartDate) : now;
@@ -232,7 +232,7 @@ export class PharmacyController {
 
       let endDate: string | null = null;
       const monthsToAdd = durationMonths ? parseInt(durationMonths, 10) : (defaultDurations[planType] ?? 1);
-      
+
       if (planType !== 'LIFETIME') {
         let baseDate = new Date();
 
@@ -249,14 +249,14 @@ export class PharmacyController {
       }
 
       const result = await PharmacyService.updateSubscriptionPlan(
-        pharmacyId, 
-        planType, 
+        pharmacyId,
+        planType,
         endDate,
         {
           amount: typeof amount === 'number' ? amount : parseFloat(amount) || (defaultAmounts[planType] ?? 5999.00),
           paymentMethod: paymentMethod || 'UPI',
           transactionId,
-          upiId: upiId || 'lodaliya@ptyes',
+          upiId: upiId || undefined,
           agentNote: agentNote || (planType === 'MOBILE_YEARLY' ? 'Mobile-Only 1-Year Pass (No PC/Laptop)' : undefined),
           durationMonths: monthsToAdd,
         }
@@ -265,7 +265,7 @@ export class PharmacyController {
       if (!result) {
         return res.status(500).json({ success: false, message: 'Failed to update subscription in database' });
       }
-      
+
       res.status(200).json({
         success: true,
         message: 'Subscription successfully activated!',

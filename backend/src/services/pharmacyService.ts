@@ -25,7 +25,8 @@ export interface PharmacyProfile {
 export class PharmacyService {
   static async getPharmacyById(id: number): Promise<PharmacyProfile | null> {
     const query = `
-      SELECT p.id, p.owner_id AS "ownerId", p.name, p.address, p.phone, p.gstin, p.gst_registered AS "gstRegistered", p.state,
+      SELECT p.id, p.owner_id AS "ownerId", p.name, p.address, p.phone, p.email, p.reg_no AS "regNo",
+             p.gstin, p.gst_registered AS "gstRegistered", p.state,
              p.plan_type AS "planType", p.trial_start_date AS "trialStartDate", p.subscription_end_date AS "subscriptionEndDate",
              p.created_at AS "createdAt", p.updated_at AS "updatedAt",
              p.operational_hours AS "operationalHours",
@@ -109,7 +110,7 @@ export class PharmacyService {
         const amount = paymentDetails.amount || 1499.00;
         const paymentMethod = (paymentDetails.paymentMethod || 'UPI').toUpperCase();
         const transactionId = paymentDetails.transactionId || (paymentMethod === 'UPI' ? `UPI-${Date.now()}` : `CASH-${Date.now().toString().slice(-4)}`);
-        const upiId = paymentDetails.upiId || 'lodaliya@ptyes';
+        const upiId = paymentDetails.upiId || null;
         const agentNote = paymentDetails.agentNote || null;
         const durationMonths = paymentDetails.durationMonths || 12;
 

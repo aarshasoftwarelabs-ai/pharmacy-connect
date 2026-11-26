@@ -117,7 +117,7 @@ export default function DeadStockModule({ pharmacy, onOpenReturnModule }: DeadSt
       return;
     }
 
-    const storeName = pharmacy?.name || 'K.Y Pharmacy';
+    const storeName = pharmacy?.name || 'DavaSetu Pharmacy';
     const storeAddress = pharmacy?.address || '';
     const nowStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -212,7 +212,7 @@ export default function DeadStockModule({ pharmacy, onOpenReturnModule }: DeadSt
 
   const generateWhatsAppClearanceMessage = (med: DeadStockItem, discount: number) => {
     const discountedPrice = Math.round(med.sellingPrice * (1 - discount / 100));
-    const storeName = pharmacy?.name || 'K.Y Pharmacy';
+    const storeName = pharmacy?.name || 'DavaSetu Pharmacy';
     const storePhone = pharmacy?.phone ? `Call/WhatsApp: ${pharmacy.phone}` : '';
 
     return `🔥 *SPECIAL CLEARANCE OFFER* from *${storeName}*! 🔥\n\n` +
