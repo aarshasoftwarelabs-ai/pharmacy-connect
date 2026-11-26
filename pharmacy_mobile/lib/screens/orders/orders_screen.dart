@@ -9,6 +9,7 @@ import '../../core/api/api_endpoints.dart';
 import '../../core/api/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
+import '../../providers/inventory_provider.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -457,6 +458,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final billNo = bill['bill_number'] ?? 'PC-2026-000001';
     final customer = bill['customer_name'] ?? 'Walk-in Customer';
     final paymentMode = (bill['payment_mode'] ?? 'CASH').toString().toUpperCase();
+    final paymentStatus = (bill['payment_status'] ?? 'PAID').toString().toUpperCase();
+    final isCancelled = paymentStatus == 'CANCELLED';
+    final isUnpaid = paymentStatus == 'UNPAID';
     final itemsCount = bill['items_count'] ?? 1;
     final total = (bill['total'] as num?)?.toDouble() ?? 0.0;
     final date = bill['date'] ?? 'Today';
@@ -568,12 +572,28 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: isCancelled
+                                ? const Color(0xFFFEE2E2)
+                                : isUnpaid
+                                    ? const Color(0xFFFEF3C7)
+                                    : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
-                            'Paid Bill',
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF059669)),
+                          child: Text(
+                            isCancelled
+                                ? 'Returned / Cancelled'
+                                : isUnpaid
+                                    ? 'Udhar / Unpaid'
+                                    : 'Paid Bill',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: isCancelled
+                                  ? const Color(0xFFDC2626)
+                                  : isUnpaid
+                                      ? const Color(0xFFD97706)
+                                      : const Color(0xFF059669),
+                            ),
                           ),
                         ),
                       ],
@@ -818,6 +838,86 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   ),
                 ],
               ),
+              if (int.tryParse(bill['id']?.toString() ?? '') != null &&
+                  (bill['payment_status'] ?? 'PAID').toString().toUpperCase() != 'CANCELLED') ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    if ((bill['payment_status'] ?? '').toString().toUpperCase() == 'UNPAID') ...[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final billId = int.parse(bill['id'].toString());
+                            final billing = context.read<BillingProvider>();
+                            Navigator.pop(ctx);
+                            final ok = await billing.markBillPaid(billId);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(ok ? 'Bill marked as PAID!' : (billing.errorMessage ?? 'Update failed')),
+                                  backgroundColor: ok ? const Color(0xFF059669) : AppColors.error,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.check_circle_outline_rounded, size: 16, color: Color(0xFF059669)),
+                          label: const Text('Mark Paid', style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.w700)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFA7F3D0)),
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final billId = int.parse(bill['id'].toString());
+                          final billing = context.read<BillingProvider>();
+                          final inventory = context.read<InventoryProvider>();
+                          Navigator.pop(ctx);
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (dCtx) => AlertDialog(
+                              title: Text('Return / Cancel $billNo?'),
+                              content: const Text('This will cancel the bill and restore sold medicine quantities back into your stock.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Keep Bill')),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                                  onPressed: () => Navigator.pop(dCtx, true),
+                                  child: const Text('Return & Restore Stock', style: TextStyle(color: Colors.white)),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed == true) {
+                            final ok = await billing.cancelBill(billId, reason: 'Customer Return');
+                            if (ok) await inventory.fetchMedicines();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(ok ? 'Bill returned & stock restored!' : (billing.errorMessage ?? 'Cancel failed')),
+                                  backgroundColor: ok ? const Color(0xFF059669) : AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.assignment_return_outlined, size: 16, color: AppColors.error),
+                        label: const Text('Return / Cancel', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFFCA5A5)),
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         );

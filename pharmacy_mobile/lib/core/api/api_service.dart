@@ -20,6 +20,7 @@ class ApiResponse {
 
 class ApiService {
   static const Duration _timeout = Duration(seconds: 35);
+  static Future<void> Function()? onUnauthorized;
 
   static Map<String, String> _headers() {
     final headers = {
@@ -141,6 +142,25 @@ class ApiService {
     }
   }
 
+  static Future<ApiResponse> patch(String url, Map<String, dynamic> body) async {
+    try {
+      final response = await http
+          .patch(
+            Uri.parse(url),
+            headers: _headers(),
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+      return _processResponse(response);
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: _cleanErrorMessage(e),
+        statusCode: 0,
+      );
+    }
+  }
+
   static Future<ApiResponse> delete(String url) async {
     try {
       final response = await http
@@ -179,6 +199,10 @@ class ApiService {
         statusCode: response.statusCode,
       );
     } else {
+      if (response.statusCode == 401 && StorageService.getToken() != null) {
+        StorageService.clearAll();
+        onUnauthorized?.call();
+      }
       String? errorMessage;
       if (body is Map<String, dynamic>) {
         errorMessage = body['message'] ?? body['error'] ?? 'Server error';

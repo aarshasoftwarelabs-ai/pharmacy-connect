@@ -37,6 +37,7 @@ export default function OfflineBillForm({ onSuccess }: Props) {
     packCount?: number;
   }>>([]);
   const [discount, setDiscount] = useState(0);
+  const [isMrpInclusive, setIsMrpInclusive] = useState(true);
   const [paymentMode, setPaymentMode] = useState('CASH');
   const [catalogue, setCatalogue] = useState<Medicine[]>([]);
   const [scanStep, setScanStep] = useState(0); // 0: upload, 1: scanning, 2: success
@@ -411,11 +412,18 @@ export default function OfflineBillForm({ onSuccess }: Props) {
   const calculatedItems = items.map(item => {
     const lineAmount = item.quantity * item.unitPrice;
     const itemDiscount = lineAmount * discountRatio;
-    const taxableAmount = lineAmount - itemDiscount;
+    const netAmount = Math.max(0, lineAmount - itemDiscount);
     const gstRate = item.gstRate || 0;
-    
-    const cgst = taxableAmount * (gstRate / 2 / 100);
-    const sgst = taxableAmount * (gstRate / 2 / 100);
+
+    // Retail Pharmacy Standard (MRP Inclusive): extract GST from MRP; Exclusive: add GST on top
+    const taxableAmount = isMrpInclusive
+      ? (gstRate > 0 ? netAmount / (1 + gstRate / 100) : netAmount)
+      : netAmount;
+    const itemGst = isMrpInclusive
+      ? Math.max(0, netAmount - taxableAmount)
+      : taxableAmount * (gstRate / 100);
+    const cgst = itemGst / 2;
+    const sgst = itemGst / 2;
     
     totalTaxableAmount += taxableAmount;
     totalCgst += cgst;
@@ -516,6 +524,8 @@ export default function OfflineBillForm({ onSuccess }: Props) {
         customerPhone,
         doctorName: doctorName.trim() || undefined,
         billType: 'OFFLINE',
+        paymentMode,
+        paymentStatus: paymentMode === 'CREDIT' || paymentMode === 'UDHAR' ? 'UNPAID' : 'PAID',
         subtotal,
         discount,
         total,
@@ -978,6 +988,21 @@ export default function OfflineBillForm({ onSuccess }: Props) {
                   onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
                   className="w-24 px-2 py-1 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-right bg-white"
                 />
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-medium text-slate-500">Tax Mode</span>
+                <button
+                  type="button"
+                  onClick={() => setIsMrpInclusive(prev => !prev)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${
+                    isMrpInclusive
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}
+                  title="Switch between MRP-Inclusive GST (standard retail) and GST-Exclusive billing"
+                >
+                  {isMrpInclusive ? 'MRP Inclusive GST' : 'GST Exclusive (+Tax)'}
+                </button>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-medium text-slate-400">Taxable Amount</span>

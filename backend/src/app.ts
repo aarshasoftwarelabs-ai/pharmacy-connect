@@ -10,6 +10,9 @@ import rateLimit from 'express-rate-limit';
 
 const app: Express = express();
 
+// Trust first reverse-proxy hop (Render/Cloudflare) for accurate per-client rate limiting
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 

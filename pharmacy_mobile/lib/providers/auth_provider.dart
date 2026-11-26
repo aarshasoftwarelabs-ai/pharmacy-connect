@@ -23,6 +23,9 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider() {
     _loadSavedUser();
+    ApiService.onUnauthorized = () async {
+      await logout();
+    };
   }
 
   void _loadSavedUser() {

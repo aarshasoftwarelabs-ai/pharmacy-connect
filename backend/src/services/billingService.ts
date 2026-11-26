@@ -7,6 +7,7 @@ export interface CreateBillItemDTO {
   quantity: number;
   unitPrice: number;
   medicineId?: number | string;
+  batchId?: number;
   barcode?: string;
   hsnCode?: string;
   gstRate?: number;
@@ -367,15 +368,15 @@ export class BillingService {
         // FEFO Batch Deduction
         let remainingToDeduct = deductStripUnits;
         
-        // Find valid batches ordered by expiry date (FEFO)
+        // Find valid batches ordered by optional explicit batchId first, then FEFO expiry date
         const batchResult = await client.query(`
           SELECT id, available_quantity, batch_number 
           FROM medicine_batches 
           WHERE medicine_id = $1 AND pharmacy_id = $2 
             AND available_quantity > 0 
             AND expiry_date >= CURRENT_DATE 
-          ORDER BY expiry_date ASC FOR UPDATE`,
-          [medId, data.pharmacyId]
+          ORDER BY (CASE WHEN $3::int IS NOT NULL AND id = $3::int THEN 0 ELSE 1 END) ASC, expiry_date ASC FOR UPDATE`,
+          [medId, data.pharmacyId, item.batchId ? Number(item.batchId) : null]
         );
 
         for (const batch of batchResult.rows) {
@@ -604,5 +605,121 @@ export class BillingService {
     await pool.query(query, updateParams);
 
     return this.getBillById(billId, pharmacyId);
+  }
+
+  /**
+   * Cancel / return a finalized bill and restore deducted batch + medicine stock
+   */
+  static async cancelBill(billId: number, pharmacyId?: number, reason?: string) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const params: any[] = [billId];
+      let scope = '';
+      if (pharmacyId !== undefined && Number.isInteger(pharmacyId) && pharmacyId > 0) {
+        params.push(pharmacyId);
+        scope = ' AND pharmacy_id = $2';
+      }
+
+      const billRes = await client.query(
+        `SELECT id, pharmacy_id, payment_status, user_id FROM bills WHERE id = $1${scope} FOR UPDATE`,
+        params
+      );
+      if (billRes.rows.length === 0) {
+        const error = new Error('Bill not found') as ApiError;
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const bill = billRes.rows[0];
+      if ((bill.payment_status || '').toUpperCase() === 'CANCELLED') {
+        const error = new Error('Bill is already cancelled/returned') as ApiError;
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Restore deducted quantities per batch & medicine
+      const batchDeductions = await client.query(
+        `SELECT bib.batch_id, bib.quantity, mb.medicine_id, mb.available_quantity
+         FROM bill_item_batches bib
+         JOIN bill_items bi ON bib.bill_item_id = bi.id
+         JOIN medicine_batches mb ON bib.batch_id = mb.id
+         WHERE bi.bill_id = $1 FOR UPDATE OF mb`,
+        [billId]
+      );
+
+      const medicineTotals = new Map<number, number>();
+      for (const row of batchDeductions.rows) {
+        const qty = Number(row.quantity || 0);
+        if (qty <= 0) continue;
+
+        const prevQty = Number(row.available_quantity || 0);
+        await client.query(
+          `UPDATE medicine_batches SET available_quantity = available_quantity + $1 WHERE id = $2`,
+          [qty, row.batch_id]
+        );
+        await client.query(
+          `INSERT INTO stock_movements (
+             pharmacy_id, medicine_id, batch_id, movement_type, reference_type,
+             reference_id, quantity, previous_quantity, new_quantity, created_by
+           ) VALUES ($1, $2, $3, 'RETURN', 'BILL_CANCEL', $4, $5, $6, $7, $8)`,
+          [bill.pharmacy_id, row.medicine_id, row.batch_id, billId, qty, prevQty, prevQty + qty, bill.user_id || null]
+        );
+
+        medicineTotals.set(row.medicine_id, (medicineTotals.get(row.medicine_id) || 0) + qty);
+      }
+
+      for (const [medId, totalRestore] of medicineTotals.entries()) {
+        await client.query(
+          `UPDATE medicines SET current_stock = COALESCE(current_stock, 0) + $1 WHERE id = $2 AND pharmacy_id = $3`,
+          [totalRestore, medId, bill.pharmacy_id]
+        );
+      }
+
+      await client.query(
+        `UPDATE bills
+         SET payment_status = 'CANCELLED',
+             total_profit = 0,
+             delivery_notes = CASE WHEN $2 IS NOT NULL AND $2 <> '' THEN $2 ELSE delivery_notes END
+         WHERE id = $1`,
+        [billId, reason ? `Return/Cancel: ${reason}` : null]
+      );
+
+      await client.query('COMMIT');
+      return this.getBillById(billId, bill.pharmacy_id);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Mark an unpaid/credit counter bill as PAID
+   */
+  static async markBillPaid(billId: number, pharmacyId?: number) {
+    const params: any[] = [billId];
+    let scope = '';
+    if (pharmacyId !== undefined && Number.isInteger(pharmacyId) && pharmacyId > 0) {
+      params.push(pharmacyId);
+      scope = ' AND pharmacy_id = $2';
+    }
+
+    const billRes = await pool.query(`SELECT id, payment_status, pharmacy_id FROM bills WHERE id = $1${scope}`, params);
+    if (billRes.rows.length === 0) {
+      const error = new Error('Bill not found') as ApiError;
+      error.statusCode = 404;
+      throw error;
+    }
+    if ((billRes.rows[0].payment_status || '').toUpperCase() === 'CANCELLED') {
+      const error = new Error('Cannot mark a cancelled bill as PAID') as ApiError;
+      error.statusCode = 400;
+      throw error;
+    }
+
+    await pool.query(`UPDATE bills SET payment_status = 'PAID' WHERE id = $1${scope}`, params);
+    return this.getBillById(billId, billRes.rows[0].pharmacy_id);
   }
 }

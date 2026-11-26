@@ -36,6 +36,12 @@ router.post('/scan-prescription', requirePermission('BILLING_CREATE'), upload.si
 // Update delivery assignment & cash collection
 router.patch('/:billId/delivery', BillingController.updateDelivery);
 
+// Cancel/return bill and restore inventory stock
+router.post('/:billId/cancel', requirePermission('BILLING_CREATE'), BillingController.cancelBill);
+
+// Settle unpaid / udhar bill as PAID
+router.patch('/:billId/mark-paid', requirePermission('BILLING_CREATE'), BillingController.markBillPaid);
+
 // Resend automated bill invoice via WhatsApp/SMS gateway
 router.post('/:billId/send-message', BillingController.resendBillMessage);
 

@@ -1,4 +1,7 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
+import { AuthUser } from '../middleware/auth';
 import { PharmacyService } from '../services/pharmacyService';
 import { verifyRazorpaySignature } from './paymentController';
 
@@ -17,7 +20,24 @@ export class PharmacyController {
         return res.status(400).json({ error: 'Invalid pharmacy ID' });
       }
 
-      const pharmacy = await PharmacyService.getPharmacyById(pharmacyId);
+      // Check optional bearer token: only return full owner/GSTIN/plan profile to store owner/staff or Admin
+      let isStoreAuthorized = false;
+      const token = req.headers.authorization?.split(' ')[1];
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, env.JWT_SECRET as string) as AuthUser;
+          const role = (decoded.role || '').toUpperCase();
+          if (role === 'ADMIN' || (role !== 'USER' && Number(decoded.pharmacyId) === pharmacyId)) {
+            isStoreAuthorized = true;
+          }
+        } catch {
+          isStoreAuthorized = false;
+        }
+      }
+
+      const pharmacy = isStoreAuthorized
+        ? await PharmacyService.getPharmacyById(pharmacyId)
+        : await PharmacyService.getPublicPharmacyById(pharmacyId);
       
       if (!pharmacy) {
         return res.status(404).json({ error: 'Pharmacy not found' });

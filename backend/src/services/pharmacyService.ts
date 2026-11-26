@@ -45,14 +45,26 @@ export class PharmacyService {
     return row;
   }
 
-  static async getAllPharmacies(): Promise<PharmacyProfile[]> {
+  /**
+   * Public-safe pharmacy summary (no owner PII, GSTIN, phone, or subscription internals)
+   */
+  static async getPublicPharmacyById(id: number): Promise<Partial<PharmacyProfile> | null> {
     const query = `
-      SELECT p.id, p.owner_id AS "ownerId", p.name, p.address, p.phone,
-             u.name AS "ownerName"
-      FROM pharmacies p
-      LEFT JOIN users u ON p.owner_id = u.id
-      WHERE p.business_type = 'RETAIL' OR p.business_type IS NULL
-      ORDER BY p.id ASC
+      SELECT id, name, address, state, gst_registered AS "gstRegistered",
+             operational_hours AS "operationalHours"
+      FROM pharmacies
+      WHERE id = $1
+    `;
+    const result = await pool.query(query, [id]);
+    return result.rows.length > 0 ? result.rows[0] : null;
+  }
+
+  static async getAllPharmacies(): Promise<Partial<PharmacyProfile>[]> {
+    const query = `
+      SELECT id, name, address, state, operational_hours AS "operationalHours"
+      FROM pharmacies
+      WHERE business_type = 'RETAIL' OR business_type IS NULL
+      ORDER BY id ASC
     `;
     const result = await pool.query(query);
     return result.rows;

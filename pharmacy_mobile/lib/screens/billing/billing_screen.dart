@@ -1381,6 +1381,8 @@ _Thank you for choosing DavaSetu Pharmacy!_
                 _buildPaymentModePill(billing, 'UPI', '📱 UPI / QR'),
                 const SizedBox(width: 6),
                 _buildPaymentModePill(billing, 'CARD', '💳 Card'),
+                const SizedBox(width: 6),
+                _buildPaymentModePill(billing, 'CREDIT', '📝 Udhar'),
               ],
             ),
             const SizedBox(height: 14),
@@ -1396,9 +1398,29 @@ _Thank you for choosing DavaSetu Pharmacy!_
                       'Total (${billing.itemCount} ${billing.itemCount == 1 ? 'item' : 'items'}):',
                       style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                     ),
-                    const Text(
-                      'Inclusive of all GST taxes',
-                      style: TextStyle(color: AppColors.textMuted, fontSize: 10.5),
+                    GestureDetector(
+                      onTap: billing.toggleMrpInclusive,
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: billing.isMrpInclusive ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: billing.isMrpInclusive ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
+                          ),
+                        ),
+                        child: Text(
+                          billing.isMrpInclusive
+                              ? 'MRP Inclusive GST (Tap to switch)'
+                              : 'GST Exclusive +₹${billing.taxAmount.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            color: billing.isMrpInclusive ? const Color(0xFF047857) : const Color(0xFFB45309),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

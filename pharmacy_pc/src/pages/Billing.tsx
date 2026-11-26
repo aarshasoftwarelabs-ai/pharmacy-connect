@@ -123,6 +123,27 @@ export default function Billing() {
     }
   };
 
+  const handleMarkPaid = async (bill: Bill) => {
+    if (!window.confirm(`Mark bill ${bill.billNumber} (₹${Number(bill.total).toFixed(2)}) as PAID?`)) return;
+    try {
+      await BillingService.markBillPaid(bill.id);
+      await fetchBillingData(true);
+    } catch (e: any) {
+      alert(e.message || 'Failed to mark bill as PAID');
+    }
+  };
+
+  const handleCancelReturnBill = async (bill: Bill) => {
+    const reason = window.prompt(`Enter reason to return/cancel bill ${bill.billNumber} (stock will be restored):`, 'Customer Return');
+    if (reason === null) return;
+    try {
+      await BillingService.cancelBill(bill.id, reason);
+      await fetchBillingData(true);
+    } catch (e: any) {
+      alert(e.message || 'Failed to cancel/return bill');
+    }
+  };
+
   const handleSendManualWhatsApp = (e: React.FormEvent) => {
     e.preventDefault();
     if (!whatsAppModalBill) return;
@@ -256,6 +277,17 @@ export default function Billing() {
                                   POS
                                 </span>
                               )}
+                              <span
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                                  bill.paymentStatus === 'CANCELLED'
+                                    ? 'bg-red-100 text-red-700'
+                                    : bill.paymentStatus === 'UNPAID'
+                                    ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
+                                {bill.paymentStatus || 'PAID'}
+                              </span>
                             </div>
                           <div className="flex items-center text-sm font-semibold text-slate-600 mb-1">
                             <User className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
@@ -279,7 +311,25 @@ export default function Billing() {
                         <div className="text-xs font-bold text-slate-400 bg-white px-2 py-1 rounded-md border border-slate-100">
                           {bill.items?.length || 0} {bill.items?.length === 1 ? 'Item' : 'Items'}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          {bill.paymentStatus === 'UNPAID' && (
+                            <button
+                              onClick={() => handleMarkPaid(bill)}
+                              className="px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors shadow-sm"
+                              title="Settle Udhar / Mark Paid"
+                            >
+                              Mark Paid
+                            </button>
+                          )}
+                          {bill.paymentStatus !== 'CANCELLED' && (
+                            <button
+                              onClick={() => handleCancelReturnBill(bill)}
+                              className="px-2.5 py-1.5 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors shadow-sm"
+                              title="Cancel / Return Bill & Restore Stock"
+                            >
+                              Return
+                            </button>
+                          )}
                           <button 
                             onClick={() => handlePrint(bill, 'THERMAL')}
                             className="p-2 text-slate-400 hover:text-emerald-600 bg-white hover:bg-emerald-50 rounded-lg border border-slate-100 hover:border-emerald-200 transition-colors shadow-sm"

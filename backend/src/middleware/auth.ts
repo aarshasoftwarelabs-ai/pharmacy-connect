@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { env } from '../config/env';
 
 const JWT_SECRET = env.JWT_SECRET as string;
@@ -93,5 +94,13 @@ export const requireAdmin = (req: AuthenticatedRequest, res: Response, next: Nex
   }
   next();
 };
+
+export const strictAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { success: false, message: 'Too many authentication attempts. Please wait 15 minutes and try again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 

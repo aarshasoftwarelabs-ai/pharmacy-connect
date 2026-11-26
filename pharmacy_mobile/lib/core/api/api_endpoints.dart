@@ -39,6 +39,8 @@ class ApiEndpoints {
   static String pharmacyBills(int pharmacyId) => '$baseUrl/billing/pharmacy/$pharmacyId';
   static String get createBill => '$baseUrl/billing';
   static String get liveScanItem => '$baseUrl/billing/live-scan';
+  static String cancelBill(int billId) => '$baseUrl/billing/$billId/cancel';
+  static String markBillPaid(int billId) => '$baseUrl/billing/$billId/mark-paid';
 
   // Customers & Suppliers
   static String get customers => '$baseUrl/customers';

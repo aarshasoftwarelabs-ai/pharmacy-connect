@@ -184,4 +184,38 @@ export class BillingService {
 
     return resData;
   }
+
+  /**
+   * Cancel / return a bill and restore stock back to inventory
+   */
+  static async cancelBill(billId: number | string, reason?: string): Promise<Bill> {
+    const response = await apiFetch(`${API_BASE_URL}/billing/${billId}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+
+    const resData = await response.json();
+    if (!response.ok) {
+      throw new Error(resData.message || 'Failed to cancel bill');
+    }
+
+    return resData.data;
+  }
+
+  /**
+   * Mark an unpaid/udhar counter bill as PAID
+   */
+  static async markBillPaid(billId: number | string): Promise<Bill> {
+    const response = await apiFetch(`${API_BASE_URL}/billing/${billId}/mark-paid`, {
+      method: 'PATCH',
+    });
+
+    const resData = await response.json();
+    if (!response.ok) {
+      throw new Error(resData.message || 'Failed to mark bill as paid');
+    }
+
+    return resData.data;
+  }
 }

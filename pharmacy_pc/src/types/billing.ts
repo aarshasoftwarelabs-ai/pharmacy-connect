@@ -28,7 +28,7 @@ export interface Bill {
   discount: string | number;
   total: string | number;
   paymentMode?: string;
-  paymentStatus: 'UNPAID' | 'PAID';
+  paymentStatus: 'UNPAID' | 'PAID' | 'CANCELLED' | 'PARTIAL';
   billType?: 'ONLINE' | 'OFFLINE' | 'RETAIL' | 'WHOLESALE';
   b2bClientId?: number;
   dueDate?: string;

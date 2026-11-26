@@ -20,6 +20,7 @@ class BillingProvider extends ChangeNotifier {
   String _doctorName = '';
   String _paymentMode = 'CASH'; // CASH, UPI, CARD, CREDIT
   double _generalDiscountPercent = 0.0;
+  bool _isMrpInclusive = true;
   bool _isProcessing = false;
   String? _errorMessage;
   Map<String, dynamic>? _lastBill;
@@ -36,8 +37,14 @@ class BillingProvider extends ChangeNotifier {
   String get doctorName => _doctorName;
   String get paymentMode => _paymentMode;
   double get generalDiscountPercent => _generalDiscountPercent;
+  bool get isMrpInclusive => _isMrpInclusive;
   bool get isProcessing => _isProcessing;
   String? get errorMessage => _errorMessage;
+
+  void toggleMrpInclusive() {
+    _isMrpInclusive = !_isMrpInclusive;
+    notifyListeners();
+  }
 
   int get itemCount => _cartItems.fold(0, (sum, item) => sum + item.quantity);
 
@@ -53,13 +60,13 @@ class BillingProvider extends ChangeNotifier {
   double get totalDiscount => itemDiscounts + generalDiscountAmount;
 
   double get totalTaxableAmount => _cartItems.fold(
-      0.0, (sum, item) => sum + item.taxableAmount(_generalDiscountPercent));
+      0.0, (sum, item) => sum + item.taxableAmount(_generalDiscountPercent, _isMrpInclusive));
 
   double get totalCgst => _cartItems.fold(
-      0.0, (sum, item) => sum + item.cgstAmount(_generalDiscountPercent));
+      0.0, (sum, item) => sum + item.cgstAmount(_generalDiscountPercent, _isMrpInclusive));
 
   double get totalSgst => _cartItems.fold(
-      0.0, (sum, item) => sum + item.sgstAmount(_generalDiscountPercent));
+      0.0, (sum, item) => sum + item.sgstAmount(_generalDiscountPercent, _isMrpInclusive));
 
   double get taxAmount => totalCgst + totalSgst;
 
@@ -218,7 +225,7 @@ class BillingProvider extends ChangeNotifier {
       'totalGst': double.parse(taxAmount.toStringAsFixed(2)),
       'tax': double.parse(taxAmount.toStringAsFixed(2)),
       'total': double.parse(grandTotal.toStringAsFixed(2)),
-      'items': _cartItems.map((item) => item.toJson(_generalDiscountPercent)).toList(),
+      'items': _cartItems.map((item) => item.toJson(_generalDiscountPercent, _isMrpInclusive)).toList(),
     };
 
     try {
@@ -320,6 +327,30 @@ class BillingProvider extends ChangeNotifier {
       await fetchBills();
     }
     return synced;
+  }
+
+  Future<bool> markBillPaid(int billId) async {
+    final res = await ApiService.patch(ApiEndpoints.markBillPaid(billId), {});
+    if (res.success) {
+      await fetchBills();
+      return true;
+    }
+    _errorMessage = res.message ?? 'Failed to mark bill as PAID';
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> cancelBill(int billId, {String? reason}) async {
+    final res = await ApiService.post(ApiEndpoints.cancelBill(billId), {
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    });
+    if (res.success) {
+      await fetchBills();
+      return true;
+    }
+    _errorMessage = res.message ?? 'Failed to cancel/return bill';
+    notifyListeners();
+    return false;
   }
 
   Future<void> fetchBills([int? pharmacyId]) async {

@@ -37,17 +37,28 @@ class CartItemModel {
   double get discountAmount => grossTotal * (discountPercent / 100);
   double get netTotal => grossTotal - discountAmount;
 
-  double taxableAmount([double generalDiscountPercent = 0.0]) =>
-      netTotal * (1 - (generalDiscountPercent / 100.0));
+  double taxableAmount([double generalDiscountPercent = 0.0, bool isMrpInclusive = true]) {
+    final netAfterGeneral = netTotal * (1 - (generalDiscountPercent / 100.0));
+    if (isMrpInclusive) {
+      return medicine.gstRate > 0 ? netAfterGeneral / (1.0 + medicine.gstRate / 100.0) : netAfterGeneral;
+    }
+    return netAfterGeneral;
+  }
 
-  double gstAmount([double generalDiscountPercent = 0.0]) =>
-      taxableAmount(generalDiscountPercent) * (medicine.gstRate / 100.0);
+  double gstAmount([double generalDiscountPercent = 0.0, bool isMrpInclusive = true]) {
+    final netAfterGeneral = netTotal * (1 - (generalDiscountPercent / 100.0));
+    final taxable = taxableAmount(generalDiscountPercent, isMrpInclusive);
+    if (isMrpInclusive) {
+      return (netAfterGeneral - taxable).clamp(0.0, double.infinity);
+    }
+    return taxable * (medicine.gstRate / 100.0);
+  }
 
-  double cgstAmount([double generalDiscountPercent = 0.0]) =>
-      gstAmount(generalDiscountPercent) / 2.0;
+  double cgstAmount([double generalDiscountPercent = 0.0, bool isMrpInclusive = true]) =>
+      gstAmount(generalDiscountPercent, isMrpInclusive) / 2.0;
 
-  double sgstAmount([double generalDiscountPercent = 0.0]) =>
-      gstAmount(generalDiscountPercent) / 2.0;
+  double sgstAmount([double generalDiscountPercent = 0.0, bool isMrpInclusive = true]) =>
+      gstAmount(generalDiscountPercent, isMrpInclusive) / 2.0;
 
   String get displayName {
     if (isLooseTablet) {
@@ -56,10 +67,10 @@ class CartItemModel {
     return medicine.name;
   }
 
-  Map<String, dynamic> toJson([double generalDiscountPercent = 0.0]) {
-    final taxable = double.parse(taxableAmount(generalDiscountPercent).toStringAsFixed(2));
-    final cgst = double.parse(cgstAmount(generalDiscountPercent).toStringAsFixed(2));
-    final sgst = double.parse(sgstAmount(generalDiscountPercent).toStringAsFixed(2));
+  Map<String, dynamic> toJson([double generalDiscountPercent = 0.0, bool isMrpInclusive = true]) {
+    final taxable = double.parse(taxableAmount(generalDiscountPercent, isMrpInclusive).toStringAsFixed(2));
+    final cgst = double.parse(cgstAmount(generalDiscountPercent, isMrpInclusive).toStringAsFixed(2));
+    final sgst = double.parse(sgstAmount(generalDiscountPercent, isMrpInclusive).toStringAsFixed(2));
     return {
       'medicine_id': medicine.id,
       'medicineId': medicine.id,

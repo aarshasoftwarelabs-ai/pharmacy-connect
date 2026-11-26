@@ -141,6 +141,7 @@ export class BillingController {
         quantity: Math.max(1, Number(item.quantity ?? item.qty ?? 1)),
         unitPrice: Math.max(0, Number(item.unitPrice ?? item.unit_price ?? item.price ?? 0)),
         medicineId: item.medicineId ?? item.medicine_id ?? item.id,
+        batchId: item.batchId ?? item.batch_id ? Number(item.batchId ?? item.batch_id) : undefined,
         barcode: item.barcode ? String(item.barcode).trim() : undefined,
         hsnCode: item.hsnCode || item.hsn_code || '30049099',
         gstRate: Number(item.gstRate ?? item.gst_rate ?? 5),
@@ -459,6 +460,62 @@ If any field cannot be found, use null or 0.`;
       );
       liveScanService.clearPharmacyCart(pharmacyId);
       res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async cancelBill(req: Request, res: Response, next: NextFunction) {
+    try {
+      const billId = Number(req.params.billId);
+      if (isNaN(billId)) {
+        const error = new Error('Invalid billId format') as ApiError;
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const authReq = req as AuthenticatedRequest;
+      const scopedPharmacyId = (authReq.user?.role || '').toUpperCase() === 'ADMIN'
+        ? undefined
+        : resolveScopedPharmacyId(authReq);
+
+      const updated = await BillingService.cancelBill(
+        billId,
+        scopedPharmacyId,
+        req.body?.reason ? String(req.body.reason) : undefined
+      );
+
+      res.json({
+        success: true,
+        message: 'Bill cancelled and stock restored successfully',
+        data: updated
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async markBillPaid(req: Request, res: Response, next: NextFunction) {
+    try {
+      const billId = Number(req.params.billId);
+      if (isNaN(billId)) {
+        const error = new Error('Invalid billId format') as ApiError;
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const authReq = req as AuthenticatedRequest;
+      const scopedPharmacyId = (authReq.user?.role || '').toUpperCase() === 'ADMIN'
+        ? undefined
+        : resolveScopedPharmacyId(authReq);
+
+      const updated = await BillingService.markBillPaid(billId, scopedPharmacyId);
+
+      res.json({
+        success: true,
+        message: 'Bill marked as PAID successfully',
+        data: updated
+      });
     } catch (error) {
       next(error);
     }
