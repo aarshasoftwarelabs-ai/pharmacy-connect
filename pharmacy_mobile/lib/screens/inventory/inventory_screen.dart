@@ -295,54 +295,62 @@ class InventoryScreen extends StatelessWidget {
   Widget _buildKpiBar(BuildContext context, InventoryProvider inventory) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      child: Column(
         children: [
-          Expanded(
-            child: _buildKpiCard(
-              title: 'Medicines',
-              value: '${inventory.allMedicines.length}',
-              icon: Icons.medication_rounded,
-              color: AppColors.primary,
-              bgColor: const Color(0xFFF0FDFA),
-              borderColor: const Color(0xFFCCFBF1),
-              onTap: () => inventory.setSelectedCategory('All'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: _buildKpiCard(
+                  title: 'Medicines',
+                  value: '${inventory.allMedicines.length}',
+                  icon: Icons.medication_rounded,
+                  color: AppColors.primary,
+                  bgColor: const Color(0xFFF0FDFA),
+                  borderColor: const Color(0xFFCCFBF1),
+                  onTap: () => inventory.setSelectedCategory('All'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildKpiCard(
+                  title: 'Total Units',
+                  value: '${inventory.totalStockCount}',
+                  icon: Icons.inventory_2_rounded,
+                  color: const Color(0xFF2563EB),
+                  bgColor: const Color(0xFFEFF6FF),
+                  borderColor: const Color(0xFFDBEAFE),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: _buildKpiCard(
-              title: 'Total Units',
-              value: '${inventory.totalStockCount}',
-              icon: Icons.inventory_2_rounded,
-              color: const Color(0xFF2563EB),
-              bgColor: const Color(0xFFEFF6FF),
-              borderColor: const Color(0xFFDBEAFE),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: _buildKpiCard(
-              title: 'Low Stock',
-              value: '${inventory.lowStockCount}',
-              icon: Icons.warning_amber_rounded,
-              color: inventory.lowStockCount > 0 ? const Color(0xFFD97706) : AppColors.textMuted,
-              bgColor: inventory.lowStockCount > 0 ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
-              borderColor: inventory.lowStockCount > 0 ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
-              onTap: () => _showShortageBookSheet(context, inventory),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: _buildKpiCard(
-              title: 'Near Expiry',
-              value: '${inventory.nearExpiryCount}',
-              icon: Icons.event_busy_rounded,
-              color: inventory.nearExpiryCount > 0 ? const Color(0xFFDC2626) : AppColors.textMuted,
-              bgColor: inventory.nearExpiryCount > 0 ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
-              borderColor: inventory.nearExpiryCount > 0 ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0),
-              onTap: () => _showNearExpirySheet(context, inventory),
-            ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildKpiCard(
+                  title: 'Low Stock',
+                  value: '${inventory.lowStockCount}',
+                  icon: Icons.warning_amber_rounded,
+                  color: inventory.lowStockCount > 0 ? const Color(0xFFD97706) : AppColors.textMuted,
+                  bgColor: inventory.lowStockCount > 0 ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
+                  borderColor: inventory.lowStockCount > 0 ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+                  onTap: () => _showShortageBookSheet(context, inventory),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildKpiCard(
+                  title: 'Near Expiry',
+                  value: '${inventory.nearExpiryCount}',
+                  icon: Icons.event_busy_rounded,
+                  color: inventory.nearExpiryCount > 0 ? const Color(0xFFDC2626) : AppColors.textMuted,
+                  bgColor: inventory.nearExpiryCount > 0 ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
+                  borderColor: inventory.nearExpiryCount > 0 ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0),
+                  onTap: () => _showNearExpirySheet(context, inventory),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -362,34 +370,29 @@ class InventoryScreen extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: borderColor, width: 1.1),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(icon, size: 13, color: color),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
-                      color: color,
-                    ),
-                  ),
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(width: 6),
             Text(
               value,
               style: TextStyle(
@@ -880,7 +883,7 @@ class InventoryScreen extends StatelessWidget {
                                           children: [
                                             const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
                                             const SizedBox(width: 8),
-                                            Text('${med.name} added to POS bill'),
+                                            Expanded(child: Text('${med.name} added to POS bill', overflow: TextOverflow.ellipsis)),
                                           ],
                                         ),
                                         backgroundColor: AppColors.primaryDark,
@@ -1300,8 +1303,8 @@ class InventoryScreen extends StatelessWidget {
                           child: TextField(
                             controller: strengthCtrl,
                             decoration: const InputDecoration(
-                              labelText: 'Strength / Power (પાવર)',
-                              hintText: 'e.g. 500 mg, 650 mg',
+                              labelText: 'Strength (mg/ml)',
+                              hintText: 'e.g. 500 mg',
                             ),
                           ),
                         ),
@@ -1319,9 +1322,9 @@ class InventoryScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          flex: 3,
                           child: TextField(
                             controller: stockCtrl,
                             keyboardType: TextInputType.number,
@@ -1332,9 +1335,8 @@ class InventoryScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
-                          flex: 2,
                           child: TextField(
                             controller: freeSchemeCtrl,
                             keyboardType: TextInputType.number,
@@ -1342,13 +1344,17 @@ class InventoryScreen extends StatelessWidget {
                             decoration: const InputDecoration(
                               labelText: 'Free Scheme',
                               hintText: '0',
-                              helperText: 'e.g. 1 Free',
+                              helperText: 'Bonus free qty (e.g. 1 Free)',
+                              helperMaxLines: 1,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
                         Expanded(
-                          flex: 3,
                           child: TextField(
                             controller: purchasePriceCtrl,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1356,6 +1362,16 @@ class InventoryScreen extends StatelessWidget {
                             decoration: const InputDecoration(
                               labelText: 'Buy Rate (₹)',
                               hintText: '35.00',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: expiryCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Expiry (MM/YYYY)',
+                              hintText: '12/2028',
                             ),
                           ),
                         ),
@@ -1442,141 +1458,109 @@ class InventoryScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: barcodeCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Barcode / SKU',
-                              hintText: 'e.g. 890123456789',
-                              suffixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (barcodeCtrl.text.isNotEmpty)
-                                    IconButton(
-                                      icon: const Icon(Icons.flash_on_rounded, color: Colors.orange, size: 20),
-                                      tooltip: 'Auto-fill details from barcode',
-                                      onPressed: () async {
-                                        final auto = await BarcodeMedicineService.lookup(barcodeCtrl.text.trim());
-                                        applyAutoFill(auto);
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('✓ Auto-filled: ${auto.name}'),
-                                              backgroundColor: const Color(0xFF059669),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  IconButton(
-                                    icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
-                                    tooltip: 'Scan Barcode with Camera',
-                                    onPressed: () async {
-                                      final code = await CameraBarcodeScannerScreen.scanCode(context);
-                                      if (code != null && code.trim().isNotEmpty) {
-                                        final clean = code.trim();
-                                        final auto = await BarcodeMedicineService.lookup(clean);
-                                        applyAutoFill(auto);
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('✓ Auto-filled: ${auto.name} from Barcode!'),
-                                              backgroundColor: const Color(0xFF059669),
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    },
-                                  ),
-                                ],
+                    TextField(
+                      controller: barcodeCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Barcode / SKU',
+                        hintText: 'e.g. 890123456789',
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (barcodeCtrl.text.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(Icons.flash_on_rounded, color: Colors.orange, size: 20),
+                                tooltip: 'Auto-fill details from barcode',
+                                onPressed: () async {
+                                  final auto = await BarcodeMedicineService.lookup(barcodeCtrl.text.trim());
+                                  applyAutoFill(auto);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('✓ Auto-filled: ${auto.name}'),
+                                        backgroundColor: const Color(0xFF059669),
+                                      ),
+                                    );
+                                  }
+                                },
                               ),
+                            IconButton(
+                              icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                              tooltip: 'Scan Barcode with Camera',
+                              onPressed: () async {
+                                final code = await CameraBarcodeScannerScreen.scanCode(context);
+                                if (code != null && code.trim().isNotEmpty) {
+                                  final clean = code.trim();
+                                  final auto = await BarcodeMedicineService.lookup(clean);
+                                  applyAutoFill(auto);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('✓ Auto-filled: ${auto.name} from Barcode!'),
+                                        backgroundColor: const Color(0xFF059669),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: expiryCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Expiry Date',
-                              hintText: 'MM/YYYY',
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'GST Rate',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'GST Rate',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary,
+                      children: [0.0, 5.0, 12.0, 18.0].map((rate) {
+                        final isSelected = selectedGstRate == rate;
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: InkWell(
+                              onTap: () => setSheetState(() => selectedGstRate = rate),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.primary.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.primary.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${rate.toInt()}%',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected ? Colors.white : AppColors.primary,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [0.0, 5.0, 12.0, 18.0].map((rate) {
-                                  final isSelected = selectedGstRate == rate;
-                                  return Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 6),
-                                      child: InkWell(
-                                        onTap: () => setSheetState(() => selectedGstRate = rate),
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? AppColors.primary
-                                                : AppColors.primary.withValues(alpha: 0.08),
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(
-                                              color: isSelected
-                                                  ? AppColors.primary
-                                                  : AppColors.primary.withValues(alpha: 0.2),
-                                            ),
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            '${rate.toInt()}%',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: isSelected ? Colors.white : AppColors.primary,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: hsnCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'HSN Code',
-                              hintText: '30049099',
                             ),
                           ),
-                        ),
-                      ],
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: hsnCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'HSN Code',
+                        hintText: 'e.g. 30049099',
+                      ),
                     ),
                     const SizedBox(height: 18),
                     SizedBox(
@@ -1617,28 +1601,36 @@ class InventoryScreen extends StatelessWidget {
                               ? ((pRate * billedStock) / totalStock)
                               : pRate;
 
+                          final savedName = nameCtrl.text.trim();
+                          final savedGeneric = genericCtrl.text.trim();
+                          final savedCategory = categoryCtrl.text.trim();
+                          final savedStrength = strengthCtrl.text.trim();
+                          final savedMfg = mfgCtrl.text.trim();
+                          final savedBarcode = barcodeCtrl.text.trim();
+                          final savedExpiry = expiryCtrl.text.trim();
+                          final savedHsn = hsnCtrl.text.trim();
                           if (ctx.mounted) Navigator.pop(ctx);
                           final ok = await inv.addMedicine(
-                                name: nameCtrl.text.trim(),
-                                genericName: genericCtrl.text.trim().isNotEmpty ? genericCtrl.text.trim() : null,
-                                category: categoryCtrl.text.trim().isNotEmpty ? categoryCtrl.text.trim() : 'General',
-                                strength: strengthCtrl.text.trim().isNotEmpty ? strengthCtrl.text.trim() : null,
-                                manufacturer: mfgCtrl.text.trim().isNotEmpty ? mfgCtrl.text.trim() : null,
+                                name: savedName,
+                                genericName: savedGeneric.isNotEmpty ? savedGeneric : null,
+                                category: savedCategory.isNotEmpty ? savedCategory : 'General',
+                                strength: savedStrength.isNotEmpty ? savedStrength : null,
+                                manufacturer: savedMfg.isNotEmpty ? savedMfg : null,
                                 mrp: mrp,
                                 sellingPrice: sp,
                                 purchasePrice: effectivePrice,
                                 stock: totalStock,
-                                barcode: barcodeCtrl.text.trim().isNotEmpty ? barcodeCtrl.text.trim() : null,
-                                expiryDate: expiryCtrl.text.trim().isNotEmpty ? expiryCtrl.text.trim() : '12/2028',
+                                barcode: savedBarcode.isNotEmpty ? savedBarcode : null,
+                                expiryDate: savedExpiry.isNotEmpty ? savedExpiry : '12/2028',
                                 gstRate: selectedGstRate,
-                                hsnCode: hsnCtrl.text.trim().isNotEmpty ? hsnCtrl.text.trim() : null,
+                                hsnCode: savedHsn.isNotEmpty ? savedHsn : null,
                               );
                           if (context.mounted) {
                             final schemeBadge = freeStock > 0 ? ' ($billedStock + $freeStock Free = $totalStock units)' : '';
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(ok 
-                                  ? '✓ Added ${nameCtrl.text.trim()}$schemeBadge to inventory!' 
+                                  ? '✓ Added $savedName$schemeBadge to inventory!' 
                                   : (inv.errorMessage ?? 'Failed to add medicine. Please try again.')),
                                 backgroundColor: ok ? const Color(0xFF059669) : Colors.red,
                               ),
@@ -1661,7 +1653,21 @@ class InventoryScreen extends StatelessWidget {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      nameCtrl.dispose();
+      genericCtrl.dispose();
+      strengthCtrl.dispose();
+      mfgCtrl.dispose();
+      categoryCtrl.dispose();
+      mrpCtrl.dispose();
+      spCtrl.dispose();
+      stockCtrl.dispose();
+      freeSchemeCtrl.dispose();
+      purchasePriceCtrl.dispose();
+      barcodeCtrl.dispose();
+      expiryCtrl.dispose();
+      hsnCtrl.dispose();
+    });
   }
 
   void _showNearExpirySheet(BuildContext context, InventoryProvider inventory) {
@@ -1778,13 +1784,20 @@ class InventoryScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${list.length} Products ($totalUnits units)',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                        Expanded(
+                          child: Text(
+                            '${list.length} Products ($totalUnits units)',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        Text(
-                          'Est. Value: ${currency.format(totalValue)}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Est. Value: ${currency.format(totalValue)}',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -1995,7 +2008,7 @@ class InventoryScreen extends StatelessWidget {
 
             return Container(
               height: MediaQuery.of(sheetContext).size.height * 0.88,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(sheetContext).viewInsets.bottom + 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2100,13 +2113,20 @@ class InventoryScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${selectedItems.length} Items Selected ($totalOrderUnits units to order)',
-                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                        Expanded(
+                          child: Text(
+                            '${selectedItems.length} Items ($totalOrderUnits units)',
+                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        Text(
-                          'Est: ${currency.format(totalOrderValue)}',
-                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Est: ${currency.format(totalOrderValue)}',
+                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -2408,7 +2428,7 @@ class InventoryScreen extends StatelessWidget {
 
             return Container(
               height: MediaQuery.of(sheetCtx).size.height * 0.90,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(sheetCtx).viewInsets.bottom + 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2492,15 +2512,20 @@ class InventoryScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${filteredEntries.length} Dispensed Entries Verified',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                        Expanded(
+                          child: Text(
+                            '${filteredEntries.length} Entries Verified',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         const Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.verified_rounded, size: 14, color: Color(0xFF059669)),
                             SizedBox(width: 4),
-                            Text('Drug Inspector Ready', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                            Text('Inspector Ready', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
                           ],
                         ),
                       ],
@@ -2595,11 +2620,16 @@ class InventoryScreen extends StatelessWidget {
                                       child: Text(
                                         'Prescriber: $dName',
                                         style: const TextStyle(fontSize: 11.5, color: Color(0xFF6B21A8), fontWeight: FontWeight.w500),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    Text(
-                                      'Batch: $bNum ${billNo.isNotEmpty ? "• Bill: $billNo" : ""}',
-                                      style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary, fontFamily: 'monospace'),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        'Batch: $bNum${billNo.isNotEmpty ? " • $billNo" : ""}',
+                                        style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary, fontFamily: 'monospace'),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ],
                                 ),

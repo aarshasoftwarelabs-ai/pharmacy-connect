@@ -338,9 +338,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               const Icon(Icons.verified_user_rounded, size: 14, color: Color(0xFF059669)),
                               const SizedBox(width: 6),
-                              Text(
-                                'Store ID #${auth.pharmacyId}',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              Flexible(
+                                child: Text(
+                                  'Store ID #${auth.pharmacyId}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                ),
                               ),
                             ],
                           ),
@@ -403,9 +407,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              'Cloud Database Synced',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                            Flexible(
+                              child: Text(
+                                'Cloud Database Synced',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                              ),
                             ),
                             SizedBox(width: 6),
                             Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
@@ -563,9 +571,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 children: [
                                   Row(
                                     children: [
-                                      const Text(
-                                        'Thermal Receipt Printer',
-                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                                      const Flexible(
+                                        child: Text(
+                                          'Thermal Receipt Printer',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                                        ),
                                       ),
                                       const SizedBox(width: 6),
                                       Container(
@@ -643,9 +655,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Text(
-                                    'Auto WhatsApp Invoicing',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                                  const Flexible(
+                                    child: Text(
+                                      'Auto WhatsApp Invoicing',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   Container(

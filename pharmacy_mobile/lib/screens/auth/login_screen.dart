@@ -367,13 +367,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Mobile Number (મોબાઈલ નંબર)',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                      const Expanded(
+                        child: Text(
+                          'Mobile Number (મોબાઈલ નંબર)',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        ),
                       ),
-                      if (_isCheckingPhone)
-                        Row(
-                          children: const [
+                      if (_isCheckingPhone) ...[
+                        const SizedBox(width: 8),
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             SizedBox(
                               width: 12,
                               height: 12,
@@ -386,6 +391,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ],
                         ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -570,8 +576,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           )
                         : const Text(
-                            'Open Barcode Scanner (સ્કેનર ખોલો)',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            'Open Barcode Scanner',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                   ),
 
@@ -652,7 +660,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           )
                         : const Text(
-                            'Continue with OTP (ઓટીપી થી આગળ વધો)',
+                            'Continue with OTP',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                   ),
@@ -689,7 +699,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     icon: const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 20),
                     label: const Text(
-                      'Create New Pharmacy (નવી ફાર્મસી બનાવો)',
+                      'Create New Pharmacy',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
                     ),
                   ),

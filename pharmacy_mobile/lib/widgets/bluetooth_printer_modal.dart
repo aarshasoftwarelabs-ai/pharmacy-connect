@@ -203,9 +203,10 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Drag Handle
             Center(
@@ -294,7 +295,9 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
                         ),
                         child: Center(
                           child: Text(
-                            '58mm (2-inch Mini)',
+                            '58mm (Mini)',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: _paperSize == '58mm' ? FontWeight.w800 : FontWeight.w600,
@@ -322,7 +325,9 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
                         ),
                         child: Center(
                           child: Text(
-                            '80mm (3-inch Standard)',
+                            '80mm (Wide)',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: _paperSize == '80mm' ? FontWeight.w800 : FontWeight.w600,
@@ -504,9 +509,9 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
                     icon: _isTesting
                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.receipt_long_rounded, size: 16),
-                    label: const Text('Print POS Slip'),
+                    label: const Text('Test Slip', maxLines: 1, overflow: TextOverflow.ellipsis),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -531,11 +536,11 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
                       if (mounted) navigator.pop();
                     },
                     icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
-                    label: const Text('System Print / PDF'),
+                    label: const Text('PDF / Print', maxLines: 1, overflow: TextOverflow.ellipsis),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryDark,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -543,6 +548,7 @@ class _BluetoothPrinterModalState extends State<BluetoothPrinterModal> {
               ],
             ),
           ],
+          ),
         ),
       ),
     );

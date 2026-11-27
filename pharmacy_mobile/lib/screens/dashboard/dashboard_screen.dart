@@ -91,19 +91,23 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           children: [
             Text(
               _getGreeting(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
             ),
             Text(
               auth.pharmacyName,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
             ),
           ],
         ),
         actions: [
           // Live POS Status Pill
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            margin: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
               color: const Color(0xFFDCFCE7),
               borderRadius: BorderRadius.circular(16),
@@ -112,18 +116,19 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.circle, size: 8, color: Color(0xFF16A34A)),
+                Icon(Icons.circle, size: 7, color: Color(0xFF16A34A)),
                 SizedBox(width: 4),
                 Text(
-                  'POS Live',
+                  'Live',
                   style: TextStyle(color: Color(0xFF15803D), fontSize: 10, fontWeight: FontWeight.w800),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary, size: 21),
             tooltip: 'Staff Barcode Scanner Mode (બારકોડ સ્કેનર)',
             onPressed: () {
               Navigator.push(
@@ -133,7 +138,9 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             },
           ),
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary, size: 21),
             tooltip: 'Store Settings & Profile',
             onPressed: () {
               Navigator.push(
@@ -143,7 +150,9 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 21),
             tooltip: 'Sign Out (લોગ આઉટ)',
             onPressed: () {
               showDialog(
@@ -499,38 +508,46 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
               ),
               const SizedBox(height: 12),
 
-              Row(
+              Column(
                 children: [
-                  _buildServicePill(
-                    context,
-                    title: 'Customers',
-                    icon: Icons.people_alt_rounded,
-                    color: Colors.blue,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomersScreen())),
+                  Row(
+                    children: [
+                      _buildServicePill(
+                        context,
+                        title: 'Customers',
+                        icon: Icons.people_alt_rounded,
+                        color: Colors.blue,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomersScreen())),
+                      ),
+                      const SizedBox(width: 10),
+                      _buildServicePill(
+                        context,
+                        title: 'Vendors & Orders',
+                        icon: Icons.apartment_rounded,
+                        color: Colors.purple,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SuppliersScreen())),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  _buildServicePill(
-                    context,
-                    title: 'Vendors / Orders',
-                    icon: Icons.apartment_rounded,
-                    color: Colors.purple,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SuppliersScreen())),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildServicePill(
-                    context,
-                    title: 'CA Tax Reports',
-                    icon: Icons.bar_chart_rounded,
-                    color: Colors.teal,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildServicePill(
-                    context,
-                    title: 'Store Settings',
-                    icon: Icons.storefront_rounded,
-                    color: Colors.indigo,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _buildServicePill(
+                        context,
+                        title: 'CA Tax Reports',
+                        icon: Icons.bar_chart_rounded,
+                        color: Colors.teal,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())),
+                      ),
+                      const SizedBox(width: 10),
+                      _buildServicePill(
+                        context,
+                        title: 'Store Settings',
+                        icon: Icons.storefront_rounded,
+                        color: Colors.indigo,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -541,15 +558,21 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.inventory_2_rounded, size: 18, color: AppColors.warning),
-                      SizedBox(width: 6),
-                      Text(
-                        'Attention Needed (Low Stock)',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
-                      ),
-                    ],
+                  const Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.inventory_2_rounded, size: 18, color: AppColors.warning),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Attention Needed (Low Stock)',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   TextButton(
                     onPressed: () => widget.onNavigateTab?.call(2),
@@ -576,9 +599,11 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                     children: [
                       Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
                       SizedBox(width: 8),
-                      Text(
-                        'All medicines are sufficiently in stock! 👍',
-                        style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 13),
+                      Flexible(
+                        child: Text(
+                          'All medicines are sufficiently in stock! 👍',
+                          style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
                       ),
                     ],
                   ),
@@ -680,30 +705,31 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.cardBorder),
             boxShadow: AppColors.softShadow,
           ),
-          child: Column(
+          child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                ),
               ),
             ],
           ),

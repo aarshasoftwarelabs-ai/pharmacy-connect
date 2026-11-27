@@ -100,22 +100,31 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             children: [
                               const Icon(Icons.people_outline_rounded, size: 52, color: AppColors.textMuted),
                               const SizedBox(height: 12),
-                              Text(
-                                _searchQuery.isEmpty
-                                    ? 'No Customers Recorded Yet'
-                                    : 'No customers matching "$_searchQuery"',
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      _searchQuery.isEmpty
+                                          ? 'No Customers Recorded Yet'
+                                          : 'No customers matching "$_searchQuery"',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _searchQuery.isEmpty
+                                          ? 'Customers added during billing will appear here automatically.'
+                                          : 'Check spelling or search by phone number.',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _searchQuery.isEmpty
-                                    ? 'Customers added during billing will appear here automatically.'
-                                    : 'Check spelling or search by phone number.',
-                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                               ),
                             ],
                           ),

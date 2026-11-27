@@ -184,45 +184,49 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
           children: [
             Icon(Icons.keyboard_alt_outlined, color: AppColors.primary),
             SizedBox(width: 8),
-            Text('Enter Barcode / SKU', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Text('Enter Barcode / SKU', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter the medicine barcode number or name to search & add:',
-              style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: textCtrl,
-              autofocus: true,
-              keyboardType: TextInputType.text,
-              decoration: InputDecoration(
-                hintText: 'e.g. 890123456789 or Paracetamol',
-                prefixIcon: const Icon(Icons.qr_code_rounded, color: AppColors.primary),
-                filled: true,
-                fillColor: const Color(0xFFF1F5F9),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter the medicine barcode number or name to search & add:',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
               ),
-              onSubmitted: (val) {
-                final code = val.trim();
-                Navigator.pop(ctx);
-                if (code.isNotEmpty) {
-                  if (widget.returnCodeOnly) {
-                    Navigator.pop(context, code);
-                  } else {
-                    _processScannedCode(code);
+              const SizedBox(height: 14),
+              TextField(
+                controller: textCtrl,
+                autofocus: true,
+                keyboardType: TextInputType.text,
+                decoration: InputDecoration(
+                  hintText: 'e.g. 890123456789 or Paracetamol',
+                  prefixIcon: const Icon(Icons.qr_code_rounded, color: AppColors.primary),
+                  filled: true,
+                  fillColor: const Color(0xFFF1F5F9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onSubmitted: (val) {
+                  final code = val.trim();
+                  Navigator.pop(ctx);
+                  if (code.isNotEmpty) {
+                    if (widget.returnCodeOnly) {
+                      Navigator.pop(context, code);
+                    } else {
+                      _processScannedCode(code);
+                    }
                   }
-                }
-              },
-            ),
-          ],
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -247,7 +251,7 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
           ),
         ],
       ),
-    );
+    ).whenComplete(() => textCtrl.dispose());
   }
 
   @override
@@ -571,11 +575,15 @@ class _CameraBarcodeScannerScreenState extends State<CameraBarcodeScannerScreen>
                       children: [
                         const Icon(Icons.center_focus_strong_rounded, size: 14, color: Color(0xFF34D399)),
                         const SizedBox(width: 6),
-                        Text(
-                          widget.returnCodeOnly
-                              ? 'Align barcode inside the laser reticle'
-                              : 'Point camera at medicine barcode or QR',
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                        Flexible(
+                          child: Text(
+                            widget.returnCodeOnly
+                                ? 'Align barcode inside reticle'
+                                : 'Point camera at medicine barcode',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ],
                     ),

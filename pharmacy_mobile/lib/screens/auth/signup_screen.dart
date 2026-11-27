@@ -212,15 +212,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Row(
-                        children: const [
-                          Icon(Icons.check_circle_rounded, color: Color(0xFFA7F3D0), size: 15),
-                          SizedBox(width: 6),
-                          Text('મોબાઈલથી POS બિલિંગ', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          SizedBox(width: 14),
-                          Icon(Icons.check_circle_rounded, color: Color(0xFFA7F3D0), size: 15),
-                          SizedBox(width: 6),
-                          Text('કેમેરા બારકોડ સ્કેનર', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 6,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.check_circle_rounded, color: Color(0xFFA7F3D0), size: 15),
+                              SizedBox(width: 6),
+                              Text('મોબાઈલથી POS બિલિંગ', style: TextStyle(color: Colors.white, fontSize: 12)),
+                            ],
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.check_circle_rounded, color: Color(0xFFA7F3D0), size: 15),
+                              SizedBox(width: 6),
+                              Text('કેમેરા બારકોડ સ્કેનર', style: TextStyle(color: Colors.white, fontSize: 12)),
+                            ],
+                          ),
                         ],
                       ),
                     ],
@@ -376,12 +387,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 children: const [
                                   Icon(Icons.store_mall_directory_rounded, color: Colors.white, size: 20),
                                   SizedBox(width: 8),
-                                  Text(
-                                    'Create Pharmacy & Start (શરૂ કરો)',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                  Flexible(
+                                    child: Text(
+                                      'Create Pharmacy & Start',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 15.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -393,8 +408,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 20),
 
                 // Back to Login Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     const Text(
                       'પહેલેથી જ ફાર્મસી એકાઉન્ટ છે? ',
@@ -447,12 +463,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget _buildFieldLabel(String label, {bool required = false}) {
     return Row(
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
         if (required)

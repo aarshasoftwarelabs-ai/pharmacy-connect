@@ -326,39 +326,47 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                 top: 20,
                 bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.inventory_2_rounded,
-                              size: 14,
-                              color: Colors.deepOrange,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Stock Inward (માલ ઉમેરો)',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.inventory_2_rounded,
+                                size: 14,
                                 color: Colors.deepOrange,
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'Stock Inward (માલ ઉમેરો)',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.deepOrange,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       IconButton(
@@ -377,21 +385,23 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         'Current Stock: ${medicine.stock} units',
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textSecondary,
                         ),
                       ),
-                      const SizedBox(width: 10),
                       Text(
                         '➔ New Total: $expectedTotal',
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.bold,
                           color: Colors.deepOrange,
                         ),
@@ -473,12 +483,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           keyboardType: TextInputType.number,
                           onChanged: (_) => setSheetState(() {}),
                           decoration: const InputDecoration(
-                            labelText: 'Add Quantity *',
+                            labelText: 'Add Qty *',
                             hintText: 'e.g. 10',
-                            prefixIcon: Icon(
-                              Icons.add_box_rounded,
-                              color: Colors.deepOrange,
-                            ),
                           ),
                         ),
                       ),
@@ -554,6 +560,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                       ),
                       label: Text(
                         'Save Stock (+ $addCount units)',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -563,6 +571,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     ),
                   ),
                 ],
+              ),
               ),
             );
           },
@@ -752,35 +761,42 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0284C7)
-                                .withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.qr_code_scanner_rounded,
-                                size: 14,
-                                color: Color(0xFF0284C7),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _currentMode == StaffScannerMode.billing
-                                    ? 'Add New Medicine to Bill (નવી દવા)'
-                                    : 'New Medicine Stock (નવી દવા સ્ટોક)',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0284C7)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.qr_code_scanner_rounded,
+                                  size: 14,
                                   color: Color(0xFF0284C7),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    _currentMode == StaffScannerMode.billing
+                                        ? 'Add New Medicine to Bill'
+                                        : 'New Medicine Stock',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0284C7),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         IconButton(
@@ -842,8 +858,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           child: TextField(
                             controller: genericCtrl,
                             decoration: const InputDecoration(
-                              labelText: 'Generic Salt (સોલ્ટ)',
-                              hintText: 'Fluoxetine / Paracetamol',
+                              labelText: 'Generic Salt',
+                              hintText: 'Paracetamol',
                             ),
                           ),
                         ),
@@ -865,8 +881,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     TextField(
                       controller: strengthCtrl,
                       decoration: const InputDecoration(
-                        labelText: 'Strength / Power (દવાનો પાવર)',
-                        hintText: 'e.g. 500 mg, 650 mg, 40 mg, 100 ml',
+                        labelText: 'Strength / Power',
+                        hintText: 'e.g. 500 mg, 650 mg, 100 ml',
                         prefixIcon: Icon(
                           Icons.bolt_rounded,
                           color: Colors.amber,
@@ -875,34 +891,20 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     ),
                     const SizedBox(height: 10),
 
-                    // Batch No, MFG Date, Expiry Date
+                    // Batch No & Expiry Date (2 columns — clear & readable)
                     Row(
                       children: [
                         Expanded(
-                          flex: 5,
                           child: TextField(
                             controller: batchCtrl,
                             decoration: const InputDecoration(
-                              labelText: 'Batch No (બેચ)',
+                              labelText: 'Batch No',
                               hintText: 'e.g. B260241',
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
-                          flex: 4,
-                          child: TextField(
-                            controller: mfgCtrl,
-                            keyboardType: TextInputType.datetime,
-                            decoration: const InputDecoration(
-                              labelText: 'MFG Date',
-                              hintText: 'MM/YY (05/24)',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 5,
                           child: TextField(
                             controller: expiryCtrl,
                             keyboardType: TextInputType.datetime,
@@ -911,8 +913,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                               color: Color(0xFF15803D),
                             ),
                             decoration: const InputDecoration(
-                              labelText: 'Exp Date * (એક્સપાયરી)',
-                              hintText: 'MM/YY (05/27)',
+                              labelText: 'Exp Date (MM/YY) *',
+                              hintText: '05/27',
                             ),
                           ),
                         ),
@@ -920,7 +922,35 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                     ),
                     const SizedBox(height: 10),
 
-                    // MRP, Selling Price, Units
+                    // MFG Date & Units (2 columns)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: mfgCtrl,
+                            keyboardType: TextInputType.datetime,
+                            decoration: const InputDecoration(
+                              labelText: 'MFG Date (MM/YY)',
+                              hintText: '05/24',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: stockCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Units (Stock) *',
+                              hintText: '10',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // MRP & Selling Price (2 columns)
                     Row(
                       children: [
                         Expanded(
@@ -953,17 +983,6 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             decoration: const InputDecoration(
                               labelText: 'Selling Price (₹) *',
                               hintText: '0.00',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: stockCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Units *',
-                              hintText: '10',
                             ),
                           ),
                         ),
@@ -1144,8 +1163,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         ),
                         label: Text(
                           _currentMode == StaffScannerMode.billing
-                              ? '✓ Save & Add to Bill Immediately (બિલમાં ઉમેરો)'
-                              : '✓ Register Medicine & Save Stock',
+                              ? 'Save & Add to Bill'
+                              : 'Register & Save Stock',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -1236,55 +1257,86 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final item = billing.cartItems[index];
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              item.medicine.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${_currency.format(item.unitPrice)} each',
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
                               children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.remove_circle_outline,
-                                    size: 20,
-                                  ),
-                                  onPressed: () => billing.updateQuantity(
-                                    item.medicine.id,
-                                    item.quantity - 1,
-                                  ),
-                                ),
-                                Text(
-                                  '${item.quantity}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.add_circle_outline,
-                                    size: 20,
-                                  ),
-                                  onPressed: () => billing.updateQuantity(
-                                    item.medicine.id,
-                                    item.quantity + 1,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.medicine.name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${_currency.format(item.unitPrice)} each',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _currency.format(item.netTotal),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primary,
-                                  ),
+                                const SizedBox(width: 8),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    InkWell(
+                                      onTap: () => billing.updateQuantity(
+                                        item.medicine.id,
+                                        item.quantity - 1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.remove_circle_outline,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      child: Text(
+                                        '${item.quantity}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    InkWell(
+                                      onTap: () => billing.updateQuantity(
+                                        item.medicine.id,
+                                        item.quantity + 1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.add_circle_outline,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _currency.format(item.netTotal),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13.5,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -1298,7 +1350,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             child: TextField(
                               controller: customerCtrl,
                               decoration: const InputDecoration(
-                                labelText: 'Customer Name (Optional)',
+                                labelText: 'Customer Name',
                                 hintText: 'Walk-in',
                               ),
                             ),
@@ -1417,9 +1469,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           label: Text(
                             billing.isProcessing
                                 ? 'Processing Bill...'
-                                : 'Complete & Generate Bill (${_currency.format(billing.grandTotal)})',
+                                : 'Generate Bill (${_currency.format(billing.grandTotal)})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -2281,53 +2335,46 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                           ),
                           const SizedBox(height: 10),
 
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Generic Salt / Composition:',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              TextField(
+                                controller: genericCtrl,
+                                style: const TextStyle(fontSize: 12),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  hintText: 'Composition / Salt',
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
                           Row(
                             children: [
                               Expanded(
-                                flex: 2,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
-                                      'Generic Salt / Composition:',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black54,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    TextField(
-                                      controller: genericCtrl,
-                                      style: const TextStyle(fontSize: 12),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 8,
-                                            ),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        hintText: 'Composition',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                flex: 1,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Strength (પાવર):',
+                                      'Strength (mg/ml):',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -2362,9 +2409,8 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 10),
                               Expanded(
-                                flex: 1,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -2394,7 +2440,7 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                                         ),
                                         filled: true,
                                         fillColor: Colors.white,
-                                        hintText: '10 Tablets',
+                                        hintText: 'e.g. 10 Tablets',
                                       ),
                                     ),
                                   ],
@@ -2924,7 +2970,10 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF16A34A),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 14,
+                                horizontal: 8,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -2932,13 +2981,15 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                             ),
                             icon: const Icon(
                               Icons.shopping_cart_checkout_rounded,
-                              size: 18,
+                              size: 17,
                             ),
                             label: const Text(
-                              '🛒 Add to Bill (Live)',
+                              'Add to Bill',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                fontSize: 13.5,
                               ),
                             ),
                           ),
@@ -3029,9 +3080,11 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                         ),
                         Text(
                           '${auth.userName} • ${auth.role}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white70,
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -3040,11 +3093,14 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                   ),
                   // Torch button
                   IconButton(
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                     icon: Icon(
                       _isTorchOn
                           ? Icons.flash_on_rounded
                           : Icons.flash_off_rounded,
                       color: _isTorchOn ? Colors.amber : Colors.white,
+                      size: 20,
                     ),
                     onPressed: () {
                       _scannerController.toggleTorch();
@@ -3053,25 +3109,32 @@ class _StaffScannerScreenState extends State<StaffScannerScreen>
                   ),
                   // Camera OCR scan for text-only strips/boxes without barcode
                   IconButton(
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                     icon: const Icon(
                       Icons.camera_alt_rounded,
                       color: Colors.white,
+                      size: 20,
                     ),
                     tooltip: '૨-સ્ટેપ પત્તું સ્કેનર (Front & Back Strip)',
                     onPressed: _startDirectBoxScan,
                   ),
                   // Manual search button
                   IconButton(
-                    icon: const Icon(Icons.search_rounded, color: Colors.white),
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                    icon: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
                     tooltip: 'Manual Search',
                     onPressed: _showManualSearchDialog,
                   ),
                   // Logout
                   IconButton(
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                     icon: const Icon(
                       Icons.logout_rounded,
                       color: Colors.white70,
-                      size: 20,
+                      size: 19,
                     ),
                     onPressed: _showLogoutConfirmDialog,
                   ),

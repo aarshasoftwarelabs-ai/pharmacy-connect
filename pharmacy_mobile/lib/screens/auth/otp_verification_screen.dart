@@ -235,51 +235,54 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
               // 6 OTP Digit Input Boxes
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(6, (index) {
-                  return SizedBox(
-                    width: 48,
-                    height: 56,
-                    child: TextField(
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      maxLength: 1,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: index < 5 ? 6 : 0),
+                      child: SizedBox(
+                        height: 54,
+                        child: TextField(
+                          controller: _controllers[index],
+                          focusNode: _focusNodes[index],
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          maxLength: 1,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: InputDecoration(
+                            counterText: '',
+                            contentPadding: EdgeInsets.zero,
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                            ),
+                          ),
+                          onChanged: (val) {
+                            if (val.isNotEmpty && index < 5) {
+                              _focusNodes[index + 1].requestFocus();
+                            } else if (val.isEmpty && index > 0) {
+                              _focusNodes[index - 1].requestFocus();
+                            }
+                            if (_otpCode.length == 6) {
+                              _handleVerify();
+                            }
+                          },
+                        ),
                       ),
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        counterText: '',
-                        contentPadding: EdgeInsets.zero,
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                        ),
-                      ),
-                      onChanged: (val) {
-                        if (val.isNotEmpty && index < 5) {
-                          _focusNodes[index + 1].requestFocus();
-                        } else if (val.isEmpty && index > 0) {
-                          _focusNodes[index - 1].requestFocus();
-                        }
-                        if (_otpCode.length == 6) {
-                          _handleVerify();
-                        }
-                      },
                     ),
                   );
                 }),
@@ -305,7 +308,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         ),
                       )
                     : const Text(
-                        'Verify & Continue (ચકાસો અને આગળ વધો)',
+                        'Verify & Continue',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
               ),
@@ -316,17 +321,23 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (_timerSeconds > 0)
-                    Text(
-                      'Resend OTP in ${_timerSeconds}s (ફરી મોકલો)',
-                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                    Flexible(
+                      child: Text(
+                        'Resend OTP in ${_timerSeconds}s',
+                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                      ),
                     )
                   else
-                    TextButton.icon(
-                      onPressed: _handleResendOtp,
-                      icon: const Icon(Icons.refresh_rounded, size: 18, color: AppColors.primary),
-                      label: const Text(
-                        'Resend OTP Now (હવે ફરી OTP મોકલો)',
-                        style: TextStyle(fontSize: 13.5, color: AppColors.primary, fontWeight: FontWeight.bold),
+                    Flexible(
+                      child: TextButton.icon(
+                        onPressed: _handleResendOtp,
+                        icon: const Icon(Icons.refresh_rounded, size: 18, color: AppColors.primary),
+                        label: const Text(
+                          'Resend OTP Now',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13.5, color: AppColors.primary, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                 ],
@@ -339,7 +350,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.edit_note_rounded, size: 18, color: AppColors.textMuted),
                   label: const Text(
-                    'Change Mobile Number / Email (વિગતો બદલો)',
+                    'Change Mobile Number / Email',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 12.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
                   ),
                 ),

@@ -70,6 +70,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
                   const SizedBox(width: 8),
                   Text('Thermal slip printed for ${bill['bill_number'] ?? 'Bill'}!'),
+                  Expanded(child: Text('Thermal slip printed for ${bill['bill_number'] ?? 'Bill'}!', overflow: TextOverflow.ellipsis)),
                 ],
               ),
             ),
@@ -256,7 +257,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 Expanded(
                   flex: 3,
                   child: _buildKpiBox(
-                    title: 'Total Invoices',
+                    title: 'Invoices',
                     value: '${activeBills.length} Bills',
                     icon: Icons.receipt_long_rounded,
                     color: const Color(0xFF2563EB),
@@ -268,7 +269,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 Expanded(
                   flex: 3,
                   child: _buildKpiBox(
-                    title: 'Average Bill',
+                    title: 'Avg Bill',
                     value: _currency.format(averageBill),
                     icon: Icons.analytics_outlined,
                     color: const Color(0xFF7C3AED),
@@ -315,19 +316,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 const SizedBox(height: 10),
 
                 // Payment Filters (All / Counter Cash / Online UPI)
-                Row(
-                  children: [
-                    const Text(
-                      'Filter:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('All', 'All (${recentBills.length})'),
-                    const SizedBox(width: 6),
-                    _buildFilterChip('COUNTER', 'Counter / Cash'),
-                    const SizedBox(width: 6),
-                    _buildFilterChip('ONLINE', 'UPI / Online'),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Filter:',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('All', 'All (${recentBills.length})'),
+                      const SizedBox(width: 6),
+                      _buildFilterChip('COUNTER', 'Counter / Cash'),
+                      const SizedBox(width: 6),
+                      _buildFilterChip('ONLINE', 'UPI / Online'),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -520,13 +524,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                billNo,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15.5,
-                                  color: AppColors.textPrimary,
-                                  letterSpacing: -0.2,
+                              Flexible(
+                                child: Text(
+                                  billNo,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    color: AppColors.textPrimary,
+                                    letterSpacing: -0.2,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 6),
@@ -553,12 +561,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             children: [
                               const Icon(Icons.person_rounded, size: 13, color: AppColors.textMuted),
                               const SizedBox(width: 4),
-                              Text(
-                                customer,
-                                style: const TextStyle(
-                                  fontSize: 12.5,
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w600,
+                              Expanded(
+                                child: Text(
+                                  customer,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
@@ -613,7 +625,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
                 const SizedBox(height: 12),
                 // Date & Items meta info
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -623,6 +637,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.calendar_today_rounded, size: 12, color: AppColors.textMuted),
                           const SizedBox(width: 4),
@@ -630,7 +645,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -639,6 +653,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.shopping_bag_outlined, size: 12, color: AppColors.textMuted),
                           const SizedBox(width: 4),
@@ -748,8 +763,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -943,13 +958,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-            color: AppColors.textPrimary,
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary))),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
       ],

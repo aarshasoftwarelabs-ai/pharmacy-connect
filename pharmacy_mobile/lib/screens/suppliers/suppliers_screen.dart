@@ -271,14 +271,41 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     final creditDaysCtrl = TextEditingController(text: '21');
     final brandsCtrl = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Pharma Supplier', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Add Pharma Supplier',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               TextField(
                 controller: nameCtrl,
                 decoration: const InputDecoration(
@@ -287,55 +314,79 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              TextField(
-                controller: contactCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Contact Person',
-                  hintText: 'e.g. Hasmukhbhai Shah',
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: contactCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Contact Person',
+                        hintText: 'e.g. Hasmukh Shah',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: mobileCtrl,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Mobile Number',
+                        hintText: 'e.g. 9825123456',
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              TextField(
-                controller: mobileCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Mobile Number',
-                  hintText: 'e.g. 9825123456',
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: cityCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'City',
+                        hintText: 'e.g. Surat',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: creditDaysCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Credit Days',
+                        hintText: '21',
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              TextField(
-                controller: cityCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'City',
-                  hintText: 'e.g. Surat / Ahmedabad',
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: gstinCtrl,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'GSTIN (15 Chars)',
-                  hintText: 'e.g. 24AAGCS1234F1Z8',
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: dlCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Drug License (20B / 21B)',
-                  hintText: 'e.g. 20B-GJ-SUR-142512',
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: creditDaysCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Credit Period (Days)',
-                  hintText: '21',
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: gstinCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'GSTIN',
+                        hintText: '24AAGCS1234F1Z8',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: dlCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Drug License',
+                        hintText: '20B / 21B',
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               TextField(
@@ -345,55 +396,74 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                   hintText: 'e.g. Sun Pharma, Cipla, Zydus',
                 ),
               ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final name = nameCtrl.text.trim();
+                    if (name.isEmpty) return;
+                    final contact = contactCtrl.text.trim();
+                    final mobile = mobileCtrl.text.trim();
+                    final city = cityCtrl.text.trim();
+                    final gstin = gstinCtrl.text.trim().toUpperCase();
+                    final dl = dlCtrl.text.trim();
+                    final creditDays = int.tryParse(creditDaysCtrl.text.trim()) ?? 21;
+                    final brands = brandsCtrl.text.trim();
+                    Navigator.pop(ctx);
+                    final newSup = SupplierModel(
+                      id: DateTime.now().millisecondsSinceEpoch,
+                      supplierName: name,
+                      contactPerson: contact.isNotEmpty ? contact : null,
+                      mobile: mobile.isNotEmpty ? mobile : null,
+                      city: city.isNotEmpty ? city : null,
+                      gstin: gstin.isNotEmpty ? gstin : null,
+                      drugLicenseNumber: dl.isNotEmpty ? dl : null,
+                      creditPeriodDays: creditDays,
+                      dealsInBrands: brands.isNotEmpty ? brands : null,
+                    );
+                    final res = await ApiService.post(ApiEndpoints.suppliers, newSup.toJson());
+                    if (!mounted) return;
+                    if (res.success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Supplier "$name" saved!'),
+                          backgroundColor: const Color(0xFF059669),
+                        ),
+                      );
+                      await _fetchSuppliers();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(res.message ?? 'Failed to save supplier'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Save Supplier', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                ),
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameCtrl.text.trim();
-              if (name.isEmpty) return;
-              Navigator.pop(ctx);
-              final newSup = SupplierModel(
-                id: DateTime.now().millisecondsSinceEpoch,
-                supplierName: name,
-                contactPerson: contactCtrl.text.trim().isNotEmpty ? contactCtrl.text.trim() : null,
-                mobile: mobileCtrl.text.trim().isNotEmpty ? mobileCtrl.text.trim() : null,
-                city: cityCtrl.text.trim().isNotEmpty ? cityCtrl.text.trim() : null,
-                gstin: gstinCtrl.text.trim().isNotEmpty ? gstinCtrl.text.trim().toUpperCase() : null,
-                drugLicenseNumber: dlCtrl.text.trim().isNotEmpty ? dlCtrl.text.trim() : null,
-                creditPeriodDays: int.tryParse(creditDaysCtrl.text.trim()) ?? 21,
-                dealsInBrands: brandsCtrl.text.trim().isNotEmpty ? brandsCtrl.text.trim() : null,
-              );
-              final res = await ApiService.post(ApiEndpoints.suppliers, newSup.toJson());
-              if (!mounted) return;
-              if (res.success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Supplier "$name" saved!'),
-                    backgroundColor: const Color(0xFF059669),
-                  ),
-                );
-                await _fetchSuppliers();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(res.message ?? 'Failed to save supplier'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Save Supplier', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
-    );
+    ).whenComplete(() {
+      nameCtrl.dispose();
+      contactCtrl.dispose();
+      mobileCtrl.dispose();
+      cityCtrl.dispose();
+      gstinCtrl.dispose();
+      dlCtrl.dispose();
+      creditDaysCtrl.dispose();
+      brandsCtrl.dispose();
+    });
   }
 
   @override
@@ -518,12 +588,13 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 12),
-                                  if (s.gstin != null || s.drugLicenseNumber != null)
-                                    Row(
+                                  if (s.gstin != null || s.creditPeriodDays != null)
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 6,
                                       children: [
                                         if (s.gstin != null)
                                           Container(
-                                            margin: const EdgeInsets.only(right: 8),
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                             decoration: BoxDecoration(
                                               color: Colors.blue.shade50,

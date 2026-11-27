@@ -243,19 +243,22 @@ class _MessagingGatewayModalState extends State<MessagingGatewayModal> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Auto-Send on Checkout',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-                            ),
-                            Text(
-                              'Dispatch receipt automatically to customer WhatsApp',
-                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                            ),
-                          ],
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Auto-Send on Checkout',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                              ),
+                              Text(
+                                'Dispatch receipt automatically to customer WhatsApp',
+                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Switch.adaptive(
                           value: _isActive,
                           activeTrackColor: const Color(0xFF059669),

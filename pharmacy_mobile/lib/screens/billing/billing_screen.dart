@@ -53,86 +53,90 @@ class _BillingScreenState extends State<BillingScreen> {
             right: 20,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Row(
-                children: [
-                  Icon(Icons.person_outline_rounded, color: AppColors.primary),
-                  SizedBox(width: 8),
-                  Text(
-                    'Customer Information',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    Icon(Icons.person_outline_rounded, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Customer Information',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Add customer details for WhatsApp digital bill & loyalty history',
+                  style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _customerNameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer Name',
+                    hintText: 'e.g. Ramesh Patel (or Walk-in)',
+                    prefixIcon: Icon(Icons.badge_outlined),
                   ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Add customer details for WhatsApp digital bill & loyalty history',
-                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _customerNameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Customer Name',
-                  hintText: 'e.g. Ramesh Patel (or Walk-in)',
-                  prefixIcon: Icon(Icons.badge_outlined),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _customerPhoneCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number (for WhatsApp Invoice)',
-                  hintText: 'e.g. 9876543210',
-                  prefixIcon: Icon(Icons.phone_iphone_rounded),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _doctorNameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Doctor Name (Schedule H / H1)',
-                  hintText: 'e.g. Dr. K. P. Sharma',
-                  prefixIcon: Icon(Icons.medical_services_outlined),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    billing.setCustomerInfo(
-                      name: _customerNameCtrl.text.trim().isNotEmpty ? _customerNameCtrl.text.trim() : 'Walk-in Customer',
-                      phone: _customerPhoneCtrl.text.trim(),
-                      doctorName: _doctorNameCtrl.text.trim(),
-                    );
-                    Navigator.pop(ctx);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _customerPhoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number (WhatsApp)',
+                    hintText: 'e.g. 9876543210',
+                    prefixIcon: Icon(Icons.phone_iphone_rounded),
                   ),
-                  child: const Text('Save Customer Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _doctorNameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Doctor Name (Rx)',
+                    hintText: 'e.g. Dr. K. P. Sharma',
+                    prefixIcon: Icon(Icons.medical_services_outlined),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      billing.setCustomerInfo(
+                        name: _customerNameCtrl.text.trim().isNotEmpty ? _customerNameCtrl.text.trim() : 'Walk-in Customer',
+                        phone: _customerPhoneCtrl.text.trim(),
+                        doctorName: _doctorNameCtrl.text.trim(),
+                      );
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Save Customer Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -529,13 +533,23 @@ class _BillingScreenState extends State<BillingScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: AppColors.textPrimary,
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -633,7 +647,7 @@ class _BillingScreenState extends State<BillingScreen> {
                                 children: [
                                   Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
                                   SizedBox(width: 8),
-                                  Text('Receipt printed to Bluetooth printer!'),
+                                  Expanded(child: Text('Receipt printed to Bluetooth printer!')),
                                 ],
                               ),
                             ),
@@ -694,7 +708,7 @@ _Thank you for choosing DavaSetu Pharmacy!_
                             children: [
                               const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
                               const SizedBox(width: 8),
-                              Text('Invoice for ${bill?['bill_number']} copied for WhatsApp!'),
+                              Expanded(child: Text('Invoice for ${bill?['bill_number']} copied for WhatsApp!')),
                             ],
                           ),
                         ),
@@ -734,8 +748,10 @@ _Thank you for choosing DavaSetu Pharmacy!_
           children: [
             const Text(
               'Mobile POS Billing',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.w900,
                 color: AppColors.textPrimary,
                 letterSpacing: -0.4,
@@ -752,12 +768,16 @@ _Thank you for choosing DavaSetu Pharmacy!_
                   ),
                 ),
                 const SizedBox(width: 5),
-                const Text(
-                  'Live Register Active',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF059669),
+                const Flexible(
+                  child: Text(
+                    'Live Register Active',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF059669),
+                    ),
                   ),
                 ),
               ],
@@ -770,16 +790,16 @@ _Thank you for choosing DavaSetu Pharmacy!_
             builder: (context, pendingCount, _) {
               if (pendingCount == 0) return const SizedBox.shrink();
               return Padding(
-                padding: const EdgeInsets.only(right: 6.0),
+                padding: const EdgeInsets.only(right: 4.0),
                 child: ActionChip(
-                  avatar: const Icon(Icons.cloud_upload_rounded, size: 15, color: Color(0xFFB45309)),
+                  avatar: const Icon(Icons.cloud_upload_rounded, size: 14, color: Color(0xFFB45309)),
                   label: Text(
-                    '$pendingCount Offline',
+                    '$pendingCount',
                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
                   ),
                   backgroundColor: const Color(0xFFFEF3C7),
                   side: const BorderSide(color: Color(0xFFFDE68A)),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
                   visualDensity: VisualDensity.compact,
                   onPressed: () async {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -804,18 +824,24 @@ _Thank you for choosing DavaSetu Pharmacy!_
             },
           ),
           IconButton(
-            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary, size: 22),
             tooltip: 'Live Camera Barcode Scanner',
             onPressed: () => CameraBarcodeScannerScreen.open(context),
           ),
           if (billing.cartItems.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.error),
+              padding: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.error, size: 22),
               tooltip: 'Clear Cart',
               onPressed: () => billing.clearCart(),
             ),
           IconButton(
-            icon: const Icon(Icons.add_shopping_cart_rounded, color: AppColors.primary),
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: const Icon(Icons.add_shopping_cart_rounded, color: AppColors.primary, size: 22),
             tooltip: 'Add Medicine',
             onPressed: _showAddMedicineModal,
           ),
@@ -1124,7 +1150,7 @@ _Thank you for choosing DavaSetu Pharmacy!_
                               children: [
                                 const Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),
                                 const SizedBox(width: 6),
-                                Text('${med.name} added to bill'),
+                                Expanded(child: Text('${med.name} added to bill', overflow: TextOverflow.ellipsis)),
                               ],
                             ),
                             backgroundColor: AppColors.primaryDark,
@@ -1241,13 +1267,15 @@ _Thank you for choosing DavaSetu Pharmacy!_
                       ],
                     ),
                     const SizedBox(height: 3),
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(
                           '${_currency.format(item.unitPrice)} each',
                           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                         ),
-                        const SizedBox(width: 8),
                         InkWell(
                           onTap: () => billing.toggleLooseTablet(item.medicine.id),
                           borderRadius: BorderRadius.circular(6),
@@ -1299,9 +1327,13 @@ _Thank you for choosing DavaSetu Pharmacy!_
                             children: [
                               Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFB45309)),
                               SizedBox(width: 4),
-                              Text(
-                                'Out of Stock • ⚡ View Substitutes',
-                                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                              Flexible(
+                                child: Text(
+                                  'Out of Stock • Substitutes',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                                ),
                               ),
                             ],
                           ),
@@ -1396,42 +1428,51 @@ _Thank you for choosing DavaSetu Pharmacy!_
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total (${billing.itemCount} ${billing.itemCount == 1 ? 'item' : 'items'}):',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                    ),
-                    GestureDetector(
-                      onTap: billing.toggleMrpInclusive,
-                      child: Container(
-                        margin: const EdgeInsets.only(top: 3),
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: billing.isMrpInclusive ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: billing.isMrpInclusive ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total (${billing.itemCount} ${billing.itemCount == 1 ? 'item' : 'items'}):',
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                      ),
+                      GestureDetector(
+                        onTap: billing.toggleMrpInclusive,
+                        child: Container(
+                          margin: const EdgeInsets.only(top: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: billing.isMrpInclusive ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: billing.isMrpInclusive ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          billing.isMrpInclusive
-                              ? 'MRP Inclusive GST (Tap to switch)'
-                              : 'GST Exclusive +₹${billing.taxAmount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: billing.isMrpInclusive ? const Color(0xFF047857) : const Color(0xFFB45309),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
+                          child: Text(
+                            billing.isMrpInclusive
+                                ? 'MRP Inclusive GST (Switch)'
+                                : 'GST Excl. +₹${billing.taxAmount.toStringAsFixed(2)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: billing.isMrpInclusive ? const Color(0xFF047857) : const Color(0xFFB45309),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                Text(
-                  _currency.format(billing.grandTotal),
-                  style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: AppColors.primaryDark, letterSpacing: -0.4),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    _currency.format(billing.grandTotal),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primaryDark, letterSpacing: -0.4),
+                  ),
                 ),
               ],
             ),
