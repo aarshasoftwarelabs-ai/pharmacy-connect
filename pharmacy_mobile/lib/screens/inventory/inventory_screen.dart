@@ -1320,9 +1320,8 @@ class InventoryScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: TextField(
@@ -1342,16 +1341,14 @@ class InventoryScreen extends StatelessWidget {
                             keyboardType: TextInputType.number,
                             onChanged: (_) => setSheetState(() {}),
                             decoration: const InputDecoration(
-                              labelText: 'Free Scheme',
-                              hintText: '0',
-                              helperText: 'Bonus free qty (e.g. 1 Free)',
-                              helperMaxLines: 1,
+                              labelText: 'Free Bonus Qty',
+                              hintText: '0 (e.g. 1 Free)',
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
