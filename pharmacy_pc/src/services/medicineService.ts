@@ -82,6 +82,46 @@ export const lookupMedicineByBarcode = async (barcode: string): Promise<any> => 
   }
 };
 
+export interface SmartAutofillResult {
+  found: boolean;
+  source?: 'STORE_DB' | 'MASTER_CATALOG' | 'GEMINI_AI' | 'UNAVAILABLE';
+  aiGenerated?: boolean;
+  model?: string;
+  disclaimer?: string;
+  message?: string;
+  medicine?: {
+    genericName?: string;
+    category?: string;
+    strength?: string;
+    dosageForm?: string;
+    packSize?: string;
+    manufacturer?: string;
+    hsnCode?: string;
+    gstRate?: number;
+    prescriptionRequired?: boolean;
+    isScheduleH1?: boolean;
+  };
+}
+
+export const smartAutofillMedicine = async (name: string): Promise<SmartAutofillResult> => {
+  const clean = (name || '').trim();
+  if (clean.length < 2) {
+    return { found: false, message: 'Please enter at least 2 characters of the medicine name.' };
+  }
+  const response = await apiFetch(`${API_BASE_URL}/medicines/smart-autofill`, {
+    method: 'POST',
+    body: JSON.stringify({ name: clean }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      found: false,
+      message: data.message || data.error || 'Could not auto-fill medicine details.'
+    };
+  }
+  return data;
+};
+
 export interface DeadStockItem {
   id: number;
   name: string;

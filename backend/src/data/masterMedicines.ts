@@ -661,3 +661,16 @@ export function lookupMasterMedicineByBarcode(barcode: string): MasterMedicine |
 
   return null;
 }
+
+export function lookupMasterMedicineByName(name: string): MasterMedicine | null {
+  const clean = (name || '').trim().toLowerCase();
+  if (clean.length < 3) return null;
+
+  const exact = MASTER_MEDICINES.find(m => m.name.toLowerCase() === clean);
+  if (exact) return exact;
+
+  const partial = MASTER_MEDICINES.find(
+    m => m.name.toLowerCase().includes(clean) || (clean.length >= 5 && clean.includes(m.name.toLowerCase()))
+  );
+  return partial || null;
+}

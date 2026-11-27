@@ -1,7 +1,76 @@
 import pool from '../config/database';
-import { lookupMasterMedicineByBarcode } from '../data/masterMedicines';
+import { lookupMasterMedicineByBarcode, lookupMasterMedicineByName } from '../data/masterMedicines';
 import { liveScanService } from './liveScanService';
 import { getIo } from '../socket';
+
+const ALLOWED_CATEGORIES = ['Tablets', 'Capsules', 'Syrups', 'Injections', 'Ointments', 'Drops', 'Inhalers', 'Others'] as const;
+const ALLOWED_GST_RATES = [0, 5, 12, 18] as const;
+const GEMINI_FLASH_MODELS = [
+  'gemini-3-flash-preview',
+  'gemini-3.8-flash',
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest'
+];
+const SCHEDULE_H1_SALT_REGEX = /\b(alprazolam|balofloxacin|bedaquiline|buprenorphine|capreomycin|cefdinir|cefditoren|cefepime|cefixime|cefotaxime|cefpodoxime|ceftazidime|ceftriaxone|chlordiazepoxide|clofazimine|clobazam|clonazepam|clorazepate|cycloserine|delamanid|diazepam|diphenoxylate|doripenem|ertapenem|ethambutol|ethionamide|faropenem|flurazepam|gemifloxacin|imipenem|isoniazid|ketamine|levofloxacin|linezolid|lorazepam|meropenem|midazolam|moxifloxacin|nitrazepam|oxazepam|pentazocine|pyrazinamide|rifabutin|rifampicin|rifapentine|sparfloxacin|streptomycin|tigecycline|tramadol|zolpidem)\b/i;
+
+const autofillCache = new Map<string, { data: any; expiresAt: number }>();
+
+function normalizeCategory(raw: any): string {
+  const clean = String(raw || '').trim().toLowerCase();
+  const matched = ALLOWED_CATEGORIES.find(c => c.toLowerCase() === clean);
+  if (matched) return matched;
+  if (clean.includes('cap')) return 'Capsules';
+  if (clean.includes('syr') || clean.includes('susp') || clean.includes('liq') || clean.includes('sol')) return 'Syrups';
+  if (clean.includes('inj') || clean.includes('vial') || clean.includes('amp')) return 'Injections';
+  if (clean.includes('oint') || clean.includes('cream') || clean.includes('gel')) return 'Ointments';
+  if (clean.includes('drop')) return 'Drops';
+  if (clean.includes('inhal') || clean.includes('rotacap') || clean.includes('resp')) return 'Inhalers';
+  if (clean.includes('tab')) return 'Tablets';
+  return 'Others';
+}
+
+function normalizeGstRate(raw: any): number {
+  const num = Number(raw);
+  if ((ALLOWED_GST_RATES as readonly number[]).includes(num)) return num;
+  if (num === 28) return 18;
+  return 12;
+}
+
+async function generateWithGeminiFlash(
+  contentParts: any[],
+  options: { timeoutMs?: number; jsonMode?: boolean } = {}
+): Promise<{ text: string; modelUsed: string } | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured on server.');
+  }
+
+  const { GoogleGenerativeAI } = require('@google/generative-ai');
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const timeoutMs = options.timeoutMs ?? 8000;
+
+  for (const modelName of GEMINI_FLASH_MODELS) {
+    try {
+      const modelConfig: any = { model: modelName };
+      if (options.jsonMode) {
+        modelConfig.generationConfig = { responseMimeType: 'application/json', temperature: 0.1 };
+      }
+      const aiModel = genAI.getGenerativeModel(modelConfig);
+      const generatePromise = aiModel.generateContent(contentParts);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Timeout on model ${modelName}`)), timeoutMs)
+      );
+      const result: any = await Promise.race([generatePromise, timeoutPromise]);
+      const text = result?.response?.text?.();
+      if (text && String(text).trim().length > 0) {
+        return { text: String(text).replace(/```json/gi, '').replace(/```/gi, '').trim(), modelUsed: modelName };
+      }
+    } catch (err: any) {
+      console.warn(`[Gemini Flash] Model ${modelName} failed:`, err?.message || err);
+    }
+  }
+  return null;
+}
 
 export function parseExpiryDate(dateStr: any): string {
   if (!dateStr || String(dateStr).trim() === '') {
@@ -801,14 +870,6 @@ export class MedicineService {
     pharmacyId: number,
     syncToPc: boolean = false
   ) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('Gemini API key is not configured on server.');
-    }
-
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(apiKey);
-
     const imageParts = [
       {
         inlineData: {
@@ -834,28 +895,11 @@ Extract the following exact fields accurately, reading dot-matrix inkjet or prin
 }
 Return ONLY valid JSON without markdown wrapping.`;
 
-    let result;
-    let lastError;
     let extracted: any;
-    const fallbackModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-8b'];
+    const aiResponse = await generateWithGeminiFlash([prompt, ...imageParts], { timeoutMs: 9000 });
 
-    for (const modelName of fallbackModels) {
-      try {
-        const aiModel = genAI.getGenerativeModel({ model: modelName });
-        const generatePromise = aiModel.generateContent([prompt, ...imageParts]);
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`Timeout on model ${modelName}`)), 7000)
-        );
-        result = await Promise.race([generatePromise, timeoutPromise]);
-        if (result && result.response) break;
-      } catch (err: any) {
-        console.warn(`[OCR Box Scan] Model ${modelName} failed:`, err.message);
-        lastError = err;
-      }
-    }
-
-    if (!result || !result.response) {
-      console.warn('[OCR Box Scan] Vision model did not return a response:', lastError?.message);
+    if (!aiResponse) {
+      console.warn('[OCR Box Scan] Vision model did not return a response.');
       extracted = {
         medicine_name: null,
         generic_name: null,
@@ -867,13 +911,10 @@ Return ONLY valid JSON without markdown wrapping.`;
         confidence: 0.0
       };
     } else {
-      let rawText = result.response.text();
-      rawText = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
-
       try {
-        extracted = JSON.parse(rawText);
+        extracted = JSON.parse(aiResponse.text);
       } catch (e) {
-        console.warn('[OCR Box Scan] Failed to parse OCR response as JSON:', rawText);
+        console.warn('[OCR Box Scan] Failed to parse OCR response as JSON:', aiResponse.text);
         extracted = {
           medicine_name: null,
           generic_name: null,
@@ -997,5 +1038,169 @@ Return ONLY valid JSON without markdown wrapping.`;
       matched_medicine: matchedMedicine,
       synced_item: syncedItem
     };
+  }
+
+  /**
+   * 3-Step Hybrid Smart Auto-fill:
+   * 1) Pharmacy's own verified DB catalog
+   * 2) Built-in verified MASTER_MEDICINES catalog
+   * 3) Google Gemini Flash AI (real Indian pharma metadata; never fabricates MRP/stock)
+   */
+  static async smartAutofillMedicine(pharmacyId: number, rawName: string) {
+    const cleanName = String(rawName || '').trim();
+    if (cleanName.length < 2) {
+      return { found: false, message: 'Please enter at least 2 characters of medicine name.' };
+    }
+
+    // 1. Store's own DB match
+    try {
+      const dbRes = await pool.query(
+        `SELECT name, generic_name as "genericName", category, strength, dosage_form as "dosageForm",
+                pack_size as "packSize", manufacturer, hsn_code as "hsnCode", gst_rate as "gstRate",
+                is_prescription_required as "prescriptionRequired", is_schedule_h1 as "isScheduleH1"
+         FROM medicines
+         WHERE pharmacy_id = $1 AND (LOWER(name) = LOWER($2) OR LOWER(name) ILIKE $3)
+         ORDER BY CASE WHEN LOWER(name) = LOWER($2) THEN 0 ELSE 1 END, id DESC
+         LIMIT 1`,
+        [pharmacyId, cleanName, `%${cleanName}%`]
+      );
+      if (dbRes.rows.length > 0) {
+        const row = dbRes.rows[0];
+        return {
+          found: true,
+          source: 'STORE_DB',
+          aiGenerated: false,
+          medicine: {
+            genericName: row.genericName || '',
+            category: normalizeCategory(row.category),
+            strength: row.strength || '',
+            dosageForm: row.dosageForm || 'Tablet',
+            packSize: row.packSize || '',
+            manufacturer: row.manufacturer || '',
+            hsnCode: row.hsnCode || '30049099',
+            gstRate: normalizeGstRate(row.gstRate ?? 12),
+            prescriptionRequired: Boolean(row.prescriptionRequired),
+            isScheduleH1: Boolean(row.isScheduleH1),
+          }
+        };
+      }
+    } catch (dbErr) {
+      console.warn('[SmartAutofill] Store DB lookup note:', dbErr);
+    }
+
+    // 2. Verified Master Catalog match
+    const master = lookupMasterMedicineByName(cleanName);
+    if (master) {
+      const h1 = SCHEDULE_H1_SALT_REGEX.test(master.genericName) || SCHEDULE_H1_SALT_REGEX.test(master.name);
+      return {
+        found: true,
+        source: 'MASTER_CATALOG',
+        aiGenerated: false,
+        medicine: {
+          genericName: master.genericName,
+          category: normalizeCategory(master.category),
+          strength: master.strength,
+          dosageForm: master.dosageForm,
+          packSize: master.packSize,
+          manufacturer: master.manufacturer,
+          hsnCode: master.hsnCode || '30049099',
+          gstRate: normalizeGstRate(master.gstRate),
+          prescriptionRequired: Boolean(master.prescriptionRequired) || h1,
+          isScheduleH1: h1,
+        }
+      };
+    }
+
+    // 3. Cache check before calling Gemini AI
+    const cacheKey = cleanName.toLowerCase();
+    const cached = autofillCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return {
+        found: false,
+        source: 'UNAVAILABLE',
+        message: 'Gemini API key is not configured on server. Please enter details manually.'
+      };
+    }
+
+    const prompt = `You are an Indian retail pharmacy reference assistant. Given an Indian medicine brand or generic name: "${cleanName}"
+Return ONLY a valid JSON object (no markdown) with accurate pharmacological metadata used in Indian medical stores:
+{
+  "recognized": boolean (true ONLY if "${cleanName}" is a real medicine, supplement, syrup, ointment, inhaler, drops, injection, or medical product; false if random gibberish/non-medicine),
+  "genericName": "string (exact active chemical salt composition, e.g. 'Telmisartan (40mg) + Amlodipine (5mg)')",
+  "manufacturer": "string (official Indian or global manufacturer company name, e.g. 'Glenmark Pharmaceuticals Ltd', or '')",
+  "category": "Tablets" | "Capsules" | "Syrups" | "Injections" | "Ointments" | "Drops" | "Inhalers" | "Others",
+  "strength": "string (e.g. '650 mg', '40mg + 5mg', '100 ml', or '')",
+  "dosageForm": "string (e.g. 'Tablet', 'Capsule', 'Syrup', 'Cream', 'Injection')",
+  "packSize": "string (standard retail strip/pack size in India, e.g. '10 tablets', '15 tablets', '1 bottle', or '')",
+  "hsnCode": "string (Indian GST HSN code, usually '30049099', '30041010', '30042099', or '21069099' for nutraceuticals)",
+  "gstRate": 0 | 5 | 12 | 18 (standard Indian GST slab for this product, typically 12 for most medicines, 5 for life-saving/insulin, 18 for nutraceuticals/cosmeceuticals),
+  "prescriptionRequired": boolean (true for Schedule H/H1/antibiotics/cardiac/chronic Rx drugs, false for OTC),
+  "isScheduleH1": boolean (true ONLY for Indian CDSCO Schedule H1 antibiotics/anti-TB/habit-forming drugs like Azithromycin, Cefixime, Levofloxacin, Alprazolam, Tramadol, Zolpidem, etc.)
+}`;
+
+    const aiResponse = await generateWithGeminiFlash([prompt], { jsonMode: true, timeoutMs: 8500 });
+    if (!aiResponse) {
+      return {
+        found: false,
+        source: 'GEMINI_AI',
+        message: 'AI lookup temporarily busy. Please fill medicine details manually or retry.'
+      };
+    }
+
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(aiResponse.text);
+    } catch {
+      const jsonMatch = aiResponse.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch {
+          parsed = null;
+        }
+      }
+    }
+
+    if (!parsed || parsed.recognized === false || !parsed.genericName) {
+      return {
+        found: false,
+        source: 'GEMINI_AI',
+        aiGenerated: true,
+        message: `"${cleanName}" was not recognized as a known medicine. Please enter details manually.`
+      };
+    }
+
+    const genericName = String(parsed.genericName || '').trim();
+    const isH1 = Boolean(parsed.isScheduleH1) || SCHEDULE_H1_SALT_REGEX.test(genericName) || SCHEDULE_H1_SALT_REGEX.test(cleanName);
+    const resultPayload = {
+      found: true,
+      source: 'GEMINI_AI',
+      aiGenerated: true,
+      model: aiResponse.modelUsed,
+      disclaimer: 'AI suggested metadata — please verify Salt, GST & Strip MRP before saving.',
+      medicine: {
+        genericName,
+        manufacturer: String(parsed.manufacturer || '').trim(),
+        category: normalizeCategory(parsed.category),
+        strength: String(parsed.strength || '').trim(),
+        dosageForm: String(parsed.dosageForm || 'Tablet').trim(),
+        packSize: String(parsed.packSize || '').trim(),
+        hsnCode: String(parsed.hsnCode || '30049099').trim(),
+        gstRate: normalizeGstRate(parsed.gstRate),
+        prescriptionRequired: Boolean(parsed.prescriptionRequired) || isH1,
+        isScheduleH1: isH1,
+      }
+    };
+
+    if (autofillCache.size >= 500) {
+      const firstKey = autofillCache.keys().next().value;
+      if (firstKey) autofillCache.delete(firstKey);
+    }
+    autofillCache.set(cacheKey, { data: resultPayload, expiresAt: Date.now() + 24 * 60 * 60 * 1000 });
+    return resultPayload;
   }
 }

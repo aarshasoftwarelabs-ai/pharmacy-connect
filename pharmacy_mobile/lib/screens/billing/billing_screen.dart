@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/services/thermal_printer_service.dart';
@@ -20,7 +21,11 @@ class BillingScreen extends StatefulWidget {
 }
 
 class _BillingScreenState extends State<BillingScreen> {
-  final _currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+  final _currency = NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  );
   final _customerNameCtrl = TextEditingController();
   final _customerPhoneCtrl = TextEditingController();
   final _doctorNameCtrl = TextEditingController();
@@ -71,12 +76,19 @@ class _BillingScreenState extends State<BillingScreen> {
                 const SizedBox(height: 16),
                 const Row(
                   children: [
-                    Icon(Icons.person_outline_rounded, color: AppColors.primary),
+                    Icon(
+                      Icons.person_outline_rounded,
+                      color: AppColors.primary,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Customer Information',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
                   ],
@@ -84,7 +96,10 @@ class _BillingScreenState extends State<BillingScreen> {
                 const SizedBox(height: 6),
                 const Text(
                   'Add customer details for WhatsApp digital bill & loyalty history',
-                  style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -120,7 +135,9 @@ class _BillingScreenState extends State<BillingScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       billing.setCustomerInfo(
-                        name: _customerNameCtrl.text.trim().isNotEmpty ? _customerNameCtrl.text.trim() : 'Walk-in Customer',
+                        name: _customerNameCtrl.text.trim().isNotEmpty
+                            ? _customerNameCtrl.text.trim()
+                            : 'Walk-in Customer',
                         phone: _customerPhoneCtrl.text.trim(),
                         doctorName: _doctorNameCtrl.text.trim(),
                       );
@@ -130,9 +147,17 @@ class _BillingScreenState extends State<BillingScreen> {
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Save Customer Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Save Customer Details',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -184,10 +209,19 @@ class _BillingScreenState extends State<BillingScreen> {
                           autofocus: false,
                           decoration: InputDecoration(
                             hintText: 'Search medicine, generic, or barcode...',
-                            hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+                            hintStyle: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textMuted,
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.search_rounded,
+                              color: AppColors.primary,
+                            ),
                             suffixIcon: IconButton(
-                              icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                              icon: const Icon(
+                                Icons.qr_code_scanner_rounded,
+                                color: AppColors.primary,
+                              ),
                               tooltip: 'Live Camera Barcode Scanner',
                               onPressed: () {
                                 Navigator.pop(ctx);
@@ -195,7 +229,10 @@ class _BillingScreenState extends State<BillingScreen> {
                               },
                             ),
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
                           ),
                         ),
                       ),
@@ -203,20 +240,33 @@ class _BillingScreenState extends State<BillingScreen> {
                     Expanded(
                       child: inv.medicines.isEmpty
                           ? const Center(
-                              child: Text('No medicines found matching query', style: TextStyle(color: AppColors.textSecondary)),
+                              child: Text(
+                                'No medicines found matching query',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                             )
                           : ListView.separated(
                               controller: scrollController,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               itemCount: inv.medicines.length,
-                              separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                              separatorBuilder: (context, index) =>
+                                  const Divider(
+                                    height: 1,
+                                    color: Color(0xFFF1F5F9),
+                                  ),
                               itemBuilder: (context, index) {
                                 final med = inv.medicines[index];
                                 final isLow = med.isLowStock;
                                 final isOut = med.isOutOfStock;
 
                                 return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0,
+                                  ),
                                   child: Row(
                                     children: [
                                       Container(
@@ -224,52 +274,107 @@ class _BillingScreenState extends State<BillingScreen> {
                                         height: 38,
                                         decoration: BoxDecoration(
                                           color: AppColors.primarySubtle,
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
-                                        child: const Icon(Icons.medication_rounded, size: 20, color: AppColors.primaryDark),
+                                        child: const Icon(
+                                          Icons.medication_rounded,
+                                          size: 20,
+                                          color: AppColors.primaryDark,
+                                        ),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Row(
                                               children: [
                                                 Flexible(
                                                   child: Text(
                                                     med.name,
-                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 14.5,
+                                                    ),
                                                     maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
-                                                if (med.strength != null && med.strength!.isNotEmpty) ...[
+                                                if (med.strength != null &&
+                                                    med
+                                                        .strength!
+                                                        .isNotEmpty) ...[
                                                   const SizedBox(width: 6),
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 5,
+                                                          vertical: 1.5,
+                                                        ),
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFFEFF6FF),
-                                                      borderRadius: BorderRadius.circular(5),
-                                                      border: Border.all(color: const Color(0xFF93C5FD)),
+                                                      color: const Color(
+                                                        0xFFEFF6FF,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            5,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFF93C5FD,
+                                                        ),
+                                                      ),
                                                     ),
                                                     child: Text(
                                                       med.strength!,
-                                                      style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                                      style: const TextStyle(
+                                                        fontSize: 9.5,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Color(
+                                                          0xFF1D4ED8,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
                                                 if (med.isScheduleH1) ...[
                                                   const SizedBox(width: 4),
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 4,
+                                                          vertical: 1,
+                                                        ),
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFFFEF2F2),
-                                                      borderRadius: BorderRadius.circular(4),
-                                                      border: Border.all(color: const Color(0xFFFECACA)),
+                                                      color: const Color(
+                                                        0xFFFEF2F2,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            4,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFFFECACA,
+                                                        ),
+                                                      ),
                                                     ),
                                                     child: const Text(
                                                       'H1',
-                                                      style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                                                      style: TextStyle(
+                                                        fontSize: 8.5,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Color(
+                                                          0xFFDC2626,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
@@ -283,15 +388,16 @@ class _BillingScreenState extends State<BillingScreen> {
                                                 color: isOut
                                                     ? AppColors.error
                                                     : isLow
-                                                        ? AppColors.warning
-                                                        : AppColors.textSecondary,
+                                                    ? AppColors.warning
+                                                    : AppColors.textSecondary,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
                                           Text(
                                             _currency.format(med.sellingPrice),
@@ -305,27 +411,59 @@ class _BillingScreenState extends State<BillingScreen> {
                                           Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              if (isOut && med.genericName != null && med.genericName!.trim().isNotEmpty) ...[
+                                              if (isOut &&
+                                                  med.genericName != null &&
+                                                  med.genericName!
+                                                      .trim()
+                                                      .isNotEmpty) ...[
                                                 InkWell(
-                                                  onTap: () => _showSubstitutesModal(context, med),
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  onTap: () =>
+                                                      _showSubstitutesModal(
+                                                        context,
+                                                        med,
+                                                      ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                   child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 7,
+                                                          vertical: 4,
+                                                        ),
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFFEFF6FF),
-                                                      borderRadius: BorderRadius.circular(8),
-                                                      border: Border.all(color: const Color(0xFF93C5FD)),
+                                                      color: const Color(
+                                                        0xFFEFF6FF,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFF93C5FD,
+                                                        ),
+                                                      ),
                                                     ),
                                                     child: const Row(
-                                                      mainAxisSize: MainAxisSize.min,
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
                                                       children: [
-                                                        Icon(Icons.bolt_rounded, size: 12, color: Color(0xFF1D4ED8)),
+                                                        Icon(
+                                                          Icons.bolt_rounded,
+                                                          size: 12,
+                                                          color: Color(
+                                                            0xFF1D4ED8,
+                                                          ),
+                                                        ),
                                                         SizedBox(width: 2),
                                                         Text(
                                                           'Subs',
                                                           style: TextStyle(
-                                                            color: Color(0xFF1D4ED8),
-                                                            fontWeight: FontWeight.bold,
+                                                            color: Color(
+                                                              0xFF1D4ED8,
+                                                            ),
+                                                            fontWeight:
+                                                                FontWeight.bold,
                                                             fontSize: 10,
                                                           ),
                                                         ),
@@ -337,27 +475,51 @@ class _BillingScreenState extends State<BillingScreen> {
                                               ],
                                               InkWell(
                                                 onTap: () {
-                                                  context.read<BillingProvider>().addToCart(med);
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                  context
+                                                      .read<BillingProvider>()
+                                                      .addToCart(med);
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
                                                     SnackBar(
-                                                      content: Text('Added ${med.name} to POS cart${isOut ? ' (Zero Stock)' : ''}'),
-                                                      backgroundColor: AppColors.primaryDark,
-                                                      duration: const Duration(milliseconds: 700),
+                                                      content: Text(
+                                                        'Added ${med.name} to POS cart${isOut ? ' (Zero Stock)' : ''}',
+                                                      ),
+                                                      backgroundColor:
+                                                          AppColors.primaryDark,
+                                                      duration: const Duration(
+                                                        milliseconds: 700,
+                                                      ),
                                                     ),
                                                   );
                                                 },
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                                 child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 4,
+                                                      ),
                                                   decoration: BoxDecoration(
-                                                    color: isOut ? const Color(0xFFF59E0B) : AppColors.primary,
-                                                    borderRadius: BorderRadius.circular(8),
+                                                    color: isOut
+                                                        ? const Color(
+                                                            0xFFF59E0B,
+                                                          )
+                                                        : AppColors.primary,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
                                                   ),
                                                   child: Text(
-                                                    isOut ? '+ Add (0 Stk)' : '+ Add',
+                                                    isOut
+                                                        ? '+ Add (0 Stk)'
+                                                        : '+ Add',
                                                     style: const TextStyle(
                                                       color: Colors.white,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontSize: 11,
                                                     ),
                                                   ),
@@ -414,7 +576,11 @@ class _BillingScreenState extends State<BillingScreen> {
                 SizedBox(width: 8),
                 Text(
                   'Confirm POS Checkout',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.textPrimary),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ],
             ),
@@ -428,15 +594,28 @@ class _BillingScreenState extends State<BillingScreen> {
               ),
               child: Column(
                 children: [
-                  _buildSummaryRow('Customer:', billing.customerName.isEmpty ? 'Walk-in Customer' : billing.customerName),
+                  _buildSummaryRow(
+                    'Customer:',
+                    billing.customerName.isEmpty
+                        ? 'Walk-in Customer'
+                        : billing.customerName,
+                  ),
                   if (billing.doctorName.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    _buildSummaryRow('Doctor:', 'Dr. ${billing.doctorName.replaceFirst(RegExp(r'^Dr\.?\s*', caseSensitive: false), '')}'),
+                    _buildSummaryRow(
+                      'Doctor:',
+                      'Dr. ${billing.doctorName.replaceFirst(RegExp(r'^Dr\.?\s*', caseSensitive: false), '')}',
+                    ),
                   ],
-                  if (billing.cartItems.any((it) => it.medicine.isScheduleH1)) ...[
+                  if (billing.cartItems.any(
+                    (it) => it.medicine.isScheduleH1,
+                  )) ...[
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFEF2F2),
                         borderRadius: BorderRadius.circular(6),
@@ -444,14 +623,22 @@ class _BillingScreenState extends State<BillingScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.shield_outlined, size: 14, color: Color(0xFFDC2626)),
+                          const Icon(
+                            Icons.shield_outlined,
+                            size: 14,
+                            color: Color(0xFFDC2626),
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               billing.doctorName.isNotEmpty
                                   ? 'Schedule H1 Statutory Rx Logged (Dr. ${billing.doctorName})'
                                   : '⚠️ Schedule H1 drug in cart: Doctor name required for statutory register.',
-                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF991B1B),
+                              ),
                             ),
                           ),
                         ],
@@ -459,19 +646,36 @@ class _BillingScreenState extends State<BillingScreen> {
                     ),
                   ],
                   const SizedBox(height: 6),
-                  _buildSummaryRow('Total Items:', '${billing.itemCount} units (${billing.cartItems.length} products)'),
+                  _buildSummaryRow(
+                    'Total Items:',
+                    '${billing.itemCount} units (${billing.cartItems.length} products)',
+                  ),
                   const SizedBox(height: 6),
-                  _buildSummaryRow('Payment Mode:', billing.paymentMode, isBold: true),
+                  _buildSummaryRow(
+                    'Payment Mode:',
+                    billing.paymentMode,
+                    isBold: true,
+                  ),
                   const SizedBox(height: 10),
                   const Divider(height: 1),
                   const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Grand Total Payable:', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                      const Text(
+                        'Grand Total Payable:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
                       Text(
                         _currency.format(billing.grandTotal),
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AppColors.primaryDark),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 20,
+                          color: AppColors.primaryDark,
+                        ),
                       ),
                     ],
                   ),
@@ -486,9 +690,14 @@ class _BillingScreenState extends State<BillingScreen> {
                     onPressed: () => Navigator.pop(ctx),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -506,7 +715,9 @@ class _BillingScreenState extends State<BillingScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               backgroundColor: AppColors.error,
-                              content: Text(billing.errorMessage ?? 'Checkout failed'),
+                              content: Text(
+                                billing.errorMessage ?? 'Checkout failed',
+                              ),
                             ),
                           );
                         }
@@ -516,9 +727,17 @@ class _BillingScreenState extends State<BillingScreen> {
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Complete & Issue Bill', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Complete & Issue Bill',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -536,7 +755,10 @@ class _BillingScreenState extends State<BillingScreen> {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -573,18 +795,30 @@ class _BillingScreenState extends State<BillingScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 60),
+            const Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.success,
+              size: 60,
+            ),
             const SizedBox(height: 12),
             const Text(
               'POS Invoice Generated!',
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AppColors.textPrimary),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               'Bill ${bill?['bill_number'] ?? ''} created successfully\nTotal Paid: ${_currency.format(bill?['total'] ?? 0)}',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textSecondary, fontSize: 13.5),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+                fontSize: 13.5,
+              ),
             ),
             const SizedBox(height: 16),
             Container(
@@ -596,14 +830,23 @@ class _BillingScreenState extends State<BillingScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.mark_chat_read_rounded, color: Color(0xFF15803D), size: 20),
+                  const Icon(
+                    Icons.mark_chat_read_rounded,
+                    color: Color(0xFF15803D),
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      bill?['customer_phone'] != null && bill!['customer_phone'].toString().isNotEmpty
+                      bill?['customer_phone'] != null &&
+                              bill!['customer_phone'].toString().isNotEmpty
                           ? '📲 Digital invoice dispatched to +91 ${bill['customer_phone']} via SMS & WhatsApp!'
                           : 'Share digital invoice directly to customer via WhatsApp with 1-tap!',
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF15803D),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -617,22 +860,27 @@ class _BillingScreenState extends State<BillingScreen> {
                     onPressed: () async {
                       final scaffoldMessenger = ScaffoldMessenger.of(context);
                       final pharmacy = StorageService.getPharmacy();
-                      final pharmacyName = pharmacy?['name']?.toString() ?? 'DavaSetu Medicals';
+                      final pharmacyName =
+                          pharmacy?['name']?.toString() ?? 'DavaSetu Medicals';
                       final gstin = pharmacy?['gstin']?.toString();
-                      final dlNo = pharmacy?['dl_number']?.toString() ?? pharmacy?['dlNo']?.toString();
+                      final dlNo =
+                          pharmacy?['dl_number']?.toString() ??
+                          pharmacy?['dlNo']?.toString();
                       final phone = pharmacy?['phone']?.toString();
                       final address = pharmacy?['address']?.toString();
-                      final defaultMac = await ThermalPrinterService.instance.getSavedPrinterMac();
+                      final defaultMac = await ThermalPrinterService.instance
+                          .getSavedPrinterMac();
 
                       if (defaultMac != null && defaultMac.isNotEmpty) {
-                        final ok = await ThermalPrinterService.instance.printViaBluetooth(
-                          billData: bill ?? {},
-                          storeName: pharmacyName,
-                          gstin: gstin,
-                          dlNo: dlNo,
-                          phone: phone,
-                          address: address,
-                        );
+                        final ok = await ThermalPrinterService.instance
+                            .printViaBluetooth(
+                              billData: bill ?? {},
+                              storeName: pharmacyName,
+                              gstin: gstin,
+                              dlNo: dlNo,
+                              phone: phone,
+                              address: address,
+                            );
 
                         if (ok) {
                           if (ctx.mounted) {
@@ -642,12 +890,22 @@ class _BillingScreenState extends State<BillingScreen> {
                             SnackBar(
                               behavior: SnackBarBehavior.floating,
                               backgroundColor: const Color(0xFF15803D),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                               content: const Row(
                                 children: [
-                                  Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
                                   SizedBox(width: 8),
-                                  Expanded(child: Text('Receipt printed to Bluetooth printer!')),
+                                  Expanded(
+                                    child: Text(
+                                      'Receipt printed to Bluetooth printer!',
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -667,7 +925,9 @@ class _BillingScreenState extends State<BillingScreen> {
                           autoPrintBill: bill,
                           storeName: pharmacyName,
                           gstin: pharmacy?['gstin']?.toString(),
-                          dlNo: pharmacy?['dl_number']?.toString() ?? pharmacy?['dlNo']?.toString(),
+                          dlNo:
+                              pharmacy?['dl_number']?.toString() ??
+                              pharmacy?['dlNo']?.toString(),
                           phone: pharmacy?['phone']?.toString(),
                           address: pharmacy?['address']?.toString(),
                         );
@@ -677,7 +937,9 @@ class _BillingScreenState extends State<BillingScreen> {
                     label: const Text('Print Receipt'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
@@ -685,7 +947,8 @@ class _BillingScreenState extends State<BillingScreen> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      final billText = '''
+                      final billText =
+                          '''
 🧾 *DavaSetu Pharmacy Invoice*
 Bill No: ${bill?['bill_number']}
 Date: ${bill?['date']}
@@ -706,9 +969,17 @@ _Thank you for choosing DavaSetu Pharmacy!_
                           backgroundColor: const Color(0xFF15803D),
                           content: Row(
                             children: [
-                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
-                              Expanded(child: Text('Invoice for ${bill?['bill_number']} copied for WhatsApp!')),
+                              Expanded(
+                                child: Text(
+                                  'Invoice for ${bill?['bill_number']} copied for WhatsApp!',
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -718,10 +989,18 @@ _Thank you for choosing DavaSetu Pharmacy!_
                       backgroundColor: const Color(0xFF15803D),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     icon: const Icon(Icons.share_rounded, size: 16),
-                    label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    label: const Text(
+                      'WhatsApp',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -792,10 +1071,18 @@ _Thank you for choosing DavaSetu Pharmacy!_
               return Padding(
                 padding: const EdgeInsets.only(right: 4.0),
                 child: ActionChip(
-                  avatar: const Icon(Icons.cloud_upload_rounded, size: 14, color: Color(0xFFB45309)),
+                  avatar: const Icon(
+                    Icons.cloud_upload_rounded,
+                    size: 14,
+                    color: Color(0xFFB45309),
+                  ),
                   label: Text(
                     '$pendingCount',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF92400E),
+                    ),
                   ),
                   backgroundColor: const Color(0xFFFEF3C7),
                   side: const BorderSide(color: Color(0xFFFDE68A)),
@@ -804,7 +1091,9 @@ _Thank you for choosing DavaSetu Pharmacy!_
                   onPressed: () async {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Syncing offline bills with cloud database...'),
+                        content: Text(
+                          'Syncing offline bills with cloud database...',
+                        ),
                         duration: Duration(seconds: 1),
                       ),
                     );
@@ -814,7 +1103,9 @@ _Thank you for choosing DavaSetu Pharmacy!_
                         SnackBar(
                           backgroundColor: const Color(0xFF15803D),
                           behavior: SnackBarBehavior.floating,
-                          content: Text('$synced offline bills synced to cloud successfully!'),
+                          content: Text(
+                            '$synced offline bills synced to cloud successfully!',
+                          ),
                         ),
                       );
                     }
@@ -826,7 +1117,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
           IconButton(
             padding: const EdgeInsets.all(6),
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary, size: 22),
+            icon: const Icon(
+              Icons.qr_code_scanner_rounded,
+              color: AppColors.primary,
+              size: 22,
+            ),
             tooltip: 'Live Camera Barcode Scanner',
             onPressed: () => CameraBarcodeScannerScreen.open(context),
           ),
@@ -834,14 +1129,22 @@ _Thank you for choosing DavaSetu Pharmacy!_
             IconButton(
               padding: const EdgeInsets.all(6),
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.error, size: 22),
+              icon: const Icon(
+                Icons.delete_sweep_rounded,
+                color: AppColors.error,
+                size: 22,
+              ),
               tooltip: 'Clear Cart',
               onPressed: () => billing.clearCart(),
             ),
           IconButton(
             padding: const EdgeInsets.all(6),
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            icon: const Icon(Icons.add_shopping_cart_rounded, color: AppColors.primary, size: 22),
+            icon: const Icon(
+              Icons.add_shopping_cart_rounded,
+              color: AppColors.primary,
+              size: 22,
+            ),
             tooltip: 'Add Medicine',
             onPressed: _showAddMedicineModal,
           ),
@@ -858,7 +1161,10 @@ _Thank you for choosing DavaSetu Pharmacy!_
               onTap: () => _showCustomerInfoDialog(billing),
               borderRadius: BorderRadius.circular(14),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(14),
@@ -873,7 +1179,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
                         color: AppColors.primarySubtle,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.person_rounded, size: 20, color: AppColors.primaryDark),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        size: 20,
+                        color: AppColors.primaryDark,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -881,19 +1191,34 @@ _Thank you for choosing DavaSetu Pharmacy!_
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            billing.customerName.isEmpty ? 'Walk-in Customer' : billing.customerName,
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: AppColors.textPrimary),
+                            billing.customerName.isEmpty
+                                ? 'Walk-in Customer'
+                                : billing.customerName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13.5,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                           Text(
                             billing.doctorName.isNotEmpty
                                 ? 'Dr. ${billing.doctorName.replaceFirst(RegExp(r'^Dr\.?\s*', caseSensitive: false), '')}${billing.customerPhone.isNotEmpty ? " • ${billing.customerPhone}" : ""}'
-                                : (billing.customerPhone.isEmpty ? 'Tap to enter customer name, phone & doctor' : 'Phone: ${billing.customerPhone}'),
-                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                : (billing.customerPhone.isEmpty
+                                      ? 'Tap to enter customer name, phone & doctor'
+                                      : 'Phone: ${billing.customerPhone}'),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
                   ],
                 ),
               ),
@@ -953,16 +1278,27 @@ _Thank you for choosing DavaSetu Pharmacy!_
                     child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.qr_code_scanner_rounded, size: 30, color: Colors.white),
+                        Icon(
+                          Icons.qr_code_scanner_rounded,
+                          size: 30,
+                          color: Colors.white,
+                        ),
                         SizedBox(height: 12),
                         Text(
                           'Scan Barcode',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
                         SizedBox(height: 2),
                         Text(
                           'Live Camera Scanner',
-                          style: TextStyle(fontSize: 11, color: Color(0xFFCCFBF1)),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFFCCFBF1),
+                          ),
                         ),
                       ],
                     ),
@@ -986,7 +1322,8 @@ _Thank you for choosing DavaSetu Pharmacy!_
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.28),
+                          color: const Color(0xFF2563EB)
+                              .withValues(alpha: 0.28),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -995,16 +1332,27 @@ _Thank you for choosing DavaSetu Pharmacy!_
                     child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.manage_search_rounded, size: 30, color: Colors.white),
+                        Icon(
+                          Icons.manage_search_rounded,
+                          size: 30,
+                          color: Colors.white,
+                        ),
                         SizedBox(height: 12),
                         Text(
                           'Search Catalog',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
                         SizedBox(height: 2),
                         Text(
                           'Browse All Medicines',
-                          style: TextStyle(fontSize: 11, color: Color(0xFFDBEAFE)),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFFDBEAFE),
+                          ),
                         ),
                       ],
                     ),
@@ -1025,13 +1373,20 @@ _Thank you for choosing DavaSetu Pharmacy!_
                   SizedBox(width: 4),
                   Text(
                     'Quick Add to Bill',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ],
               ),
               Text(
                 '${inventory.medicines.length} in store',
-                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
               ),
             ],
           ),
@@ -1047,7 +1402,10 @@ _Thank you for choosing DavaSetu Pharmacy!_
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: const Center(
-                child: Text('Loading inventory items...', style: TextStyle(color: AppColors.textSecondary)),
+                child: Text(
+                  'Loading inventory items...',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
               ),
             )
           else
@@ -1066,7 +1424,10 @@ _Thank you for choosing DavaSetu Pharmacy!_
     );
   }
 
-  Widget _buildQuickPickMedicineTile(MedicineModel med, BillingProvider billing) {
+  Widget _buildQuickPickMedicineTile(
+    MedicineModel med,
+    BillingProvider billing,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -1090,7 +1451,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
               color: AppColors.primarySubtle,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.medication_rounded, size: 18, color: AppColors.primaryDark),
+            child: const Icon(
+              Icons.medication_rounded,
+              size: 18,
+              color: AppColors.primaryDark,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1102,7 +1467,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
                     Flexible(
                       child: Text(
                         med.name,
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1110,7 +1479,10 @@ _Thank you for choosing DavaSetu Pharmacy!_
                     if (med.strength != null && med.strength!.isNotEmpty) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 1.5,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFEFF6FF),
                           borderRadius: BorderRadius.circular(5),
@@ -1118,7 +1490,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
                         ),
                         child: Text(
                           med.strength!,
-                          style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1D4ED8),
+                          ),
                         ),
                       ),
                     ],
@@ -1126,7 +1502,10 @@ _Thank you for choosing DavaSetu Pharmacy!_
                 ),
                 Text(
                   '${med.category ?? "Medicine"} • Stock: ${med.stock}',
-                  style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -1136,7 +1515,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
             children: [
               Text(
                 _currency.format(med.sellingPrice),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.primaryDark,
+                ),
               ),
               const SizedBox(height: 4),
               InkWell(
@@ -1148,32 +1531,54 @@ _Thank you for choosing DavaSetu Pharmacy!_
                           SnackBar(
                             content: Row(
                               children: [
-                                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                                 const SizedBox(width: 6),
-                                Expanded(child: Text('${med.name} added to bill', overflow: TextOverflow.ellipsis)),
+                                Expanded(
+                                  child: Text(
+                                    '${med.name} added to bill',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               ],
                             ),
                             backgroundColor: AppColors.primaryDark,
                             duration: const Duration(milliseconds: 700),
                             behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         );
                       },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: med.stock <= 0 ? const Color(0xFFF1F5F9) : AppColors.primarySubtle,
+                    color: med.stock <= 0
+                        ? const Color(0xFFF1F5F9)
+                        : AppColors.primarySubtle,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: med.stock <= 0 ? Colors.transparent : const Color(0xFF99F6E4)),
+                    border: Border.all(
+                      color: med.stock <= 0
+                          ? Colors.transparent
+                          : const Color(0xFF99F6E4),
+                    ),
                   ),
                   child: Text(
                     med.stock <= 0 ? 'Out of stock' : '+ Add to Bill',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: med.stock <= 0 ? AppColors.textMuted : AppColors.primaryDark,
+                      color: med.stock <= 0
+                          ? AppColors.textMuted
+                          : AppColors.primaryDark,
                     ),
                   ),
                 ),
@@ -1217,7 +1622,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
                   color: AppColors.primarySubtle,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.medication_rounded, size: 20, color: AppColors.primaryDark),
+                child: const Icon(
+                  Icons.medication_rounded,
+                  size: 20,
+                  color: AppColors.primaryDark,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1229,38 +1638,61 @@ _Thank you for choosing DavaSetu Pharmacy!_
                         Flexible(
                           child: Text(
                             item.medicine.name,
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: AppColors.textPrimary),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14.5,
+                              color: AppColors.textPrimary,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (item.medicine.strength != null && item.medicine.strength!.isNotEmpty) ...[
+                        if (item.medicine.strength != null &&
+                            item.medicine.strength!.isNotEmpty) ...[
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1.5,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(5),
-                              border: Border.all(color: const Color(0xFF93C5FD)),
+                              border: Border.all(
+                                color: const Color(0xFF93C5FD),
+                              ),
                             ),
                             child: Text(
                               item.medicine.strength!,
-                              style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1D4ED8),
+                              ),
                             ),
                           ),
                         ],
                         if (item.medicine.isScheduleH1) ...[
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFEF2F2),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: const Color(0xFFFECACA)),
+                              border: Border.all(
+                                color: const Color(0xFFFECACA),
+                              ),
                             ),
                             child: const Text(
                               'H1',
-                              style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                              style: TextStyle(
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFDC2626),
+                              ),
                             ),
                           ),
                         ],
@@ -1274,27 +1706,43 @@ _Thank you for choosing DavaSetu Pharmacy!_
                       children: [
                         Text(
                           '${_currency.format(item.unitPrice)} each',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         InkWell(
-                          onTap: () => billing.toggleLooseTablet(item.medicine.id),
+                          onTap: () =>
+                              billing.toggleLooseTablet(item.medicine.id),
                           borderRadius: BorderRadius.circular(6),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: item.isLooseTablet ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9),
+                              color: item.isLooseTablet
+                                  ? const Color(0xFFFEF3C7)
+                                  : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: item.isLooseTablet ? const Color(0xFFF59E0B) : const Color(0xFFCBD5E1),
+                                color: item.isLooseTablet
+                                    ? const Color(0xFFF59E0B)
+                                    : const Color(0xFFCBD5E1),
                               ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  item.isLooseTablet ? Icons.pie_chart_rounded : Icons.inventory_2_rounded,
+                                  item.isLooseTablet
+                                      ? Icons.pie_chart_rounded
+                                      : Icons.inventory_2_rounded,
                                   size: 11,
-                                  color: item.isLooseTablet ? const Color(0xFFB45309) : const Color(0xFF475569),
+                                  color: item.isLooseTablet
+                                      ? const Color(0xFFB45309)
+                                      : const Color(0xFF475569),
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
@@ -1302,7 +1750,9 @@ _Thank you for choosing DavaSetu Pharmacy!_
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: item.isLooseTablet ? const Color(0xFFB45309) : const Color(0xFF475569),
+                                    color: item.isLooseTablet
+                                        ? const Color(0xFFB45309)
+                                        : const Color(0xFF475569),
                                   ),
                                 ),
                               ],
@@ -1314,9 +1764,13 @@ _Thank you for choosing DavaSetu Pharmacy!_
                     if (item.medicine.stock <= 0) ...[
                       const SizedBox(height: 5),
                       InkWell(
-                        onTap: () => _showSubstitutesModal(context, item.medicine),
+                        onTap: () =>
+                            _showSubstitutesModal(context, item.medicine),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2.5,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(6),
@@ -1325,14 +1779,22 @@ _Thank you for choosing DavaSetu Pharmacy!_
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFB45309)),
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 12,
+                                color: Color(0xFFB45309),
+                              ),
                               SizedBox(width: 4),
                               Flexible(
                                 child: Text(
                                   'Out of Stock • Substitutes',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFB45309),
+                                  ),
                                 ),
                               ),
                             ],
@@ -1353,26 +1815,53 @@ _Thank you for choosing DavaSetu Pharmacy!_
                 child: Row(
                   children: [
                     InkWell(
-                      onTap: () => billing.updateQuantity(item.medicine.id, item.quantity - 1),
-                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(9)),
+                      onTap: () => billing.updateQuantity(
+                        item.medicine.id,
+                        item.quantity - 1,
+                      ),
+                      borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(9),
+                      ),
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        child: Icon(Icons.remove, size: 16, color: AppColors.primary),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        child: Icon(
+                          Icons.remove,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       child: Text(
                         '${item.quantity}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5,
+                        ),
                       ),
                     ),
                     InkWell(
-                      onTap: () => billing.updateQuantity(item.medicine.id, item.quantity + 1),
-                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(9)),
+                      onTap: () => billing.updateQuantity(
+                        item.medicine.id,
+                        item.quantity + 1,
+                      ),
+                      borderRadius: const BorderRadius.horizontal(
+                        right: Radius.circular(9),
+                      ),
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        child: Icon(Icons.add, size: 16, color: AppColors.primary),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        child: Icon(
+                          Icons.add,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -1381,7 +1870,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
               const SizedBox(width: 12),
               Text(
                 _currency.format(item.netTotal),
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.primaryDark),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 15,
+                  color: AppColors.primaryDark,
+                ),
               ),
             ],
           ),
@@ -1434,18 +1927,28 @@ _Thank you for choosing DavaSetu Pharmacy!_
                     children: [
                       Text(
                         'Total (${billing.itemCount} ${billing.itemCount == 1 ? 'item' : 'items'}):',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                       GestureDetector(
                         onTap: billing.toggleMrpInclusive,
                         child: Container(
                           margin: const EdgeInsets.only(top: 3),
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: billing.isMrpInclusive ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
+                            color: billing.isMrpInclusive
+                                ? const Color(0xFFECFDF5)
+                                : const Color(0xFFFFFBEB),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: billing.isMrpInclusive ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
+                              color: billing.isMrpInclusive
+                                  ? const Color(0xFFA7F3D0)
+                                  : const Color(0xFFFDE68A),
                             ),
                           ),
                           child: Text(
@@ -1455,7 +1958,9 @@ _Thank you for choosing DavaSetu Pharmacy!_
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: billing.isMrpInclusive ? const Color(0xFF047857) : const Color(0xFFB45309),
+                              color: billing.isMrpInclusive
+                                  ? const Color(0xFF047857)
+                                  : const Color(0xFFB45309),
                               fontSize: 10.5,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1471,7 +1976,12 @@ _Thank you for choosing DavaSetu Pharmacy!_
                     _currency.format(billing.grandTotal),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primaryDark, letterSpacing: -0.4),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primaryDark,
+                      letterSpacing: -0.4,
+                    ),
                   ),
                 ),
               ],
@@ -1505,11 +2015,19 @@ _Thank you for choosing DavaSetu Pharmacy!_
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Checkout (${_currency.format(billing.grandTotal)})',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
                       ],
                     ),
@@ -1523,7 +2041,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
     );
   }
 
-  Widget _buildPaymentModePill(BillingProvider billing, String mode, String label) {
+  Widget _buildPaymentModePill(
+    BillingProvider billing,
+    String mode,
+    String label,
+  ) {
     final isSelected = billing.paymentMode == mode;
     return Expanded(
       child: InkWell(
@@ -1533,7 +2055,9 @@ _Thank you for choosing DavaSetu Pharmacy!_
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primarySubtle : const Color(0xFFF1F5F9),
+            color: isSelected
+                ? AppColors.primarySubtle
+                : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
@@ -1548,7 +2072,9 @@ _Thank you for choosing DavaSetu Pharmacy!_
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
+                color: isSelected
+                    ? AppColors.primaryDark
+                    : AppColors.textSecondary,
               ),
             ),
           ),
@@ -1567,7 +2093,9 @@ _Thank you for choosing DavaSetu Pharmacy!_
       if (m.genericName == null || m.genericName!.trim().isEmpty) return false;
       final g = m.genericName!.trim().toLowerCase();
       if (g == 'general formulation') return false;
-      return g == cleanGeneric || g.contains(cleanGeneric) || cleanGeneric.contains(g);
+      return g == cleanGeneric ||
+          g.contains(cleanGeneric) ||
+          cleanGeneric.contains(g);
     }).toList();
 
     showModalBottomSheet(
@@ -1607,7 +2135,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
                       color: const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.bolt_rounded, color: Color(0xFF2563EB), size: 22),
+                    child: const Icon(
+                      Icons.bolt_rounded,
+                      color: Color(0xFF2563EB),
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1616,11 +2148,19 @@ _Thank you for choosing DavaSetu Pharmacy!_
                       children: [
                         const Text(
                           'Same Salt Alternatives',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         Text(
                           outMed.genericName ?? outMed.name,
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1631,7 +2171,10 @@ _Thank you for choosing DavaSetu Pharmacy!_
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(10),
@@ -1639,12 +2182,20 @@ _Thank you for choosing DavaSetu Pharmacy!_
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFFB45309)),
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: Color(0xFFB45309),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '"${outMed.name}" is out of stock. Select an in-stock equivalent brand below:',
-                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF92400E), fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF92400E),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -1657,7 +2208,10 @@ _Thank you for choosing DavaSetu Pharmacy!_
                   child: Center(
                     child: Text(
                       'No other in-stock medicines found with this generic salt.',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ),
@@ -1666,7 +2220,8 @@ _Thank you for choosing DavaSetu Pharmacy!_
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: substitutes.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
                     itemBuilder: (c, i) {
                       final sub = substitutes[i];
                       return Padding(
@@ -1682,21 +2237,36 @@ _Thank you for choosing DavaSetu Pharmacy!_
                                       Flexible(
                                         child: Text(
                                           sub.name,
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                       ),
-                                      if (sub.strength != null && sub.strength!.isNotEmpty) ...[
+                                      if (sub.strength != null &&
+                                          sub.strength!.isNotEmpty) ...[
                                         const SizedBox(width: 6),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 5,
+                                            vertical: 1,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFEFF6FF),
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: const Color(0xFF93C5FD)),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                            border: Border.all(
+                                              color: const Color(0xFF93C5FD),
+                                            ),
                                           ),
                                           child: Text(
                                             sub.strength!,
-                                            style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                            style: const TextStyle(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF1D4ED8),
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -1705,7 +2275,11 @@ _Thank you for choosing DavaSetu Pharmacy!_
                                   const SizedBox(height: 2),
                                   Text(
                                     '${sub.manufacturer ?? "Generic"} • In Stock: ${sub.stock}',
-                                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF16A34A), fontWeight: FontWeight.w600),
+                                    style: const TextStyle(
+                                      fontSize: 11.5,
+                                      color: Color(0xFF16A34A),
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1715,17 +2289,27 @@ _Thank you for choosing DavaSetu Pharmacy!_
                               children: [
                                 Text(
                                   _currency.format(sub.sellingPrice),
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 ElevatedButton(
                                   onPressed: () {
-                                    context.read<BillingProvider>().addToCart(sub);
+                                    context.read<BillingProvider>().addToCart(
+                                      sub,
+                                    );
                                     Navigator.pop(ctx);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('Replaced with in-stock ${sub.name}!'),
-                                        backgroundColor: const Color(0xFF15803D),
+                                        content: Text(
+                                          'Replaced with in-stock ${sub.name}!',
+                                        ),
+                                        backgroundColor: const Color(
+                                          0xFF15803D,
+                                        ),
                                         duration: const Duration(seconds: 1),
                                       ),
                                     );
@@ -1733,12 +2317,24 @@ _Thank you for choosing DavaSetu Pharmacy!_
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF059669),
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
                                     minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
-                                  child: const Text('Select', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  child: const Text(
+                                    'Select',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),

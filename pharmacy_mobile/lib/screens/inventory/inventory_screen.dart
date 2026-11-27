@@ -1184,6 +1184,9 @@ class InventoryScreen extends StatelessWidget {
     final expiryCtrl = TextEditingController(text: initialData?.expiryDate ?? '12/2028');
     final hsnCtrl = TextEditingController();
     double selectedGstRate = 5.0;
+    bool isAutoFilling = false;
+    String? autofillHint;
+    bool isAiAutofill = false;
 
     showModalBottomSheet(
       context: context,
@@ -1265,13 +1268,134 @@ class InventoryScreen extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: nameCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Medicine Name *',
-                        hintText: 'e.g. Paracetamol 650mg',
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: nameCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Medicine Name *',
+                              hintText: 'e.g. Telma AM / Dolo 650',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: isAutoFilling
+                                ? null
+                                : () async {
+                                    final query = nameCtrl.text.trim();
+                                    if (query.length < 2) {
+                                      setSheetState(() {
+                                        autofillHint = 'Enter medicine name (2+ chars) for AI Auto-fill.';
+                                        isAiAutofill = false;
+                                      });
+                                      return;
+                                    }
+                                    setSheetState(() {
+                                      isAutoFilling = true;
+                                      autofillHint = null;
+                                    });
+                                    try {
+                                      final res = await ApiService.post(
+                                        ApiEndpoints.smartAutofill,
+                                        {'name': query},
+                                      );
+                                      if (!ctx.mounted) return;
+                                      final body = res.data;
+                                      if (res.success && body is Map && body['found'] == true && body['medicine'] is Map) {
+                                        final med = Map<String, dynamic>.from(body['medicine'] as Map);
+                                        setSheetState(() {
+                                          if ((med['genericName'] ?? '').toString().isNotEmpty) {
+                                            genericCtrl.text = med['genericName'].toString();
+                                          }
+                                          if ((med['category'] ?? '').toString().isNotEmpty) {
+                                            categoryCtrl.text = med['category'].toString();
+                                          }
+                                          if ((med['strength'] ?? '').toString().isNotEmpty) {
+                                            strengthCtrl.text = med['strength'].toString();
+                                          }
+                                          if ((med['manufacturer'] ?? '').toString().isNotEmpty) {
+                                            mfgCtrl.text = med['manufacturer'].toString();
+                                          }
+                                          if ((med['hsnCode'] ?? '').toString().isNotEmpty) {
+                                            hsnCtrl.text = med['hsnCode'].toString();
+                                          }
+                                          final gst = double.tryParse((med['gstRate'] ?? '').toString());
+                                          if (gst != null && [0.0, 5.0, 12.0, 18.0].contains(gst)) {
+                                            selectedGstRate = gst;
+                                          }
+                                          final ai = body['aiGenerated'] == true;
+                                          isAiAutofill = ai;
+                                          autofillHint = ai
+                                              ? '✨ AI suggested Salt, Company & GST — verify & enter exact MRP.'
+                                              : '✓ Auto-filled from verified catalog. Enter Strip MRP.';
+                                        });
+                                      } else {
+                                        setSheetState(() {
+                                          isAiAutofill = false;
+                                          autofillHint = (body is Map ? body['message']?.toString() : null) ??
+                                              res.message ??
+                                              'Not found — please enter details manually.';
+                                        });
+                                      }
+                                    } catch (_) {
+                                      if (ctx.mounted) {
+                                        setSheetState(() {
+                                          isAiAutofill = false;
+                                          autofillHint = 'Auto-fill unavailable offline. Enter details manually.';
+                                        });
+                                      }
+                                    } finally {
+                                      if (ctx.mounted) setSheetState(() => isAutoFilling = false);
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: isAutoFilling
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Icon(Icons.auto_awesome_rounded, size: 16),
+                            label: Text(
+                              isAutoFilling ? '...' : 'AI Fill',
+                              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                    if (autofillHint != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: isAiAutofill ? const Color(0xFFFFFBEB) : const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isAiAutofill ? const Color(0xFFFDE68A) : const Color(0xFFBBF7D0),
+                          ),
+                        ),
+                        child: Text(
+                          autofillHint!,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: isAiAutofill ? const Color(0xFF92400E) : const Color(0xFF166534),
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     Row(
                       children: [

@@ -177,4 +177,21 @@ export class MedicineController {
       next(error);
     }
   }
+
+  static async smartAutofill(req: Request, res: Response, next: NextFunction) {
+    try {
+      const pharmacyId = resolveScopedPharmacyId(req as AuthenticatedRequest, req.body?.pharmacyId);
+      const rawName = String(req.body?.name ?? req.query?.name ?? '').trim();
+      if (rawName.length < 2) {
+        return res.status(400).json({
+          found: false,
+          message: 'Please enter at least 2 characters of medicine name.'
+        });
+      }
+      const result = await MedicineService.smartAutofillMedicine(pharmacyId, rawName);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -3,7 +3,7 @@ import { Medicine } from '../../types/medicine';
 import { MEDICINE_CATEGORIES } from '../../constants/medicine';
 import { X, Save, Sparkles, Wand2, Loader2, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import ModernDatePicker from '../ui/ModernDatePicker';
-import { lookupMedicineByBarcode } from '../../services/medicineService';
+import { lookupMedicineByBarcode, smartAutofillMedicine } from '../../services/medicineService';
 
 interface MedicineFormProps {
   medicine?: Medicine | null;
@@ -33,6 +33,7 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
   });
 
   const [isSmartLoading, setIsSmartLoading] = useState(false);
+  const [autofillNotice, setAutofillNotice] = useState<{ type: 'ai' | 'db' | 'error'; text: string } | null>(null);
   const [openDropdown, setOpenDropdown] = useState<'category' | 'gstRate' | null>(null);
 
   useEffect(() => {
@@ -75,13 +76,13 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
           dosageForm: prev.dosageForm || med.dosageForm,
           packSize: prev.packSize || med.packSize,
           manufacturer: prev.manufacturer || med.manufacturer,
-          mrp: Number(prev.mrp) || Number(med.mrp) || 50,
-          sellingPrice: Number(prev.sellingPrice) || Number(med.sellingPrice) || 45,
-          purchasePrice: Number(prev.purchasePrice) || Number(med.purchasePrice) || 35,
+          mrp: Number(prev.mrp) || Number(med.mrp) || 0,
+          sellingPrice: Number(prev.sellingPrice) || Number(med.sellingPrice) || 0,
+          purchasePrice: prev.purchasePrice !== undefined ? Number(prev.purchasePrice) : (med.purchasePrice !== undefined ? Number(med.purchasePrice) : undefined),
           hsnCode: prev.hsnCode || med.hsnCode,
           gstRate: med.gstRate !== undefined ? med.gstRate : prev.gstRate,
           barcode: code,
-          expiryDate: prev.expiryDate || med.expiryDate || '2028-12-31'
+          expiryDate: prev.expiryDate || med.expiryDate || ''
         }));
       }
     } catch (err) {
@@ -109,202 +110,87 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
   };
 
   const handleSmartAutofill = async () => {
-    if (!formData.name && formData.barcode) {
+    const typedName = (formData.name || '').trim();
+    if (!typedName && formData.barcode) {
       return handleBarcodeLookup(formData.barcode);
     }
-    if (!formData.name) {
-      alert("Please enter a medicine name or barcode to auto-fill details.");
+    if (typedName.length < 2) {
+      setAutofillNotice({ type: 'error', text: 'Please enter a medicine name (at least 2 characters) or barcode to auto-fill.' });
       return;
     }
-    
+
     setIsSmartLoading(true);
-    // Simulate API call to a medicines database
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    const nameLower = formData.name.toLowerCase();
-    let smartData: Partial<Medicine> | null = null;
+    setAutofillNotice(null);
 
-    // 1. First, try to find a match from the existing database!
-    const dbMatch = existingMedicines.find(m => 
-      m.name.toLowerCase().includes(nameLower) || nameLower.includes(m.name.toLowerCase())
-    );
+    try {
+      // 1. Instant check in store's loaded inventory (exact or strong match)
+      const nameLower = typedName.toLowerCase();
+      const dbMatch = existingMedicines.find(m =>
+        m.name.toLowerCase() === nameLower ||
+        (nameLower.length >= 4 && (m.name.toLowerCase().includes(nameLower) || m.name.toLowerCase().startsWith(nameLower)))
+      );
 
-    if (dbMatch) {
-      // Auto-fill from database!
-      smartData = {
-        genericName: dbMatch.genericName,
-        category: dbMatch.category,
-        strength: dbMatch.strength,
-        dosageForm: dbMatch.dosageForm,
-        packSize: dbMatch.packSize,
-        hsnCode: dbMatch.hsnCode,
-        gstRate: dbMatch.gstRate,
-        prescriptionRequired: dbMatch.prescriptionRequired,
-        manufacturer: dbMatch.manufacturer,
-        // We might not want to copy exact stock or SKU from another medicine
-      };
-    }
+      if (dbMatch) {
+        setFormData(prev => ({
+          ...prev,
+          genericName: dbMatch.genericName || prev.genericName,
+          category: dbMatch.category || prev.category,
+          strength: dbMatch.strength || prev.strength,
+          dosageForm: dbMatch.dosageForm || prev.dosageForm,
+          packSize: dbMatch.packSize || prev.packSize,
+          hsnCode: dbMatch.hsnCode || prev.hsnCode,
+          gstRate: dbMatch.gstRate !== undefined ? dbMatch.gstRate : prev.gstRate,
+          prescriptionRequired: dbMatch.prescriptionRequired ?? prev.prescriptionRequired,
+          manufacturer: dbMatch.manufacturer || prev.manufacturer,
+        }));
+        setAutofillNotice({ type: 'db', text: `Auto-filled from your store catalog (${dbMatch.name}).` });
+        return;
+      }
 
-    // 2. If no DB match, fall back to our smart hardcoded rules
-    if (!smartData) {
-      if (nameLower.includes('para') || nameLower.includes('dolo') || nameLower.includes('crocin')) {
-      smartData = {
-        genericName: 'Paracetamol',
-        category: 'Tablets',
-        strength: '500 mg',
-        dosageForm: 'Tablet',
-        packSize: '15 tablets',
-        hsnCode: '30049099',
-        gstRate: 12,
-        prescriptionRequired: false,
-        mrp: 30,
-        sellingPrice: 28,
-        minimumStock: 50,
-        manufacturer: 'Micro Labs Ltd'
-      };
-    } else if (nameLower.includes('amox') || nameLower.includes('augmentin')) {
-      smartData = {
-        genericName: 'Amoxicillin & Potassium Clavulanate',
-        category: 'Tablets',
-        strength: '625 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        hsnCode: '30041010',
-        gstRate: 12,
-        prescriptionRequired: true,
-        mrp: 180,
-        sellingPrice: 165,
-        minimumStock: 20,
-        manufacturer: 'GlaxoSmithKline'
-      };
-    } else if (nameLower.includes('cuff') || nameLower.includes('syrup')) {
-      smartData = {
-        genericName: 'Dextromethorphan, Chlorpheniramine',
-        category: 'Syrups',
-        strength: '100 ml',
-        dosageForm: 'Syrup',
-        packSize: '1 bottle',
-        hsnCode: '30049011',
-        gstRate: 12,
-        prescriptionRequired: false,
-        mrp: 120,
-        sellingPrice: 110,
-        minimumStock: 15,
-        manufacturer: 'Cipla Ltd'
-      };
-    } else if (nameLower.includes('azithro') || nameLower.includes('azee') || nameLower.includes('az')) {
-      smartData = {
-        genericName: 'Azithromycin',
-        category: 'Tablets',
-        strength: '250 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        hsnCode: '3004',
-        gstRate: 12,
-        prescriptionRequired: true,
-        manufacturer: 'Generic Company'
-      };
-    } else if (nameLower.includes('cef') || nameLower.includes('taxim')) {
-      smartData = {
-        genericName: 'Cefixime',
-        category: 'Tablets',
-        strength: '200 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        hsnCode: '3004',
-        gstRate: 12,
-        prescriptionRequired: true
-      };
-    } else if (nameLower.includes('pan') || nameLower.includes('pant')) {
-      smartData = {
-        genericName: 'Pantoprazole',
-        category: 'Tablets',
-        strength: '40 mg',
-        dosageForm: 'Tablet',
-        packSize: '15 tablets',
-        hsnCode: '3004',
-        gstRate: 12,
-        prescriptionRequired: false
-      };
-    } else if (nameLower.includes('rab') || nameLower.includes('rablet')) {
-      smartData = {
-        genericName: 'Rabeprazole',
-        category: 'Tablets',
-        strength: '20 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        hsnCode: '3004',
-        gstRate: 12,
-        prescriptionRequired: false
-      };
-    } else if (nameLower.includes('diclo') || nameLower.includes('voveran')) {
-      smartData = {
-        genericName: 'Diclofenac Sodium',
-        category: 'Tablets',
-        strength: '50 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        hsnCode: '3004',
-        gstRate: 12,
-        prescriptionRequired: true
-      };
-    } else if (nameLower.includes('aceclo') || nameLower.includes('zerodol')) {
-      smartData = {
-        genericName: 'Aceclofenac',
-        category: 'Tablets',
-        strength: '100 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        hsnCode: '3004',
-        gstRate: 12,
-        prescriptionRequired: false
-      };
-    } else if (nameLower.includes('nim') || nameLower.includes('nise')) {
-      smartData = {
-        genericName: 'Nimesulide',
-        category: 'Tablets',
-        strength: '100 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        hsnCode: '3004',
-        gstRate: 12,
-        prescriptionRequired: false
-      };
-    } else if (nameLower.includes('cet') || nameLower.includes('alerid')) {
-      smartData = {
-        genericName: 'Cetirizine',
-        category: 'Tablets',
-        strength: '10 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        hsnCode: '3004',
-        gstRate: 12,
-        prescriptionRequired: false
-      };
-    } else if (nameLower.includes('metform') || nameLower.includes('gly')) {
-      smartData = {
-        genericName: 'Metformin',
-        category: 'Tablets',
-        strength: '500 mg',
-        dosageForm: 'Tablet',
-        packSize: '10 tablets',
-        hsnCode: '3004',
-        gstRate: 12,
-        prescriptionRequired: true
-      };
-    } else {
-      smartData = {
-        category: 'Tablets',
-        dosageForm: 'Tablet',
-        gstRate: 12
-      };
-    }
-    }
+      // 2. Call Backend 3-Step Hybrid Lookup (Store DB -> Verified Master Catalog -> Google Gemini AI)
+      const res = await smartAutofillMedicine(typedName);
+      if (res.found && res.medicine) {
+        const med = res.medicine;
+        setFormData(prev => ({
+          ...prev,
+          genericName: med.genericName || prev.genericName,
+          category: med.category || prev.category,
+          strength: med.strength || prev.strength,
+          dosageForm: med.dosageForm || prev.dosageForm,
+          packSize: med.packSize || prev.packSize,
+          manufacturer: med.manufacturer || prev.manufacturer,
+          hsnCode: med.hsnCode || prev.hsnCode || '30049099',
+          gstRate: med.gstRate !== undefined ? med.gstRate : prev.gstRate,
+          prescriptionRequired: med.prescriptionRequired !== undefined ? med.prescriptionRequired : prev.prescriptionRequired,
+        }));
 
-    if (smartData) {
-      setFormData(prev => ({ ...prev, ...smartData }));
+        if (res.aiGenerated) {
+          setAutofillNotice({
+            type: 'ai',
+            text: res.disclaimer || 'Filled via Google Gemini AI — please verify Salt, GST & enter exact Strip MRP before saving.'
+          });
+        } else {
+          setAutofillNotice({
+            type: 'db',
+            text: res.source === 'MASTER_CATALOG'
+              ? 'Auto-filled from verified Indian Pharmacy Master Catalog. Enter Strip MRP & Stock.'
+              : 'Auto-filled from your Store Catalog.'
+          });
+        }
+      } else {
+        setAutofillNotice({
+          type: 'error',
+          text: res.message || `Could not auto-fill "${typedName}". Please enter details manually.`
+        });
+      }
+    } catch (err: any) {
+      setAutofillNotice({
+        type: 'error',
+        text: err?.message || 'Smart Auto-fill failed. Please enter details manually.'
+      });
+    } finally {
+      setIsSmartLoading(false);
     }
-    setIsSmartLoading(false);
   };
 
   const isEdit = !!medicine;
@@ -353,9 +239,22 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
                       className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-pharmacy-600 to-blue-600 text-white rounded-xl font-bold shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/40 transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
                     >
                       {isSmartLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      {isSmartLoading ? 'Fetching Data...' : 'Smart Auto-fill'}
+                      {isSmartLoading ? 'Fetching AI Data...' : 'Smart Auto-fill'}
                     </button>
                   </div>
+                  {autofillNotice && (
+                    <div
+                      className={`relative z-10 mt-3 px-3.5 py-2 rounded-xl text-xs font-semibold border ${
+                        autofillNotice.type === 'ai'
+                          ? 'bg-amber-50 text-amber-800 border-amber-200'
+                          : autofillNotice.type === 'db'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-red-50 text-red-700 border-red-200'
+                      }`}
+                    >
+                      {autofillNotice.text}
+                    </div>
+                  )}
                 </div>
 
                 {/* Image Upload Section */}
