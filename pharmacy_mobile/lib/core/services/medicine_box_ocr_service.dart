@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:http/http.dart' as http;
 import '../api/api_endpoints.dart';
+import '../api/api_service.dart';
 import 'barcode_medicine_service.dart';
 import 'storage_service.dart';
 
@@ -47,25 +48,49 @@ class BoxOcrResult {
   });
 
   factory BoxOcrResult.fromJson(Map<String, dynamic> json) {
+    final rawExp = json['raw_expiry']?.toString();
+    final isoExp = json['expiry_date']?.toString();
+    final displayExp = (rawExp != null && rawExp.trim().isNotEmpty)
+        ? _normalizeDate(rawExp) ?? rawExp.trim()
+        : (isoExp != null && isoExp.trim().isNotEmpty ? _normalizeDate(isoExp) ?? isoExp.trim() : null);
+
+    final mrpVal = (json['mrp'] as num?)?.toDouble() ?? 0.0;
+    final hasAny = json['medicine_name'] != null ||
+        json['batch_number'] != null ||
+        json['mfg_date'] != null ||
+        displayExp != null ||
+        mrpVal > 0;
+
     return BoxOcrResult(
       gtin: json['gtin'],
       medicineName: json['medicine_name'],
       genericName: json['generic_name'],
       batchNumber: json['batch_number'],
       mfgDate: json['mfg_date'],
-      expiryDate: json['expiry_date'],
-      rawExpiry: json['raw_expiry'],
+      expiryDate: displayExp,
+      rawExpiry: rawExp ?? displayExp,
       daysUntilExpiry: (json['days_until_expiry'] as num?)?.toInt() ?? 999,
       expiryStatus: json['expiry_status'] ?? 'HEALTHY',
-      mrp: (json['mrp'] as num?)?.toDouble() ?? 0.0,
+      mrp: mrpVal,
       packSize: json['pack_size'],
       strength: json['strength'] ?? json['dosage'],
       mfgLicNo: json['mfg_lic_no'],
       manufacturer: json['manufacturer'],
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.95,
-      matchedMedicine: json['matched_medicine'],
-      hasRealData: json['medicine_name'] != null || json['batch_number'] != null,
+      matchedMedicine: json['matched_medicine'] is Map
+          ? Map<String, dynamic>.from(json['matched_medicine'] as Map)
+          : null,
+      hasRealData: hasAny,
     );
+  }
+
+  static String? _normalizeDate(String raw) {
+    var clean = raw.trim().replaceAll('-', '/').replaceAll('.', '/');
+    if (RegExp(r'^\d{4}\/\d{2}(?:\/\d{2})?$').hasMatch(clean)) {
+      final p = clean.split('/');
+      return '${p[1]}/${p[0]}';
+    }
+    return clean.isNotEmpty ? clean : null;
   }
 }
 
@@ -510,10 +535,14 @@ class MedicineBoxOcrService {
         }
       }
 
-      final hasData = (medicineName != null && medicineName.isNotEmpty) || (batchNumber != null && batchNumber.isNotEmpty);
+      final hasData = (medicineName != null && medicineName.isNotEmpty) ||
+          (batchNumber != null && batchNumber.isNotEmpty) ||
+          (mfgDate != null && mfgDate.isNotEmpty) ||
+          (expiryDate != null && expiryDate.isNotEmpty) ||
+          mrp > 0;
 
       final result = BoxOcrResult(
-        medicineName: medicineName ?? 'Scanned Medicine',
+        medicineName: medicineName,
         genericName: genericName,
         batchNumber: batchNumber,
         expiryDate: expiryDate,
@@ -527,7 +556,7 @@ class MedicineBoxOcrService {
         daysUntilExpiry: daysUntilExpiry,
         expiryStatus: expiryStatus,
         confidence: hasData ? 0.95 : 0.0,
-        hasRealData: true,
+        hasRealData: hasData,
       );
 
       // Sync to PC Billing table if requested and valid data exists
@@ -683,14 +712,17 @@ class MedicineBoxOcrService {
       }
 
       final hasData = (medicineName != null && medicineName.isNotEmpty) ||
-          (batchNumber != null && batchNumber.isNotEmpty);
+          (batchNumber != null && batchNumber.isNotEmpty) ||
+          (mfgDate != null && mfgDate.isNotEmpty) ||
+          (expiryDate != null && expiryDate.isNotEmpty) ||
+          mrp > 0;
 
       final combinedRaw = '$frontRawText\n$backRawText';
       final combinedLines = [...frontLines, ...backLines];
       final strength = _extractStrength(combinedRaw, combinedLines, medicineName);
 
       final result = BoxOcrResult(
-        medicineName: medicineName ?? 'Scanned Medicine',
+        medicineName: medicineName,
         genericName: genericName,
         batchNumber: batchNumber,
         expiryDate: expiryDate,
@@ -704,7 +736,7 @@ class MedicineBoxOcrService {
         daysUntilExpiry: daysUntilExpiry,
         expiryStatus: expiryStatus,
         confidence: hasData ? 0.98 : 0.0,
-        hasRealData: true,
+        hasRealData: hasData,
       );
 
       if (syncToPc && hasData && (medicineName != null || batchNumber != null)) {
@@ -728,18 +760,173 @@ class MedicineBoxOcrService {
     }
   }
 
+  /// Cloud Gemini Vision OCR call (handles dot-matrix, bilingual & column-misaligned flaps accurately)
+  static Future<BoxOcrResult?> _cloudScanBox({
+    required String frontImagePath,
+    String? backImagePath,
+    bool syncToPc = false,
+  }) async {
+    try {
+      final token = StorageService.getToken();
+      if (token == null || token.isEmpty) return null;
+
+      final frontFile = File(frontImagePath);
+      if (!await frontFile.exists()) return null;
+      final frontBytes = await frontFile.readAsBytes();
+      if (frontBytes.isEmpty) return null;
+
+      final body = <String, dynamic>{
+        'image': 'data:image/jpeg;base64,${base64Encode(frontBytes)}',
+        'syncToPc': syncToPc,
+      };
+
+      if (backImagePath != null && backImagePath.isNotEmpty) {
+        final backFile = File(backImagePath);
+        if (await backFile.exists()) {
+          final backBytes = await backFile.readAsBytes();
+          if (backBytes.isNotEmpty) {
+            body['backImage'] = 'data:image/jpeg;base64,${base64Encode(backBytes)}';
+          }
+        }
+      }
+
+      final res = await ApiService.post(ApiEndpoints.scanBox, body);
+      if (res.success && res.data is Map && res.data['data'] is Map) {
+        return BoxOcrResult.fromJson(
+          Map<String, dynamic>.from(res.data['data'] as Map),
+        );
+      }
+    } catch (_) {
+      // Silently fall back to on-device ML Kit OCR
+    }
+    return null;
+  }
+
+  static String? _pickNonEmpty(String? primary, String? fallback) {
+    if (primary != null && primary.trim().isNotEmpty && primary.trim() != 'Scanned Medicine') {
+      return primary.trim();
+    }
+    if (fallback != null && fallback.trim().isNotEmpty && fallback.trim() != 'Scanned Medicine') {
+      return fallback.trim();
+    }
+    return null;
+  }
+
+  static BoxOcrResult mergeOcrResults(BoxOcrResult? primary, BoxOcrResult secondary) {
+    if (primary == null || !primary.hasRealData) return secondary;
+    if (!secondary.hasRealData) return primary;
+    final name = _pickNonEmpty(primary.medicineName, secondary.medicineName);
+    final generic = _pickNonEmpty(primary.genericName, secondary.genericName);
+    final batch = _pickNonEmpty(primary.batchNumber, secondary.batchNumber);
+    final mfg = _pickNonEmpty(primary.mfgDate, secondary.mfgDate);
+    final exp = _pickNonEmpty(primary.expiryDate, secondary.expiryDate);
+    final mrpVal = primary.mrp > 0 ? primary.mrp : secondary.mrp;
+
+    return BoxOcrResult(
+      gtin: _pickNonEmpty(primary.gtin, secondary.gtin),
+      medicineName: name,
+      genericName: generic,
+      batchNumber: batch,
+      mfgDate: mfg,
+      expiryDate: exp,
+      rawExpiry: _pickNonEmpty(primary.rawExpiry, secondary.rawExpiry) ?? exp,
+      daysUntilExpiry: primary.expiryDate != null ? primary.daysUntilExpiry : secondary.daysUntilExpiry,
+      expiryStatus: primary.expiryDate != null ? primary.expiryStatus : secondary.expiryStatus,
+      mrp: mrpVal,
+      packSize: _pickNonEmpty(primary.packSize, secondary.packSize),
+      strength: _pickNonEmpty(primary.strength, secondary.strength),
+      mfgLicNo: _pickNonEmpty(primary.mfgLicNo, secondary.mfgLicNo),
+      manufacturer: _pickNonEmpty(primary.manufacturer, secondary.manufacturer),
+      confidence: primary.confidence > 0 ? primary.confidence : secondary.confidence,
+      matchedMedicine: primary.matchedMedicine ?? secondary.matchedMedicine,
+      hasRealData: name != null || batch != null || mfg != null || exp != null || mrpVal > 0,
+    );
+  }
+
+  /// Fast live-camera frame scanner: uses ML Kit to gate empty frames in ~120ms,
+  /// then verifies printed text with Gemini Vision AI and merges cleanly.
+  static Future<BoxOcrResult> scanLiveCameraFrame({
+    required String imagePath,
+    required int pharmacyId,
+  }) async {
+    final file = File(imagePath);
+    if (!await file.exists()) {
+      return BoxOcrResult(hasRealData: false, confidence: 0.0);
+    }
+
+    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    bool hasReadableText = false;
+    try {
+      final recognizedText = await textRecognizer.processImage(InputImage.fromFilePath(imagePath));
+      hasReadableText = recognizedText.text.trim().length >= 5;
+    } catch (_) {
+      hasReadableText = false;
+    } finally {
+      await textRecognizer.close();
+    }
+
+    if (!hasReadableText) {
+      return BoxOcrResult(hasRealData: false, confidence: 0.0);
+    }
+
+    return scanBoxImageHybrid(
+      imagePath: imagePath,
+      pharmacyId: pharmacyId,
+      syncToPc: false,
+    );
+  }
+
+  /// Hybrid Single-Image Scanner: runs Gemini Vision AI + On-Device ML Kit in parallel & merges
+  static Future<BoxOcrResult> scanBoxImageHybrid({
+    required String imagePath,
+    required int pharmacyId,
+    bool syncToPc = false,
+  }) async {
+    final results = await Future.wait<dynamic>([
+      _cloudScanBox(frontImagePath: imagePath, syncToPc: syncToPc),
+      scanBoxImageOnDevice(
+        imagePath: imagePath,
+        pharmacyId: pharmacyId,
+        syncToPc: false,
+      ),
+    ]);
+    return mergeOcrResults(results[0] as BoxOcrResult?, results[1] as BoxOcrResult);
+  }
+
+  /// Hybrid 2-Step Strip/Box Scanner (Front & Back): runs Gemini Vision AI + On-Device ML Kit
+  static Future<BoxOcrResult> scanTwoStepStripHybrid({
+    required String frontImagePath,
+    String? backImagePath,
+    required int pharmacyId,
+    bool syncToPc = false,
+  }) async {
+    final results = await Future.wait<dynamic>([
+      _cloudScanBox(
+        frontImagePath: frontImagePath,
+        backImagePath: backImagePath,
+        syncToPc: syncToPc,
+      ),
+      scanTwoStepStripOnDevice(
+        frontImagePath: frontImagePath,
+        backImagePath: backImagePath,
+        pharmacyId: pharmacyId,
+        syncToPc: false,
+      ),
+    ]);
+    return mergeOcrResults(results[0] as BoxOcrResult?, results[1] as BoxOcrResult);
+  }
+
   /// Compatibility wrapper for existing calls passing imageBytes
   static Future<BoxOcrResult> scanBoxImage({
     required List<int> imageBytes,
     required int pharmacyId,
     bool syncToPc = false,
   }) async {
-    // Write bytes to a temporary file for fast ML Kit processing
     final tempDir = Directory.systemTemp;
     final tempFile = File('${tempDir.path}/box_scan_${DateTime.now().millisecondsSinceEpoch}.jpg');
     try {
       await tempFile.writeAsBytes(imageBytes);
-      return await scanBoxImageOnDevice(
+      return await scanBoxImageHybrid(
         imagePath: tempFile.path,
         pharmacyId: pharmacyId,
         syncToPc: syncToPc,
@@ -1008,6 +1195,18 @@ class MedicineBoxOcrService {
       return double.tryParse(cMatch.group(1)!) ?? 0.0;
     }
 
+    // Pattern 3: Misaligned two-column flap where MRP label & stamped price (e.g. 360.00) sit in separate blocks
+    final hasMrpContext = RegExp(r'(?:M\.?\s*R\.?\s*P|INCLUSIVE|ALL\s+TAXES)', caseSensitive: false).hasMatch(rawText);
+    if (hasMrpContext) {
+      final decimalMatches = RegExp(r'\b([1-9][0-9]{0,4}\.[0-9]{2})\b').allMatches(rawText);
+      for (final m in decimalMatches) {
+        final val = double.tryParse(m.group(1) ?? '');
+        if (val != null && val > 0 && val < 50000) {
+          return val;
+        }
+      }
+    }
+
     return 0.0;
   }
 
@@ -1057,8 +1256,8 @@ class MedicineBoxOcrService {
       RegExp(r'KEEP\s+OUT\s+OF\s+REACH', caseSensitive: false),
       RegExp(r'STORE\s+(?:IN|AT|BELOW)', caseSensitive: false),
       RegExp(r'FOR\s+ORAL\s+USE|FOR\s+EXTERNAL\s+USE', caseSensitive: false),
-      RegExp(r'BATCH|EXPIRY|M\.R\.P|B\.NO|MFG|LIC\.?\s*NO', caseSensitive: false),
-      RegExp(r'INCL\.\s+OF\s+ALL\s+TAXES|MAXIMUM\s+RETAIL\s+PRICE', caseSensitive: false),
+      RegExp(r'BATCH|EXPIRY|EXP\.?\s*DATE|MFG\.?\s*DATE|M\.?\s*R\.?\s*P|B\.?\s*NO|LIC\.?\s*NO', caseSensitive: false),
+      RegExp(r'INCL\.?\s*OF\s+ALL\s+TAXES|INCLUSIVE\s+OF\s+ALL\s+TAXES|MAXIMUM\s+RETAIL\s+PRICE', caseSensitive: false),
       RegExp(r'DOSAGE|COMPOSITION|NOT\s+FOR|EXPORT', caseSensitive: false),
       RegExp(r'EACH\s+(?:FILM|UNCOATED|ENTERIC|SUSTAINED)?\s*(?:TABLET|CAPSULE)\s+CONTAINS', caseSensitive: false),
       RegExp(r'COLOUR|TITANIUM\s+DIOXIDE|EXCIPIENTS|Q\.S\.', caseSensitive: false),
@@ -1091,6 +1290,13 @@ class MedicineBoxOcrService {
 
       // Check boilerplate
       if (boilerplatePatterns.any((p) => p.hasMatch(trimmed))) continue;
+
+      // Skip isolated numeric/date/price/batch-like stamps (e.g. 07/2026, 360.00, SAE26057) or non-ASCII label lines
+      if (!RegExp(r'[A-Za-z]{2,}').hasMatch(trimmed) ||
+          RegExp(r'^[0-9\s\/\.\-\₹]+$').hasMatch(trimmed) ||
+          RegExp(r'^[A-Z]{1,4}\d{3,10}[A-Z]?$').hasMatch(trimmed.replaceAll(' ', ''))) {
+        continue;
+      }
 
       // Check if line describes chemical composition / generic salt
       if (compositionKeywords.hasMatch(trimmed)) {

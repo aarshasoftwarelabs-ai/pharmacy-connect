@@ -9,6 +9,8 @@ export interface Medicine {
   dosageForm: string;
   packSize: string;
   sku: string;
+  batchNumber?: string;
+  mfgDate?: string;
   barcode: string;
   mrp: number;
   sellingPrice: number;

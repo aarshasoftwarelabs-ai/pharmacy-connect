@@ -143,21 +143,28 @@ export class MedicineController {
       );
       const syncToPc = req.body.syncToPc === true || req.body.syncToPc === 'true';
 
+      const extractBase64Image = (raw: unknown): { buffer: Buffer; mimeType: string } | null => {
+        if (!raw) return null;
+        const rawStr = String(raw).trim();
+        if (!rawStr) return null;
+        const matches = rawStr.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          return { mimeType: matches[1], buffer: Buffer.from(matches[2], 'base64') };
+        }
+        return { mimeType: 'image/jpeg', buffer: Buffer.from(rawStr, 'base64') };
+      };
+
       let buffer: Buffer | null = null;
       let mimeType = 'image/jpeg';
 
       if (req.file) {
         buffer = req.file.buffer;
         mimeType = req.file.mimetype || 'image/jpeg';
-      } else if (req.body.image) {
-        // Base64 string support (e.g. from webcam capture)
-        const rawBase64 = String(req.body.image);
-        const matches = rawBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-          mimeType = matches[1];
-          buffer = Buffer.from(matches[2], 'base64');
-        } else {
-          buffer = Buffer.from(rawBase64, 'base64');
+      } else {
+        const primary = extractBase64Image(req.body.image);
+        if (primary) {
+          buffer = primary.buffer;
+          mimeType = primary.mimeType;
         }
       }
 
@@ -168,7 +175,8 @@ export class MedicineController {
         });
       }
 
-      const data = await MedicineService.scanMedicineBox(buffer, mimeType, pharmacyId, syncToPc);
+      const backImage = extractBase64Image(req.body.backImage);
+      const data = await MedicineService.scanMedicineBox(buffer, mimeType, pharmacyId, syncToPc, backImage);
       res.status(200).json({
         success: true,
         data

@@ -868,9 +868,10 @@ export class MedicineService {
     buffer: Buffer,
     mimeType: string,
     pharmacyId: number,
-    syncToPc: boolean = false
+    syncToPc: boolean = false,
+    backImage?: { buffer: Buffer; mimeType: string } | null
   ) {
-    const imageParts = [
+    const imageParts: any[] = [
       {
         inlineData: {
           data: buffer.toString('base64'),
@@ -878,32 +879,52 @@ export class MedicineService {
         }
       }
     ];
+    if (backImage?.buffer) {
+      imageParts.push({
+        inlineData: {
+          data: backImage.buffer.toString('base64'),
+          mimeType: backImage.mimeType || 'image/jpeg'
+        }
+      });
+    }
 
-    const prompt = `Analyze this medicine packaging / medicine box flap image.
-Extract the following exact fields accurately, reading dot-matrix inkjet or printed text:
+    const prompt = `Analyze ${backImage ? 'these medicine box / strip images (front & back)' : 'this medicine box / strip / flap image'} for an Indian pharmacy inventory system.
+IMPORTANT LAYOUT RULES FOR INDIAN MEDICINE PACKAGING:
+1. Read both dot-matrix inkjet stamps AND printed text, even if rotated, skewed, or stamped in two columns.
+2. Bilingual labels (English + Hindi such as बैच नं., उत्पादन तिथि, समाप्ति तिथि, अधिकतम खुदरा मूल्य) are often on the LEFT while dot-matrix stamped values (like SAE26057, 07/2026, 06/2028, 360.00) are shifted vertically on the RIGHT.
+3. Never rely purely on strict horizontal row alignment when misaligned — match values by sequence AND data type:
+   - Alphanumeric code (e.g. SAE26057, T260241, CO92604) -> "batch_number"
+   - Earlier date (MM/YYYY or MM/YY) -> "mfg_date"
+   - Later date (MM/YYYY or MM/YY) -> "expiry_date" (expiry MUST be later than mfg_date)
+   - Retail price number (e.g. 360.00, 74.99, 120) -> "mrp" (NEVER treat a decimal price like 360.00 as a date or batch!)
+4. STRICT TRUTHFULNESS: Only extract "medicine_name", "generic_name", "strength", "manufacturer", "pack_size" if actually printed/visible in the image. If this is only a side flap showing Batch/Mfg/Exp/MRP, set "medicine_name": null (do NOT invent or guess a name).
+
+Return ONLY a valid JSON object matching this exact schema:
 {
-  "medicine_name": "string (brand name of medicine, e.g. Panresh-DSR, Rabresh-DSR, Arvind, etc.)",
-  "generic_name": "string or null (active chemical salt/composition if mentioned)",
-  "batch_number": "string (Batch No. / Batch क्रमांक, e.g. T260241, CO92604, etc.)",
-  "mfg_date": "string (Manufacturing date as MM/YYYY or YYYY-MM)",
-  "expiry_date": "string (Expiry date as MM/YYYY or YYYY-MM, Exp Date / समाप्ती की तिथि)",
-  "mrp": number (MRP in INR as float e.g. 74.99 or 120.00),
-  "pack_size": "string (e.g. 10 Tablets or 10 Capsules or 100ml)",
-  "mfg_lic_no": "string (e.g. G/25/1820 or G/25/2342)",
-  "manufacturer": "string (Company / Manufacturer name)",
-  "confidence": number (between 0.0 and 1.0)
-}
-Return ONLY valid JSON without markdown wrapping.`;
+  "medicine_name": "string or null",
+  "generic_name": "string or null",
+  "strength": "string or null (e.g. 500 mg, 650 mg, 100 ml)",
+  "batch_number": "string or null",
+  "mfg_date": "string or null (strictly normalized as MM/YYYY e.g. 07/2026)",
+  "expiry_date": "string or null (strictly normalized as MM/YYYY e.g. 06/2028)",
+  "mrp": number (float in INR, or 0 if not visible),
+  "pack_size": "string or null (e.g. 10 Tablets, 15 Capsules, 100 ml)",
+  "mfg_lic_no": "string or null (e.g. G/25/1820)",
+  "manufacturer": "string or null",
+  "confidence": number (0.0 to 1.0)
+}`;
 
     let extracted: any;
-    const aiResponse = await generateWithGeminiFlash([prompt, ...imageParts], { timeoutMs: 9000 });
+    const aiResponse = await generateWithGeminiFlash([prompt, ...imageParts], { timeoutMs: 12000, jsonMode: true });
 
     if (!aiResponse) {
       console.warn('[OCR Box Scan] Vision model did not return a response.');
       extracted = {
         medicine_name: null,
         generic_name: null,
+        strength: null,
         batch_number: null,
+        mfg_date: null,
         expiry_date: null,
         mrp: 0,
         pack_size: null,
@@ -918,7 +939,9 @@ Return ONLY valid JSON without markdown wrapping.`;
         extracted = {
           medicine_name: null,
           generic_name: null,
+          strength: null,
           batch_number: null,
+          mfg_date: null,
           expiry_date: null,
           mrp: 0,
           pack_size: null,
@@ -928,15 +951,46 @@ Return ONLY valid JSON without markdown wrapping.`;
       }
     }
 
+    const normalizeMonthYear = (val: any): string | null => {
+      if (!val) return null;
+      const clean = String(val).trim().replace(/[-.]/g, '/');
+      const mY = clean.match(/^(\d{1,2})\/(\d{4})$/);
+      if (mY) return `${mY[1].padStart(2, '0')}/${mY[2]}`;
+      const mYy = clean.match(/^(\d{1,2})\/(\d{2})$/);
+      if (mYy) return `${mYy[1].padStart(2, '0')}/20${mYy[2]}`;
+      const dMY = clean.match(/^\d{1,2}\/(\d{1,2})\/(\d{2,4})$/);
+      if (dMY) return `${dMY[1].padStart(2, '0')}/${dMY[2].length === 2 ? '20' + dMY[2] : dMY[2]}`;
+      return clean || null;
+    };
+
+    const parseMonthYearSortable = (mmYyyy: string | null): number | null => {
+      if (!mmYyyy) return null;
+      const m = mmYyyy.match(/^(\d{2})\/(\d{4})$/);
+      if (!m) return null;
+      return Number(m[2]) * 12 + Number(m[1]);
+    };
+
     // Clean and normalize fields
     const batchNumber = extracted.batch_number ? String(extracted.batch_number).trim().toUpperCase() : null;
-    const rawExpDate = extracted.expiry_date ? String(extracted.expiry_date).trim() : null;
+    let mfgDate = normalizeMonthYear(extracted.mfg_date);
+    let rawExpDate = normalizeMonthYear(extracted.expiry_date);
+
+    // Ensure mfg_date <= expiry_date chronologically if both present
+    const mfgRank = parseMonthYearSortable(mfgDate);
+    const expRank = parseMonthYearSortable(rawExpDate);
+    if (mfgRank !== null && expRank !== null && mfgRank > expRank) {
+      const tmp = mfgDate;
+      mfgDate = rawExpDate;
+      rawExpDate = tmp;
+    }
+
     const normalizedExpiry = rawExpDate ? parseExpiryDate(rawExpDate) : null;
-    const mrp = Number(extracted.mrp) > 0 ? Number(extracted.mrp) : 0;
+    const rawMrpNum = Number(String(extracted.mrp ?? '0').replace(/[^0-9.]/g, ''));
+    const mrp = !isNaN(rawMrpNum) && rawMrpNum > 0 ? Math.round(rawMrpNum * 100) / 100 : 0;
     const medicineName = extracted.medicine_name ? String(extracted.medicine_name).trim() : null;
     const genericName = extracted.generic_name ? String(extracted.generic_name).trim() : null;
+    const strength = extracted.strength ? String(extracted.strength).trim() : null;
     const packSize = extracted.pack_size ? String(extracted.pack_size).trim() : null;
-    const mfgDate = extracted.mfg_date ? String(extracted.mfg_date).trim() : null;
     const mfgLicNo = extracted.mfg_lic_no ? String(extracted.mfg_lic_no).trim() : null;
     const manufacturer = extracted.manufacturer ? String(extracted.manufacturer).trim() : null;
 
@@ -1024,6 +1078,7 @@ Return ONLY valid JSON without markdown wrapping.`;
     return {
       medicine_name: medicineName,
       generic_name: genericName,
+      strength: strength,
       batch_number: batchNumber,
       mfg_date: mfgDate,
       expiry_date: normalizedExpiry,

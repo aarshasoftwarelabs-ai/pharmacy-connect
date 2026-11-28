@@ -172,6 +172,7 @@ export const fetchDeadStock = async (minDays = 30): Promise<DeadStockResponse> =
 export interface ScannedMedicineBoxData {
   medicine_name?: string | null;
   generic_name?: string | null;
+  strength?: string | null;
   batch_number?: string | null;
   mfg_date?: string | null;
   expiry_date?: string | null;

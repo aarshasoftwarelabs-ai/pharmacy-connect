@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Medicine } from '../../types/medicine';
 import { MEDICINE_CATEGORIES } from '../../constants/medicine';
-import { X, Save, Sparkles, Wand2, Loader2, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import { X, Save, Sparkles, Wand2, Loader2, Image as ImageIcon, ChevronDown, ScanLine, Video } from 'lucide-react';
 import ModernDatePicker from '../ui/ModernDatePicker';
-import { lookupMedicineByBarcode, smartAutofillMedicine } from '../../services/medicineService';
+import LiveWebcamScanModal from './LiveWebcamScanModal';
+import { lookupMedicineByBarcode, smartAutofillMedicine, scanMedicineBox, ScannedMedicineBoxData } from '../../services/medicineService';
 
 interface MedicineFormProps {
   medicine?: Medicine | null;
@@ -21,6 +22,8 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
     dosageForm: '',
     packSize: '',
     sku: '',
+    batchNumber: '',
+    mfgDate: '',
     barcode: '',
     mrp: 0,
     sellingPrice: 0,
@@ -33,6 +36,10 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
   });
 
   const [isSmartLoading, setIsSmartLoading] = useState(false);
+  const [isScanningImage, setIsScanningImage] = useState(false);
+  const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
+  const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
+  const [imageScanNotice, setImageScanNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [autofillNotice, setAutofillNotice] = useState<{ type: 'ai' | 'db' | 'error'; text: string } | null>(null);
   const [openDropdown, setOpenDropdown] = useState<'category' | 'gstRate' | null>(null);
 
@@ -193,6 +200,69 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
     }
   };
 
+  const applyScannedBoxData = (scanned: ScannedMedicineBoxData, sourceLabel: string) => {
+    const matched = scanned?.matched_medicine;
+    const detectedParts: string[] = [];
+    if (scanned.medicine_name) detectedParts.push(`Name: ${scanned.medicine_name}`);
+    if (scanned.batch_number) detectedParts.push(`Batch: ${scanned.batch_number}`);
+    if (scanned.mfg_date) detectedParts.push(`Mfg: ${scanned.mfg_date}`);
+    if (scanned.raw_expiry || scanned.expiry_date) {
+      detectedParts.push(`Exp: ${scanned.raw_expiry || scanned.expiry_date?.split('T')[0]}`);
+    }
+    if (scanned.mrp && scanned.mrp > 0) detectedParts.push(`MRP: ₹${Number(scanned.mrp).toFixed(2)}`);
+
+    if (detectedParts.length === 0) {
+      setImageScanNotice({
+        type: 'error',
+        text: 'Could not read Batch/Mfg/Exp/MRP from camera/image. Please try a clearer angle or fill manually.'
+      });
+      return;
+    }
+
+    setFormData(prev => {
+      const scannedMrp = scanned.mrp && Number(scanned.mrp) > 0 ? Number(scanned.mrp) : 0;
+      const currentSp = Number(prev.sellingPrice || 0);
+      return {
+        ...prev,
+        name: prev.name || scanned.medicine_name || matched?.name || '',
+        genericName: prev.genericName || scanned.generic_name || matched?.genericName || '',
+        manufacturer: prev.manufacturer || scanned.manufacturer || matched?.manufacturer || '',
+        strength: prev.strength || scanned.strength || matched?.strength || '',
+        packSize: prev.packSize || scanned.pack_size || '',
+        category: (prev.category && prev.category !== MEDICINE_CATEGORIES[0]) ? prev.category : (matched?.category || prev.category),
+        hsnCode: prev.hsnCode || matched?.hsnCode || '',
+        gstRate: Number(prev.gstRate) > 0 ? prev.gstRate : (matched?.gstRate ?? prev.gstRate),
+        batchNumber: scanned.batch_number || prev.batchNumber || '',
+        sku: prev.sku || scanned.batch_number || '',
+        mfgDate: scanned.mfg_date || prev.mfgDate || '',
+        expiryDate: scanned.expiry_date ? scanned.expiry_date.split('T')[0] : prev.expiryDate,
+        mrp: scannedMrp > 0 ? scannedMrp : prev.mrp,
+        sellingPrice: currentSp > 0 ? currentSp : (scannedMrp > 0 ? scannedMrp : prev.sellingPrice),
+      };
+    });
+
+    setImageScanNotice({
+      type: 'success',
+      text: `✓ ${sourceLabel}: ${detectedParts.join(' • ')}`
+    });
+  };
+
+  const handleImageScan = async (source: File | string) => {
+    setIsScanningImage(true);
+    setImageScanNotice(null);
+    try {
+      const scanned = await scanMedicineBox(source);
+      applyScannedBoxData(scanned, 'Extracted from image');
+    } catch (err: any) {
+      setImageScanNotice({
+        type: 'error',
+        text: err?.message || 'Image OCR scan failed. You can still enter details manually.'
+      });
+    } finally {
+      setIsScanningImage(false);
+    }
+  };
+
   const isEdit = !!medicine;
 
   const inputClass = "mt-1.5 block w-full bg-slate-50 border border-slate-200 rounded-xl shadow-sm py-2.5 px-4 text-sm text-slate-800 focus:outline-none focus:ring-4 focus:ring-pharmacy-500/10 focus:border-pharmacy-500 transition-all focus:bg-white placeholder-slate-400";
@@ -275,11 +345,22 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
                     )}
                   </div>
                   <div className="flex-1 space-y-2 text-center sm:text-left mt-2 sm:mt-0">
-                    <h4 className="text-sm font-bold text-slate-800">Medicine Image</h4>
-                    <p className="text-[13px] text-slate-500 max-w-xs">Upload a clear picture of the medicine packaging. This helps in quick visual identification during billing.</p>
-                    <div className="pt-2">
+                    <h4 className="text-sm font-bold text-slate-800 flex items-center justify-center sm:justify-start gap-2">
+                      Medicine Image & Auto Box Scanner
+                      <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">AI OCR</span>
+                    </h4>
+                    <p className="text-[13px] text-slate-500 max-w-md">Upload a box flap or strip photo (even without barcode) to automatically read Batch No., Mfg Date, Expiry Date & MRP.</p>
+                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsWebcamModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl shadow-sm text-sm font-bold hover:bg-emerald-700 transition-all"
+                      >
+                        <Video className="w-4 h-4" />
+                        Live Camera Scan
+                      </button>
                       <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
-                        <span>Choose File</span>
+                        <span>Choose File &amp; Scan</span>
                         <input type="file" className="sr-only" accept="image/*" onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
@@ -287,16 +368,46 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
                               alert('Image is too large. Please select an image under 2MB.');
                               return;
                             }
+                            setUploadedImageFile(file);
                             const reader = new FileReader();
                             reader.onloadend = () => {
                               setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
                             };
                             reader.readAsDataURL(file);
+                            handleImageScan(file);
                           }
                         }} />
                       </label>
-                      <span className="ml-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">PNG, JPG (MAX 2MB)</span>
+                      {(uploadedImageFile || formData.imageUrl) && (
+                        <button
+                          type="button"
+                          disabled={isScanningImage}
+                          onClick={() => handleImageScan(uploadedImageFile || formData.imageUrl!)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white rounded-xl shadow-sm text-xs font-bold hover:bg-emerald-700 transition-all disabled:opacity-60"
+                        >
+                          {isScanningImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ScanLine className="w-3.5 h-3.5" />}
+                          {isScanningImage ? 'Scanning Box...' : 'Re-scan Image Details'}
+                        </button>
+                      )}
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">PNG, JPG (MAX 2MB)</span>
                     </div>
+                    {isScanningImage && (
+                      <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Reading Batch No., Mfg Date, Expiry Date &amp; MRP from image...
+                      </div>
+                    )}
+                    {imageScanNotice && !isScanningImage && (
+                      <div
+                        className={`mt-2 px-3 py-2 rounded-xl text-xs font-semibold border ${
+                          imageScanNotice.type === 'success'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                        }`}
+                      >
+                        {imageScanNotice.text}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -358,7 +469,25 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
                 </div>
                 
                 <div className="sm:col-span-2">
-                  <label htmlFor="sku" className={labelClass}>SKU / Batch No.</label>
+                  <label htmlFor="batchNumber" className={labelClass}>Batch No.</label>
+                  <input type="text" name="batchNumber" id="batchNumber" placeholder="e.g. SAE26057" value={formData.batchNumber || ''} onChange={handleChange} className={`${inputClass} font-mono uppercase`} />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label htmlFor="mfgDate" className={labelClass}>Mfg Date (MM/YYYY)</label>
+                  <input type="text" name="mfgDate" id="mfgDate" placeholder="e.g. 07/2026" value={formData.mfgDate || ''} onChange={handleChange} className={inputClass} />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <ModernDatePicker 
+                    label="Expiry Date" 
+                    value={formData.expiryDate ? formData.expiryDate.split('T')[0] : ''} 
+                    onChange={(date) => setFormData(prev => ({ ...prev, expiryDate: date }))} 
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label htmlFor="sku" className={labelClass}>SKU Code</label>
                   <input type="text" name="sku" id="sku" placeholder="Optional" value={formData.sku || ''} onChange={handleChange} className={inputClass} />
                 </div>
 
@@ -418,14 +547,6 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
                 <div className="sm:col-span-2">
                   <label htmlFor="hsnCode" className={labelClass}>HSN/SAC Code</label>
                   <input type="text" name="hsnCode" id="hsnCode" placeholder="Optional" value={formData.hsnCode || ''} onChange={handleChange} className={inputClass} />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <ModernDatePicker 
-                    label="Expiry Date" 
-                    value={formData.expiryDate ? formData.expiryDate.split('T')[0] : ''} 
-                    onChange={(date) => setFormData(prev => ({ ...prev, expiryDate: date }))} 
-                  />
                 </div>
 
                 <div className="sm:col-span-6 border-t border-slate-100 pt-6">
@@ -544,6 +665,15 @@ export default function MedicineForm({ medicine, existingMedicines = [], onClose
           </form>
         </div>
       </div>
+      {isWebcamModalOpen && (
+        <LiveWebcamScanModal
+          onDetected={(data) => {
+            setIsWebcamModalOpen(false);
+            applyScannedBoxData(data, 'Live Camera Scanned');
+          }}
+          onClose={() => setIsWebcamModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

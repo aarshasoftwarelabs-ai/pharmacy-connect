@@ -1,8 +1,10 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/api/api_endpoints.dart';
 import '../../core/api/api_service.dart';
@@ -12,6 +14,7 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/services/barcode_medicine_service.dart';
 import '../billing/camera_barcode_scanner_screen.dart';
+import 'live_box_scanner_screen.dart';
 
 class InventoryScreen extends StatelessWidget {
   const InventoryScreen({super.key});
@@ -20,7 +23,11 @@ class InventoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
     final billing = context.watch<BillingProvider>();
-    final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+    final currency = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: 2,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -69,7 +76,10 @@ class InventoryScreen extends StatelessWidget {
               isLabelVisible: inventory.lowStockCount > 0,
               label: Text('${inventory.lowStockCount}'),
               backgroundColor: const Color(0xFFD97706),
-              child: const Icon(Icons.menu_book_rounded, color: Color(0xFFD97706)),
+              child: const Icon(
+                Icons.menu_book_rounded,
+                color: Color(0xFFD97706),
+              ),
             ),
             tooltip: 'Shortage Book (કમી-બુક)',
             onPressed: () => _showShortageBookSheet(context, inventory),
@@ -80,7 +90,10 @@ class InventoryScreen extends StatelessWidget {
             onPressed: () => _showScheduleH1RegisterSheet(context, inventory),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: AppColors.textPrimary,
+            ),
             tooltip: 'Reload Inventory',
             onPressed: () => inventory.fetchMedicines(),
           ),
@@ -104,24 +117,45 @@ class InventoryScreen extends StatelessWidget {
               ),
               child: TextField(
                 onChanged: inventory.setSearchQuery,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Search medicine, generic, or barcode...',
-                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.normal),
-                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.normal,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
                   suffixIcon: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (inventory.searchQuery.isNotEmpty)
                         IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: AppColors.textMuted,
+                          ),
                           onPressed: () => inventory.setSearchQuery(''),
                         ),
                       IconButton(
-                        icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                        icon: const Icon(
+                          Icons.qr_code_scanner_rounded,
+                          color: AppColors.primary,
+                        ),
                         tooltip: 'Scan Barcode with Camera',
                         onPressed: () async {
-                          final code = await CameraBarcodeScannerScreen.scanCode(context);
+                          final code =
+                              await CameraBarcodeScannerScreen.scanCode(
+                                context,
+                              );
                           if (code != null && code.trim().isNotEmpty) {
                             final cleanCode = code.trim();
                             final match = inventory.findByBarcode(cleanCode);
@@ -130,16 +164,24 @@ class InventoryScreen extends StatelessWidget {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('✓ Found: ${match.name} (Stock: ${match.stock} Units)'),
+                                    content: Text(
+                                      '✓ Found: ${match.name} (Stock: ${match.stock} Units)',
+                                    ),
                                     backgroundColor: const Color(0xFF0D9488),
                                   ),
                                 );
                               }
                             } else {
                               // Barcode not in inventory! Look up and open Add Medicine Sheet with auto-filled details!
-                              final autoData = await BarcodeMedicineService.lookup(cleanCode);
+                              final autoData =
+                                  await BarcodeMedicineService.lookup(
+                                    cleanCode,
+                                  );
                               if (context.mounted) {
-                                _showAddMedicineSheet(context, initialData: autoData);
+                                _showAddMedicineSheet(
+                                  context,
+                                  initialData: autoData,
+                                );
                               }
                             }
                           }
@@ -148,7 +190,10 @@ class InventoryScreen extends StatelessWidget {
                     ],
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
@@ -165,7 +210,10 @@ class InventoryScreen extends StatelessWidget {
                         SizedBox(height: 12),
                         Text(
                           'Syncing inventory from cloud...',
-                          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -195,7 +243,9 @@ class InventoryScreen extends StatelessWidget {
                                           ? Icons.cloud_off_rounded
                                           : Icons.inventory_2_outlined,
                                       size: 38,
-                                      color: inventory.errorMessage != null ? AppColors.error : AppColors.textMuted,
+                                      color: inventory.errorMessage != null
+                                          ? AppColors.error
+                                          : AppColors.textMuted,
                                     ),
                                   ),
                                   const SizedBox(height: 16),
@@ -207,19 +257,26 @@ class InventoryScreen extends StatelessWidget {
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: inventory.errorMessage != null ? AppColors.error : AppColors.textSecondary,
+                                      color: inventory.errorMessage != null
+                                          ? AppColors.error
+                                          : AppColors.textSecondary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   const SizedBox(height: 16),
                                   ElevatedButton.icon(
                                     onPressed: () => inventory.fetchMedicines(),
-                                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                                    icon: const Icon(
+                                      Icons.refresh_rounded,
+                                      size: 18,
+                                    ),
                                     label: const Text('Reload Real Inventory'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -229,7 +286,8 @@ class InventoryScreen extends StatelessWidget {
                         : ListView.separated(
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 84),
                             itemCount: inventory.medicines.length,
-                            separatorBuilder: (context, index) => const SizedBox(height: 12),
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final med = inventory.medicines[index];
                               return _buildMedicineCard(
@@ -332,9 +390,15 @@ class InventoryScreen extends StatelessWidget {
                   title: 'Low Stock',
                   value: '${inventory.lowStockCount}',
                   icon: Icons.warning_amber_rounded,
-                  color: inventory.lowStockCount > 0 ? const Color(0xFFD97706) : AppColors.textMuted,
-                  bgColor: inventory.lowStockCount > 0 ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
-                  borderColor: inventory.lowStockCount > 0 ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+                  color: inventory.lowStockCount > 0
+                      ? const Color(0xFFD97706)
+                      : AppColors.textMuted,
+                  bgColor: inventory.lowStockCount > 0
+                      ? const Color(0xFFFFFBEB)
+                      : const Color(0xFFF8FAFC),
+                  borderColor: inventory.lowStockCount > 0
+                      ? const Color(0xFFFDE68A)
+                      : const Color(0xFFE2E8F0),
                   onTap: () => _showShortageBookSheet(context, inventory),
                 ),
               ),
@@ -344,9 +408,15 @@ class InventoryScreen extends StatelessWidget {
                   title: 'Near Expiry',
                   value: '${inventory.nearExpiryCount}',
                   icon: Icons.event_busy_rounded,
-                  color: inventory.nearExpiryCount > 0 ? const Color(0xFFDC2626) : AppColors.textMuted,
-                  bgColor: inventory.nearExpiryCount > 0 ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
-                  borderColor: inventory.nearExpiryCount > 0 ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0),
+                  color: inventory.nearExpiryCount > 0
+                      ? const Color(0xFFDC2626)
+                      : AppColors.textMuted,
+                  bgColor: inventory.nearExpiryCount > 0
+                      ? const Color(0xFFFEF2F2)
+                      : const Color(0xFFF8FAFC),
+                  borderColor: inventory.nearExpiryCount > 0
+                      ? const Color(0xFFFECACA)
+                      : const Color(0xFFE2E8F0),
                   onTap: () => _showNearExpirySheet(context, inventory),
                 ),
               ),
@@ -398,7 +468,9 @@ class InventoryScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: color == AppColors.textMuted ? AppColors.textPrimary : color,
+                color: color == AppColors.textMuted
+                    ? AppColors.textPrimary
+                    : color,
                 letterSpacing: -0.3,
               ),
             ),
@@ -416,8 +488,12 @@ class InventoryScreen extends StatelessWidget {
     required BillingProvider billing,
     required InventoryProvider inventory,
   }) {
-    final cartIndex = billing.cartItems.indexWhere((item) => item.medicine.id == med.id);
-    final inCartQty = cartIndex >= 0 ? billing.cartItems[cartIndex].quantity : 0;
+    final cartIndex = billing.cartItems.indexWhere(
+      (item) => item.medicine.id == med.id,
+    );
+    final inCartQty = cartIndex >= 0
+        ? billing.cartItems[cartIndex].quantity
+        : 0;
     final isLow = med.isLowStock;
     final isOut = med.isOutOfStock;
 
@@ -425,7 +501,9 @@ class InventoryScreen extends StatelessWidget {
     final iconColor = _getCategoryColor(med.category);
 
     final bool hasValidDiscount = med.mrp > med.sellingPrice && med.mrp > 0;
-    final int discountPct = hasValidDiscount ? (((med.mrp - med.sellingPrice) / med.mrp) * 100).round() : 0;
+    final int discountPct = hasValidDiscount
+        ? (((med.mrp - med.sellingPrice) / med.mrp) * 100).round()
+        : 0;
 
     return Container(
       decoration: BoxDecoration(
@@ -435,8 +513,8 @@ class InventoryScreen extends StatelessWidget {
           color: isOut
               ? const Color(0xFFFCA5A5)
               : isLow
-                  ? const Color(0xFFFCD34D)
-                  : const Color(0xFFE2E8F0),
+              ? const Color(0xFFFCD34D)
+              : const Color(0xFFE2E8F0),
           width: isLow || isOut ? 1.4 : 1.0,
         ),
         boxShadow: [
@@ -451,7 +529,13 @@ class InventoryScreen extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: () => _showMedicineDetailSheet(context, med, currency, inventory, billing),
+          onTap: () => _showMedicineDetailSheet(
+            context,
+            med,
+            currency,
+            inventory,
+            billing,
+          ),
           child: Padding(
             padding: const EdgeInsets.all(14.0),
             child: Column(
@@ -492,39 +576,59 @@ class InventoryScreen extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              if (med.strength != null && med.strength!.isNotEmpty) ...[
+                              if (med.strength != null &&
+                                  med.strength!.isNotEmpty) ...[
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 1.5,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFEFF6FF),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: const Color(0xFF93C5FD)),
+                                    border: Border.all(
+                                      color: const Color(0xFF93C5FD),
+                                    ),
                                   ),
                                   child: Text(
                                     med.strength!,
-                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1D4ED8),
+                                    ),
                                   ),
                                 ),
                               ],
                               if (med.isScheduleH1) ...[
                                 const SizedBox(width: 4),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                    vertical: 1.5,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFEF2F2),
                                     borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: const Color(0xFFFECACA)),
+                                    border: Border.all(
+                                      color: const Color(0xFFFECACA),
+                                    ),
                                   ),
                                   child: const Text(
                                     'H1 Rx',
-                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFDC2626),
+                                    ),
                                   ),
                                 ),
                               ],
                             ],
                           ),
-                          if (med.genericName != null && med.genericName!.trim().isNotEmpty) ...[
+                          if (med.genericName != null &&
+                              med.genericName!.trim().isNotEmpty) ...[
                             const SizedBox(height: 2),
                             Text(
                               med.genericName!,
@@ -542,18 +646,28 @@ class InventoryScreen extends StatelessWidget {
                             spacing: 6,
                             runSpacing: 4,
                             children: [
-                              if (med.manufacturer != null && med.manufacturer!.trim().isNotEmpty)
+                              if (med.manufacturer != null &&
+                                  med.manufacturer!.trim().isNotEmpty)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF1F5F9),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    border: Border.all(
+                                      color: const Color(0xFFE2E8F0),
+                                    ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.apartment_rounded, size: 10, color: AppColors.textMuted),
+                                      const Icon(
+                                        Icons.apartment_rounded,
+                                        size: 10,
+                                        color: AppColors.textMuted,
+                                      ),
                                       const SizedBox(width: 3),
                                       Text(
                                         med.manufacturer!,
@@ -566,9 +680,14 @@ class InventoryScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                              if (med.category != null && med.category!.isNotEmpty && med.category != 'General')
+                              if (med.category != null &&
+                                  med.category!.isNotEmpty &&
+                                  med.category != 'General')
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: iconColor.withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(6),
@@ -590,20 +709,23 @@ class InventoryScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     // Stock Status Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: isOut
                             ? const Color(0xFFFEF2F2)
                             : isLow
-                                ? const Color(0xFFFFFBEB)
-                                : const Color(0xFFECFDF5),
+                            ? const Color(0xFFFFFBEB)
+                            : const Color(0xFFECFDF5),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isOut
                               ? const Color(0xFFFECACA)
                               : isLow
-                                  ? const Color(0xFFFDE68A)
-                                  : const Color(0xFFA7F3D0),
+                              ? const Color(0xFFFDE68A)
+                              : const Color(0xFFA7F3D0),
                         ),
                       ),
                       child: Row(
@@ -617,8 +739,8 @@ class InventoryScreen extends StatelessWidget {
                               color: isOut
                                   ? AppColors.error
                                   : isLow
-                                      ? AppColors.warning
-                                      : AppColors.success,
+                                  ? AppColors.warning
+                                  : AppColors.success,
                             ),
                           ),
                           const SizedBox(width: 5),
@@ -626,16 +748,16 @@ class InventoryScreen extends StatelessWidget {
                             isOut
                                 ? 'Out of Stock'
                                 : isLow
-                                    ? 'Low: ${med.stock}'
-                                    : '${med.stock} in Stock',
+                                ? 'Low: ${med.stock}'
+                                : '${med.stock} in Stock',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: isOut
                                   ? AppColors.error
                                   : isLow
-                                      ? AppColors.warning
-                                      : const Color(0xFF065F46),
+                                  ? AppColors.warning
+                                  : const Color(0xFF065F46),
                             ),
                           ),
                         ],
@@ -659,17 +781,29 @@ class InventoryScreen extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.qr_code_2_rounded, size: 13, color: AppColors.textMuted),
+                            const Icon(
+                              Icons.qr_code_2_rounded,
+                              size: 13,
+                              color: AppColors.textMuted,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               med.barcode!,
-                              style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontFamily: 'monospace'),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                                fontFamily: 'monospace',
+                              ),
                             ),
                           ],
                         ),
-                      if (med.batchNumber != null && med.batchNumber!.isNotEmpty)
+                      if (med.batchNumber != null &&
+                          med.batchNumber!.isNotEmpty)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(6),
@@ -677,35 +811,51 @@ class InventoryScreen extends StatelessWidget {
                           ),
                           child: Text(
                             'B: ${med.batchNumber}',
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F766E),
+                            ),
                           ),
                         ),
                       if (med.mfgDate != null && med.mfgDate!.isNotEmpty)
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.build_circle_outlined, size: 12, color: AppColors.textMuted),
+                            const Icon(
+                              Icons.build_circle_outlined,
+                              size: 12,
+                              color: AppColors.textMuted,
+                            ),
                             const SizedBox(width: 3),
                             Text(
                               'Mfg: ${med.mfgDate}',
-                              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
                             ),
                           ],
                         ),
-                      if (med.expiryDate != null && med.expiryDate!.isNotEmpty) ...[
+                      if (med.expiryDate != null &&
+                          med.expiryDate!.isNotEmpty) ...[
                         Builder(
                           builder: (_) {
-                            final days = InventoryProvider.getDaysUntilExpiry(med.expiryDate);
+                            final days = InventoryProvider.getDaysUntilExpiry(
+                              med.expiryDate,
+                            );
                             final isExpired = days != null && days < 0;
-                            final isCritical = days != null && days >= 0 && days <= 30;
-                            final isWarning = days != null && days > 30 && days <= 90;
+                            final isCritical =
+                                days != null && days >= 0 && days <= 30;
+                            final isWarning =
+                                days != null && days > 30 && days <= 90;
                             final expColor = isExpired
                                 ? const Color(0xFFDC2626)
                                 : isCritical
-                                    ? const Color(0xFFDC2626)
-                                    : isWarning
-                                        ? const Color(0xFFD97706)
-                                        : const Color(0xFF15803D);
+                                ? const Color(0xFFDC2626)
+                                : isWarning
+                                ? const Color(0xFFD97706)
+                                : const Color(0xFF15803D);
 
                             return Row(
                               mainAxisSize: MainAxisSize.min,
@@ -722,13 +872,15 @@ class InventoryScreen extends StatelessWidget {
                                   isExpired
                                       ? 'Expired (${-days}d ago)'
                                       : isCritical
-                                          ? 'Exp in ${days}d (Return Soon!)'
-                                          : isWarning
-                                              ? 'Exp: ${med.expiryDate} (${days}d)'
-                                              : 'Exp: ${med.expiryDate}',
+                                      ? 'Exp in ${days}d (Return Soon!)'
+                                      : isWarning
+                                      ? 'Exp: ${med.expiryDate} (${days}d)'
+                                      : 'Exp: ${med.expiryDate}',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    fontWeight: isExpired || isCritical ? FontWeight.bold : FontWeight.w600,
+                                    fontWeight: isExpired || isCritical
+                                        ? FontWeight.bold
+                                        : FontWeight.w600,
                                     color: expColor,
                                   ),
                                 ),
@@ -767,7 +919,10 @@ class InventoryScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFDCFCE7),
                                   borderRadius: BorderRadius.circular(4),
@@ -786,7 +941,11 @@ class InventoryScreen extends StatelessWidget {
                         else
                           const Text(
                             'Selling Price',
-                            style: TextStyle(fontSize: 10, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         Text(
                           currency.format(med.sellingPrice),
@@ -812,15 +971,27 @@ class InventoryScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             InkWell(
-                              onTap: () => billing.updateQuantity(med.id, inCartQty - 1),
-                              borderRadius: const BorderRadius.horizontal(left: Radius.circular(9)),
+                              onTap: () =>
+                                  billing.updateQuantity(med.id, inCartQty - 1),
+                              borderRadius: const BorderRadius.horizontal(
+                                left: Radius.circular(9),
+                              ),
                               child: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                child: Icon(Icons.remove_rounded, size: 16, color: AppColors.primary),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 6,
+                                ),
+                                child: Icon(
+                                  Icons.remove_rounded,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
                               child: Text(
                                 '$inCartQty in POS',
                                 style: const TextStyle(
@@ -832,15 +1003,25 @@ class InventoryScreen extends StatelessWidget {
                             ),
                             InkWell(
                               onTap: med.stock > inCartQty
-                                  ? () => billing.updateQuantity(med.id, inCartQty + 1)
+                                  ? () => billing.updateQuantity(
+                                      med.id,
+                                      inCartQty + 1,
+                                    )
                                   : null,
-                              borderRadius: const BorderRadius.horizontal(right: Radius.circular(9)),
+                              borderRadius: const BorderRadius.horizontal(
+                                right: Radius.circular(9),
+                              ),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 6,
+                                ),
                                 child: Icon(
                                   Icons.add_rounded,
                                   size: 16,
-                                  color: med.stock > inCartQty ? AppColors.primary : AppColors.textMuted,
+                                  color: med.stock > inCartQty
+                                      ? AppColors.primary
+                                      : AppColors.textMuted,
                                 ),
                               ),
                             ),
@@ -853,7 +1034,10 @@ class InventoryScreen extends StatelessWidget {
                           gradient: isOut
                               ? null
                               : const LinearGradient(
-                                  colors: [AppColors.primary, Color(0xFF0F766E)],
+                                  colors: [
+                                    AppColors.primary,
+                                    Color(0xFF0F766E),
+                                  ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
@@ -863,7 +1047,9 @@ class InventoryScreen extends StatelessWidget {
                               ? null
                               : [
                                   BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.28),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.28,
+                                    ),
                                     blurRadius: 8,
                                     offset: const Offset(0, 3),
                                   ),
@@ -881,27 +1067,47 @@ class InventoryScreen extends StatelessWidget {
                                       SnackBar(
                                         content: Row(
                                           children: [
-                                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                            const Icon(
+                                              Icons.check_circle_rounded,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
                                             const SizedBox(width: 8),
-                                            Expanded(child: Text('${med.name} added to POS bill', overflow: TextOverflow.ellipsis)),
+                                            Expanded(
+                                              child: Text(
+                                                '${med.name} added to POS bill',
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
                                           ],
                                         ),
                                         backgroundColor: AppColors.primaryDark,
                                         behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                        duration: const Duration(milliseconds: 900),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        duration: const Duration(
+                                          milliseconds: 900,
+                                        ),
                                       ),
                                     );
                                   },
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     Icons.add_shopping_cart_rounded,
                                     size: 15,
-                                    color: isOut ? AppColors.textMuted : Colors.white,
+                                    color: isOut
+                                        ? AppColors.textMuted
+                                        : Colors.white,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -909,7 +1115,9 @@ class InventoryScreen extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: isOut ? AppColors.textMuted : Colors.white,
+                                      color: isOut
+                                          ? AppColors.textMuted
+                                          : Colors.white,
                                     ),
                                   ),
                                 ],
@@ -971,10 +1179,15 @@ class InventoryScreen extends StatelessWidget {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: _getCategoryColor(med.category).withValues(alpha: 0.12),
+                      color: _getCategoryColor(med.category)
+                          .withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Icon(_getCategoryIcon(med.category), color: _getCategoryColor(med.category), size: 26),
+                    child: Icon(
+                      _getCategoryIcon(med.category),
+                      color: _getCategoryColor(med.category),
+                      size: 26,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -983,17 +1196,29 @@ class InventoryScreen extends StatelessWidget {
                       children: [
                         Text(
                           med.name,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                        if (med.genericName != null && med.genericName!.isNotEmpty)
+                        if (med.genericName != null &&
+                            med.genericName!.isNotEmpty)
                           Text(
                             med.genericName!,
-                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
-                        if (med.manufacturer != null && med.manufacturer!.isNotEmpty)
+                        if (med.manufacturer != null &&
+                            med.manufacturer!.isNotEmpty)
                           Text(
                             'Manufacturer: ${med.manufacturer!}',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                       ],
                     ),
@@ -1012,11 +1237,19 @@ class InventoryScreen extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _buildDetailStatBox('Selling Price', currency.format(med.sellingPrice), const Color(0xFF0F766E)),
+                    child: _buildDetailStatBox(
+                      'Selling Price',
+                      currency.format(med.sellingPrice),
+                      const Color(0xFF0F766E),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildDetailStatBox('MRP', med.mrp > 0 ? currency.format(med.mrp) : 'N/A', AppColors.textSecondary),
+                    child: _buildDetailStatBox(
+                      'MRP',
+                      med.mrp > 0 ? currency.format(med.mrp) : 'N/A',
+                      AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -1043,7 +1276,11 @@ class InventoryScreen extends StatelessWidget {
                   children: [
                     const Text(
                       'Quick Stock Adjustment',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -1079,12 +1316,17 @@ class InventoryScreen extends StatelessWidget {
                           );
                         },
                   icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
-                  label: const Text('Add to POS Cart', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    'Add to POS Cart',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -1105,11 +1347,18 @@ class InventoryScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -1126,7 +1375,10 @@ class InventoryScreen extends StatelessWidget {
     return Expanded(
       child: OutlinedButton(
         onPressed: () async {
-          await inventory.updateMedicineStock(medicineId: med.id, addedUnits: delta);
+          await inventory.updateMedicineStock(
+            medicineId: med.id,
+            addedUnits: delta,
+          );
           if (ctx.mounted) {
             Navigator.pop(ctx);
           }
@@ -1152,10 +1404,15 @@ class InventoryScreen extends StatelessWidget {
   IconData _getCategoryIcon(String? category) {
     if (category == null) return Icons.medication_rounded;
     final cat = category.toLowerCase();
-    if (cat.contains('analgesic') || cat.contains('pain')) return Icons.healing_rounded;
+    if (cat.contains('analgesic') || cat.contains('pain'))
+      return Icons.healing_rounded;
     if (cat.contains('antibiotic')) return Icons.biotech_rounded;
-    if (cat.contains('antacid') || cat.contains('gastro')) return Icons.health_and_safety_rounded;
-    if (cat.contains('antihistamine') || cat.contains('cold') || cat.contains('cough')) return Icons.air_rounded;
+    if (cat.contains('antacid') || cat.contains('gastro'))
+      return Icons.health_and_safety_rounded;
+    if (cat.contains('antihistamine') ||
+        cat.contains('cold') ||
+        cat.contains('cough'))
+      return Icons.air_rounded;
     return Icons.medication_rounded;
   }
 
@@ -1169,24 +1426,55 @@ class InventoryScreen extends StatelessWidget {
     return AppColors.primary;
   }
 
-  void _showAddMedicineSheet(BuildContext context, {ScannedMedicineData? initialData}) {
+  void _showAddMedicineSheet(
+    BuildContext context, {
+    ScannedMedicineData? initialData,
+  }) {
     final nameCtrl = TextEditingController(text: initialData?.name ?? '');
-    final genericCtrl = TextEditingController(text: initialData?.genericName ?? '');
-    final strengthCtrl = TextEditingController(text: initialData?.strength ?? '');
-    final mfgCtrl = TextEditingController(text: initialData?.manufacturer ?? '');
-    final categoryCtrl = TextEditingController(text: initialData?.category ?? 'General');
-    final mrpCtrl = TextEditingController(text: initialData != null ? initialData.mrp.toStringAsFixed(2) : '');
-    final spCtrl = TextEditingController(text: initialData != null ? initialData.sellingPrice.toStringAsFixed(2) : '');
-    final stockCtrl = TextEditingController(text: initialData != null ? initialData.stock.toString() : '10');
+    final genericCtrl = TextEditingController(
+      text: initialData?.genericName ?? '',
+    );
+    final strengthCtrl = TextEditingController(
+      text: initialData?.strength ?? '',
+    );
+    final mfgCtrl = TextEditingController(
+      text: initialData?.manufacturer ?? '',
+    );
+    final categoryCtrl = TextEditingController(
+      text: initialData?.category ?? 'General',
+    );
+    final mrpCtrl = TextEditingController(
+      text: (initialData != null && initialData.mrp > 0)
+          ? initialData.mrp.toStringAsFixed(2)
+          : '',
+    );
+    final spCtrl = TextEditingController(
+      text: (initialData != null && initialData.sellingPrice > 0)
+          ? initialData.sellingPrice.toStringAsFixed(2)
+          : '',
+    );
+    final stockCtrl = TextEditingController(
+      text: initialData != null ? initialData.stock.toString() : '10',
+    );
     final freeSchemeCtrl = TextEditingController(text: '0');
     final purchasePriceCtrl = TextEditingController(text: '');
     final barcodeCtrl = TextEditingController(text: initialData?.barcode ?? '');
-    final expiryCtrl = TextEditingController(text: initialData?.expiryDate ?? '12/2028');
+    final batchCtrl = TextEditingController(
+      text: initialData?.batchNumber ?? '',
+    );
+    final mfgDateCtrl = TextEditingController(text: initialData?.mfgDate ?? '');
+    final expiryCtrl = TextEditingController(
+      text: (initialData != null && initialData.expiryDate.isNotEmpty)
+          ? initialData.expiryDate
+          : '12/2028',
+    );
     final hsnCtrl = TextEditingController();
     double selectedGstRate = 5.0;
     bool isAutoFilling = false;
     String? autofillHint;
     bool isAiAutofill = false;
+    String? photoScanHint;
+    bool photoScanIsError = false;
 
     showModalBottomSheet(
       context: context,
@@ -1208,14 +1496,95 @@ class InventoryScreen extends StatelessWidget {
                   strengthCtrl.text = data.strength!;
                 }
                 categoryCtrl.text = data.category;
-                if (data.manufacturer != null && data.manufacturer!.isNotEmpty) {
+                if (data.manufacturer != null &&
+                    data.manufacturer!.isNotEmpty) {
                   mfgCtrl.text = data.manufacturer!;
                 }
-                mrpCtrl.text = data.mrp.toStringAsFixed(2);
-                spCtrl.text = data.sellingPrice.toStringAsFixed(2);
+                mrpCtrl.text = data.mrp > 0
+                    ? data.mrp.toStringAsFixed(2)
+                    : mrpCtrl.text;
+                spCtrl.text = data.sellingPrice > 0
+                    ? data.sellingPrice.toStringAsFixed(2)
+                    : spCtrl.text;
                 stockCtrl.text = data.stock.toString();
                 barcodeCtrl.text = data.barcode;
-                expiryCtrl.text = data.expiryDate;
+                if (data.batchNumber != null && data.batchNumber!.isNotEmpty) {
+                  batchCtrl.text = data.batchNumber!;
+                }
+                if (data.mfgDate != null && data.mfgDate!.isNotEmpty) {
+                  mfgDateCtrl.text = data.mfgDate!;
+                }
+                if (data.expiryDate.isNotEmpty) {
+                  expiryCtrl.text = data.expiryDate;
+                }
+              });
+            }
+
+            Future<void> openLiveBoxScanner() async {
+              final ocr = await LiveBoxScannerScreen.scan(ctx);
+              if (!ctx.mounted) return;
+              if (ocr == null || !ocr.hasRealData) {
+                if (ocr != null) {
+                  setSheetState(() {
+                    photoScanIsError = true;
+                    photoScanHint = 'No readable details locked. Try pointing live camera closer.';
+                  });
+                }
+                return;
+              }
+
+              final foundSummary = <String>[];
+              if (ocr.medicineName != null &&
+                  ocr.medicineName!.trim().isNotEmpty &&
+                  ocr.medicineName!.trim() != 'Scanned Medicine') {
+                if (nameCtrl.text.trim().isEmpty) {
+                  nameCtrl.text = ocr.medicineName!.trim();
+                }
+                foundSummary.add('Name: ${ocr.medicineName!.trim()}');
+              }
+              if (ocr.genericName != null &&
+                  ocr.genericName!.trim().isNotEmpty &&
+                  genericCtrl.text.trim().isEmpty) {
+                genericCtrl.text = ocr.genericName!.trim();
+              }
+              if (ocr.strength != null &&
+                  ocr.strength!.trim().isNotEmpty &&
+                  strengthCtrl.text.trim().isEmpty) {
+                strengthCtrl.text = ocr.strength!.trim();
+              }
+              if (ocr.manufacturer != null &&
+                  ocr.manufacturer!.trim().isNotEmpty &&
+                  mfgCtrl.text.trim().isEmpty) {
+                mfgCtrl.text = ocr.manufacturer!.trim();
+              }
+              if (ocr.batchNumber != null &&
+                  ocr.batchNumber!.trim().isNotEmpty) {
+                batchCtrl.text = ocr.batchNumber!.trim();
+                foundSummary.add('Batch: ${batchCtrl.text}');
+              }
+              if (ocr.mfgDate != null && ocr.mfgDate!.trim().isNotEmpty) {
+                mfgDateCtrl.text = ocr.mfgDate!.trim();
+                foundSummary.add('Mfg: ${mfgDateCtrl.text}');
+              }
+              final expText =
+                  (ocr.rawExpiry != null && ocr.rawExpiry!.trim().isNotEmpty)
+                  ? ocr.rawExpiry!.trim()
+                  : (ocr.expiryDate?.trim() ?? '');
+              if (expText.isNotEmpty) {
+                expiryCtrl.text = expText;
+                foundSummary.add('Exp: $expText');
+              }
+              if (ocr.mrp > 0) {
+                mrpCtrl.text = ocr.mrp.toStringAsFixed(2);
+                if ((double.tryParse(spCtrl.text.trim()) ?? 0) <= 0) {
+                  spCtrl.text = ocr.mrp.toStringAsFixed(2);
+                }
+                foundSummary.add('MRP: ₹${ocr.mrp.toStringAsFixed(2)}');
+              }
+
+              setSheetState(() {
+                photoScanIsError = false;
+                photoScanHint = '✓ Live Scanned: ${foundSummary.join(' • ')}';
               });
             }
 
@@ -1236,7 +1605,11 @@ class InventoryScreen extends StatelessWidget {
                       children: [
                         const Text(
                           'Add New Medicine',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close_rounded),
@@ -1247,7 +1620,10 @@ class InventoryScreen extends StatelessWidget {
                     if (initialData != null || barcodeCtrl.text.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFECFDF5),
                           borderRadius: BorderRadius.circular(10),
@@ -1255,15 +1631,84 @@ class InventoryScreen extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 18),
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              color: Color(0xFF059669),
+                              size: 18,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Barcode: ${barcodeCtrl.text} (Auto-filled)',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF065F46),
+                                ),
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: openLiveBoxScanner,
+                        icon: const Icon(
+                          Icons.document_scanner_rounded,
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Live Scan Medicine Box (Batch, Mfg, Exp & MRP)',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF059669),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 11,
+                            horizontal: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (photoScanHint != null) ...[
+                      const SizedBox(height: 7),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: photoScanIsError
+                              ? const Color(0xFFFFFBEB)
+                              : const Color(0xFFECFDF5),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: photoScanIsError
+                                ? const Color(0xFFFDE68A)
+                                : const Color(0xFFA7F3D0),
+                          ),
+                        ),
+                        child: Text(
+                          photoScanHint!,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: photoScanIsError
+                                ? const Color(0xFFB45309)
+                                : const Color(0xFF047857),
+                          ),
                         ),
                       ),
                     ],
@@ -1306,29 +1751,58 @@ class InventoryScreen extends StatelessWidget {
                                       );
                                       if (!ctx.mounted) return;
                                       final body = res.data;
-                                      if (res.success && body is Map && body['found'] == true && body['medicine'] is Map) {
-                                        final med = Map<String, dynamic>.from(body['medicine'] as Map);
+                                      if (res.success &&
+                                          body is Map &&
+                                          body['found'] == true &&
+                                          body['medicine'] is Map) {
+                                        final med = Map<String, dynamic>.from(
+                                          body['medicine'] as Map,
+                                        );
                                         setSheetState(() {
-                                          if ((med['genericName'] ?? '').toString().isNotEmpty) {
-                                            genericCtrl.text = med['genericName'].toString();
+                                          if ((med['genericName'] ?? '')
+                                              .toString()
+                                              .isNotEmpty) {
+                                            genericCtrl.text =
+                                                med['genericName'].toString();
                                           }
-                                          if ((med['category'] ?? '').toString().isNotEmpty) {
-                                            categoryCtrl.text = med['category'].toString();
+                                          if ((med['category'] ?? '')
+                                              .toString()
+                                              .isNotEmpty) {
+                                            categoryCtrl.text = med['category']
+                                                .toString();
                                           }
-                                          if ((med['strength'] ?? '').toString().isNotEmpty) {
-                                            strengthCtrl.text = med['strength'].toString();
+                                          if ((med['strength'] ?? '')
+                                              .toString()
+                                              .isNotEmpty) {
+                                            strengthCtrl.text = med['strength']
+                                                .toString();
                                           }
-                                          if ((med['manufacturer'] ?? '').toString().isNotEmpty) {
-                                            mfgCtrl.text = med['manufacturer'].toString();
+                                          if ((med['manufacturer'] ?? '')
+                                              .toString()
+                                              .isNotEmpty) {
+                                            mfgCtrl.text = med['manufacturer']
+                                                .toString();
                                           }
-                                          if ((med['hsnCode'] ?? '').toString().isNotEmpty) {
-                                            hsnCtrl.text = med['hsnCode'].toString();
+                                          if ((med['hsnCode'] ?? '')
+                                              .toString()
+                                              .isNotEmpty) {
+                                            hsnCtrl.text = med['hsnCode']
+                                                .toString();
                                           }
-                                          final gst = double.tryParse((med['gstRate'] ?? '').toString());
-                                          if (gst != null && [0.0, 5.0, 12.0, 18.0].contains(gst)) {
+                                          final gst = double.tryParse(
+                                            (med['gstRate'] ?? '').toString(),
+                                          );
+                                          if (gst != null &&
+                                              [
+                                                0.0,
+                                                5.0,
+                                                12.0,
+                                                18.0,
+                                              ].contains(gst)) {
                                             selectedGstRate = gst;
                                           }
-                                          final ai = body['aiGenerated'] == true;
+                                          final ai =
+                                              body['aiGenerated'] == true;
                                           isAiAutofill = ai;
                                           autofillHint = ai
                                               ? '✨ AI suggested Salt, Company & GST — verify & enter exact MRP.'
@@ -1337,7 +1811,10 @@ class InventoryScreen extends StatelessWidget {
                                       } else {
                                         setSheetState(() {
                                           isAiAutofill = false;
-                                          autofillHint = (body is Map ? body['message']?.toString() : null) ??
+                                          autofillHint =
+                                              (body is Map
+                                                  ? body['message']?.toString()
+                                                  : null) ??
                                               res.message ??
                                               'Not found — please enter details manually.';
                                         });
@@ -1350,25 +1827,41 @@ class InventoryScreen extends StatelessWidget {
                                         });
                                       }
                                     } finally {
-                                      if (ctx.mounted) setSheetState(() => isAutoFilling = false);
+                                      if (ctx.mounted)
+                                        setSheetState(
+                                          () => isAutoFilling = false,
+                                        );
                                     }
                                   },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF2563EB),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             icon: isAutoFilling
                                 ? const SizedBox(
                                     width: 14,
                                     height: 14,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
                                   )
-                                : const Icon(Icons.auto_awesome_rounded, size: 16),
+                                : const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    size: 16,
+                                  ),
                             label: Text(
                               isAutoFilling ? '...' : 'AI Fill',
-                              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -1378,12 +1871,19 @@ class InventoryScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
-                          color: isAiAutofill ? const Color(0xFFFFFBEB) : const Color(0xFFF0FDF4),
+                          color: isAiAutofill
+                              ? const Color(0xFFFFFBEB)
+                              : const Color(0xFFF0FDF4),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isAiAutofill ? const Color(0xFFFDE68A) : const Color(0xFFBBF7D0),
+                            color: isAiAutofill
+                                ? const Color(0xFFFDE68A)
+                                : const Color(0xFFBBF7D0),
                           ),
                         ),
                         child: Text(
@@ -1391,7 +1891,9 @@ class InventoryScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
-                            color: isAiAutofill ? const Color(0xFF92400E) : const Color(0xFF166534),
+                            color: isAiAutofill
+                                ? const Color(0xFF92400E)
+                                : const Color(0xFF166534),
                           ),
                         ),
                       ),
@@ -1477,8 +1979,35 @@ class InventoryScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: TextField(
+                            controller: batchCtrl,
+                            textCapitalization: TextCapitalization.characters,
+                            decoration: const InputDecoration(
+                              labelText: 'Batch No.',
+                              hintText: 'e.g. SAE26057',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: mfgDateCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Mfg (MM/YYYY)',
+                              hintText: 'e.g. 07/2026',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
                             controller: purchasePriceCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             onChanged: (_) => setSheetState(() {}),
                             decoration: const InputDecoration(
                               labelText: 'Buy Rate (₹)',
@@ -1503,17 +2032,23 @@ class InventoryScreen extends StatelessWidget {
                         final bUnits = int.tryParse(stockCtrl.text) ?? 0;
                         final fUnits = int.tryParse(freeSchemeCtrl.text) ?? 0;
                         final totUnits = bUnits + fUnits;
-                        final pRate = double.tryParse(purchasePriceCtrl.text) ?? 0.0;
+                        final pRate =
+                            double.tryParse(purchasePriceCtrl.text) ?? 0.0;
 
                         if (fUnits > 0 && bUnits > 0) {
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFFBEB),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0xFFFDE68A)),
+                                border: Border.all(
+                                  color: const Color(0xFFFDE68A),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1521,18 +2056,34 @@ class InventoryScreen extends StatelessWidget {
                                   Row(
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 5,
+                                          vertical: 1.5,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFD97706),
-                                          borderRadius: BorderRadius.circular(4),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
-                                        child: const Text('SCHEME', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white)),
+                                        child: const Text(
+                                          'SCHEME',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                       ),
                                       const SizedBox(width: 6),
                                       Expanded(
                                         child: Text(
                                           '$bUnits Billed + $fUnits Free = $totUnits Total Received',
-                                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                                          style: const TextStyle(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF92400E),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1541,7 +2092,11 @@ class InventoryScreen extends StatelessWidget {
                                     const SizedBox(height: 3),
                                     Text(
                                       'Effective Landed Cost: ₹${((pRate * bUnits) / totUnits).toStringAsFixed(2)}/unit (Billed: ₹${pRate.toStringAsFixed(2)})',
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF047857)),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF047857),
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -1558,7 +2113,9 @@ class InventoryScreen extends StatelessWidget {
                         Expanded(
                           child: TextField(
                             controller: mrpCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'MRP (₹) *',
                               hintText: '50.00',
@@ -1569,7 +2126,9 @@ class InventoryScreen extends StatelessWidget {
                         Expanded(
                           child: TextField(
                             controller: spCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Selling Price (₹) *',
                               hintText: '45.00',
@@ -1589,35 +2148,59 @@ class InventoryScreen extends StatelessWidget {
                           children: [
                             if (barcodeCtrl.text.isNotEmpty)
                               IconButton(
-                                icon: const Icon(Icons.flash_on_rounded, color: Colors.orange, size: 20),
+                                icon: const Icon(
+                                  Icons.flash_on_rounded,
+                                  color: Colors.orange,
+                                  size: 20,
+                                ),
                                 tooltip: 'Auto-fill details from barcode',
                                 onPressed: () async {
-                                  final auto = await BarcodeMedicineService.lookup(barcodeCtrl.text.trim());
+                                  final auto =
+                                      await BarcodeMedicineService.lookup(
+                                        barcodeCtrl.text.trim(),
+                                      );
                                   applyAutoFill(auto);
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('✓ Auto-filled: ${auto.name}'),
-                                        backgroundColor: const Color(0xFF059669),
+                                        content: Text(
+                                          '✓ Auto-filled: ${auto.name}',
+                                        ),
+                                        backgroundColor: const Color(
+                                          0xFF059669,
+                                        ),
                                       ),
                                     );
                                   }
                                 },
                               ),
                             IconButton(
-                              icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary),
+                              icon: const Icon(
+                                Icons.qr_code_scanner_rounded,
+                                color: AppColors.primary,
+                              ),
                               tooltip: 'Scan Barcode with Camera',
                               onPressed: () async {
-                                final code = await CameraBarcodeScannerScreen.scanCode(context);
+                                final code =
+                                    await CameraBarcodeScannerScreen.scanCode(
+                                      context,
+                                    );
                                 if (code != null && code.trim().isNotEmpty) {
                                   final clean = code.trim();
-                                  final auto = await BarcodeMedicineService.lookup(clean);
+                                  final auto =
+                                      await BarcodeMedicineService.lookup(
+                                        clean,
+                                      );
                                   applyAutoFill(auto);
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('✓ Auto-filled: ${auto.name} from Barcode!'),
-                                        backgroundColor: const Color(0xFF059669),
+                                        content: Text(
+                                          '✓ Auto-filled: ${auto.name} from Barcode!',
+                                        ),
+                                        backgroundColor: const Color(
+                                          0xFF059669,
+                                        ),
                                       ),
                                     );
                                   }
@@ -1645,19 +2228,26 @@ class InventoryScreen extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: InkWell(
-                              onTap: () => setSheetState(() => selectedGstRate = rate),
+                              onTap: () =>
+                                  setSheetState(() => selectedGstRate = rate),
                               borderRadius: BorderRadius.circular(8),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? AppColors.primary
-                                      : AppColors.primary.withValues(alpha: 0.08),
+                                      : AppColors.primary.withValues(
+                                          alpha: 0.08,
+                                        ),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: isSelected
                                         ? AppColors.primary
-                                        : AppColors.primary.withValues(alpha: 0.2),
+                                        : AppColors.primary.withValues(
+                                            alpha: 0.2,
+                                          ),
                                   ),
                                 ),
                                 alignment: Alignment.center,
@@ -1666,7 +2256,9 @@ class InventoryScreen extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.bold,
-                                    color: isSelected ? Colors.white : AppColors.primary,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -1688,37 +2280,55 @@ class InventoryScreen extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
-                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+                          final scaffoldMessenger = ScaffoldMessenger.of(
+                            context,
+                          );
                           final inv = context.read<InventoryProvider>();
 
-                          if (nameCtrl.text.trim().isEmpty && barcodeCtrl.text.trim().isNotEmpty) {
-                            final auto = await BarcodeMedicineService.lookup(barcodeCtrl.text.trim());
+                          if (nameCtrl.text.trim().isEmpty &&
+                              barcodeCtrl.text.trim().isNotEmpty) {
+                            final auto = await BarcodeMedicineService.lookup(
+                              barcodeCtrl.text.trim(),
+                            );
                             applyAutoFill(auto);
                           }
 
                           if (nameCtrl.text.trim().isEmpty) {
                             scaffoldMessenger.showSnackBar(
-                              const SnackBar(content: Text('Please enter medicine name or scan barcode')),
+                              const SnackBar(
+                                content: Text(
+                                  'Please enter medicine name or scan barcode',
+                                ),
+                              ),
                             );
                             return;
                           }
 
-                          final parsedMrp = double.tryParse(mrpCtrl.text.trim());
+                          final parsedMrp = double.tryParse(
+                            mrpCtrl.text.trim(),
+                          );
                           final parsedSp = double.tryParse(spCtrl.text.trim());
                           if (parsedMrp == null || parsedMrp <= 0) {
                             scaffoldMessenger.showSnackBar(
-                              const SnackBar(content: Text('Please enter a valid MRP (₹)')),
+                              const SnackBar(
+                                content: Text('Please enter a valid MRP (₹)'),
+                              ),
                             );
                             return;
                           }
 
                           final mrp = parsedMrp;
-                          final sp = (parsedSp != null && parsedSp > 0) ? parsedSp : mrp;
-                          final billedStock = int.tryParse(stockCtrl.text) ?? 10;
-                          final freeStock = int.tryParse(freeSchemeCtrl.text) ?? 0;
+                          final sp = (parsedSp != null && parsedSp > 0)
+                              ? parsedSp
+                              : mrp;
+                          final billedStock =
+                              int.tryParse(stockCtrl.text) ?? 10;
+                          final freeStock =
+                              int.tryParse(freeSchemeCtrl.text) ?? 0;
                           final totalStock = billedStock + freeStock;
                           final pRate = double.tryParse(purchasePriceCtrl.text);
-                          final effectivePrice = (pRate != null && totalStock > 0)
+                          final effectivePrice =
+                              (pRate != null && totalStock > 0)
                               ? ((pRate * billedStock) / totalStock)
                               : pRate;
 
@@ -1728,32 +2338,57 @@ class InventoryScreen extends StatelessWidget {
                           final savedStrength = strengthCtrl.text.trim();
                           final savedMfg = mfgCtrl.text.trim();
                           final savedBarcode = barcodeCtrl.text.trim();
+                          final savedBatch = batchCtrl.text.trim();
+                          final savedMfgDate = mfgDateCtrl.text.trim();
                           final savedExpiry = expiryCtrl.text.trim();
                           final savedHsn = hsnCtrl.text.trim();
                           if (ctx.mounted) Navigator.pop(ctx);
                           final ok = await inv.addMedicine(
-                                name: savedName,
-                                genericName: savedGeneric.isNotEmpty ? savedGeneric : null,
-                                category: savedCategory.isNotEmpty ? savedCategory : 'General',
-                                strength: savedStrength.isNotEmpty ? savedStrength : null,
-                                manufacturer: savedMfg.isNotEmpty ? savedMfg : null,
-                                mrp: mrp,
-                                sellingPrice: sp,
-                                purchasePrice: effectivePrice,
-                                stock: totalStock,
-                                barcode: savedBarcode.isNotEmpty ? savedBarcode : null,
-                                expiryDate: savedExpiry.isNotEmpty ? savedExpiry : '12/2028',
-                                gstRate: selectedGstRate,
-                                hsnCode: savedHsn.isNotEmpty ? savedHsn : null,
-                              );
+                            name: savedName,
+                            genericName: savedGeneric.isNotEmpty
+                                ? savedGeneric
+                                : null,
+                            category: savedCategory.isNotEmpty
+                                ? savedCategory
+                                : 'General',
+                            strength: savedStrength.isNotEmpty
+                                ? savedStrength
+                                : null,
+                            manufacturer: savedMfg.isNotEmpty ? savedMfg : null,
+                            mrp: mrp,
+                            sellingPrice: sp,
+                            purchasePrice: effectivePrice,
+                            stock: totalStock,
+                            barcode: savedBarcode.isNotEmpty
+                                ? savedBarcode
+                                : null,
+                            batchNumber: savedBatch.isNotEmpty
+                                ? savedBatch
+                                : null,
+                            mfgDate: savedMfgDate.isNotEmpty
+                                ? savedMfgDate
+                                : null,
+                            expiryDate: savedExpiry.isNotEmpty
+                                ? savedExpiry
+                                : '12/2028',
+                            gstRate: selectedGstRate,
+                            hsnCode: savedHsn.isNotEmpty ? savedHsn : null,
+                          );
                           if (context.mounted) {
-                            final schemeBadge = freeStock > 0 ? ' ($billedStock + $freeStock Free = $totalStock units)' : '';
+                            final schemeBadge = freeStock > 0
+                                ? ' ($billedStock + $freeStock Free = $totalStock units)'
+                                : '';
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(ok 
-                                  ? '✓ Added $savedName$schemeBadge to inventory!' 
-                                  : (inv.errorMessage ?? 'Failed to add medicine. Please try again.')),
-                                backgroundColor: ok ? const Color(0xFF059669) : Colors.red,
+                                content: Text(
+                                  ok
+                                      ? '✓ Added $savedName$schemeBadge to inventory!'
+                                      : (inv.errorMessage ??
+                                            'Failed to add medicine. Please try again.'),
+                                ),
+                                backgroundColor: ok
+                                    ? const Color(0xFF059669)
+                                    : Colors.red,
                               ),
                             );
                           }
@@ -1762,9 +2397,17 @@ class InventoryScreen extends StatelessWidget {
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: const Text('Save to Inventory', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Save to Inventory',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -1786,6 +2429,8 @@ class InventoryScreen extends StatelessWidget {
       freeSchemeCtrl.dispose();
       purchasePriceCtrl.dispose();
       barcodeCtrl.dispose();
+      batchCtrl.dispose();
+      mfgDateCtrl.dispose();
       expiryCtrl.dispose();
       hsnCtrl.dispose();
     });
@@ -1798,13 +2443,20 @@ class InventoryScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         int filterDays = 90;
-        final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+        final currency = NumberFormat.currency(
+          locale: 'en_IN',
+          symbol: '₹',
+          decimalDigits: 2,
+        );
 
         return StatefulBuilder(
           builder: (modalCtx, setModalState) {
             final list = inventory.getExpiringMedicines(days: filterDays);
             final totalUnits = list.fold<int>(0, (sum, m) => sum + m.stock);
-            final totalValue = list.fold<double>(0.0, (sum, m) => sum + (m.stock * m.sellingPrice * 0.75));
+            final totalValue = list.fold<double>(
+              0.0,
+              (sum, m) => sum + (m.stock * m.sellingPrice * 0.75),
+            );
 
             return Container(
               decoration: const BoxDecoration(
@@ -1839,7 +2491,11 @@ class InventoryScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(0xFFFECACA)),
                         ),
-                        child: const Icon(Icons.event_busy_rounded, color: Color(0xFFDC2626), size: 22),
+                        child: const Icon(
+                          Icons.event_busy_rounded,
+                          color: Color(0xFFDC2626),
+                          size: 22,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       const Expanded(
@@ -1848,11 +2504,19 @@ class InventoryScreen extends StatelessWidget {
                           children: [
                             Text(
                               'Near-Expiry Return Alert',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                             Text(
                               'Return to Distributor for 100% Credit Note',
-                              style: TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFDC2626),
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
@@ -1872,7 +2536,9 @@ class InventoryScreen extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 7),
                               decoration: BoxDecoration(
-                                color: filterDays == d ? const Color(0xFFDC2626) : const Color(0xFFF1F5F9),
+                                color: filterDays == d
+                                    ? const Color(0xFFDC2626)
+                                    : const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Center(
@@ -1881,7 +2547,9 @@ class InventoryScreen extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: filterDays == d ? Colors.white : AppColors.textSecondary,
+                                    color: filterDays == d
+                                        ? Colors.white
+                                        : AppColors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -1896,7 +2564,10 @@ class InventoryScreen extends StatelessWidget {
 
                   // Summary bar
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFFBEB),
                       borderRadius: BorderRadius.circular(10),
@@ -1908,7 +2579,11 @@ class InventoryScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '${list.length} Products ($totalUnits units)',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF92400E),
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -1916,7 +2591,11 @@ class InventoryScreen extends StatelessWidget {
                         Flexible(
                           child: Text(
                             'Est. Value: ${currency.format(totalValue)}',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF92400E),
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -1931,7 +2610,11 @@ class InventoryScreen extends StatelessWidget {
                       child: Center(
                         child: Text(
                           '✓ Great job! No medicines expiring in this period.',
-                          style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 13),
+                          style: TextStyle(
+                            color: Color(0xFF059669),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
@@ -1939,10 +2622,13 @@ class InventoryScreen extends StatelessWidget {
                     Expanded(
                       child: ListView.separated(
                         itemCount: list.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
                         itemBuilder: (c, i) {
                           final med = list[i];
-                          final days = InventoryProvider.getDaysUntilExpiry(med.expiryDate);
+                          final days = InventoryProvider.getDaysUntilExpiry(
+                            med.expiryDate,
+                          );
                           final isExpired = days != null && days < 0;
 
                           return Padding(
@@ -1951,28 +2637,46 @@ class InventoryScreen extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
                                           Flexible(
                                             child: Text(
                                               med.name,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13.5,
+                                              ),
                                             ),
                                           ),
-                                          if (med.strength != null && med.strength!.isNotEmpty) ...[
+                                          if (med.strength != null &&
+                                              med.strength!.isNotEmpty) ...[
                                             const SizedBox(width: 5),
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                    vertical: 1,
+                                                  ),
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFFEFF6FF),
-                                                borderRadius: BorderRadius.circular(4),
-                                                border: Border.all(color: const Color(0xFF93C5FD)),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                border: Border.all(
+                                                  color: const Color(
+                                                    0xFF93C5FD,
+                                                  ),
+                                                ),
                                               ),
                                               child: Text(
                                                 med.strength!,
-                                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                                style: const TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF1D4ED8),
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -1981,7 +2685,10 @@ class InventoryScreen extends StatelessWidget {
                                       const SizedBox(height: 2),
                                       Text(
                                         'Batch: ${med.batchNumber ?? "-"} • Exp: ${med.expiryDate ?? "-"}',
-                                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textSecondary,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -1990,25 +2697,40 @@ class InventoryScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: isExpired ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
+                                        color: isExpired
+                                            ? const Color(0xFFFEF2F2)
+                                            : const Color(0xFFFFFBEB),
                                         borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: isExpired ? const Color(0xFFF87171) : const Color(0xFFFCD34D)),
+                                        border: Border.all(
+                                          color: isExpired
+                                              ? const Color(0xFFF87171)
+                                              : const Color(0xFFFCD34D),
+                                        ),
                                       ),
                                       child: Text(
                                         isExpired ? 'Expired' : '${days}d left',
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
-                                          color: isExpired ? const Color(0xFFDC2626) : const Color(0xFFB45309),
+                                          color: isExpired
+                                              ? const Color(0xFFDC2626)
+                                              : const Color(0xFFB45309),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       '${med.stock} in store',
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -2024,46 +2746,85 @@ class InventoryScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: list.isEmpty ? null : () {
-                        final buffer = StringBuffer();
-                        buffer.writeln('📋 *EXPIRED / NEAR-EXPIRY MEDICINE RETURN LIST*');
-                        buffer.writeln('📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}');
-                        buffer.writeln('⚠️ Filter: Expiring within $filterDays days');
-                        buffer.writeln('------------------------------------');
-                        for (int i = 0; i < list.length; i++) {
-                          final m = list[i];
-                          final d = InventoryProvider.getDaysUntilExpiry(m.expiryDate);
-                          final expInfo = (d != null && d < 0) ? 'EXPIRED' : '${d ?? "-"}d left';
-                          buffer.writeln('${i + 1}. ${m.name} [B: ${m.batchNumber ?? "-"}] - Qty: ${m.stock} (Exp: ${m.expiryDate ?? "-"}, $expInfo)');
-                        }
-                        buffer.writeln('------------------------------------');
-                        buffer.writeln('Total Items: $totalUnits Units (${list.length} Products)');
-                        buffer.writeln('Estimated Value: ${currency.format(totalValue)}');
-                        buffer.writeln('Please arrange pickup and send Credit Note. Thank you!');
+                      onPressed: list.isEmpty
+                          ? null
+                          : () {
+                              final buffer = StringBuffer();
+                              buffer.writeln(
+                                '📋 *EXPIRED / NEAR-EXPIRY MEDICINE RETURN LIST*',
+                              );
+                              buffer.writeln(
+                                '📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}',
+                              );
+                              buffer.writeln(
+                                '⚠️ Filter: Expiring within $filterDays days',
+                              );
+                              buffer.writeln(
+                                '------------------------------------',
+                              );
+                              for (int i = 0; i < list.length; i++) {
+                                final m = list[i];
+                                final d = InventoryProvider.getDaysUntilExpiry(
+                                  m.expiryDate,
+                                );
+                                final expInfo = (d != null && d < 0)
+                                    ? 'EXPIRED'
+                                    : '${d ?? "-"}d left';
+                                buffer.writeln(
+                                  '${i + 1}. ${m.name} [B: ${m.batchNumber ?? "-"}] - Qty: ${m.stock} (Exp: ${m.expiryDate ?? "-"}, $expInfo)',
+                                );
+                              }
+                              buffer.writeln(
+                                '------------------------------------',
+                              );
+                              buffer.writeln(
+                                'Total Items: $totalUnits Units (${list.length} Products)',
+                              );
+                              buffer.writeln(
+                                'Estimated Value: ${currency.format(totalValue)}',
+                              );
+                              buffer.writeln(
+                                'Please arrange pickup and send Credit Note. Thank you!',
+                              );
 
-                        Clipboard.setData(ClipboardData(text: buffer.toString()));
-                        Navigator.pop(modalCtx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Row(
-                              children: [
-                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                                SizedBox(width: 8),
-                                Expanded(child: Text('Distributor Return List copied to clipboard! Paste in WhatsApp.')),
-                              ],
-                            ),
-                            backgroundColor: Color(0xFF059669),
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
-                      },
+                              Clipboard.setData(
+                                ClipboardData(text: buffer.toString()),
+                              );
+                              Navigator.pop(modalCtx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_rounded,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Distributor Return List copied to clipboard! Paste in WhatsApp.',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Color(0xFF059669),
+                                  duration: Duration(seconds: 3),
+                                ),
+                              );
+                            },
                       icon: const Icon(Icons.share_rounded, size: 18),
-                      label: const Text('Copy WhatsApp Return List to Distributor', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Copy WhatsApp Return List to Distributor',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -2077,8 +2838,15 @@ class InventoryScreen extends StatelessWidget {
   }
 
   // Shortage Book (કમી-બુક) / Auto Reorder Sheet
-  void _showShortageBookSheet(BuildContext context, InventoryProvider inventory) {
-    final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+  void _showShortageBookSheet(
+    BuildContext context,
+    InventoryProvider inventory,
+  ) {
+    final currency = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: 2,
+    );
 
     showModalBottomSheet(
       context: context,
@@ -2096,8 +2864,12 @@ class InventoryScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (sheetContext, setModalState) {
             // Get all shortage medicines (stock <= minStockAlert)
-            final allShortage = inventory.allMedicines.where((m) => m.isLowStock).toList();
-            allShortage.sort((a, b) => a.stock.compareTo(b.stock)); // 0 stock first
+            final allShortage = inventory.allMedicines
+                .where((m) => m.isLowStock)
+                .toList();
+            allShortage.sort(
+              (a, b) => a.stock.compareTo(b.stock),
+            ); // 0 stock first
 
             final filtered = allShortage.where((m) {
               if (filterType == 'OUT_OF_STOCK' && m.stock > 0) return false;
@@ -2105,14 +2877,18 @@ class InventoryScreen extends StatelessWidget {
               if (searchCtrl.text.trim().isNotEmpty) {
                 final q = searchCtrl.text.trim().toLowerCase();
                 final matchName = m.name.toLowerCase().contains(q);
-                final matchGen = m.genericName?.toLowerCase().contains(q) ?? false;
-                final matchMfg = m.manufacturer?.toLowerCase().contains(q) ?? false;
+                final matchGen =
+                    m.genericName?.toLowerCase().contains(q) ?? false;
+                final matchMfg =
+                    m.manufacturer?.toLowerCase().contains(q) ?? false;
                 if (!matchName && !matchGen && !matchMfg) return false;
               }
               return true;
             }).toList();
 
-            final selectedItems = filtered.where((m) => !excludedIds.contains(m.id)).toList();
+            final selectedItems = filtered
+                .where((m) => !excludedIds.contains(m.id))
+                .toList();
             int totalOrderUnits = 0;
             double totalOrderValue = 0;
 
@@ -2120,16 +2896,25 @@ class InventoryScreen extends StatelessWidget {
               final defaultQty = math.max(10, (m.minStockAlert * 2) - m.stock);
               final qty = customQuantities[m.id] ?? defaultQty;
               totalOrderUnits += qty;
-              final estCost = m.sellingPrice > 0 ? (m.sellingPrice * 0.75) : (m.mrp * 0.7);
+              final estCost = m.sellingPrice > 0
+                  ? (m.sellingPrice * 0.75)
+                  : (m.mrp * 0.7);
               totalOrderValue += (estCost * qty);
             }
 
             final outCount = allShortage.where((m) => m.isOutOfStock).length;
-            final critCount = allShortage.where((m) => m.stock > 0 && m.stock <= 5).length;
+            final critCount = allShortage
+                .where((m) => m.stock > 0 && m.stock <= 5)
+                .length;
 
             return Container(
               height: MediaQuery.of(sheetContext).size.height * 0.88,
-              padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(sheetContext).viewInsets.bottom + 16),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                12,
+                16,
+                MediaQuery.of(sheetContext).viewInsets.bottom + 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2154,7 +2939,11 @@ class InventoryScreen extends StatelessWidget {
                           color: const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.menu_book_rounded, color: Color(0xFFD97706), size: 22),
+                        child: const Icon(
+                          Icons.menu_book_rounded,
+                          color: Color(0xFFD97706),
+                          size: 22,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       const Expanded(
@@ -2163,11 +2952,18 @@ class InventoryScreen extends StatelessWidget {
                           children: [
                             Text(
                               'Shortage Book (કમી-બુક)',
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                             Text(
                               'Auto Reorder & WhatsApp Order to Wholesalers',
-                              style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -2193,10 +2989,20 @@ class InventoryScreen extends StatelessWidget {
                       style: const TextStyle(fontSize: 13),
                       decoration: const InputDecoration(
                         hintText: 'Search shortage medicine...',
-                        hintStyle: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                        prefixIcon: Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                        hintStyle: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          size: 18,
+                          color: AppColors.textMuted,
+                        ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -2207,17 +3013,32 @@ class InventoryScreen extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildShortageFilterChip('ALL', 'All Shortage (${allShortage.length})', filterType, (v) {
-                          setModalState(() => filterType = v);
-                        }),
+                        _buildShortageFilterChip(
+                          'ALL',
+                          'All Shortage (${allShortage.length})',
+                          filterType,
+                          (v) {
+                            setModalState(() => filterType = v);
+                          },
+                        ),
                         const SizedBox(width: 6),
-                        _buildShortageFilterChip('OUT_OF_STOCK', 'Out of Stock ($outCount)', filterType, (v) {
-                          setModalState(() => filterType = v);
-                        }),
+                        _buildShortageFilterChip(
+                          'OUT_OF_STOCK',
+                          'Out of Stock ($outCount)',
+                          filterType,
+                          (v) {
+                            setModalState(() => filterType = v);
+                          },
+                        ),
                         const SizedBox(width: 6),
-                        _buildShortageFilterChip('CRITICAL', 'Critical <=5 ($critCount)', filterType, (v) {
-                          setModalState(() => filterType = v);
-                        }),
+                        _buildShortageFilterChip(
+                          'CRITICAL',
+                          'Critical <=5 ($critCount)',
+                          filterType,
+                          (v) {
+                            setModalState(() => filterType = v);
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -2225,7 +3046,10 @@ class InventoryScreen extends StatelessWidget {
 
                   // Summary Strip
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFFBEB),
                       borderRadius: BorderRadius.circular(10),
@@ -2237,7 +3061,11 @@ class InventoryScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '${selectedItems.length} Items ($totalOrderUnits units)',
-                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF92400E),
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -2245,7 +3073,11 @@ class InventoryScreen extends StatelessWidget {
                         Flexible(
                           child: Text(
                             'Est: ${currency.format(totalOrderValue)}',
-                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF92400E),
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -2260,7 +3092,11 @@ class InventoryScreen extends StatelessWidget {
                       child: Center(
                         child: Text(
                           '✓ Stock is sufficient! No shortage items found.',
-                          style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 13),
+                          style: TextStyle(
+                            color: Color(0xFF059669),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
@@ -2268,15 +3104,22 @@ class InventoryScreen extends StatelessWidget {
                     Expanded(
                       child: ListView.separated(
                         itemCount: filtered.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
                         itemBuilder: (ctx, i) {
                           final med = filtered[i];
                           final isExcluded = excludedIds.contains(med.id);
-                          final defaultQty = math.max(10, (med.minStockAlert * 2) - med.stock);
-                          final orderQty = customQuantities[med.id] ?? defaultQty;
+                          final defaultQty = math.max(
+                            10,
+                            (med.minStockAlert * 2) - med.stock,
+                          );
+                          final orderQty =
+                              customQuantities[med.id] ?? defaultQty;
 
                           return Container(
-                            color: isExcluded ? const Color(0xFFF8FAFC) : Colors.white,
+                            color: isExcluded
+                                ? const Color(0xFFF8FAFC)
+                                : Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Row(
                               children: [
@@ -2295,7 +3138,8 @@ class InventoryScreen extends StatelessWidget {
                                 ),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -2305,23 +3149,41 @@ class InventoryScreen extends StatelessWidget {
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 13.5,
-                                                decoration: isExcluded ? TextDecoration.lineThrough : null,
-                                                color: isExcluded ? AppColors.textMuted : AppColors.textPrimary,
+                                                decoration: isExcluded
+                                                    ? TextDecoration.lineThrough
+                                                    : null,
+                                                color: isExcluded
+                                                    ? AppColors.textMuted
+                                                    : AppColors.textPrimary,
                                               ),
                                             ),
                                           ),
-                                          if (med.strength != null && med.strength!.isNotEmpty) ...[
+                                          if (med.strength != null &&
+                                              med.strength!.isNotEmpty) ...[
                                             const SizedBox(width: 4),
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                    vertical: 1,
+                                                  ),
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFFEFF6FF),
-                                                borderRadius: BorderRadius.circular(4),
-                                                border: Border.all(color: const Color(0xFF93C5FD)),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                border: Border.all(
+                                                  color: const Color(
+                                                    0xFF93C5FD,
+                                                  ),
+                                                ),
                                               ),
                                               child: Text(
                                                 med.strength!,
-                                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                                style: const TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF1D4ED8),
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -2331,28 +3193,42 @@ class InventoryScreen extends StatelessWidget {
                                       Row(
                                         children: [
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 5,
+                                              vertical: 1,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: med.stock <= 0 ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
-                                              borderRadius: BorderRadius.circular(4),
+                                              color: med.stock <= 0
+                                                  ? const Color(0xFFFEF2F2)
+                                                  : const Color(0xFFFFFBEB),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                             child: Text(
-                                              med.stock <= 0 ? 'Out of Stock (0)' : 'Current: ${med.stock}',
+                                              med.stock <= 0
+                                                  ? 'Out of Stock (0)'
+                                                  : 'Current: ${med.stock}',
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
-                                                color: med.stock <= 0 ? AppColors.error : const Color(0xFFB45309),
+                                                color: med.stock <= 0
+                                                    ? AppColors.error
+                                                    : const Color(0xFFB45309),
                                               ),
                                             ),
                                           ),
-                                          if (med.manufacturer != null && med.manufacturer!.isNotEmpty) ...[
+                                          if (med.manufacturer != null &&
+                                              med.manufacturer!.isNotEmpty) ...[
                                             const SizedBox(width: 6),
                                             Flexible(
                                               child: Text(
                                                 med.manufacturer!,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted),
+                                                style: const TextStyle(
+                                                  fontSize: 10.5,
+                                                  color: AppColors.textMuted,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -2366,38 +3242,67 @@ class InventoryScreen extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF1F5F9),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    border: Border.all(
+                                      color: const Color(0xFFE2E8F0),
+                                    ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       InkWell(
-                                        onTap: isExcluded || orderQty <= 1 ? null : () {
-                                          setModalState(() {
-                                            customQuantities[med.id] = orderQty - 5 > 0 ? orderQty - 5 : 1;
-                                          });
-                                        },
+                                        onTap: isExcluded || orderQty <= 1
+                                            ? null
+                                            : () {
+                                                setModalState(() {
+                                                  customQuantities[med.id] =
+                                                      orderQty - 5 > 0
+                                                      ? orderQty - 5
+                                                      : 1;
+                                                });
+                                              },
                                         child: const Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                                          child: Icon(Icons.remove_rounded, size: 14, color: AppColors.textSecondary),
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 7,
+                                            vertical: 4,
+                                          ),
+                                          child: Icon(
+                                            Icons.remove_rounded,
+                                            size: 14,
+                                            color: AppColors.textSecondary,
+                                          ),
                                         ),
                                       ),
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                        ),
                                         child: Text(
                                           '$orderQty',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
                                         ),
                                       ),
                                       InkWell(
-                                        onTap: isExcluded ? null : () {
-                                          setModalState(() {
-                                            customQuantities[med.id] = orderQty + 5;
-                                          });
-                                        },
+                                        onTap: isExcluded
+                                            ? null
+                                            : () {
+                                                setModalState(() {
+                                                  customQuantities[med.id] =
+                                                      orderQty + 5;
+                                                });
+                                              },
                                         child: const Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                                          child: Icon(Icons.add_rounded, size: 14, color: AppColors.primary),
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 7,
+                                            vertical: 4,
+                                          ),
+                                          child: Icon(
+                                            Icons.add_rounded,
+                                            size: 14,
+                                            color: AppColors.primary,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -2416,48 +3321,93 @@ class InventoryScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: selectedItems.isEmpty ? null : () {
-                        final buffer = StringBuffer();
-                        buffer.writeln('📦 *PURCHASE ORDER (કમી-બુક / SHORTAGE)*');
-                        buffer.writeln('📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}');
-                        buffer.writeln('🏪 Store: ${context.read<AuthProvider>().pharmacyName}');
-                        buffer.writeln('------------------------------------');
-                        for (int i = 0; i < selectedItems.length; i++) {
-                          final m = selectedItems[i];
-                          final defaultQty = math.max(10, (m.minStockAlert * 2) - m.stock);
-                          final qty = customQuantities[m.id] ?? defaultQty;
-                          final strengthStr = (m.strength != null && m.strength!.isNotEmpty) ? ' [${m.strength}]' : '';
-                          buffer.writeln('${i + 1}. ${m.name}$strengthStr - Order: $qty units (Current Stock: ${m.stock})');
-                        }
-                        buffer.writeln('------------------------------------');
-                        buffer.writeln('Total Items: ${selectedItems.length} Products');
-                        buffer.writeln('Total Order Quantity: $totalOrderUnits Units');
-                        buffer.writeln('Est. Value: ${currency.format(totalOrderValue)}');
-                        buffer.writeln('Please confirm dispatch & delivery timing. Thank you!');
+                      onPressed: selectedItems.isEmpty
+                          ? null
+                          : () {
+                              final buffer = StringBuffer();
+                              buffer.writeln(
+                                '📦 *PURCHASE ORDER (કમી-બુક / SHORTAGE)*',
+                              );
+                              buffer.writeln(
+                                '📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}',
+                              );
+                              buffer.writeln(
+                                '🏪 Store: ${context.read<AuthProvider>().pharmacyName}',
+                              );
+                              buffer.writeln(
+                                '------------------------------------',
+                              );
+                              for (int i = 0; i < selectedItems.length; i++) {
+                                final m = selectedItems[i];
+                                final defaultQty = math.max(
+                                  10,
+                                  (m.minStockAlert * 2) - m.stock,
+                                );
+                                final qty =
+                                    customQuantities[m.id] ?? defaultQty;
+                                final strengthStr =
+                                    (m.strength != null &&
+                                        m.strength!.isNotEmpty)
+                                    ? ' [${m.strength}]'
+                                    : '';
+                                buffer.writeln(
+                                  '${i + 1}. ${m.name}$strengthStr - Order: $qty units (Current Stock: ${m.stock})',
+                                );
+                              }
+                              buffer.writeln(
+                                '------------------------------------',
+                              );
+                              buffer.writeln(
+                                'Total Items: ${selectedItems.length} Products',
+                              );
+                              buffer.writeln(
+                                'Total Order Quantity: $totalOrderUnits Units',
+                              );
+                              buffer.writeln(
+                                'Est. Value: ${currency.format(totalOrderValue)}',
+                              );
+                              buffer.writeln(
+                                'Please confirm dispatch & delivery timing. Thank you!',
+                              );
 
-                        Clipboard.setData(ClipboardData(text: buffer.toString()));
-                        Navigator.pop(modalCtx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Row(
-                              children: [
-                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                                SizedBox(width: 8),
-                                Expanded(child: Text('✓ WhatsApp Shortage Order copied! Paste in WhatsApp to send to distributor.')),
-                              ],
-                            ),
-                            backgroundColor: Color(0xFF059669),
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
-                      },
+                              Clipboard.setData(
+                                ClipboardData(text: buffer.toString()),
+                              );
+                              Navigator.pop(modalCtx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_rounded,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '✓ WhatsApp Shortage Order copied! Paste in WhatsApp to send to distributor.',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Color(0xFF059669),
+                                  duration: Duration(seconds: 3),
+                                ),
+                              );
+                            },
                       icon: const Icon(Icons.send_rounded, size: 18),
-                      label: const Text('Copy WhatsApp Order to Wholesaler', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Copy WhatsApp Order to Wholesaler',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -2470,7 +3420,12 @@ class InventoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildShortageFilterChip(String value, String label, String activeValue, ValueChanged<String> onSelected) {
+  Widget _buildShortageFilterChip(
+    String value,
+    String label,
+    String activeValue,
+    ValueChanged<String> onSelected,
+  ) {
     final isSelected = value == activeValue;
     return ChoiceChip(
       label: Text(label),
@@ -2493,7 +3448,10 @@ class InventoryScreen extends StatelessWidget {
   }
 
   // Schedule H1 & Narcotic Statutory Register Sheet (FDCA Inspection Ready)
-  void _showScheduleH1RegisterSheet(BuildContext context, InventoryProvider inventory) {
+  void _showScheduleH1RegisterSheet(
+    BuildContext context,
+    InventoryProvider inventory,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2525,7 +3483,8 @@ class InventoryScreen extends StatelessWidget {
                     });
                   }
                 } else {
-                  if (sheetCtx.mounted) setSheetState(() => isLoadingH1 = false);
+                  if (sheetCtx.mounted)
+                    setSheetState(() => isLoadingH1 = false);
                 }
               } catch (e) {
                 if (sheetCtx.mounted) setSheetState(() => isLoadingH1 = false);
@@ -2544,12 +3503,20 @@ class InventoryScreen extends StatelessWidget {
               final dName = (e['doctor_name'] ?? '').toString().toLowerCase();
               final mName = (e['medicine_name'] ?? '').toString().toLowerCase();
               final bNum = (e['batch_number'] ?? '').toString().toLowerCase();
-              return pName.contains(q) || dName.contains(q) || mName.contains(q) || bNum.contains(q);
+              return pName.contains(q) ||
+                  dName.contains(q) ||
+                  mName.contains(q) ||
+                  bNum.contains(q);
             }).toList();
 
             return Container(
               height: MediaQuery.of(sheetCtx).size.height * 0.90,
-              padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(sheetCtx).viewInsets.bottom + 16),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                12,
+                16,
+                MediaQuery.of(sheetCtx).viewInsets.bottom + 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2574,7 +3541,11 @@ class InventoryScreen extends StatelessWidget {
                           color: const Color(0xFFFEF2F2),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.gavel_rounded, color: Color(0xFFDC2626), size: 22),
+                        child: const Icon(
+                          Icons.gavel_rounded,
+                          color: Color(0xFFDC2626),
+                          size: 22,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       const Expanded(
@@ -2583,11 +3554,18 @@ class InventoryScreen extends StatelessWidget {
                           children: [
                             Text(
                               'Schedule H1 Digital Register',
-                              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              style: TextStyle(
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                             Text(
                               'FDCA Statutory Compliance (Rule 65 & 97)',
-                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -2613,10 +3591,20 @@ class InventoryScreen extends StatelessWidget {
                       style: const TextStyle(fontSize: 13),
                       decoration: const InputDecoration(
                         hintText: 'Search Patient, Doctor, Drug, or Batch...',
-                        hintStyle: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                        prefixIcon: Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                        hintStyle: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          size: 18,
+                          color: AppColors.textMuted,
+                        ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -2624,7 +3612,10 @@ class InventoryScreen extends StatelessWidget {
 
                   // Summary Strip
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFECFDF5),
                       borderRadius: BorderRadius.circular(10),
@@ -2636,7 +3627,11 @@ class InventoryScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '${filteredEntries.length} Entries Verified',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF065F46),
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -2644,9 +3639,20 @@ class InventoryScreen extends StatelessWidget {
                         const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.verified_rounded, size: 14, color: Color(0xFF059669)),
+                            Icon(
+                              Icons.verified_rounded,
+                              size: 14,
+                              color: Color(0xFF059669),
+                            ),
                             SizedBox(width: 4),
-                            Text('Inspector Ready', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                            Text(
+                              'Inspector Ready',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF059669),
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -2658,7 +3664,9 @@ class InventoryScreen extends StatelessWidget {
                   if (isLoadingH1) ...[
                     const Expanded(
                       child: Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ] else if (filteredEntries.isEmpty) ...[
@@ -2666,7 +3674,11 @@ class InventoryScreen extends StatelessWidget {
                       child: Center(
                         child: Text(
                           '✓ No Schedule H1 records found for this period.',
-                          style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 13),
+                          style: TextStyle(
+                            color: Color(0xFF059669),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
@@ -2674,14 +3686,18 @@ class InventoryScreen extends StatelessWidget {
                     Expanded(
                       child: ListView.separated(
                         itemCount: filteredEntries.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
                         itemBuilder: (ctx, i) {
                           final e = filteredEntries[i];
                           final dateStr = (e['supply_date'] ?? '').toString();
-                          final pName = (e['patient_name'] ?? 'Walk-in Patient').toString();
-                          final dName = (e['doctor_name'] ?? 'R.M.P.').toString();
+                          final pName = (e['patient_name'] ?? 'Walk-in Patient')
+                              .toString();
+                          final dName = (e['doctor_name'] ?? 'R.M.P.')
+                              .toString();
                           final mName = (e['medicine_name'] ?? '').toString();
-                          final bNum = (e['batch_number'] ?? 'DEFAULT').toString();
+                          final bNum = (e['batch_number'] ?? 'DEFAULT')
+                              .toString();
                           final qty = e['quantity'] ?? 1;
                           final unit = (e['unit'] ?? 'Strip').toString();
                           final billNo = (e['bill_number'] ?? '').toString();
@@ -2692,25 +3708,38 @@ class InventoryScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Flexible(
                                       child: Text(
                                         mName,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 2,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFEFF6FF),
                                         borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                                        border: Border.all(
+                                          color: const Color(0xFFBFDBFE),
+                                        ),
                                       ),
                                       child: Text(
                                         '$qty $unit',
-                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1D4ED8),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -2718,29 +3747,48 @@ class InventoryScreen extends StatelessWidget {
                                 const SizedBox(height: 3),
                                 Row(
                                   children: [
-                                    const Icon(Icons.person_rounded, size: 12, color: AppColors.textMuted),
+                                    const Icon(
+                                      Icons.person_rounded,
+                                      size: 12,
+                                      color: AppColors.textMuted,
+                                    ),
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
                                         'Patient: $pName',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textPrimary,
+                                        ),
                                       ),
                                     ),
                                     Text(
                                       dateStr,
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textMuted,
+                                      ),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 2),
                                 Row(
                                   children: [
-                                    const Icon(Icons.medical_services_rounded, size: 12, color: Color(0xFF7C3AED)),
+                                    const Icon(
+                                      Icons.medical_services_rounded,
+                                      size: 12,
+                                      color: Color(0xFF7C3AED),
+                                    ),
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
                                         'Prescriber: $dName',
-                                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF6B21A8), fontWeight: FontWeight.w500),
+                                        style: const TextStyle(
+                                          fontSize: 11.5,
+                                          color: Color(0xFF6B21A8),
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
@@ -2748,7 +3796,11 @@ class InventoryScreen extends StatelessWidget {
                                     Flexible(
                                       child: Text(
                                         'Batch: $bNum${billNo.isNotEmpty ? " • $billNo" : ""}',
-                                        style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary, fontFamily: 'monospace'),
+                                        style: const TextStyle(
+                                          fontSize: 10.5,
+                                          color: AppColors.textSecondary,
+                                          fontFamily: 'monospace',
+                                        ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
@@ -2767,43 +3819,76 @@ class InventoryScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: filteredEntries.isEmpty ? null : () {
-                        final buffer = StringBuffer();
-                        buffer.writeln('⚖️ *SCHEDULE H1 STATUTORY REGISTER (RULE 65 & 97)*');
-                        buffer.writeln('📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}');
-                        buffer.writeln('🏛️ Authority: Food & Drug Control Administration (FDCA)');
-                        buffer.writeln('----------------------------------------------------');
-                        for (int i = 0; i < filteredEntries.length; i++) {
-                          final e = filteredEntries[i];
-                          buffer.writeln('${i + 1}. Date: ${e['supply_date']} | Patient: ${e['patient_name']} | Dr: ${e['doctor_name']} | Drug: ${e['medicine_name']} [B: ${e['batch_number']}] | Qty: ${e['quantity']} ${e['unit']} | Bill: ${e['bill_number'] ?? "-"}');
-                        }
-                        buffer.writeln('----------------------------------------------------');
-                        buffer.writeln('Total Entries: ${filteredEntries.length} Records Verified');
-                        buffer.writeln('Sign of Registered Pharmacist: [ Certified ]');
+                      onPressed: filteredEntries.isEmpty
+                          ? null
+                          : () {
+                              final buffer = StringBuffer();
+                              buffer.writeln(
+                                '⚖️ *SCHEDULE H1 STATUTORY REGISTER (RULE 65 & 97)*',
+                              );
+                              buffer.writeln(
+                                '📅 Date: ${DateFormat("dd/MM/yyyy").format(DateTime.now())}',
+                              );
+                              buffer.writeln(
+                                '🏛️ Authority: Food & Drug Control Administration (FDCA)',
+                              );
+                              buffer.writeln(
+                                '----------------------------------------------------',
+                              );
+                              for (int i = 0; i < filteredEntries.length; i++) {
+                                final e = filteredEntries[i];
+                                buffer.writeln(
+                                  '${i + 1}. Date: ${e['supply_date']} | Patient: ${e['patient_name']} | Dr: ${e['doctor_name']} | Drug: ${e['medicine_name']} [B: ${e['batch_number']}] | Qty: ${e['quantity']} ${e['unit']} | Bill: ${e['bill_number'] ?? "-"}',
+                                );
+                              }
+                              buffer.writeln(
+                                '----------------------------------------------------',
+                              );
+                              buffer.writeln(
+                                'Total Entries: ${filteredEntries.length} Records Verified',
+                              );
+                              buffer.writeln(
+                                'Sign of Registered Pharmacist: [ Certified ]',
+                              );
 
-                        Clipboard.setData(ClipboardData(text: buffer.toString()));
-                        Navigator.pop(modalCtx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Row(
-                              children: [
-                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                                SizedBox(width: 8),
-                                Expanded(child: Text('✓ Schedule H1 Inspection Register copied to clipboard!')),
-                              ],
-                            ),
-                            backgroundColor: Color(0xFF059669),
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
-                      },
+                              Clipboard.setData(
+                                ClipboardData(text: buffer.toString()),
+                              );
+                              Navigator.pop(modalCtx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_rounded,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '✓ Schedule H1 Inspection Register copied to clipboard!',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Color(0xFF059669),
+                                  duration: Duration(seconds: 3),
+                                ),
+                              );
+                            },
                       icon: const Icon(Icons.copy_rounded, size: 18),
-                      label: const Text('Copy FDCA Inspection Register', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Copy FDCA Inspection Register',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0F172A),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
