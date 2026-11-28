@@ -2,6 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import routes from './routes';
+import publicLegalPages from './routes/publicLegalPages';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFound';
 import { checkDatabaseHealth } from './config/database';
@@ -71,6 +72,9 @@ app.get('/health', async (_req: Request, res: Response) => {
     });
   }
 });
+
+// Public legal pages (Play Console Privacy Policy & Account Deletion HTTPS URLs)
+app.use('/', publicLegalPages);
 
 // API Routes
 app.use('/api', routes);

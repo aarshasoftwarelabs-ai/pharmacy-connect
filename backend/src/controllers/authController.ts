@@ -731,7 +731,7 @@ export class AuthController {
   }
   static async staffLogin(req: Request, res: Response) {
     try {
-      const { phone, pin, businessType } = req.body;
+      const { phone, pin } = req.body;
       
       if (!phone || !pin) {
         return res.status(400).json({ success: false, message: 'Pharmacy phone and PIN are required' });
@@ -741,7 +741,6 @@ export class AuthController {
       const rawPin = String(pin).trim();
       const digitsOnly = rawPhone.replace(/\D/g, '');
       const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
-      const targetType = businessType || 'RETAIL';
 
       // 1. Flexible search for pharmacy by phone
       let pharmacy: any = null;

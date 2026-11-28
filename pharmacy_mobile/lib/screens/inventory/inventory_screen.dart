@@ -1404,15 +1404,18 @@ class InventoryScreen extends StatelessWidget {
   IconData _getCategoryIcon(String? category) {
     if (category == null) return Icons.medication_rounded;
     final cat = category.toLowerCase();
-    if (cat.contains('analgesic') || cat.contains('pain'))
+    if (cat.contains('analgesic') || cat.contains('pain')) {
       return Icons.healing_rounded;
+    }
     if (cat.contains('antibiotic')) return Icons.biotech_rounded;
-    if (cat.contains('antacid') || cat.contains('gastro'))
+    if (cat.contains('antacid') || cat.contains('gastro')) {
       return Icons.health_and_safety_rounded;
+    }
     if (cat.contains('antihistamine') ||
         cat.contains('cold') ||
-        cat.contains('cough'))
+        cat.contains('cough')) {
       return Icons.air_rounded;
+    }
     return Icons.medication_rounded;
   }
 
@@ -1827,10 +1830,11 @@ class InventoryScreen extends StatelessWidget {
                                         });
                                       }
                                     } finally {
-                                      if (ctx.mounted)
+                                      if (ctx.mounted) {
                                         setSheetState(
                                           () => isAutoFilling = false,
                                         );
+                                      }
                                     }
                                   },
                             style: ElevatedButton.styleFrom(
@@ -3483,8 +3487,9 @@ class InventoryScreen extends StatelessWidget {
                     });
                   }
                 } else {
-                  if (sheetCtx.mounted)
+                  if (sheetCtx.mounted) {
                     setSheetState(() => isLoadingH1 = false);
+                  }
                 }
               } catch (e) {
                 if (sheetCtx.mounted) setSheetState(() => isLoadingH1 = false);

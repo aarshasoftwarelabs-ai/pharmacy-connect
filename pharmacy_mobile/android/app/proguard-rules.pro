@@ -12,6 +12,9 @@
 -keep class com.google.mlkit.** { *; }
 -dontwarn com.google.mlkit.**
 
+# Flutter deferred components / Play Core
+-dontwarn com.google.android.play.core.**
+
 # General
 -dontwarn javax.**
 -dontwarn sun.misc.**
